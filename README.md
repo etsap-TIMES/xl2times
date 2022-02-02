@@ -1,14 +1,8 @@
 # Project
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+Note: this tool is a work in progress and not yet in a useful state
 
-As the maintainer of this project, please make a few updates:
-
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+This project is an open source tool to convert TIMES model Excel input files to DD format ready for processing by GAMS.  The intention is to make it easier for people to reproduce research results on TIMES models.
 
 ## Contributing
 
