@@ -1,4 +1,36 @@
-﻿Steps to standardize a commodity table (~FI\_COMM)
+## High level TODO list
+
+- [x] StartYear
+- [x] TimePeriods
+- [x] TimeSlices
+- [x] How to process ~COMEMI
+- [ ] FI_Comm (may be done except for a check)
+- [ ] FI_Process
+- [x] COMEMI
+- [x] FI_T
+- [x] How to read VT_UK_RES.xlsx and VT_UK_AGR.xlsx
+- [ ] PRC_ACTUNT is wrong
+- [ ] PRC_MAP is wrong
+- [ ] PRC_TSL is wrong (dd conflicts with input tables)
+- [ ] PRC_VINT is wrong
+- [ ] PRC_NOFF is wrong
+- [ ] NCAP_PKCNT is wrong (bug in input tables?)
+- [ ] NRG_TMAP is wrong
+- [ ] COM_GRP is wrong
+- [ ] COM_LIM is wrong
+- [ ] COM_PKTS is wrong
+- [ ] COM_TSL is wrong (includes commodities that are never used)
+- [ ] DATAYEAR is wrong
+- [ ] ACT_EFF numbers are wrong (bug in VEDA?)
+- [ ] PRC_RESID is wrong (bug in VEDA? VEDA converts 22.4486668069665 into 22.4486668069666)
+- [ ] VDA_EMCB numbers are wrong
+- [ ] FLO_SHAR is missing COM_GRP
+- [ ] Print unused Attributes
+
+
+## Mix of doc and detailed TODO list
+
+Steps to standardize a commodity table (~FI\_COMM)
 
 - [x] Extract table by finding tag and blank rows and columns
 - [x] Remove comment rows
