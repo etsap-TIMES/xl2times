@@ -378,15 +378,19 @@ def read_mappings(filename: str) -> List[TimesXlMap]:
 
 
 def process_time_periods(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    start_year = next(filter(lambda t : t.tag == "~StartYear", tables)).dataframe['VALUE'].values[0]
+    start_year = get_scalar("~StartYear", tables)
+    active_pdef = get_scalar("~ActivePDef", tables)
 
     def process_time_periods_table(table: EmbeddedXlTable):
         if table.tag != "~TimePeriods":
             return table
 
         df = table.dataframe.copy()
-        df.rename(columns={'Pdef-1': 'D'}, inplace=True)
+        active_series = df[active_pdef]
+        # Remove empty rows
+        active_series = active_series[active_series.astype(bool)]
 
+        df = pd.DataFrame({ 'D': active_series })
         df = df.assign(B=pd.Series([None] * df.shape[0]).values)
         df.loc[0, 'B'] = start_year
         for i in range(1, df.shape[0]):
@@ -399,6 +403,14 @@ def process_time_periods(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]
         return replace(table, dataframe=df)
 
     return [process_time_periods_table(table) for table in tables]
+
+
+def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
+    table = next(filter(lambda t : t.tag == table_tag, tables))
+    if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
+        raise ValueError('Not scalar table')
+    return table.dataframe['VALUE'].values[0]
+
 
 def process_comemi(table: EmbeddedXlTable) -> EmbeddedXlTable:
     if table.tag != "~COMEMI":
@@ -492,7 +504,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
             raw_tables.extend(result)
     print(f"Extracted {len(raw_tables)} tables, {sum(table.dataframe.shape[0] for table in raw_tables)} rows")
 
-    debug_raw_tables = False
+    debug_raw_tables = True
     if debug_raw_tables:
         os.makedirs("output", exist_ok=True)
         with open(r"output/raw_tables.txt", "w") as text_file:
