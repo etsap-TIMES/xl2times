@@ -369,7 +369,7 @@ def read_mappings(filename: str) -> List[TimesXlMap]:
 
 
 def process_time_periods(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    start_year = next(filter(lambda t : t.tag == "~StartYear", tables)).dataframe['VALUE'].values
+    start_year = next(filter(lambda t : t.tag == "~StartYear", tables)).dataframe['VALUE'].values[0]
 
     def process_time_periods_table(table: EmbeddedXlTable):
         if table.tag != "~TimePeriods":
