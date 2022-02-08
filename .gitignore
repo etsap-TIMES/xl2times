@@ -2,3 +2,4 @@
 input/*
 output/*
 ground_truth/*
+/.vs

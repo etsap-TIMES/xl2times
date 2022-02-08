@@ -131,8 +131,13 @@ def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
         for set_name, data in local_sets.items():
             all_sets[set_name].extend(data)
 
-    param_path = os.path.join(output_dir, 'params')
-    set_path = os.path.join(output_dir, 'sets')
+    use_subfolders = False
+    if use_subfolders:
+        param_path = os.path.join(output_dir, 'params')
+        set_path = os.path.join(output_dir, 'sets')
+    else:
+        param_path = output_dir
+        set_path = output_dir
     os.makedirs(param_path, exist_ok=True)
     os.makedirs(set_path, exist_ok=True)
 
