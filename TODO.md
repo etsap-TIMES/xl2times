@@ -38,7 +38,7 @@ Steps to standardize a commodity table (~FI\_COMM)
 - [x] PeakTS: If not specified the default is ANNUAL
 - [x] Duplicate rows with comma-separated values (Csets, Region, PeakTS), each row getting only one of the values.
 - [ ] After above, check there are no comma-separated values
-- [x] Remove rows with disallowed values (which are these?)
+- [x] Remove rows with disallowed values
   - [x] Csets must be one of: NRG (energy), MAT (material), DEM (demand service), ENV (emissions) and FIN (financial)
 - [x] Split columns into separate tables, permute/rename/drop columns to match TIMES (using times\_mapping.txt)
 - [x] Mark each table as set or parameter (based having a column named "VALUE")
@@ -204,7 +204,7 @@ Special handling for ~COMEMI:
 
 - For each row, collect all columns not in ("Region","Year","CommName") and transpose them to get a single column with multiple rows.  The new column is named "EMCB".  The old column names become a column named "Other\_Indexes".
 - Create columns for Region and Year if they don't exist and apply the usual missing-value handling to them
-- Make a table named VDA\_EMCB according to veda\_times\_mapping
+- Make a table named VDA\_EMCB according to times\_mapping.txt
 
 <br/> 
 
