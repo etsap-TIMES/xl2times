@@ -52,7 +52,7 @@ def extract_table(tag_row: int, tag_col: int, df: DataFrame, sheetname: str, fil
     header_row = tag_row + 1
 
     start_col = tag_col
-    while not cell_is_empty(df.iloc[header_row, start_col - 1]):
+    while start_col > 0 and not cell_is_empty(df.iloc[header_row, start_col - 1]):
         start_col -= 1
 
     end_col = tag_col
@@ -63,7 +63,8 @@ def extract_table(tag_row: int, tag_col: int, df: DataFrame, sheetname: str, fil
     while end_row < df.shape[0] and not are_cells_all_empty(df, end_row, start_col, end_col):
         end_row += 1
 
-    range = str(CellRange(min_col=start_col, min_row=header_row, max_col=end_col, max_row=end_row))
+    # Excel cell numbering starts at 1, while pandas starts at 0
+    range = str(CellRange(min_col=start_col+1, min_row=header_row+1, max_col=end_col+1, max_row=end_row+1))
 
     if end_row - header_row == 1 and end_col - start_col == 1:
         # Interpret single cell tables as a single data item with a column name VALUE
@@ -105,7 +106,8 @@ def remove_comment_cols(table: EmbeddedXlTable) -> EmbeddedXlTable:
     comment_cols = list(locate(table.dataframe.columns, lambda cell: isinstance(cell, str) and cell.startswith('*')))
     df = table.dataframe.drop(columns=[table.dataframe.columns[i] for i in comment_cols])
     df.reset_index(drop=True, inplace=True)
-    return replace(table, dataframe=df, tag_indent=table.tag_indent - len(comment_cols))
+    comment_cols_before_tag = [c for c in comment_cols if c <= table.tag_indent]
+    return replace(table, dataframe=df, tag_indent=table.tag_indent - len(comment_cols_before_tag))
 
 def remove_tables_with_formulas(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     def is_formula(s):
@@ -133,7 +135,8 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
 def apply_composite_tag(table: EmbeddedXlTable) -> EmbeddedXlTable:
     """Process composite tags e.g. ~FI_T: COM_PKRSV"""
     if ':' in table.tag:
-        (newtag, varname) = table.tag.split(': ')
+        (newtag, varname) = table.tag.split(':')
+        varname = varname.strip()
         df = table.dataframe.copy()
         df["Attribute"].fillna(varname, inplace=True)
         return replace(table, tag=newtag, dataframe=df)
@@ -161,7 +164,10 @@ def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     legal_values = {
         "LimType" : {"LO", "UP", "FX"},
         "TimeSlice" : {"ANNUAL", "SEASON", "DAYNITE"},
-        "Comm-OUT" : set(merge_columns(tables, "~FI_Comm", "CommName"))
+        "Comm-OUT" : set(merge_columns(tables, "~FI_Comm", "CommName")),
+        "Region" : {"IE", "National"}, # TODO
+        "Curr": {"EUR00"}, # TODO
+        "Other_Indexes": {"Input", "Output"}
     }
 
     def get_colname(value):
@@ -170,6 +176,7 @@ def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         for name, values in legal_values.items():
             if value in values:
                 return name,value
+        return None,value
 
     def process_tech_table(table: EmbeddedXlTable) -> EmbeddedXlTable:
         if not table.tag.startswith('~FI_T'):
@@ -186,6 +193,8 @@ def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         if 'TechDesc' in df.columns:
             df.drop('TechDesc', axis=1, inplace=True)
         index_columns = ["TechName", "Comm-IN", "Comm-OUT", "Comm-OUT-A", "Year", "TimeSlice", "LimType", "Region", "Curr", "Other_Indexes", "Attribute"]
+        if len(set(index_columns).intersection(data_columns)) > 0:
+            raise ValueError('tag_indent is too small')
         for colname in index_columns:
             if colname not in df.columns:
                 df[colname] = [None] * nrows
@@ -207,12 +216,12 @@ def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
             if '~' in attr:
                 i = df[attribute] == attr
                 parts = attr.split('~')
-                for value in parts[1:]:
+                for value in parts:
                     colname, typed_value = get_colname(value)
                     if colname is None:
-                        raise ValueError(f'Unrecognized value {value}')
-                    df.loc[i,colname] = typed_value
-                df.loc[i,attribute] = parts[0]
+                        df.loc[i,attribute] = typed_value
+                    else:
+                        df.loc[i,colname] = typed_value
 
         # Handle Other_Indexes
         other = 'Other_Indexes'
@@ -472,21 +481,28 @@ def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]
 def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXlMap]) -> Dict[str, DataFrame]:
     raw_tables = []
     filenames = [os.path.join(dir, filename) for filename in input_files]
-    with Pool(len(filenames)) as p:
-        for result in p.map(extract_tables, filenames):
+    use_pool = True
+    if use_pool:
+        with Pool(len(filenames)) as p:
+            for result in p.map(extract_tables, filenames):
+                raw_tables.extend(result)
+    else:
+        for f in filenames:
+            result = extract_tables(f)
             raw_tables.extend(result)
     print(f"Extracted {len(raw_tables)} tables, {sum(table.dataframe.shape[0] for table in raw_tables)} rows")
 
-    # For debugging
-    os.makedirs("output", exist_ok=True)
-    with open(r"output/raw_tables.txt", "w") as text_file:
-        for t in raw_tables:
-            text_file.write(f"tag: {t.tag}\n")
-            text_file.write(f"sheetname: {t.sheetname}\n")
-            text_file.write(f"range: {t.range}\n")
-            text_file.write(f"filename: {t.filename}\n")
-            text_file.write(t.dataframe.to_csv(index=False, line_terminator='\n'))
-            text_file.write("\n" * 2)
+    debug_raw_tables = False
+    if debug_raw_tables:
+        os.makedirs("output", exist_ok=True)
+        with open(r"output/raw_tables.txt", "w") as text_file:
+            for t in raw_tables:
+                text_file.write(f"tag: {t.tag}\n")
+                text_file.write(f"sheetname: {t.sheetname}\n")
+                text_file.write(f"range: {t.range}\n")
+                text_file.write(f"filename: {t.filename}\n")
+                text_file.write(t.dataframe.to_csv(index=False, line_terminator='\n'))
+                text_file.write("\n" * 2)
 
     transforms = [
         lambda tables: [remove_comment_rows(t) for t in tables],
@@ -565,8 +581,13 @@ def round_sig(x, sig_figs):
 if __name__ == "__main__":
     mappings = read_mappings("times_mapping.txt")
 
-    xl_files_dir = "input"
-    input_files = ["SysSettings.xlsx", "VT_UK_RES.xlsx", "VT_UK_ELC.xlsx", "VT_UK_IND.xlsx", "VT_UK_AGR.xlsx"]
+    uk = False
+    if uk:
+        xl_files_dir = "input"
+        input_files = ["SysSettings.xlsx", "VT_UK_RES.xlsx", "VT_UK_ELC.xlsx", "VT_UK_IND.xlsx", "VT_UK_AGR.xlsx"]
+    else:
+        xl_files_dir = os.path.join("..", "times-ireland-model")
+        input_files = ["SysSettings.xlsx", "VT_IE_IND.xlsx", "VT_IE_AGR.xlsx"]
 
     tables = convert_xl_to_times(xl_files_dir, input_files, mappings)
 
