@@ -3,5 +3,5 @@ input/*
 output/*
 ground_truth/*
 /.vs
-/env
+/env*
 *.pyproj
