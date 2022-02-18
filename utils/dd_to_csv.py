@@ -67,17 +67,26 @@ def parse_parameter_values_from_file(path: str) -> Tuple[Dict[str, List], Dict[s
             param_value_dict[param_name] = param_data
 
         if data[index].startswith("SET"):
+            # See https://www.gams.com/latest/docs/UG_SetDefinition.html
+            # This can only parse a subset of the allowed representations
             _, name = data[index].split(" ")
             assert data[index + 1].startswith("/")
 
             index += 2
             set_data = []
             while not data[index].startswith("/") and data[index] != "":
-                words = data[index].split("'")
-                attributes = words[0].strip().split(".")
+                parts = [[]]
+                for word in data[index].split("'"):
+                    if word != "":
+                        if word.isspace():
+                            parts.append([])
+                        else:
+                            parts[-1].append(word)
+                words = ["".join(part) for part in parts]
+                attributes = words[0].split(".")
                 if len(words) == 1:
                     set_data.append([*attributes])
-                elif len(words) == 3:
+                elif len(words) == 2:
                     value = words[1]
                     set_data.append([*attributes, value])
                 else:
