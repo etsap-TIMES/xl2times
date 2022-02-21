@@ -600,6 +600,7 @@ if __name__ == "__main__":
         xl_files_dir = "input"
         input_files = ["SysSettings.xlsx", "VT_UK_RES.xlsx", "VT_UK_ELC.xlsx", "VT_UK_IND.xlsx", "VT_UK_AGR.xlsx"]
     else:
+        # Make sure you set A3 in SysSettings.xlsx#Regions to Single-region if comparing with times-ireland-model_gams
         xl_files_dir = os.path.join("..", "times-ireland-model")
         input_files = [
             "SetRules.xlsx",
