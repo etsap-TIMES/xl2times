@@ -583,10 +583,12 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
                 data_rows = set(tuple(i) for i in data_table.values.tolist())
                 extra = data_rows - gt_rows
                 if len(extra) > 0:
-                    print(f"WARNING: Table {table_name} contains {len(extra)} rows out of {data_table.shape[0]} that are not present in the ground truth")
+                    print(f"WARNING: Table {table_name} contains {len(extra)} rows out of {data_table.shape[0]} that are not present in the ground truth ({gt_table.shape[0]} rows)")
 
 
 def round_sig(x, sig_figs):
+    if x == 0.0:
+        return 0.0
     return round(x, -int(floor(log10(abs(x)))) + sig_figs - 1)
 
         
@@ -599,7 +601,19 @@ if __name__ == "__main__":
         input_files = ["SysSettings.xlsx", "VT_UK_RES.xlsx", "VT_UK_ELC.xlsx", "VT_UK_IND.xlsx", "VT_UK_AGR.xlsx"]
     else:
         xl_files_dir = os.path.join("..", "times-ireland-model")
-        input_files = ["SysSettings.xlsx", "VT_IE_IND.xlsx", "VT_IE_AGR.xlsx"]
+        input_files = [
+            "SetRules.xlsx",
+            "SysSettings.xlsx",
+            "VT_IE_AGR.xlsx",
+            "VT_IE_IND.xlsx",
+            #"VT_IE_PWR.xlsx", TODO not 12 columns when processing FI_T table
+            #"VT_IE_RSD.xlsx", TODO seems to be some tables where tag is to left of scalar value
+            #"VT_IE_SRV.xlsx", TODO problems with an FI_T table with COMM_IN/OUT still being present
+            "VT_IE_SUP.xlsx",
+            #"VT_IE_TRA.xlsx", TODO not 12 columns when processing FI_T table
+        ]
+    
+    # input_files = [f for f in os.listdir(xl_files_dir) if f.endswith(".xlsx")]
 
     tables = convert_xl_to_times(xl_files_dir, input_files, mappings)
 
