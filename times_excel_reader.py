@@ -606,7 +606,7 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
     if len(missing) > 0:
         print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
 
-    for table_name, gt_table in ground_truth.items():
+    for table_name, gt_table in sorted(ground_truth.items()):
         if table_name in data:
             data_table = data[table_name]
             if list(gt_table.columns) != list(data[table_name].columns):
