@@ -160,10 +160,20 @@ def explode(df, data_columns):
     names = names[filter]
     return df, names
 
+def timeslices(tables: List[EmbeddedXlTable]):
+    # TODO merge with other timeslice code
+
+    # No idea why casing of Weekly is special
+    cols = single_table(tables, "~TimeSlices").dataframe.columns
+    timeslices = [col if col == "Weekly" else col.upper() for col in cols]
+    timeslices.insert(0, "ANNUAL")
+    return timeslices
+
+
 def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     legal_values = {
         "LimType" : {"LO", "UP", "FX"},
-        "TimeSlice" : {"ANNUAL", "SEASON", "DAYNITE"},
+        "TimeSlice" : timeslices(tables),
         "Comm-OUT" : set(merge_columns(tables, "~FI_Comm", "CommName")),
         "Region" : single_column(tables, "~BookRegions_Map", 'Region'),
         "Curr": single_column(tables, "~Currencies", 'Currency'),
