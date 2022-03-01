@@ -54,6 +54,7 @@ def parse_parameter_values_from_file(path: str) -> Tuple[Dict[str, List], Dict[s
                     attributes = []
                 elif len(words) == 2:
                     attributes = words[0].split(".")
+                    attributes = [a if " " in a else a.strip("'") for a in attributes]
                 else:
                     raise ValueError(
                         f"Unexpected number of spaces in parameter value setting: {data[index]}"
