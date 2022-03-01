@@ -429,32 +429,49 @@ def process_comemi(table: EmbeddedXlTable) -> EmbeddedXlTable:
     return replace(table, dataframe=df)
 
 def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+
+    def timeslices_table(table: EmbeddedXlTable, regions: str, result: List[EmbeddedXlTable]):
+        # TODO will need to handle columns with multiple values
+        timeslices = [(col, values[0]) for col, values in table.dataframe.items()]
+
+        # No idea why casing of Weekly is special
+        timeslices = [(col.upper(), val) if col != "Weekly" else (col, val) for col, val in timeslices]
+
+        # Accumulate values from previous entries
+        ts_map = []
+        for i in range(1, len(timeslices)):
+            col, val = timeslices[i]
+            timeslices[i] = (col, timeslices[i - 1][1] + val)
+            for j in range(0, i):
+                ts_map.append((timeslices[j][1], timeslices[i][1]))
+
+        ts_maps = {
+            'Region': regions,
+            'Parent': [t[0] for t in ts_map],
+            'TimesliceMap': [t[1] for t in ts_map]
+            }
+        result.append(replace(table, tag="TimeSliceMap", dataframe=DataFrame(ts_maps)))
+
+        timeslices.insert(0, ("ANNUAL", "ANNUAL"))
+            
+        ts_groups = {
+            'Region': regions,
+            'TSLVL': [t[0] for t in timeslices],
+            'TS_GROUP': [t[1] for t in timeslices]
+            }
+        result.append(replace(table, tag="TimeSlicesGroup", dataframe=DataFrame(ts_groups)))
+
+
     result = []
-    regions = ",".join(next(filter(lambda t : t.tag == "~BookRegions_Map", tables)).dataframe['Region'].values)
+    book_regions_table = next(filter(lambda t : t.tag == "~BookRegions_Map", tables))
+    regions = ",".join(book_regions_table.dataframe['Region'].values)
 
     for table in tables:
         if table.tag != "~TimeSlices":
             result.append(table)
         else:
-            # Has to generate another table to avoid tables with empty entries
-            seasons = table.dataframe['Season'].values
-            day_night = table.dataframe['DayNite'].values
-            df = pd.DataFrame(
-                list([
-                    regions,
-                    s,
-                    ",".join((s + d) for d in day_night)
-                    ] for s in seasons),
-                columns=['Region', 'Season', 'TS_MAP'])
-            result.append(replace(table, dataframe=df))
-            
-            combo = list((s + d) for s in seasons for d in day_night)
-            data = {
-                'Region': regions,
-                'TSLVL': ["ANNUAL", "DAYNITE", "SEASON"],
-                'TS_GROUP': ["ANNUAL", ",".join(combo), ",".join(seasons)]
-                }
-            result.append(replace(table, tag="~TimeSlicesGroup", dataframe=DataFrame(data)))
+            timeslices_table(table, regions, result)
+
     return result
 
 
