@@ -429,21 +429,35 @@ def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
     return table.dataframe['VALUE'].values[0]
 
 
-def process_comemi(table: EmbeddedXlTable) -> EmbeddedXlTable:
-    if table.tag != "~COMEMI":
-        return table
+def process_comemi(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    regions = single_column(tables, "~BookRegions_Map", 'Region')
 
-    df = table.dataframe.copy()
-    index_columns = ["Region","Year","CommName"]
-    data_columns = [colname for colname in df.columns.values if colname not in index_columns]
-    df, names = explode(df, data_columns)
-    df.rename(columns={'VALUE': 'EMCB'}, inplace=True)
-    df = df.assign(Other_Indexes=names)
-    nrows = df.shape[0]
-    for colname in index_columns:
-        if colname not in df.columns:
-            df[colname] = [None] * nrows
-    return replace(table, dataframe=df)
+    result = []
+    for table in tables:
+        if table.tag != "~COMEMI":
+            result.append(table)
+        else:
+            df = table.dataframe.copy()
+            index_columns = ["Region","Year","CommName"]
+            data_columns = [colname for colname in df.columns.values if colname not in index_columns]
+            df, names = explode(df, data_columns)
+            df.rename(columns={'VALUE': 'EMCB'}, inplace=True)
+            df = df.assign(Other_Indexes=names)
+
+            if "Region" in df.columns.values:
+                df = df.astype({"Region": "string"})
+                df["Region"] = df["Region"].map(lambda s: s.split(","))
+                df = df.explode("Region")
+                df = df[df['Region'].isin(regions)]
+
+            nrows = df.shape[0]
+            for colname in index_columns:
+                if colname not in df.columns:
+                    df[colname] = [None] * nrows
+            
+            result.append(replace(table, dataframe=df))
+
+    return result
 
 def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
@@ -555,7 +569,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         remove_tables_with_formulas, # slow
 
         process_tech_tables, # slow
-        lambda tables: [process_comemi(t) for t in tables],
+        process_comemi,
         fill_in_missing_values, # slow
         process_time_slices,
         lambda tables: [expand_rows(t) for t in tables], # slow
