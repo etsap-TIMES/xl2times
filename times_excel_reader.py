@@ -165,8 +165,8 @@ def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         "LimType" : {"LO", "UP", "FX"},
         "TimeSlice" : {"ANNUAL", "SEASON", "DAYNITE"},
         "Comm-OUT" : set(merge_columns(tables, "~FI_Comm", "CommName")),
-        "Region" : {"IE", "National"}, # TODO
-        "Curr": {"EUR00"}, # TODO
+        "Region" : single_column(tables, "~BookRegions_Map", 'Region'),
+        "Curr": single_column(tables, "~Currencies", 'Currency'),
         "Other_Indexes": {"Input", "Output"}
     }
 
@@ -273,9 +273,10 @@ def single_column(tables: List[EmbeddedXlTable], tag: str, colname: str):
 
 def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
-    currency = merge_columns(tables, "~Currencies", 'Currency')[0]
     regions = single_column(tables, "~BookRegions_Map", 'Region')
     start_year = one(single_column(tables, "~StartYear", 'VALUE'))
+    # TODO there are multiple currencies
+    currency = single_column(tables, "~Currencies", 'Currency')[0]
 
     for table in tables:
         df = table.dataframe.copy()
