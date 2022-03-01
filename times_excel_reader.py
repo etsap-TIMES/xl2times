@@ -3,8 +3,8 @@ from openpyxl.worksheet.cell_range import CellRange
 from pandas.core.frame import DataFrame
 import pandas as pd
 from dataclasses import dataclass, replace
-from typing import Dict, List, Set, Union
-from more_itertools import locate
+from typing import Dict, List
+from more_itertools import locate, one
 from itertools import groupby
 import numpy
 import re
@@ -265,11 +265,17 @@ def merge_columns(tables: List[EmbeddedXlTable], tag: str, colname: str):
     columns = [table.dataframe[colname].values for table in tables if table.tag == tag]
     return numpy.concatenate(columns)
 
+def single_table(tables: List[EmbeddedXlTable], tag: str):
+    return one(table for table in tables if table.tag == tag)
+
+def single_column(tables: List[EmbeddedXlTable], tag: str, colname: str):
+    return single_table(tables, tag).dataframe[colname].values
+
 def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
-    regions = merge_columns(tables, "~BookRegions_Map", 'Region')
-    start_year = merge_columns(tables, "~StartYear", 'VALUE')[0]
     currency = merge_columns(tables, "~Currencies", 'Currency')[0]
+    regions = single_column(tables, "~BookRegions_Map", 'Region')
+    start_year = one(single_column(tables, "~StartYear", 'VALUE'))
 
     for table in tables:
         df = table.dataframe.copy()
@@ -463,8 +469,7 @@ def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 
     result = []
-    book_regions_table = next(filter(lambda t : t.tag == "~BookRegions_Map", tables))
-    regions = ",".join(book_regions_table.dataframe['Region'].values)
+    regions = ",".join(single_column(tables, "~BookRegions_Map", "Region"))
 
     for table in tables:
         if table.tag != "~TimeSlices":
