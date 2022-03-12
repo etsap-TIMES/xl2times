@@ -203,11 +203,15 @@ def process_flexible_import_tables(tables: List[EmbeddedXlTable]) -> List[Embedd
         if 'TechDesc' in df.columns:
             df.drop('TechDesc', axis=1, inplace=True)
 
+        if 'CommGrp' in df.columns:
+            print(f"WARNING: Dropping CommGrp rather than processing it: {table.filename} {table.sheetname} {table.range}")
+            df.drop('CommGrp', axis=1, inplace=True)
+
         # Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
         known_columns = ["Region", "TechName", "Comm-IN", "Comm-IN-A", "Comm-OUT", "Comm-OUT-A", "Attribute",
                          "Year", "TimeSlice", "LimType", "CommGrp", "Curr", "Stage", "SOW", "Other_Indexes"]
-        data_columns = numpy.array([ x for x in df.columns.values if x not in known_columns ])
+        data_columns = numpy.array([ x for x in df.columns.values if x not in known_columns ], dtype=object)
 
         # Populate index columns
         index_columns = ["TechName", "Comm-IN", "Comm-OUT", "Comm-OUT-A", "Year", "TimeSlice",
@@ -665,11 +669,11 @@ if __name__ == "__main__":
             "SysSettings.xlsx",
             "VT_IE_AGR.xlsx",
             "VT_IE_IND.xlsx",
-            #"VT_IE_PWR.xlsx", # TODO not 12 columns when processing FI_T table
+            #"VT_IE_PWR.xlsx", # slow
             #"VT_IE_RSD.xlsx", # TODO seems to be some tables where tag is to left of scalar value
-            #"VT_IE_SRV.xlsx", # TODO problems with an FI_T table with COMM_IN/OUT still being present
+            #"VT_IE_SRV.xlsx", # TODO problems with an FI_T table with Comm-IN-A being present
             "VT_IE_SUP.xlsx",
-            #"VT_IE_TRA.xlsx", # TODO not 12 columns when processing FI_T table
+            "VT_IE_TRA.xlsx",
         ]
     
     # input_files = [f for f in os.listdir(xl_files_dir) if f.endswith(".xlsx")]
