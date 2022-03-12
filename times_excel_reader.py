@@ -602,7 +602,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         start_time = time.time()
         output = transform(input)
         end_time = time.time()
-        print(f"transform took {end_time-start_time} seconds")
+        print(f"transform took {end_time-start_time:.2f} seconds")
         results.append(output)
         input = output
 
