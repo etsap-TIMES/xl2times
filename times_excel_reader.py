@@ -32,7 +32,8 @@ class TimesXlMap:
 
 
 def extract_tables(filename: str) -> List[EmbeddedXlTable]:
-    print(f"Loading {filename} ...")
+    start_time = time.time()
+        
     workbook = load_workbook(filename=filename, data_only=True)
 
     tables = []
@@ -43,6 +44,9 @@ def extract_tables(filename: str) -> List[EmbeddedXlTable]:
                 if value.startswith('~'):
                     col = df.columns.get_loc(colname)
                     tables.append(extract_table(row, col, df, sheet.title, filename))
+
+    end_time = time.time()
+    print(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
     
     return tables
 
