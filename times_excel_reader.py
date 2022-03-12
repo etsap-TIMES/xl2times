@@ -18,7 +18,6 @@ class EmbeddedXlTable:
     tag: str
     sheetname: str
     range: str
-    tag_indent: int
     filename: str
     dataframe: DataFrame
 
@@ -81,7 +80,6 @@ def extract_table(tag_row: int, tag_col: int, df: DataFrame, sheetname: str, fil
         sheetname = sheetname,
         range = range,
         tag = df.iloc[tag_row, tag_col],
-        tag_indent = tag_col - start_col,
         dataframe = table_df
     )
 
@@ -106,8 +104,7 @@ def remove_comment_cols(table: EmbeddedXlTable) -> EmbeddedXlTable:
     comment_cols = list(locate(table.dataframe.columns, lambda cell: isinstance(cell, str) and cell.startswith('*')))
     df = table.dataframe.drop(columns=[table.dataframe.columns[i] for i in comment_cols])
     df.reset_index(drop=True, inplace=True)
-    comment_cols_before_tag = [c for c in comment_cols if c <= table.tag_indent]
-    return replace(table, dataframe=df, tag_indent=table.tag_indent - len(comment_cols_before_tag))
+    return replace(table, dataframe=df)
 
 def remove_tables_with_formulas(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     def is_formula(s):
@@ -170,7 +167,7 @@ def timeslices(tables: List[EmbeddedXlTable]):
     return timeslices
 
 
-def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+def process_flexible_import_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     legal_values = {
         "LimType" : {"LO", "UP", "FX"},
         "TimeSlice" : timeslices(tables),
@@ -188,27 +185,38 @@ def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
                 return name,value
         return None,value
 
-    def process_tech_table(table: EmbeddedXlTable) -> EmbeddedXlTable:
+    def process_flexible_import_table(table: EmbeddedXlTable) -> EmbeddedXlTable:
+        # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
+
         if not table.tag.startswith('~FI_T'):
             return table
         df = table.dataframe
         mapping = {'YEAR':'Year','CommName':'Comm-IN'}
         df = df.rename(columns=mapping)
+
         nrows = df.shape[0]
         if ('Comm-IN' in df.columns) and ('Comm-OUT' in df.columns):
             kwargs = {'TOP-IN' : ['IN'] * nrows, 'TOP-OUT' : ['OUT'] * nrows}
             df = df.assign(**kwargs)
-        data_columns = df.columns.values[(table.tag_indent+1):df.shape[1]]
+
         # Remove any TechDesc column
         if 'TechDesc' in df.columns:
             df.drop('TechDesc', axis=1, inplace=True)
-        index_columns = ["TechName", "Comm-IN", "Comm-OUT", "Comm-OUT-A", "Year", "TimeSlice", "LimType", "Region", "Curr", "Other_Indexes", "Attribute"]
-        if len(set(index_columns).intersection(data_columns)) > 0:
-            raise ValueError('tag_indent is too small')
+
+        # Tag column no longer used to identify data columns
+        # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
+        known_columns = ["Region", "TechName", "Comm-IN", "Comm-IN-A", "Comm-OUT", "Comm-OUT-A", "Attribute",
+                         "Year", "TimeSlice", "LimType", "CommGrp", "Curr", "Stage", "SOW", "Other_Indexes"]
+        data_columns = numpy.array([ x for x in df.columns.values if x not in known_columns ])
+
+        # Populate index columns
+        index_columns = ["TechName", "Comm-IN", "Comm-OUT", "Comm-OUT-A", "Year", "TimeSlice",
+                         "LimType", "Region", "Curr", "Other_Indexes", "Attribute"]
         for colname in index_columns:
             if colname not in df.columns:
                 df[colname] = [None] * nrows
         table = replace(table, dataframe=df)
+
         table = apply_composite_tag(table)
         df = table.dataframe
         df, attribute_suffix = explode(df, data_columns)
@@ -263,12 +271,15 @@ def process_tech_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         filter = ~((df[attribute] == "IO") & df[other].isna())
         df = df[filter]
 
+        # 'Region', 'TechName', 'Comm-IN', 'Comm-OUT', 'Comm-OUT-A', 'Year'
+        # 'TimeSlice', 'LimType', 'Curr', 'Other_Indexes', 'Attribute', 'VALUE'
+
         if len(df.columns) != 12:
             raise ValueError(f'len(df.columns) = {len(df.columns)}')
 
         return replace(table, dataframe=df)
 
-    return [process_tech_table(t) for t in tables]
+    return [process_flexible_import_table(t) for t in tables]
 
 
 def merge_columns(tables: List[EmbeddedXlTable], tag: str, colname: str):
@@ -568,7 +579,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         lambda tables: [remove_comment_cols(t) for t in tables],
         remove_tables_with_formulas, # slow
 
-        process_tech_tables, # slow
+        process_flexible_import_tables, # slow
         process_comemi,
         fill_in_missing_values, # slow
         process_time_slices,
@@ -654,11 +665,11 @@ if __name__ == "__main__":
             "SysSettings.xlsx",
             "VT_IE_AGR.xlsx",
             "VT_IE_IND.xlsx",
-            #"VT_IE_PWR.xlsx", TODO not 12 columns when processing FI_T table
-            #"VT_IE_RSD.xlsx", TODO seems to be some tables where tag is to left of scalar value
-            #"VT_IE_SRV.xlsx", TODO problems with an FI_T table with COMM_IN/OUT still being present
+            #"VT_IE_PWR.xlsx", # TODO not 12 columns when processing FI_T table
+            #"VT_IE_RSD.xlsx", # TODO seems to be some tables where tag is to left of scalar value
+            #"VT_IE_SRV.xlsx", # TODO problems with an FI_T table with COMM_IN/OUT still being present
             "VT_IE_SUP.xlsx",
-            #"VT_IE_TRA.xlsx", TODO not 12 columns when processing FI_T table
+            #"VT_IE_TRA.xlsx", # TODO not 12 columns when processing FI_T table
         ]
     
     # input_files = [f for f in os.listdir(xl_files_dir) if f.endswith(".xlsx")]
