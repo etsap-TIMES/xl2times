@@ -214,7 +214,7 @@ def process_flexible_import_tables(tables: List[EmbeddedXlTable]) -> List[Embedd
         data_columns = numpy.array([ x for x in df.columns.values if x not in known_columns ], dtype=object)
 
         # Populate index columns
-        index_columns = ["TechName", "Comm-IN", "Comm-OUT", "Comm-OUT-A", "Year", "TimeSlice",
+        index_columns = ["TechName", "Comm-IN", "Comm-IN-A", "Comm-OUT", "Comm-OUT-A", "Year", "TimeSlice",
                          "LimType", "Region", "Curr", "Other_Indexes", "Attribute"]
         for colname in index_columns:
             if colname not in df.columns:
@@ -275,10 +275,8 @@ def process_flexible_import_tables(tables: List[EmbeddedXlTable]) -> List[Embedd
         filter = ~((df[attribute] == "IO") & df[other].isna())
         df = df[filter]
 
-        # 'Region', 'TechName', 'Comm-IN', 'Comm-OUT', 'Comm-OUT-A', 'Year'
-        # 'TimeSlice', 'LimType', 'Curr', 'Other_Indexes', 'Attribute', 'VALUE'
-
-        if len(df.columns) != 12:
+        # Should have all index_columns and VALUE
+        if len(df.columns) != (len(index_columns) + 1):
             raise ValueError(f'len(df.columns) = {len(df.columns)}')
 
         return replace(table, dataframe=df)
@@ -671,7 +669,7 @@ if __name__ == "__main__":
             "VT_IE_IND.xlsx",
             #"VT_IE_PWR.xlsx", # slow
             #"VT_IE_RSD.xlsx", # TODO seems to be some tables where tag is to left of scalar value
-            #"VT_IE_SRV.xlsx", # TODO problems with an FI_T table with Comm-IN-A being present
+            "VT_IE_SRV.xlsx",
             "VT_IE_SUP.xlsx",
             "VT_IE_TRA.xlsx",
         ]
