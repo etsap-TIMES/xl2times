@@ -52,6 +52,21 @@ def extract_tables(filename: str) -> List[EmbeddedXlTable]:
 
 
 def extract_table(tag_row: int, tag_col: int, df: DataFrame, sheetname: str, filename: str) -> EmbeddedXlTable:
+    # If the cell to the right is not empty then we read a scalar from it
+    # Otherwise the row below is the header
+    if not cell_is_empty(df.iloc[tag_row, tag_col + 1]):
+        range = str(CellRange(min_col=tag_col + 2, min_row=tag_row + 1, max_col=tag_col + 2, max_row=tag_row + 1))
+        table_df = DataFrame(columns=["VALUE"])
+        table_df.loc[0] = [df.iloc[tag_row, tag_col + 1]]
+        table_df.reset_index(drop=True, inplace=True)
+        return EmbeddedXlTable(
+            filename = filename,
+            sheetname = sheetname,
+            range = range,
+            tag = df.iloc[tag_row, tag_col],
+            dataframe = table_df
+        )
+
     header_row = tag_row + 1
 
     start_col = tag_col
@@ -101,6 +116,11 @@ def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
     comment_rows = list(locate(table.dataframe.iloc[:, 0], lambda cell: isinstance(cell, str) and cell.startswith('*')))
     df = table.dataframe.drop(index=comment_rows)
     df.reset_index(drop=True, inplace=True)
+    # TODO tidy
+    if df.shape[1] > 1:
+        comment_rows = list(locate(table.dataframe.iloc[:, 1], lambda cell: isinstance(cell, str) and cell.startswith('*')))
+        df = table.dataframe.drop(index=comment_rows)
+        df.reset_index(drop=True, inplace=True)
     return replace(table, dataframe=df)
 
 
@@ -672,7 +692,7 @@ if __name__ == "__main__":
             "VT_IE_AGR.xlsx",
             "VT_IE_IND.xlsx",
             #"VT_IE_PWR.xlsx", # slow
-            #"VT_IE_RSD.xlsx", # TODO seems to be some tables where tag is to left of scalar value
+            "VT_IE_RSD.xlsx",
             "VT_IE_SRV.xlsx",
             "VT_IE_SUP.xlsx",
             "VT_IE_TRA.xlsx",
