@@ -4,4 +4,6 @@ output/*
 ground_truth/*
 /.vs
 /env*
-*.pyproj
+*.pyproj*
+*.sln
+speedscope.json
