@@ -496,6 +496,41 @@ def process_comemi(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
     return result
 
+
+def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    regions = single_column(tables, "~BookRegions_Map", 'Region')
+
+    result = []
+    for table in tables:
+        if table.tag != "~FI_Comm":
+            result.append(table)
+        else:
+            df = table.dataframe.copy()
+            if "Region" not in table.dataframe.columns.values:
+                nrows = df.shape[0]
+                df.insert(1, "Region", [regions] * nrows)
+            if "CSet" in table.dataframe.columns.values:
+                df = df.rename(columns={'CSet': 'Csets'})
+            result.append(replace(table, dataframe=df))
+
+    return result
+
+
+def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    result = []
+    for table in tables:
+        if table.tag != "~FI_Process":
+            result.append(table)
+        else:
+            df = table.dataframe.copy()
+            if "Vintage" not in table.dataframe.columns.values:
+                nrows = df.shape[0]
+                df["Vintage"] = [None] * nrows
+            result.append(replace(table, dataframe=df))
+
+    return result
+
+
 def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
     def timeslices_table(table: EmbeddedXlTable, regions: str, result: List[EmbeddedXlTable]):
@@ -607,6 +642,8 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
 
         process_flexible_import_tables, # slow
         process_comemi,
+        #process_commodities, # we end up with ndarray values in FI_Comm
+        process_processes,
         fill_in_missing_values, # slow
         process_time_slices,
         lambda tables: [expand_rows(t) for t in tables], # slow
