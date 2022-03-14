@@ -148,6 +148,7 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
     for key, value in groupby(sorted(tables, key=lambda t: t.tag), lambda t: t.tag):
         group = list(value)
         if not all(set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group):
+            cols = [",".join(g.dataframe.columns.values) for g in group]
             print(f"WARNING: Cannot merge tables with tag {key} as their columns are not identical")
         else:
             result[key] = pd.concat([table.dataframe for table in group])
@@ -498,7 +499,7 @@ def process_comemi(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 
 def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    regions = single_column(tables, "~BookRegions_Map", 'Region')
+    regions = ",".join(single_column(tables, "~BookRegions_Map", "Region"))
 
     result = []
     for table in tables:
@@ -506,9 +507,11 @@ def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
             result.append(table)
         else:
             df = table.dataframe.copy()
+            nrows = df.shape[0]
             if "Region" not in table.dataframe.columns.values:
-                nrows = df.shape[0]
                 df.insert(1, "Region", [regions] * nrows)
+            if "LimType" not in table.dataframe.columns.values:
+                df["LimType"] = [None] * nrows
             if "CSet" in table.dataframe.columns.values:
                 df = df.rename(columns={'CSet': 'Csets'})
             result.append(replace(table, dataframe=df))
@@ -642,7 +645,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
 
         process_flexible_import_tables, # slow
         process_comemi,
-        #process_commodities, # we end up with ndarray values in FI_Comm
+        process_commodities,
         process_processes,
         fill_in_missing_values, # slow
         process_time_slices,
@@ -728,7 +731,7 @@ if __name__ == "__main__":
             "SysSettings.xlsx",
             "VT_IE_AGR.xlsx",
             "VT_IE_IND.xlsx",
-            #"VT_IE_PWR.xlsx", # slow
+            "VT_IE_PWR.xlsx", # slow
             "VT_IE_RSD.xlsx",
             "VT_IE_SRV.xlsx",
             "VT_IE_SUP.xlsx",
