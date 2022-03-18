@@ -12,6 +12,7 @@ import os
 from multiprocessing import Pool
 from math import log10, floor
 import time
+from functools import reduce
 
 @dataclass
 class EmbeddedXlTable:
@@ -368,9 +369,6 @@ def missing_value_inherit(series: pd.Series):
 def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
     """Expand out certain columns with entries containing commas"""
 
-    # TODO pull this out
-    cols = ["Csets", "Region", "PeakTS", "TS_MAP", "TS_GROUP"]
-
     def has_comma(s):
         return isinstance(s,str) and ',' in s
 
@@ -392,19 +390,25 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
     return replace(table, dataframe=df)
 
 
-def remove_invalid_values(table: EmbeddedXlTable) -> EmbeddedXlTable:
+def remove_invalid_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    # TODO pull this out
+    regions = single_column(tables, "~BookRegions_Map", 'Region')
     # TODO pull this out
     constraints = {
-        "Csets": { "NRG", "MAT", "DEM", "ENV", "FIN" }
+        "Csets": { "NRG", "MAT", "DEM", "ENV", "FIN" },
+        "Region": regions,
     }
 
-    df = table.dataframe.copy()
-    is_valid = [df[colname].isin(values) for colname, values in constraints.items() if colname in df.columns]
-    # This loop should be avoidable by combining the is_valid Series
-    for v in is_valid:
-        df = df[v]
-    df.reset_index(drop=True, inplace=True)
-    return replace(table, dataframe=df)
+    result = []
+    for table in tables:
+        df = table.dataframe.copy()
+        is_valid_list = [df[colname].isin(values) for colname, values in constraints.items() if colname in df.columns]
+        if is_valid_list:
+            is_valid = reduce(lambda a, b: a & b, is_valid_list)
+            df = df[is_valid]
+            df.reset_index(drop=True, inplace=True)
+        result.append(replace(table, dataframe=df))
+    return result
 
 
 def read_mappings(filename: str) -> List[TimesXlMap]:
@@ -650,7 +654,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         fill_in_missing_values, # slow
         process_time_slices,
         lambda tables: [expand_rows(t) for t in tables], # slow
-        lambda tables: [remove_invalid_values(t) for t in tables],
+        remove_invalid_values,
         process_time_periods,
 
         merge_tables,
