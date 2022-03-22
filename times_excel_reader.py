@@ -13,10 +13,13 @@ from multiprocessing import Pool
 from math import log10, floor
 import time
 from functools import reduce
+from pathlib import Path
+import pickle
 
 @dataclass
 class EmbeddedXlTable:
     tag: str
+    uc_sets: Dict[str, str]
     sheetname: str
     range: str
     filename: str
@@ -40,11 +43,22 @@ def extract_tables(filename: str) -> List[EmbeddedXlTable]:
     tables = []
     for sheet in workbook.worksheets:
         df = pd.DataFrame(sheet.values)
-        for colname in df.columns:
-            for row, value in df[colname].astype('str').items():
+        uc_sets = {}
+
+        for row_index, row in df.iterrows():
+            for colname in df.columns:
+                value = str(row[colname])
                 if value.startswith('~'):
-                    col = df.columns.get_loc(colname)
-                    tables.append(extract_table(row, col, df, sheet.title, filename))
+                    match = re.match('~UC_SETS:(.*)', value, re.IGNORECASE)
+                    if match:
+                        parts = match.group(1).split(':')
+                        if len(parts) == 2:
+                            uc_sets[parts[0].strip()] = parts[1].strip()
+                        else:
+                            print(f"WARNING: Malformed UC_SET in {sheet.title}, {filename}")
+                    else:
+                        col_index = df.columns.get_loc(colname)
+                        tables.append(extract_table(row_index, col_index, uc_sets, df, sheet.title, filename))
 
     end_time = time.time()
     print(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
@@ -52,7 +66,13 @@ def extract_tables(filename: str) -> List[EmbeddedXlTable]:
     return tables
 
 
-def extract_table(tag_row: int, tag_col: int, df: DataFrame, sheetname: str, filename: str) -> EmbeddedXlTable:
+def extract_table(
+        tag_row: int,
+        tag_col: int,
+        uc_sets: dict[str, str],
+        df: DataFrame,
+        sheetname: str,
+        filename: str) -> EmbeddedXlTable:
     # If the cell to the right is not empty then we read a scalar from it
     # Otherwise the row below is the header
     if not cell_is_empty(df.iloc[tag_row, tag_col + 1]):
@@ -65,6 +85,7 @@ def extract_table(tag_row: int, tag_col: int, df: DataFrame, sheetname: str, fil
             sheetname = sheetname,
             range = range,
             tag = df.iloc[tag_row, tag_col],
+            uc_sets = {},
             dataframe = table_df
         )
 
@@ -100,6 +121,7 @@ def extract_table(tag_row: int, tag_col: int, df: DataFrame, sheetname: str, fil
         sheetname = sheetname,
         range = range,
         tag = df.iloc[tag_row, tag_col],
+        uc_sets = uc_sets,
         dataframe = table_df
     )
 
@@ -617,17 +639,25 @@ def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]
 
 
 def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXlMap]) -> Dict[str, DataFrame]:
-    raw_tables = []
-    filenames = [os.path.join(dir, filename) for filename in input_files]
-    use_pool = True
-    if use_pool:
-        with Pool(len(filenames)) as p:
-            for result in p.map(extract_tables, filenames):
-                raw_tables.extend(result)
+    pickle_file = 'raw_tables.pkl'
+    if os.path.isfile(pickle_file):
+        raw_tables = pickle.load(open(pickle_file, "rb"))
+        print(f"WARNING: Using pickled data not xlsx")
     else:
-        for f in filenames:
-            result = extract_tables(f)
-            raw_tables.extend(result)
+        raw_tables = []
+        filenames = [os.path.join(dir, filename) for filename in input_files]
+
+        use_pool = True
+        if use_pool:
+            with Pool(len(filenames)) as p:
+                for result in p.map(extract_tables, filenames):
+                    raw_tables.extend(result)
+        else:
+            for f in filenames:
+                result = extract_tables(f)
+                raw_tables.extend(result)
+        pickle.dump(raw_tables, open(pickle_file, "wb"))
+
     print(f"Extracted {len(raw_tables)} tables, {sum(table.dataframe.shape[0] for table in raw_tables)} rows")
 
     debug_raw_tables = True
@@ -730,19 +760,7 @@ if __name__ == "__main__":
     else:
         # Make sure you set A3 in SysSettings.xlsx#Regions to Single-region if comparing with times-ireland-model_gams
         xl_files_dir = os.path.join("..", "times-ireland-model")
-        input_files = [
-            "SetRules.xlsx",
-            "SysSettings.xlsx",
-            "VT_IE_AGR.xlsx",
-            "VT_IE_IND.xlsx",
-            "VT_IE_PWR.xlsx", # slow
-            "VT_IE_RSD.xlsx",
-            "VT_IE_SRV.xlsx",
-            "VT_IE_SUP.xlsx",
-            "VT_IE_TRA.xlsx",
-        ]
-    
-    # input_files = [f for f in os.listdir(xl_files_dir) if f.endswith(".xlsx")]
+        input_files = [str(path) for path in Path(xl_files_dir).glob('*.xlsx')]
 
     tables = convert_xl_to_times(xl_files_dir, input_files, mappings)
 
