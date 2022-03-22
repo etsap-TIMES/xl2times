@@ -7,3 +7,4 @@ ground_truth/*
 *.pyproj*
 *.sln
 speedscope.json
+*.pkl
