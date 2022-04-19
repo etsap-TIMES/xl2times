@@ -1,8 +1,10 @@
 # Project
 
-Note: this tool is a work in progress and not yet in a useful state
+**Note: this tool is a work in progress and not yet in a useful state**
 
 This project is an open source tool to convert TIMES model Excel input files to DD format ready for processing by GAMS.  The intention is to make it easier for people to reproduce research results on TIMES models.
+
+TIMES is an energy systems model generator from the International Energy Agency that is used around the world to inform energy policy - https://iea-etsap.org/index.php/etsap-tools/model-generators/times
 
 ## Contributing
 
