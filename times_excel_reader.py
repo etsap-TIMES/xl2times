@@ -152,8 +152,12 @@ def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
 
 def remove_comment_cols(table: EmbeddedXlTable) -> EmbeddedXlTable:
     comment_cols = list(locate(table.dataframe.columns, lambda cell: isinstance(cell, str) and cell.startswith('*')))
-    df = table.dataframe.drop(columns=[table.dataframe.columns[i] for i in comment_cols])
+    df = table.dataframe.drop(table.dataframe.columns[comment_cols], axis=1) 
     df.reset_index(drop=True, inplace=True)
+    seen = set()
+    dupes = [x for x in df.columns if x in seen or seen.add(x)]
+    if len(dupes) > 0:
+        print(f"WARNING: Duplicate columns in {table.range}, {table.sheetname}, {table.filename}: {','.join(dupes)}")
     return replace(table, dataframe=df)
 
 def remove_tables_with_formulas(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
