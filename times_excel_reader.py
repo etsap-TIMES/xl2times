@@ -42,7 +42,9 @@ def extract_tables(filename: str) -> List[EmbeddedXlTable]:
 
     tables = []
     for sheet in workbook.worksheets:
-        df = pd.DataFrame(sheet.values)
+        # Creating dataframe with dtype=object solves problems with ints being cast to floats
+        # https://stackoverflow.com/questions/40251948/stop-pandas-from-converting-int-to-float-due-to-an-insertion-in-another-column
+        df = pd.DataFrame(sheet.values, dtype=object)
         uc_sets = {}
 
         for row_index, row in df.iterrows():
@@ -113,7 +115,8 @@ def extract_table(
         table_df.reset_index(drop=True, inplace=True)
     else:
         table_df = DataFrame(df.iloc[header_row+1:end_row, start_col:end_col])
-        table_df.columns = df.iloc[header_row, start_col:end_col]
+        # Make all columns names strings as some are integers e.g. years
+        table_df.columns = [str(x) for x in df.iloc[header_row, start_col:end_col]]
         table_df.reset_index(drop=True, inplace=True)
 
     return EmbeddedXlTable(
@@ -196,8 +199,7 @@ def explode(df, data_columns):
     df = df.assign(VALUE = data)
     nrows = df.shape[0]
     df = df.explode(value_column)
-    if isinstance(data_columns,numpy.ndarray):
-        data_columns = data_columns.astype('str').tolist()
+    
     names = pd.Series(data_columns * nrows, index=df.index)
     # Remove rows with no VALUE
     filter = df[value_column].notna()
@@ -258,12 +260,13 @@ def process_flexible_import_tables(tables: List[EmbeddedXlTable]) -> List[Embedd
         # Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
         known_columns = ["Region", "TechName", "Comm-IN", "Comm-IN-A", "Comm-OUT", "Comm-OUT-A", "Attribute",
-                         "Year", "TimeSlice", "LimType", "CommGrp", "Curr", "Stage", "SOW", "Other_Indexes"]
-        data_columns = numpy.array([ x for x in df.columns.values if x not in known_columns ], dtype=object)
+                         "Year", "TimeSlice", "LimType", "Curr", "Other_Indexes",
+                         "Stage", "SOW", "CommGrp"]
+        data_columns = [ x for x in df.columns.values if x not in known_columns ]
 
         # Populate index columns
-        index_columns = ["TechName", "Comm-IN", "Comm-IN-A", "Comm-OUT", "Comm-OUT-A", "Year", "TimeSlice",
-                         "LimType", "Region", "Curr", "Other_Indexes", "Attribute"]
+        index_columns = ["Region", "TechName", "Comm-IN", "Comm-IN-A", "Comm-OUT", "Comm-OUT-A", "Attribute",
+                         "Year", "TimeSlice", "LimType", "Curr", "Other_Indexes"]
         for colname in index_columns:
             if colname not in df.columns:
                 df[colname] = [None] * nrows
