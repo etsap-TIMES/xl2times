@@ -9,7 +9,7 @@ from itertools import groupby
 import numpy
 import re
 import os
-from multiprocessing import Pool
+from concurrent.futures import ProcessPoolExecutor
 from math import log10, floor
 import time
 from functools import reduce
@@ -656,8 +656,8 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
 
         use_pool = True
         if use_pool:
-            with Pool(len(filenames)) as p:
-                for result in p.map(extract_tables, filenames):
+            with ProcessPoolExecutor() as executor:
+                for result in executor.map(extract_tables, filenames):
                     raw_tables.extend(result)
         else:
             for f in filenames:
@@ -688,7 +688,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         process_comemi,
         process_commodities,
         process_processes,
-        fill_in_missing_values, # slow
+        fill_in_missing_values,
         process_time_slices,
         lambda tables: [expand_rows(t) for t in tables], # slow
         remove_invalid_values,
@@ -767,7 +767,7 @@ if __name__ == "__main__":
     else:
         # Make sure you set A3 in SysSettings.xlsx#Regions to Single-region if comparing with times-ireland-model_gams
         xl_files_dir = os.path.join("..", "times-ireland-model")
-        input_files = [str(path) for path in Path(xl_files_dir).glob('*.xlsx')]
+        input_files = [str(path) for path in Path(xl_files_dir).rglob('*.xlsx') if not path.name.startswith('~')]
 
     tables = convert_xl_to_times(xl_files_dir, input_files, mappings)
 
