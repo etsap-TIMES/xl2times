@@ -71,7 +71,7 @@ def extract_tables(filename: str) -> List[EmbeddedXlTable]:
 def extract_table(
         tag_row: int,
         tag_col: int,
-        uc_sets: dict[str, str],
+        uc_sets: Dict[str, str],
         df: DataFrame,
         sheetname: str,
         filename: str) -> EmbeddedXlTable:
