@@ -178,7 +178,8 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
     for key, value in groupby(sorted(tables, key=lambda t: t.tag), lambda t: t.tag):
         group = list(value)
         if not all(set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group):
-            cols = [",".join(g.dataframe.columns.values) for g in group]
+            cols = [(",".join(g.dataframe.columns.values), g) for g in group]
+            cols_groups = [(key, list(group)) for key, group in groupby(cols, lambda ct: ct[0])]
             print(f"WARNING: Cannot merge tables with tag {key} as their columns are not identical")
         else:
             result[key] = pd.concat([table.dataframe for table in group])
@@ -559,9 +560,13 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
             result.append(table)
         else:
             df = table.dataframe.copy()
+            nrows = df.shape[0]
             if "Vintage" not in table.dataframe.columns.values:
-                nrows = df.shape[0]
                 df["Vintage"] = [None] * nrows
+            if "Region" not in table.dataframe.columns.values:
+                df.insert(1, "Region", [None] * nrows)
+            if "Tslvl" not in table.dataframe.columns.values:
+                df.insert(6, "Tslvl", ["ANNUAL"] * nrows)
             result.append(replace(table, dataframe=df))
 
     return result
