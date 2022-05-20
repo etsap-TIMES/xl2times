@@ -667,6 +667,26 @@ def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]
     return result
 
 
+def dump_tables(tables: List, filename: str) -> List:
+    os.makedirs("output", exist_ok=True)
+    with open(rf"output/{filename}", "w") as text_file:
+        for t in (tables if isinstance(tables, List) else tables.items()):
+            if isinstance(t, EmbeddedXlTable):
+                tag = t.tag
+                text_file.write(f"sheetname: {t.sheetname}\n")
+                text_file.write(f"range: {t.range}\n")
+                text_file.write(f"filename: {t.filename}\n")
+                df = t.dataframe
+            else:
+                tag = t[0]
+                df = t[1]
+            text_file.write(f"tag: {tag}\n")
+            text_file.write(df.to_csv(index=False, line_terminator='\n'))
+            text_file.write("\n" * 2)
+
+    return tables
+
+
 def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXlMap]) -> Dict[str, DataFrame]:
     pickle_file = 'raw_tables.pkl'
     if os.path.isfile(pickle_file):
@@ -689,19 +709,9 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
 
     print(f"Extracted {len(raw_tables)} tables, {sum(table.dataframe.shape[0] for table in raw_tables)} rows")
 
-    debug_raw_tables = True
-    if debug_raw_tables:
-        os.makedirs("output", exist_ok=True)
-        with open(r"output/raw_tables.txt", "w") as text_file:
-            for t in raw_tables:
-                text_file.write(f"tag: {t.tag}\n")
-                text_file.write(f"sheetname: {t.sheetname}\n")
-                text_file.write(f"range: {t.range}\n")
-                text_file.write(f"filename: {t.filename}\n")
-                text_file.write(t.dataframe.to_csv(index=False, line_terminator='\n'))
-                text_file.write("\n" * 2)
-
     transforms = [
+        lambda tables: dump_tables(tables, "raw_tables.txt"),
+
         lambda tables: [remove_comment_rows(t) for t in tables],
         lambda tables: [remove_comment_cols(t) for t in tables],
         remove_tables_with_formulas, # slow
@@ -718,6 +728,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         process_time_periods,
 
         merge_tables,
+        lambda tables: dump_tables(tables, "merged_tables.txt"),
 
         lambda tables: produce_times_tables(tables, mappings)
     ]
