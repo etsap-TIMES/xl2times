@@ -743,7 +743,7 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
     if len(missing) > 0:
         print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
 
-    for table_name, gt_table in sorted(ground_truth.items()):
+    for table_name, gt_table in sorted(ground_truth.items(), reverse=True, key=lambda t: len(t[1].values)):
         if table_name in data:
             data_table = data[table_name]
             if list(gt_table.columns) != list(data[table_name].columns):
@@ -751,9 +751,10 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
             else:
                 gt_rows = set(tuple(i) for i in gt_table.values.tolist())
                 data_rows = set(tuple(i) for i in data_table.values.tolist())
-                extra = data_rows - gt_rows
-                if len(extra) > 0:
-                    print(f"WARNING: Table {table_name} contains {len(extra)} rows out of {data_table.shape[0]} that are not present in the ground truth ({gt_table.shape[0]} GT rows)")
+                additional = len(data_rows - gt_rows)
+                missing = len(gt_rows - data_rows)
+                if additional != 0 or missing != 0:
+                    print(f"WARNING: Table {table_name} ({data_table.shape[0]} rows, {gt_table.shape[0]} GT rows) contains {additional} additional rows and is missing {missing} rows")
 
 
 def round_sig(x, sig_figs):
