@@ -179,7 +179,7 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
         group = list(value)
         if not all(set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group):
             cols = [(",".join(g.dataframe.columns.values), g) for g in group]
-            cols_groups = [(key, list(group)) for key, group in groupby(cols, lambda ct: ct[0])]
+            cols_groups = [(key, list(group)) for key, group in groupby(sorted(cols, key=lambda ct: ct[0]), lambda ct: ct[0])]
             print(f"WARNING: Cannot merge tables with tag {key} as their columns are not identical")
         else:
             result[key] = pd.concat([table.dataframe for table in group])
@@ -501,7 +501,7 @@ def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
     return table.dataframe['VALUE'].values[0]
 
 
-def process_comemi(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+def process_commodity_emissions(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     regions = single_column(tables, "~BookRegions_Map", 'Region')
 
     result = []
@@ -690,7 +690,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         remove_tables_with_formulas, # slow
 
         process_flexible_import_tables, # slow
-        process_comemi,
+        process_commodity_emissions,
         process_commodities,
         process_processes,
         fill_in_missing_values,
@@ -739,7 +739,7 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
     print(f"Ground truth contains {len(ground_truth)} tables, {sum(df.shape[0] for tablename, df in ground_truth.items())} rows")
 
     missing = set(ground_truth.keys()) - set(data.keys())
-    missing_str = ",".join(sorted(missing))
+    missing_str = ", ".join([f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)])
     if len(missing) > 0:
         print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
 
@@ -753,7 +753,7 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
                 data_rows = set(tuple(i) for i in data_table.values.tolist())
                 extra = data_rows - gt_rows
                 if len(extra) > 0:
-                    print(f"WARNING: Table {table_name} contains {len(extra)} rows out of {data_table.shape[0]} that are not present in the ground truth ({gt_table.shape[0]} rows)")
+                    print(f"WARNING: Table {table_name} contains {len(extra)} rows out of {data_table.shape[0]} that are not present in the ground truth ({gt_table.shape[0]} GT rows)")
 
 
 def round_sig(x, sig_figs):
