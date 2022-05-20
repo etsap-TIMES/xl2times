@@ -572,6 +572,23 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     return result
 
 
+def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    result = []
+    for table in tables:
+        if table.tag != "~TFM_INS":
+            result.append(table)
+        else:
+            df = table.dataframe.copy()
+            nrows = df.shape[0]
+            if "TimeSlice" not in table.dataframe.columns.values:
+                df.insert(0, "TimeSlice", [None] * nrows)
+            if "LimType" not in table.dataframe.columns.values:
+                df.insert(1, "LimType", [None] * nrows)
+            result.append(replace(table, dataframe=df))
+
+    return result
+
+
 def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
     def timeslices_table(table: EmbeddedXlTable, regions: str, result: List[EmbeddedXlTable]):
@@ -693,6 +710,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         process_commodity_emissions,
         process_commodities,
         process_processes,
+        process_transform_insert,
         fill_in_missing_values,
         process_time_slices,
         lambda tables: [expand_rows(t) for t in tables], # slow
