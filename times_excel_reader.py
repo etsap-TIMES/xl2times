@@ -501,6 +501,17 @@ def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
     return table.dataframe['VALUE'].values[0]
 
 
+def remove_fill_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    # These tables collect data from elsewhere and update the table itself or a region below
+    # The collected data is then presumably consumed via Excel references or vlookups
+    # TODO for the moment, assume VEDA has updated these tables but we will need a tool to do this
+    result = []
+    for table in tables:
+        if table.tag != "~TFM_FILL" and not table.tag.startswith("~TFM_Fill-R"):
+            result.append(table)
+    return result
+
+
 def process_commodity_emissions(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     regions = single_column(tables, "~BookRegions_Map", 'Region')
 
@@ -712,6 +723,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
     transforms = [
         lambda tables: dump_tables(tables, "raw_tables.txt"),
 
+        remove_fill_tables,
         lambda tables: [remove_comment_rows(t) for t in tables],
         lambda tables: [remove_comment_cols(t) for t in tables],
         remove_tables_with_formulas, # slow
