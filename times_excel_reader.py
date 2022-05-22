@@ -63,7 +63,8 @@ def extract_tables(filename: str) -> List[EmbeddedXlTable]:
                         tables.append(extract_table(row_index, col_index, uc_sets, df, sheet.title, filename))
 
     end_time = time.time()
-    print(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
+    if end_time - start_time > 2:
+        print(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
     
     return tables
 
@@ -81,43 +82,36 @@ def extract_table(
         range = str(CellRange(min_col=tag_col + 2, min_row=tag_row + 1, max_col=tag_col + 2, max_row=tag_row + 1))
         table_df = DataFrame(columns=["VALUE"])
         table_df.loc[0] = [df.iloc[tag_row, tag_col + 1]]
-        table_df.reset_index(drop=True, inplace=True)
-        return EmbeddedXlTable(
-            filename = filename,
-            sheetname = sheetname,
-            range = range,
-            tag = df.iloc[tag_row, tag_col],
-            uc_sets = {},
-            dataframe = table_df
-        )
-
-    header_row = tag_row + 1
-
-    start_col = tag_col
-    while start_col > 0 and not cell_is_empty(df.iloc[header_row, start_col - 1]):
-        start_col -= 1
-
-    end_col = tag_col
-    while end_col < df.shape[1] and not cell_is_empty(df.iloc[header_row, end_col]):
-        end_col += 1
-
-    end_row = header_row
-    while end_row < df.shape[0] and not are_cells_all_empty(df, end_row, start_col, end_col):
-        end_row += 1
-
-    # Excel cell numbering starts at 1, while pandas starts at 0
-    range = str(CellRange(min_col=start_col+1, min_row=header_row+1, max_col=end_col+1, max_row=end_row+1))
-
-    if end_row - header_row == 1 and end_col - start_col == 1:
-        # Interpret single cell tables as a single data item with a column name VALUE
-        table_df = DataFrame(df.iloc[header_row, start_col:end_col])
-        table_df.columns = ["VALUE"]
-        table_df.reset_index(drop=True, inplace=True)
+        uc_sets = {}
     else:
-        table_df = DataFrame(df.iloc[header_row+1:end_row, start_col:end_col])
-        # Make all columns names strings as some are integers e.g. years
-        table_df.columns = [str(x) for x in df.iloc[header_row, start_col:end_col]]
-        table_df.reset_index(drop=True, inplace=True)
+        header_row = tag_row + 1
+
+        start_col = tag_col
+        while start_col > 0 and not cell_is_empty(df.iloc[header_row, start_col - 1]):
+            start_col -= 1
+
+        end_col = tag_col
+        while end_col < df.shape[1] and not cell_is_empty(df.iloc[header_row, end_col]):
+            end_col += 1
+
+        end_row = header_row
+        while end_row < df.shape[0] and not are_cells_all_empty(df, end_row, start_col, end_col):
+            end_row += 1
+
+        # Excel cell numbering starts at 1, while pandas starts at 0
+        range = str(CellRange(min_col=start_col+1, min_row=header_row+1, max_col=end_col+1, max_row=end_row+1))
+
+        if end_row - header_row == 1 and end_col - start_col == 1:
+            # Interpret single cell tables as a single data item with a column name VALUE
+            table_df = DataFrame(df.iloc[header_row, start_col:end_col])
+            table_df.columns = ["VALUE"]
+        else:
+            table_df = DataFrame(df.iloc[header_row+1:end_row, start_col:end_col])
+            # Make all columns names strings as some are integers e.g. years
+            table_df.columns = [str(x) for x in df.iloc[header_row, start_col:end_col]]
+            
+    table_df.reset_index(drop=True, inplace=True)
+    table_df = table_df.applymap(lambda cell: cell if not isinstance(cell, float) else round_sig(cell, 15))
 
     return EmbeddedXlTable(
         filename = filename,
@@ -362,7 +356,7 @@ def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTabl
         for colname in df.columns:
             # TODO make this more declarative
             if colname == "Csets" or colname == "TechName":
-                missing_value_inherit(df[colname])
+                missing_value_inherit(df, colname)
             elif colname == "LimType" and table.tag == "~FI_Comm" and False:
                 isna = df[colname].isna()
                 ismat = df['Csets'] == "MAT"
@@ -387,11 +381,11 @@ def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTabl
     return result
 
 
-def missing_value_inherit(series: pd.Series):
+def missing_value_inherit(df: DataFrame, colname: str):
     last = None
-    for index, value in series.items():
+    for index, value in df[colname].items():
         if value == None:
-            series[index] = last
+            df.loc[index, colname] = last
         else:
             last = value
 
@@ -672,7 +666,6 @@ def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]
                 df.rename(columns=mapping.col_map, inplace=True)
                 i = df[mapping.times_cols[-1]].notna()
                 df = df.loc[i,mapping.times_cols]
-                df = df.applymap(lambda cell: cell if not isinstance(cell, float) else round_sig(cell, 15))
                 result[mapping.times_name] = df
 
     return result
