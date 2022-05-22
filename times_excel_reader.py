@@ -647,10 +647,12 @@ def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]
         if not mapping.xl_name in input:
             print(f"WARNING: Cannot produce table {mapping.times_name} because input table {mapping.xl_name} does not exist")
         else:
-            df = input[mapping.xl_name]
+            df = input[mapping.xl_name].copy()
             if 'Attribute' in df.columns:
+                # Select just the rows where the attribute value matches the last mapping column or output table name
                 colname = mapping.xl_cols[-1]
-                i = df['Attribute'].isin({colname,mapping.times_name})
+                filter = set(x.lower() for x in {colname, mapping.times_name})
+                i = df['Attribute'].str.lower().isin(filter)
                 df = df.loc[i,:]
                 if colname not in df.columns:
                     df = df.rename(columns={'VALUE':colname})
@@ -659,7 +661,6 @@ def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]
                 print(f"WARNING: Cannot produce table {mapping.times_name} because input table {mapping.xl_name} does not contain the required columns - {', '.join(missing)}")
             else:
                 cols_to_drop = [x for x in df.columns if not x in mapping.xl_cols]
-                df = df.copy()
                 df.drop(columns=cols_to_drop, inplace=True)
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
