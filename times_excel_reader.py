@@ -542,7 +542,7 @@ def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
     result = []
     for table in tables:
-        if table.tag != "~FI_Comm":
+        if table.tag != "~FI_Comm" and table.tag != "~FI_COMM":
             result.append(table)
         else:
             df = table.dataframe.copy()
@@ -553,7 +553,7 @@ def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
                 df["LimType"] = [None] * nrows
             if "CSet" in table.dataframe.columns.values:
                 df = df.rename(columns={'CSet': 'Csets'})
-            result.append(replace(table, dataframe=df))
+            result.append(replace(table, dataframe=df, tag="~FI_Comm"))
 
     return result
 
