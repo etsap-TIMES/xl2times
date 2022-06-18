@@ -587,7 +587,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
     result = []
     dropped = []
     for table in tables:
-        if table.tag != "~TFM_INS" and table.tag != "~TFM_INS-TS" and table.tag != "~TFM_TOPINS":
+        if not table.tag.startswith("~TFM_INS") and not table.tag.startswith("~TFM_TOPINS"):
             result.append(table)
         else:
             df = table.dataframe.copy()
@@ -703,10 +703,12 @@ def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]) -> Dict[str, DataFrame]:
     print(f"produce_times_tables: {len(input)} tables incoming, {sum(len(value) for (_, value) in input.items())} rows")
     result = {}
+    used_tables = set()
     for mapping in mappings:
         if not mapping.xl_name in input:
             print(f"WARNING: Cannot produce table {mapping.times_name} because input table {mapping.xl_name} does not exist")
         else:
+            used_tables.add(mapping.xl_name)
             df = input[mapping.xl_name].copy()
             if 'Attribute' in df.columns:
                 # Select just the rows where the attribute value matches the last mapping column or output table name
@@ -728,6 +730,10 @@ def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]
                 i = df[mapping.times_cols[-1]].notna()
                 df = df.loc[i,mapping.times_cols]
                 result[mapping.times_name] = df
+
+    unused_tables = set(input.keys()) - used_tables
+    if len(unused_tables) > 0:
+        print(f"WARNING: {len(unused_tables)} unused tables: {', '.join(unused_tables)}")
 
     return result
 
