@@ -439,6 +439,7 @@ def remove_invalid_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable
 
 def read_mappings(filename: str) -> List[TimesXlMap]:
     mappings = []
+    dropped = []
     with open(filename) as file:
         while True:
             line = file.readline().rstrip()
@@ -458,7 +459,10 @@ def read_mappings(filename: str) -> List[TimesXlMap]:
             if entry.xl_name != "~TODO" and not any(c.startswith("TODO") for c in entry.xl_cols):
                 mappings.append(entry)
             else:
-                print(f"WARNING: Dropping mapping that is not yet complete {line}")
+                dropped.append(line)
+
+    if len(dropped) > 0:
+        print(f"WARNING: Dropping {len(dropped)} mappings that are not yet complete")
     return mappings
 
 
@@ -581,7 +585,7 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
-    count = 0
+    dropped = []
     for table in tables:
         if table.tag != "~TFM_INS" and table.tag != "~TFM_INS-TS" and table.tag != "~TFM_TOPINS":
             result.append(table)
@@ -593,59 +597,59 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             if "LimType" not in table.dataframe.columns.values:
                 df.insert(1, "LimType", [None] * nrows)
             #result.append(replace(table, dataframe=df))
-            count += 1
+            dropped.append(table)
 
-    if count > 0:
+    if len(dropped) > 0:
         # TODO handle
-        print(f"WARNING: Dropped {count} transform insert tables rather than processing them")
+        print(f"WARNING: Dropped {len(dropped)} transform insert tables rather than processing them")
 
     return result
 
 
 def process_transform_availability(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
-    count = 0
+    dropped = []
     for table in tables:
         if table.tag != "~TFM_AVA":
             result.append(table)
         else:
-            count += 1
+            dropped.append(table)
 
-    if count > 0:
+    if len(dropped) > 0:
         # TODO handle
-        print(f"WARNING: Dropped {count} transform availability tables rather than processing them")
+        print(f"WARNING: Dropped {len(dropped)} transform availability tables rather than processing them")
 
     return result
 
 
 def process_transform_update(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
-    count = 0
+    dropped = []
     for table in tables:
         if table.tag != "~TFM_UPD":
             result.append(table)
         else:
-            count += 1
+            dropped.append(table)
 
-    if count > 0:
+    if len(dropped) > 0:
         # TODO handle
-        print(f"WARNING: Dropped {count} transform update tables rather than processing them")
+        print(f"WARNING: Dropped {len(dropped)} transform update tables rather than processing them")
 
     return result
 
 
 def process_user_constraints(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
-    count = 0
+    dropped = []
     for table in tables:
         if not table.tag.startswith("~UC_"):
             result.append(table)
         else:
-            count += 1
+            dropped.append(table)
 
-    if count > 0:
+    if len(dropped) > 0:
         # TODO handle
-        print(f"WARNING: Dropped {count} user constraint tables rather than processing them")
+        print(f"WARNING: Dropped {len(dropped)} user constraint tables rather than processing them")
 
     return result
 
