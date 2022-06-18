@@ -175,6 +175,8 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
             cols = [(",".join(g.dataframe.columns.values), g) for g in group]
             cols_groups = [(key, list(group)) for key, group in groupby(sorted(cols, key=lambda ct: ct[0]), lambda ct: ct[0])]
             print(f"WARNING: Cannot merge tables with tag {key} as their columns are not identical")
+            for (c, table) in cols:
+                print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
         else:
             result[key] = pd.concat([table.dataframe for table in group])
     return result
@@ -579,8 +581,9 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
+    count = 0
     for table in tables:
-        if table.tag != "~TFM_INS":
+        if table.tag != "~TFM_INS" and table.tag != "~TFM_INS-TS" and table.tag != "~TFM_TOPINS":
             result.append(table)
         else:
             df = table.dataframe.copy()
@@ -589,7 +592,60 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 df.insert(0, "TimeSlice", [None] * nrows)
             if "LimType" not in table.dataframe.columns.values:
                 df.insert(1, "LimType", [None] * nrows)
-            result.append(replace(table, dataframe=df))
+            #result.append(replace(table, dataframe=df))
+            count += 1
+
+    if count > 0:
+        # TODO handle
+        print(f"WARNING: Dropped {count} transform insert tables rather than processing them")
+
+    return result
+
+
+def process_transform_availability(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    result = []
+    count = 0
+    for table in tables:
+        if table.tag != "~TFM_AVA":
+            result.append(table)
+        else:
+            count += 1
+
+    if count > 0:
+        # TODO handle
+        print(f"WARNING: Dropped {count} transform availability tables rather than processing them")
+
+    return result
+
+
+def process_transform_update(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    result = []
+    count = 0
+    for table in tables:
+        if table.tag != "~TFM_UPD":
+            result.append(table)
+        else:
+            count += 1
+
+    if count > 0:
+        # TODO handle
+        print(f"WARNING: Dropped {count} transform update tables rather than processing them")
+
+    return result
+
+
+def process_user_constraints(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    result = []
+    count = 0
+    for table in tables:
+        if not table.tag.startswith("~UC_"):
+            result.append(table)
+        else:
+            count += 1
+
+    if count > 0:
+        # TODO handle
+        print(f"WARNING: Dropped {count} user constraint tables rather than processing them")
 
     return result
 
@@ -727,6 +783,9 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         process_commodities,
         process_processes,
         process_transform_insert,
+        process_transform_availability,
+        process_transform_update,
+        process_user_constraints,
         fill_in_missing_values,
         process_time_slices,
         lambda tables: [expand_rows(t) for t in tables], # slow
