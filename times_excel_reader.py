@@ -849,10 +849,12 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
             else:
                 gt_rows = set(tuple(i) for i in gt_table.values.tolist())
                 data_rows = set(tuple(i) for i in data_table.values.tolist())
-                additional = len(data_rows - gt_rows)
-                missing = len(gt_rows - data_rows)
-                if additional != 0 or missing != 0:
-                    print(f"WARNING: Table {table_name} ({data_table.shape[0]} rows, {gt_table.shape[0]} GT rows) contains {additional} additional rows and is missing {missing} rows")
+                additional = data_rows - gt_rows
+                missing = gt_rows - data_rows
+                if len(additional) != 0 or len(missing) != 0:
+                    print(f"WARNING: Table {table_name} ({data_table.shape[0]} rows, {gt_table.shape[0]} GT rows) contains {len(additional)} additional rows and is missing {len(missing)} rows")
+                    DataFrame(additional).to_csv(os.path.join("output", table_name + "_additional.csv"), index=False)
+                    DataFrame(missing).to_csv(os.path.join("output", table_name + "_missing.csv"), index=False)
 
 
 def round_sig(x, sig_figs):
