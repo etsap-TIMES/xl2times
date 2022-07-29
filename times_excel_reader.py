@@ -847,7 +847,10 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
     if len(missing) > 0:
         print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
 
+    total_gt_rows = 0
+    total_correct_rows = 0;
     for table_name, gt_table in sorted(ground_truth.items(), reverse=True, key=lambda t: len(t[1].values)):
+        total_gt_rows += len(gt_table.values)
         if table_name in data:
             data_table = data[table_name]
             if list(gt_table.columns) != list(data[table_name].columns):
@@ -855,12 +858,15 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
             else:
                 gt_rows = set(tuple(i) for i in gt_table.values.tolist())
                 data_rows = set(tuple(i) for i in data_table.values.tolist())
+                total_correct_rows += len(gt_rows.intersection(data_rows))
                 additional = data_rows - gt_rows
                 missing = gt_rows - data_rows
                 if len(additional) != 0 or len(missing) != 0:
                     print(f"WARNING: Table {table_name} ({data_table.shape[0]} rows, {gt_table.shape[0]} GT rows) contains {len(additional)} additional rows and is missing {len(missing)} rows")
                     DataFrame(additional).to_csv(os.path.join("output", table_name + "_additional.csv"), index=False)
                     DataFrame(missing).to_csv(os.path.join("output", table_name + "_missing.csv"), index=False)
+
+    print(f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present in output ({total_correct_rows}/{total_gt_rows})")
 
 
 def round_sig(x, sig_figs):
