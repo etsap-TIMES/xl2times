@@ -752,6 +752,8 @@ def dump_tables(tables: List, filename: str) -> List:
                 tag = t[0]
                 df = t[1]
             text_file.write(f"tag: {tag}\n")
+            types = ", ".join([f"{i} ({v})" for i, v in df.dtypes.items()])
+            text_file.write(f"types: {types}\n")
             text_file.write(df.to_csv(index=False, line_terminator='\n'))
             text_file.write("\n" * 2)
 
