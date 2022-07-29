@@ -133,13 +133,16 @@ def cell_is_empty(value) -> bool:
     return value is None or (isinstance(value,numpy.float64) and numpy.isnan(value))
 
 def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
-    comment_rows = list(locate(table.dataframe.iloc[:, 0], lambda cell: isinstance(cell, str) and cell.startswith('*')))
-    df = table.dataframe.drop(index=comment_rows)
+    df = table.dataframe.copy()
+    comment_rows = list(locate(df.iloc[:, 0], lambda cell:
+                               isinstance(cell, str) and (cell.startswith('*') or cell.startswith('\\I:'))))
+    df.drop(index=comment_rows, inplace=True)
     df.reset_index(drop=True, inplace=True)
+
     # TODO tidy
     if df.shape[1] > 1:
-        comment_rows = list(locate(table.dataframe.iloc[:, 1], lambda cell: isinstance(cell, str) and cell.startswith('*')))
-        df = table.dataframe.drop(index=comment_rows)
+        comment_rows = list(locate(df.iloc[:, 1], lambda cell: isinstance(cell, str) and cell.startswith('*')))
+        df.drop(index=comment_rows, inplace=True)
         df.reset_index(drop=True, inplace=True)
     return replace(table, dataframe=df)
 
