@@ -494,6 +494,21 @@ def process_time_periods(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]
     return [process_time_periods_table(table) for table in tables]
 
 
+def process_currencies(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    def process_currencies_table(table: EmbeddedXlTable):
+        if 'Curr' not in table.dataframe.columns:
+            return table
+
+        df = table.dataframe.copy()
+
+        # TODO: work out how to implement this correctly, EUR18 etc. do not appear in raw tables
+        df['Curr'] = df['Curr'].apply(lambda x: x.replace('MEUR20', 'EUR'))
+
+        return replace(table, dataframe=df)
+
+    return [process_currencies_table(table) for table in tables]
+
+
 def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
     table = next(filter(lambda t : t.tag == table_tag, tables))
     if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
@@ -803,6 +818,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         lambda tables: [expand_rows(t) for t in tables], # slow
         remove_invalid_values,
         process_time_periods,
+        process_currencies,
 
         merge_tables,
         lambda tables: dump_tables(tables, "merged_tables.txt"),
@@ -855,8 +871,12 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
         total_gt_rows += len(gt_table.values)
         if table_name in data:
             data_table = data[table_name]
-            if list(gt_table.columns) != list(data[table_name].columns):
-                print(f"WARNING: Table {table_name} header incorrect, was {data_table.columns.values}, should be {gt_table.columns.values}")
+
+            # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
+            transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
+
+            if transformed_gt_cols != list(data[table_name].columns):
+                print(f"WARNING: Table {table_name} header incorrect, was {data_table.columns.values}, should be {transformed_gt_cols}")
             else:
                 gt_rows = set(tuple(i) for i in gt_table.values.tolist())
                 data_rows = set(tuple(i) for i in data_table.values.tolist())
