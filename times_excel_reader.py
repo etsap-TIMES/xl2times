@@ -850,7 +850,7 @@ def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
         if item.endswith(".csv"):
             os.remove(os.path.join(output_dir, item))
     for tablename, df in tables.items():
-        df.to_csv(os.path.join(output_dir, tablename + ".csv"), index=False)
+        df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
 
 
 def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
