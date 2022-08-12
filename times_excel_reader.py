@@ -619,7 +619,9 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
 
     if len(dropped) > 0:
         # TODO handle
-        print(f"WARNING: Dropped {len(dropped)} transform insert tables rather than processing them")
+        by_tag = [(key, list(group)) for key, group in groupby(sorted(dropped, key=lambda t: t.tag), lambda t: t.tag)]
+        for (key, group) in by_tag:
+            print(f"WARNING: Dropped {len(group)} transform insert tables ({key}) rather than processing them")
 
     return result
 
@@ -635,7 +637,9 @@ def process_transform_availability(tables: List[EmbeddedXlTable]) -> List[Embedd
 
     if len(dropped) > 0:
         # TODO handle
-        print(f"WARNING: Dropped {len(dropped)} transform availability tables rather than processing them")
+        by_tag = [(key, list(group)) for key, group in groupby(sorted(dropped, key=lambda t: t.tag), lambda t: t.tag)]
+        for (key, group) in by_tag:
+            print(f"WARNING: Dropped {len(group)} transform availability tables ({key}) rather than processing them")
 
     return result
 
@@ -651,7 +655,9 @@ def process_transform_update(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
 
     if len(dropped) > 0:
         # TODO handle
-        print(f"WARNING: Dropped {len(dropped)} transform update tables rather than processing them")
+        by_tag = [(key, list(group)) for key, group in groupby(sorted(dropped, key=lambda t: t.tag), lambda t: t.tag)]
+        for (key, group) in by_tag:
+            print(f"WARNING: Dropped {len(group)} transform update tables ({key}) rather than processing them")
 
     return result
 
@@ -667,7 +673,9 @@ def process_user_constraints(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
 
     if len(dropped) > 0:
         # TODO handle
-        print(f"WARNING: Dropped {len(dropped)} user constraint tables rather than processing them")
+        by_tag = [(key, list(group)) for key, group in groupby(sorted(dropped, key=lambda t: t.tag), lambda t: t.tag)]
+        for (key, group) in by_tag:
+            print(f"WARNING: Dropped {len(group)} user constraint tables ({key}) rather than processing them")
 
     return result
 
