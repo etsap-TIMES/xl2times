@@ -604,12 +604,17 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     regions = single_column(tables, "~BookRegions_Map", 'Region')
 
+    tech_names = set()
+    for table in tables:
+        if table.tag == "~FI_T" and 'TechName' in table.dataframe.columns:
+            tech_names = tech_names.union(name for name in table.dataframe['TechName'].unique() if name != None)
+
     result = []
     dropped = []
     for table in tables:
         if not table.tag.startswith("~TFM_INS") and not table.tag.startswith("~TFM_TOPINS"):
             result.append(table)
-        elif table.tag == "~TFM_INS" and not 'AllRegions' in table.dataframe.columns:
+        elif table.tag == "~TFM_INS":
             df = table.dataframe.copy()
             nrows = df.shape[0]
             if "TimeSlice" not in table.dataframe.columns.values:
@@ -617,9 +622,12 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             if "LimType" not in table.dataframe.columns.values:
                 df.insert(1, "LimType", [None] * nrows)
 
-            # TODO add region columns if they don't exist and handle AllRegions
+            if 'AllRegions' in table.dataframe.columns:
+                for region in regions:
+                    df[region] = df['AllRegions']
+                df = df.drop(columns=['AllRegions'])
 
-            # Transpose region columns to new VALUE column and add corresponding regions in nw Region column
+            # Transpose region columns to new VALUE column and add corresponding regions in new Region column
             region_cols = [ col_name for col_name in df.columns.values if col_name in regions ]
             other_columns = [ col_name for col_name in df.columns.values if col_name not in regions ]
             data = df[region_cols].values.tolist()
