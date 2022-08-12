@@ -602,19 +602,40 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 
 def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    regions = single_column(tables, "~BookRegions_Map", 'Region')
+
     result = []
     dropped = []
     for table in tables:
         if not table.tag.startswith("~TFM_INS") and not table.tag.startswith("~TFM_TOPINS"):
             result.append(table)
-        else:
+        elif table.tag == "~TFM_INS" and not 'AllRegions' in table.dataframe.columns:
             df = table.dataframe.copy()
             nrows = df.shape[0]
             if "TimeSlice" not in table.dataframe.columns.values:
                 df.insert(0, "TimeSlice", [None] * nrows)
             if "LimType" not in table.dataframe.columns.values:
                 df.insert(1, "LimType", [None] * nrows)
+
+            # TODO add region columns if they don't exist and handle AllRegions
+
+            # Transpose region columns to new VALUE column and add corresponding regions in nw Region column
+            region_cols = [ col_name for col_name in df.columns.values if col_name in regions ]
+            other_columns = [ col_name for col_name in df.columns.values if col_name not in regions ]
+            data = df[region_cols].values.tolist()
+            df = df[other_columns]
+            df = df.assign(Region = [region_cols] * nrows)
+            df = df.assign(VALUE = data)
+            df = df.explode(['Region', 'VALUE'])
+
+            # TODO
+                # Create a TechName column.   For each row, replicate it across all TechNames that match the filters specified by the Pset columns.  Pset\_PN is a name filter with \* as wildcard.
+                # Create a Commodity column.  For each row, replicate it across all commodities that match the filters specified by the Cset columns.
+
+            #table.tag = '~FI_T'
             #result.append(replace(table, dataframe=df))
+            dropped.append(table)
+        else:
             dropped.append(table)
 
     if len(dropped) > 0:
