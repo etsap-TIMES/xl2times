@@ -204,7 +204,7 @@ def explode(df, data_columns):
     nrows = df.shape[0]
     df = df.explode(value_column)
     
-    names = pd.Series(data_columns * nrows, index=df.index)
+    names = pd.Series(data_columns * nrows, index=df.index, dtype=str)
     # Remove rows with no VALUE
     filter = df[value_column].notna()
     df = df[filter]
@@ -606,7 +606,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
 
     tech_names = set()
     for table in tables:
-        if table.tag == "~FI_T" and 'TechName' in table.dataframe.columns:
+        if table.tag.startswith("~FI_T") and 'TechName' in table.dataframe.columns:
             tech_names = tech_names.union(name for name in table.dataframe['TechName'].unique() if name != None)
 
     result = []
@@ -636,13 +636,28 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             df = df.assign(VALUE = data)
             df = df.explode(['Region', 'VALUE'])
 
-            # TODO
-                # Create a TechName column.   For each row, replicate it across all TechNames that match the filters specified by the Pset columns.  Pset\_PN is a name filter with \* as wildcard.
-                # Create a Commodity column.  For each row, replicate it across all commodities that match the filters specified by the Cset columns.
+            if 'Pset_PN' in df.columns:
+                df['TechName'] = [None] * nrows
+                for index, row in df.iterrows():
+                    pset = row['Pset_PN']
+                    if pset != None:
+                        r = re.compile(pset.replace('*', '.*'))
+                        df.at[index, 'TechName'] = [name for name in tech_names if r.match(name)]
+                df = df.explode(['TechName'])
 
-            #table.tag = '~FI_T'
-            #result.append(replace(table, dataframe=df))
-            dropped.append(table)
+                # TODO filter on Pset_CI == Comm-IN?
+                
+                if 'Cset_CN' in df.columns:
+                    df['Comm-OUT'] = df['Cset_CN']
+
+                # TODO is this right?
+                if 'Pset_CI' in df.columns:
+                    df['Comm-IN'] = df['Pset_CI']
+
+                result.append(replace(table, dataframe=df, tag='~FI_T'))
+            else:
+                dropped.append(table)
+
         else:
             dropped.append(table)
 
@@ -845,11 +860,11 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         lambda tables: [remove_comment_cols(t) for t in tables],
         remove_tables_with_formulas, # slow
 
+        process_transform_insert,
         process_flexible_import_tables, # slow
         process_commodity_emissions,
         process_commodities,
         process_processes,
-        process_transform_insert,
         process_transform_availability,
         process_transform_update,
         process_user_constraints,
