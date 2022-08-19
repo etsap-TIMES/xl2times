@@ -608,7 +608,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
     for table in tables:
         if table.tag.startswith("~FI_T") and 'TechName' in table.dataframe.columns and 'Comm-IN' in table.dataframe.columns:
             pairs = table.dataframe[['TechName', 'Comm-IN']].apply(tuple, axis=1).values.tolist()
-            tech_commodity_pairs = tech_commodity_pairs.union(t for t in pairs if t[0] != None and t[1] != None)
+            tech_commodity_pairs = tech_commodity_pairs.union(pairs)
 
     result = []
     dropped = []
@@ -643,13 +643,11 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 for index, row in df.iterrows():
                     tech_name_wildcard = row['Pset_PN']
                     comm = row['Pset_CI']
-
-                    # TODO: are partial filters allowed?
-                    if tech_name_wildcard != None and comm != None:
-                        regexp = re.compile(tech_name_wildcard.replace('*', '.*'))
-                        matched_tech_commodity = [t for t in tech_commodity_pairs if regexp.match(t[0]) and comm == t[1]]
-                        df.at[index, 'TechName'] = [t[0] for t in matched_tech_commodity]
-                        df.at[index, 'Comm-IN'] = [t[1] for t in matched_tech_commodity]
+                    regexp = None if tech_name_wildcard == None else re.compile(tech_name_wildcard.replace('*', '.*'))
+                    matched_tech_commodity = [t for t in tech_commodity_pairs if
+                                              (t[0] == None if regexp == None else (t[0] != None and regexp.match(t[0]))) and comm == t[1]]
+                    df.at[index, 'TechName'] = [t[0] for t in matched_tech_commodity]
+                    df.at[index, 'Comm-IN'] = [t[1] for t in matched_tech_commodity]
                 df = df.explode(['TechName', 'Comm-IN'])
 
                 if 'Cset_CN' in df.columns:
