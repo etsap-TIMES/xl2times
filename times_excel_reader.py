@@ -604,10 +604,11 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     regions = single_column(tables, "~BookRegions_Map", 'Region')
 
-    tech_names = set()
+    tech_commodity_pairs = set()
     for table in tables:
-        if table.tag.startswith("~FI_T") and 'TechName' in table.dataframe.columns:
-            tech_names = tech_names.union(name for name in table.dataframe['TechName'].unique() if name != None)
+        if table.tag.startswith("~FI_T") and 'TechName' in table.dataframe.columns and 'Comm-IN' in table.dataframe.columns:
+            pairs = table.dataframe[['TechName', 'Comm-IN']].apply(tuple, axis=1).values.tolist()
+            tech_commodity_pairs = tech_commodity_pairs.union(t for t in pairs if t[0] != None and t[1] != None)
 
     result = []
     dropped = []
@@ -636,23 +637,23 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             df = df.assign(VALUE = data)
             df = df.explode(['Region', 'VALUE'])
 
-            if 'Pset_PN' in df.columns:
+            if 'Pset_PN' in df.columns and 'Pset_CI' in df.columns:
                 df['TechName'] = [None] * nrows
+                df['Comm-IN'] = [None] * nrows
                 for index, row in df.iterrows():
-                    pset = row['Pset_PN']
-                    if pset != None:
-                        r = re.compile(pset.replace('*', '.*'))
-                        df.at[index, 'TechName'] = [name for name in tech_names if r.match(name)]
-                df = df.explode(['TechName'])
+                    tech_name_wildcard = row['Pset_PN']
+                    comm = row['Pset_CI']
 
-                # TODO filter on Pset_CI == Comm-IN?
-                
+                    # TODO: are partial filters allowed?
+                    if tech_name_wildcard != None and comm != None:
+                        regexp = re.compile(tech_name_wildcard.replace('*', '.*'))
+                        matched_tech_commodity = [t for t in tech_commodity_pairs if regexp.match(t[0]) and comm == t[1]]
+                        df.at[index, 'TechName'] = [t[0] for t in matched_tech_commodity]
+                        df.at[index, 'Comm-IN'] = [t[1] for t in matched_tech_commodity]
+                df = df.explode(['TechName', 'Comm-IN'])
+
                 if 'Cset_CN' in df.columns:
                     df['Comm-OUT'] = df['Cset_CN']
-
-                # TODO is this right?
-                if 'Pset_CI' in df.columns:
-                    df['Comm-IN'] = df['Pset_CI']
 
                 result.append(replace(table, dataframe=df, tag='~FI_T'))
             else:
