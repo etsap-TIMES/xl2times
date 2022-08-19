@@ -613,9 +613,13 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
     result = []
     dropped = []
     for table in tables:
-        if not table.tag.startswith("~TFM_INS") and not table.tag.startswith("~TFM_TOPINS"):
+        if not table.tag.startswith("~TFM_INS") and \
+           not table.tag.startswith("~TFM_TOPINS") and \
+           not table.tag.startswith("~TFM_UPD") and \
+           not table.tag.startswith("~TFM_COMGRP"):
             result.append(table)
-        elif table.tag == "~TFM_INS":
+        elif table.tag == "~TFM_INS" or table.tag == "~TFM_UPD" or table.tag == "~TFM_COMGRP":
+            put_into_table = table.tag if table.tag == "~TFM_COMGRP" else "~FI_T"
             df = table.dataframe.copy()
             nrows = df.shape[0]
             if "TimeSlice" not in table.dataframe.columns.values:
@@ -655,7 +659,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                     df.at[index, 'TechName'] = [t[0] for t in matched_tech_commodity]
                     df.at[index, 'Comm-IN'] = [t[1] for t in matched_tech_commodity]
                 df = df.explode(['TechName', 'Comm-IN'])
-                result.append(replace(table, dataframe=df, tag='~FI_T'))
+                result.append(replace(table, dataframe=df, tag=put_into_table))
 
             elif 'Pset_PN' in df.columns:
                 df['TechName'] = [None] * nrows
@@ -666,7 +670,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                                               (t[0] == None if regexp == None else (t[0] != None and regexp.match(t[0])))]
                     df.at[index, 'TechName'] = list(set(matched_tech))
                 df = df.explode(['TechName'])
-                result.append(replace(table, dataframe=df, tag='~FI_T'))
+                result.append(replace(table, dataframe=df, tag=put_into_table))
 
             elif 'Pset_CI' in df.columns:
                 df['Comm-IN'] = [None] * nrows
@@ -676,11 +680,11 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                     matched_commodity = [t[1] for t in tech_commodity_pairs if comm == t[1]]
                     df.at[index, 'Comm-IN'] = list(set(matched_commodity))
                 df = df.explode(['Comm-IN'])
-                result.append(replace(table, dataframe=df, tag='~FI_T'))
+                result.append(replace(table, dataframe=df, tag=put_into_table))
 
             else:
                 # No filters
-                result.append(replace(table, dataframe=df, tag='~FI_T'))
+                result.append(replace(table, dataframe=df, tag=put_into_table))
 
         else:
             dropped.append(table)
