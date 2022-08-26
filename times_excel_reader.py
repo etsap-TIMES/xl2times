@@ -331,10 +331,6 @@ def process_flexible_import_tables(tables: List[EmbeddedXlTable]) -> List[Embedd
         df = df[filter]
         df.reset_index(drop=True, inplace=True)
 
-        # Append _NRGI (energy input) to some cells in FLO_SHAR
-        i = (df[attribute] == 'Share-I') & ((df['LimType'] == 'UP') | (df['LimType'] == 'LO'))
-        df.loc[i, 'Other_Indexes'] = df['TechName'].astype(str) + "_NRGI"
-
         # Should have all index_columns and VALUE
         if len(df.columns) != (len(index_columns) + 1):
             raise ValueError(f'len(df.columns) = {len(df.columns)}')
@@ -515,6 +511,23 @@ def process_currencies(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         return replace(table, dataframe=df)
 
     return [process_currencies_table(table) for table in tables]
+
+
+def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    def apply_fixups_table(table: EmbeddedXlTable):
+        if not table.tag.startswith('~FI_T'):
+            return table
+
+        df = table.dataframe.copy()
+
+        # Append _NRGI (energy input) to some cells in FLO_SHAR
+        attribute = 'Attribute'
+        i = (df[attribute].str.lower() == 'share-i') & ((df['LimType'] == 'UP') | (df['LimType'] == 'LO'))
+        df.loc[i, 'Other_Indexes'] = df['TechName'].astype(str) + "_NRGI"
+
+        return replace(table, dataframe=df)
+
+    return [apply_fixups_table(table) for table in tables]
 
 
 def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
@@ -907,6 +920,7 @@ def convert_xl_to_times(dir: str, input_files: List[str], mappings: List[TimesXl
         remove_invalid_values,
         process_time_periods,
         process_currencies,
+        apply_fixups,
 
         merge_tables,
         lambda tables: dump_tables(tables, "merged_tables.txt"),
