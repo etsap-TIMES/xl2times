@@ -335,6 +335,8 @@ def process_flexible_import_tables(tables: List[EmbeddedXlTable]) -> List[Embedd
         if len(df.columns) != (len(index_columns) + 1):
             raise ValueError(f'len(df.columns) = {len(df.columns)}')
 
+        # Note the logic in produce_times_tables that allows mappings to filter by the attribute column
+
         return replace(table, dataframe=df)
 
     return [process_flexible_import_table(t) for t in tables]
