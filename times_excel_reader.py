@@ -329,6 +329,11 @@ def process_flexible_import_tables(tables: List[EmbeddedXlTable]) -> List[Embedd
                 df.loc[i,attribute] = "IO"
         filter = ~((df[attribute] == "IO") & df[other].isna())
         df = df[filter]
+        df.reset_index(drop=True, inplace=True)
+
+        # Append _NRGI (energy input) to some cells in FLO_SHAR
+        i = (df[attribute] == 'Share-I') & ((df['LimType'] == 'UP') | (df['LimType'] == 'LO'))
+        df.loc[i, 'Other_Indexes'] = df['TechName'].astype(str) + "_NRGI"
 
         # Should have all index_columns and VALUE
         if len(df.columns) != (len(index_columns) + 1):
