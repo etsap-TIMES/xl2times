@@ -638,7 +638,9 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
            not table.tag.startswith("~TFM_UPD") and \
            not table.tag.startswith("~TFM_COMGRP"):
             result.append(table)
-        elif table.tag == "~TFM_INS" or table.tag == "~TFM_UPD" or table.tag == "~TFM_COMGRP":
+
+        # TODO ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
+        elif table.tag == "~TFM_INS" or table.tag == "~TFM_INS-TS" or table.tag == "~TFM_UPD" or table.tag == "~TFM_COMGRP":
             put_into_table = table.tag if table.tag == "~TFM_COMGRP" else "~FI_T"
             df = table.dataframe.copy()
             nrows = df.shape[0]
