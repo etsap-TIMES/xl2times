@@ -522,10 +522,15 @@ def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
         df = table.dataframe.copy()
 
+        i = df['Attribute'].str.upper() == 'FLO_SHAR'
+        df.loc[i, 'Comm-IN'] = df['Comm-OUT']
+
         # Append _NRGI (energy input) to some cells in FLO_SHAR
-        attribute = 'Attribute'
-        i = (df[attribute].str.lower() == 'share-i') & ((df['LimType'] == 'UP') | (df['LimType'] == 'LO'))
+        i = (df['Attribute'].str.lower() == 'share-i') & ((df['LimType'] == 'UP') | (df['LimType'] == 'LO'))
         df.loc[i, 'Other_Indexes'] = df['TechName'].astype(str) + "_NRGI"
+
+        # TODO allow multiple columns in mapping
+        df['Attribute'] = df['Attribute'].str.replace('Share-I', 'FLO_SHAR', case=False, regex=False)
 
         return replace(table, dataframe=df)
 
@@ -642,8 +647,10 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
         # TODO ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
         elif table.tag == "~TFM_INS" or table.tag == "~TFM_INS-TS" or table.tag == "~TFM_UPD" or table.tag == "~TFM_COMGRP":
             put_into_table = table.tag if table.tag == "~TFM_COMGRP" else "~FI_T"
+
             df = table.dataframe.copy()
             nrows = df.shape[0]
+
             if "TimeSlice" not in table.dataframe.columns.values:
                 df.insert(0, "TimeSlice", [None] * nrows)
             if "LimType" not in table.dataframe.columns.values:
@@ -652,21 +659,30 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             if 'AllRegions' in table.dataframe.columns:
                 for region in regions:
                     df[region] = df['AllRegions']
-                df = df.drop(columns=['AllRegions'])
+                df.drop(columns=['AllRegions'], inplace=True)
 
-            # Transpose region columns to new VALUE column and add corresponding regions in new Region column
-            region_cols = [ col_name for col_name in df.columns.values if col_name in regions ]
-            other_columns = [ col_name for col_name in df.columns.values if col_name not in regions ]
-            data = df[region_cols].values.tolist()
-            df = df[other_columns]
-            df = df.assign(Region = [region_cols] * nrows)
-            df = df.assign(VALUE = data)
-            df = df.explode(['Region', 'VALUE'])
+            if table.tag == "~TFM_INS-TS":
+                # TODO what to do if there is already a region column?
+                df = df.assign(Region = [regions] * nrows)
+                df = df.explode(['Region'])
+            else:
+                # Transpose region columns to new VALUE column and add corresponding regions in new Region column
+                region_cols = [ col_name for col_name in df.columns.values if col_name in regions ]
+                other_columns = [ col_name for col_name in df.columns.values if col_name not in regions ]
+                data = df[region_cols].values.tolist()
+                df = df[other_columns]
+                df = df.assign(Region = [region_cols] * nrows)
+                df = df.assign(VALUE = data)
+                df = df.explode(['Region', 'VALUE'])
 
             if 'Cset_CN' in df.columns:
                 df['Comm-OUT'] = df['Cset_CN']
+                df.drop(columns=['Cset_CN'], inplace=True)
 
             # TODO what to do about Other_indexes?
+
+            if 'PSET_PN' in df.columns:
+                df.rename(columns={"PSET_PN": "Pset_PN"}, inplace=True)
 
             if 'Pset_PN' in df.columns and 'Pset_CI' in df.columns:
                 df['TechName'] = [None] * nrows
@@ -681,6 +697,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                     df.at[index, 'TechName'] = [t[0] for t in matched_tech_commodity]
                     df.at[index, 'Comm-IN'] = [t[1] for t in matched_tech_commodity]
                 df = df.explode(['TechName', 'Comm-IN'])
+                df.drop(columns=['Pset_PN', 'Pset_CI'], inplace=True)
                 result.append(replace(table, dataframe=df, tag=put_into_table))
 
             elif 'Pset_PN' in df.columns:
@@ -692,6 +709,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                                               (t[0] == None if regexp == None else (t[0] != None and regexp.match(t[0])))]
                     df.at[index, 'TechName'] = list(set(matched_tech))
                 df = df.explode(['TechName'])
+                df.drop(columns=['Pset_PN'], inplace=True)
                 result.append(replace(table, dataframe=df, tag=put_into_table))
 
             elif 'Pset_CI' in df.columns:
@@ -702,6 +720,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                     matched_commodity = [t[1] for t in tech_commodity_pairs if comm == t[1]]
                     df.at[index, 'Comm-IN'] = list(set(matched_commodity))
                 df = df.explode(['Comm-IN'])
+                df.drop(columns=['Pset_CI'], inplace=True)
                 result.append(replace(table, dataframe=df, tag=put_into_table))
 
             else:
