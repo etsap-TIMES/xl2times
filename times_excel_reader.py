@@ -872,7 +872,7 @@ def produce_times_tables(input: Dict[str, DataFrame], mappings: List[TimesXlMap]
 
     unused_tables = set(input.keys()) - used_tables
     if len(unused_tables) > 0:
-        print(f"WARNING: {len(unused_tables)} unused tables: {', '.join(unused_tables)}")
+        print(f"WARNING: {len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}")
 
     return result
 
