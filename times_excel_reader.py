@@ -483,19 +483,16 @@ def process_time_periods(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]
         df = table.dataframe.copy()
         active_series = df[active_pdef]
         # Remove empty rows
-        active_series = active_series[active_series.astype(bool)]
+        active_series.dropna(inplace=True)
 
         df = pd.DataFrame({ 'D': active_series })
-        df = df.assign(B=pd.Series([None] * df.shape[0]).values)
-        df.loc[0, 'B'] = start_year
-        for i in range(1, df.shape[0]):
-            df.loc[i, 'B'] = df.loc[i-1, 'B'] + df.loc[i-1, 'D']
-
+        # Start years = start year, then cumulative sum of period durations
+        df['B'] = (active_series.cumsum() + start_year).shift(1, fill_value=start_year)
         df['E'] = df.B + df.D - 1
         df['M'] = df.B + ((df.D - 1) // 2)
         df['Year'] = df.M
 
-        return replace(table, dataframe=df)
+        return replace(table, dataframe=df.astype(int))
 
     return [process_time_periods_table(table) for table in tables]
 
