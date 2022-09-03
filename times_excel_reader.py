@@ -636,6 +636,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
     dropped = []
     for table in tables:
         if not table.tag.startswith("~TFM_INS") and \
+           not table.tag.startswith("~TFM_DINS") and \
            not table.tag.startswith("~TFM_TOPINS") and \
            not table.tag.startswith("~TFM_UPD") and \
            not table.tag.startswith("~TFM_COMGRP"):
@@ -723,6 +724,31 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             else:
                 # No filters
                 result.append(replace(table, dataframe=df, tag=put_into_table))
+
+        elif table.tag == "~TFM_DINS":
+            df = table.dataframe.copy()
+            nrows = df.shape[0]
+
+            # Find all columns with -, first part is region and sum over second part
+            pairs = [(col.split('-')[0], col) for col in df.columns if '-' in col]
+            for region, tup in groupby(sorted(pairs, key=lambda p: p[0]), lambda p: p[0]):
+                cols = [t[1] for t in tup]
+                df[region] = df.loc[:, cols].sum(axis=1)
+                df[region] = df[region].apply(lambda x: round_sig(x, 15))
+                df.drop(columns=cols, inplace=True)
+
+            # Transpose region columns to new DEMAND column and add corresponding regions in new Region column
+            region_cols = [ col_name for col_name in df.columns.values if col_name in regions ]
+            other_columns = [ col_name for col_name in df.columns.values if col_name not in regions ]
+            data = df[region_cols].values.tolist()
+            df = df[other_columns]
+            df = df.assign(Region = [region_cols] * nrows)
+            df = df.assign(DEMAND = data)
+            df = df.explode(['Region', 'DEMAND'])
+
+            df.rename(columns={"Cset_CN": "Comm-IN"}, inplace=True)
+
+            result.append(replace(table, dataframe=df, tag="~FI_T"))
 
         else:
             dropped.append(table)
