@@ -1,4 +1,28 @@
-## High level TODO list
+## High level TODO *(rough priority/dependency order)*</sub>
+
+- Generate all output rows that are in ground truth (~40% complete currently)
+  - I estimate this task is ~80% of the remaining work
+  - See CI for latest status
+  - See https://github.com/microsoft/times-excel-reader/wiki/State-of-Progress
+- Decide how we should manage work list and assignments - TODO file, Wiki, Issues, Milestones
+- Write an overview of how code currently works to help get new people started
+- Go over old TODO lists below and work out what is still relevant
+- Code formatting
+- Integrate type checker into CI (mypy?)
+- Decide at what point to reach out to TIMES community and announce project (and ask for help?)
+- Decide what to do about ~TFM_FILL. These tables look like the Excel files are meant to be updated by the tool
+- Create a glossary?
+- Remove additional rows in output that are not in ground truth
+- Test on other data sets (using CI?)
+- Split into scenarios (we are currently just lumping all the data together into one)
+- Sort out row ordering (currently ignored)
+- Generate (or convert to) DD files
+- Measure difference between our generated DD files and ground truth
+- Get difference between generated DD files and ground truth to zero
+- Code tidying
+
+
+## OLD High level TODO list
 
 - [ ] FI_Comm (may be done except for a check)
 - [ ] FI_Process
@@ -19,7 +43,7 @@
 - [ ] Print unused Attributes
 
 
-## Mix of doc and detailed TODO list
+## OLD Mix of doc and detailed TODO list
 
 Steps to standardize a commodity table (~FI\_COMM)
 
