@@ -8,3 +8,4 @@ ground_truth/*
 *.sln
 speedscope.json
 *.pkl
+.venv/

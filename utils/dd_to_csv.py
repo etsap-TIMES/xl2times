@@ -7,7 +7,9 @@ import numpy as np
 import pandas as pd
 
 
-def parse_parameter_values_from_file(path: str) -> Tuple[Dict[str, List], Dict[str, List]]:
+def parse_parameter_values_from_file(
+    path: str,
+) -> Tuple[Dict[str, List], Dict[str, List]]:
     """
     Parse *.dd to turn it into CSV format
     There are parameters and sets, and each has a slightly different format
@@ -41,7 +43,9 @@ def parse_parameter_values_from_file(path: str) -> Tuple[Dict[str, List], Dict[s
             # We expect the parameter name on the next line.
             index += 1
 
-            param_name = data[index].replace(" ' '/", "")  # param_name is followed by this pattern
+            param_name = data[index].replace(
+                " ' '/", ""
+            )  # param_name is followed by this pattern
 
             index += 1
             param_data = []
@@ -104,9 +108,11 @@ def parse_parameter_values_from_file(path: str) -> Tuple[Dict[str, List], Dict[s
     return param_value_dict, set_data_dict
 
 
-def save_data_with_headers(param_data: Dict[str, Union[pd.DataFrame, List[str]]],
-                           headers_data: Dict[str, List[str]],
-                           save_dir: str) -> None:
+def save_data_with_headers(
+    param_data: Dict[str, Union[pd.DataFrame, List[str]]],
+    headers_data: Dict[str, List[str]],
+    save_dir: str,
+) -> None:
     """
 
     :param param_data: Dictionary containing key=param_name and val=dataframe for parameters or List[str] for sets
@@ -118,7 +124,9 @@ def save_data_with_headers(param_data: Dict[str, Union[pd.DataFrame, List[str]]]
     """
     for param_name, param_data in param_data.items():
         columns = headers_data[param_name]
-        df = pd.DataFrame(data=np.asarray(param_data)[:,0:len(columns)], columns=columns)
+        df = pd.DataFrame(
+            data=np.asarray(param_data)[:, 0 : len(columns)], columns=columns
+        )
         df.to_csv(os.path.join(save_dir, param_name + ".csv"), index=False)
 
     return
@@ -143,8 +151,8 @@ def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
 
     use_subfolders = False
     if use_subfolders:
-        param_path = os.path.join(output_dir, 'params')
-        set_path = os.path.join(output_dir, 'sets')
+        param_path = os.path.join(output_dir, "params")
+        set_path = os.path.join(output_dir, "sets")
     else:
         param_path = output_dir
         set_path = output_dir
@@ -152,13 +160,13 @@ def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
     os.makedirs(set_path, exist_ok=True)
 
     # Extract headers with key=param_name and value=List[attributes]
-    lines = list(open('times_mapping.txt', "r"))
+    lines = list(open("times_mapping.txt", "r"))
     headers_data = dict()
     for line in lines:
         line = line.strip()
         if line != "":
-            param_name = line.split('[')[0]
-            attributes = line.split('[')[1].split(']')[0].split(',')
+            param_name = line.split("[")[0]
+            attributes = line.split("[")[1].split("]")[0].split(",")
             headers_data[param_name] = [*attributes]
 
     save_data_with_headers(all_parameters, headers_data, param_path)

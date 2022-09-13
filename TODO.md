@@ -68,7 +68,7 @@ Steps to standardize a commodity table (~FI\_COMM)
 - [x] Mark each table as set or parameter (based having a column named "VALUE")
 - [ ] Put each table into the correct dd file (syssettings.dd, base.dd, etc).  This is based on the name of the Excel file.
 
-<br/> 
+<br/>
 
 Notes:
 
@@ -80,7 +80,7 @@ There are processes in the Excel files that are not mentioned in the dd files
 
 Row ordering must be preserved by these transformations
 
-<br/> 
+<br/>
 
 Extra steps for process tables:
 
@@ -96,7 +96,7 @@ Missing-value handling of process tables (~FI\_PROCESS)
   - [ ] Could append the output commodity column first
 - [ ] Others have constant/fixed default values
 
-<br/> 
+<br/>
 
 Special handling for flexible import tables (~FI\_T)
 
@@ -132,7 +132,7 @@ Special handling for flexible import tables (~FI\_T)
   - [ ] Year: the base year if missing
   - [ ] TechName: inherited from above
   - [ ] LimType: TODO (dd files have limits, called BD, but not sure how this is determined)
-- [ ] If Attribute="FLOSHAR": 
+- [ ] If Attribute="FLOSHAR":
   - [ ] If Other\_Indexes is missing, set it to the value in COM\_GMAP(Comm-IN)
 - [ ] If Attribute="FLO\_EMIS":
   - [ ] If Other\_Indexes is missing, set it to "ACT"
@@ -156,7 +156,7 @@ Special handling for flexible import tables (~FI\_T)
   - [ ] In the mapping file, look for ~FI\_T(…,Attribute) or Attribute(…) = ~FI\_T(…).  In some cases, Attribute is the literal TIMES variable while in other cases it is a different name.  For example, PRC\_RESID sometimes has Attribute="PRC\_RESID" and sometimes it has Attribute="STOCK".
 - [ ] Note: \* can also be used to indicate a wildcard or an operation in some cells
 
-<br/> 
+<br/>
 
 Special handling for transformation insert tables (~TFM\_INS, ~TFM\_UPD):
 
@@ -173,7 +173,7 @@ Special handling for transformation insert tables (~TFM\_INS, ~TFM\_UPD):
   - [ ] This step can be skipped for attributes that don't involve commodities, but it won't hurt either way
 - [ ] Now treat it like a ~FI\_T table
 
-<br/> 
+<br/>
 
 Special handling for ~TFM\_COMGRP:
 
@@ -188,7 +188,7 @@ Special handling for ~StartYear (in SysSettings.xls):
 - [x] This table always consists of a single cell.  It has no column labels.
 - [x] Change the column label to VALUE
 
-<br/> 
+<br/>
 
 Special handling for ~TimePeriods:
 
@@ -198,7 +198,7 @@ Special handling for ~TimePeriods:
 - [x] Add a column named "M" defined as round((B+E)/2) = B + round((D-1)/2)
 - [x] Add a column named "Year" equal to M
 
-<br/> 
+<br/>
 
 These tables only involve renaming columns:
 
@@ -208,7 +208,7 @@ These tables only involve renaming columns:
 
 ~BookRegions\_Map
 
-<br/> 
+<br/>
 
 Special handling for ~TimeSlices:
 
@@ -222,7 +222,7 @@ Special handling for ~TimeSlices:
 - [ ] Make a table named TS\_MAP according to times\_mapping.txt
 - [ ] Make a table named TS\_GROUP according to times\_mapping.txt
 
-<br/> 
+<br/>
 
 Special handling for ~COMEMI:
 
@@ -230,13 +230,13 @@ Special handling for ~COMEMI:
 - Create columns for Region and Year if they don't exist and apply the usual missing-value handling to them
 - Make a table named VDA\_EMCB according to times\_mapping.txt
 
-<br/> 
+<br/>
 
 TODO:
 
 Special handling for ~UC\_Sets:
 
-<br/> 
+<br/>
 
 ~DefUnits (seems to be unused)
 
@@ -247,4 +247,3 @@ Special handling for ~UC\_Sets:
 ~TFM\_Psets
 
 ~COMAGG
-
