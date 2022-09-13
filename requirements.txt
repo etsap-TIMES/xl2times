@@ -1,3 +1,5 @@
 openpyxl
 pandas
 more-itertools
+pre-commit
+black

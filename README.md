@@ -6,6 +6,20 @@ This project is an open source tool to convert TIMES model Excel input files to 
 
 TIMES is an energy systems model generator from the International Energy Agency that is used around the world to inform energy policy - https://iea-etsap.org/index.php/etsap-tools/model-generators/times
 
+## Development Setup
+
+We recommend using a Python virtual environment:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+We use the [black](https://pypi.org/project/black/) code formatter. The `pip` command above will install it along with other requirements. Additionally, you can install a git pre-commit that will ensure that your changes are formatted before creating new commits:
+```bash
+pre-commit install
+```
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
@@ -22,8 +36,8 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
+trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
