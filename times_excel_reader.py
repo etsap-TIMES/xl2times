@@ -515,7 +515,7 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
 
     def split_by_commas(s):
         if has_comma(s):
-            return s.split(",")
+            return [x.strip() for x in s.split(",")]
         else:
             return s
 
