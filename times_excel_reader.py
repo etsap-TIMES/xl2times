@@ -433,6 +433,9 @@ def process_flexible_import_tables(
 
         # Note the logic in produce_times_tables that allows mappings to filter by the attribute column
 
+        # TODO: should we have a global list of column name -> type?
+        df["Year"] = df["Year"].astype("Int64")
+
         return replace(table, dataframe=df)
 
     return [process_flexible_import_table(t) for t in tables]
@@ -865,8 +868,10 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 df = df.assign(VALUE=data)
                 df = df.explode(["Region", "VALUE"])
 
+            # TODO: This needs to support wildcards as per the table in part IV doc, page 19
             if "Cset_CN" in df.columns:
                 df["Comm-OUT"] = df["Cset_CN"]
+                df["Comm-IN"] = df["Cset_CN"]
                 df.drop(columns=["Cset_CN"], inplace=True)
 
             # TODO what to do about Other_indexes?
