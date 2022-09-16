@@ -647,6 +647,7 @@ def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         i = (df["Attribute"].str.lower() == "share-i") & (
             (df["LimType"] == "UP") | (df["LimType"] == "LO")
         )
+        # TODO: looks like NRG may come from ~TFM_Csets
         df.loc[i, "Other_Indexes"] = df["TechName"].astype(str) + "_NRGI"
 
         # TODO allow multiple columns in mapping
@@ -657,6 +658,45 @@ def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         return replace(table, dataframe=df)
 
     return [apply_fixups_table(table) for table in tables]
+
+
+def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    fit_tables = [t for t in tables if t.tag == "~FI_T"]
+
+    gmap_tables = []
+    for fit_table in fit_tables:
+        # TODO: looks like NRG may come from ~TFM_Csets
+        inputs = fit_table.dataframe[["Region", "TechName", "Comm-IN"]].copy()
+        inputs["TechName"] = inputs["TechName"].astype(str) + "_NRGI"
+        inputs.rename(columns={"Comm-IN": "Comm"}, inplace=True)
+
+        # TODO: looks like NRG may come from ~TFM_Csets
+        outputs = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
+        outputs["TechName"] = outputs["TechName"].astype(str) + "_NRGO"
+        outputs.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
+
+        # TODO: looks like techs in DEMO group are specified via CommGrp column in VT_IE_TRA.xlsx ACT2FLO B6:AF33
+        demo = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
+        demo["TechName"] = demo["TechName"].astype(str) + "_DEMO"
+        demo.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
+
+        gmap_tables += [inputs, outputs, demo]
+
+    merged = pd.concat(gmap_tables, ignore_index=True, sort=False)
+
+    # TODO apply renamings from ~TFM_TOPINS e.g. RSDAHT to RSDAHT2
+
+    tables.append(
+        EmbeddedXlTable(
+            sheetname="",
+            range="",
+            filename="",
+            uc_sets="",
+            tag="COM_GMAP",
+            dataframe=merged,
+        )
+    )
+    return tables
 
 
 def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
@@ -1202,6 +1242,7 @@ def convert_xl_to_times(
         process_time_periods,
         process_currencies,
         apply_fixups,
+        extract_commodity_groups,
         merge_tables,
         lambda tables: dump_tables(tables, "merged_tables.txt"),
         lambda tables: produce_times_tables(tables, mappings),
