@@ -157,7 +157,11 @@ def are_cells_all_empty(df, row: int, start_col: int, end_col: int) -> bool:
 
 
 def cell_is_empty(value) -> bool:
-    return value is None or (isinstance(value, numpy.float64) and numpy.isnan(value))
+    return (
+        value is None
+        or (isinstance(value, numpy.float64) and numpy.isnan(value))
+        or (isinstance(value, str) and len(value.strip()) == 0)
+    )
 
 
 def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
