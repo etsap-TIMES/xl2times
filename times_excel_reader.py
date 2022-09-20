@@ -826,7 +826,6 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
         ):
             result.append(table)
 
-        # TODO ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
         elif (
             table.tag == "~TFM_INS"
             or table.tag == "~TFM_INS-TS"
@@ -849,9 +848,10 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 df.drop(columns=["AllRegions"], inplace=True)
 
             if table.tag == "~TFM_INS-TS":
-                # TODO what to do if there is already a region column?
-                df = df.assign(Region=[regions] * nrows)
-                df = df.explode(["Region"])
+                # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
+                if "Region" not in table.dataframe.columns.values:
+                    df = df.assign(Region=[regions] * nrows)
+                    df = df.explode(["Region"])
             else:
                 # Transpose region columns to new VALUE column and add corresponding regions in new Region column
                 region_cols = [
@@ -1287,7 +1287,7 @@ def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
 def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
     result = {}
     for filename in os.listdir(input_dir):
-        result[filename.split(".")[0]] = pd.read_csv(os.path.join(input_dir, filename))
+        result[filename.split(".")[0]] = pd.read_csv(os.path.join(input_dir, filename), float_precision='round_trip')
     return result
 
 
@@ -1312,6 +1312,8 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
         total_gt_rows += len(gt_table.values)
         if table_name in data:
             data_table = data[table_name]
+            if table_name == 'PRC_RESID':
+                pass
 
             # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
