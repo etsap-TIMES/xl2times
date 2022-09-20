@@ -1287,7 +1287,9 @@ def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
 def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
     result = {}
     for filename in os.listdir(input_dir):
-        result[filename.split(".")[0]] = pd.read_csv(os.path.join(input_dir, filename), float_precision='round_trip')
+        result[filename.split(".")[0]] = pd.read_csv(
+            os.path.join(input_dir, filename), float_precision="round_trip"
+        )
     return result
 
 
@@ -1312,8 +1314,6 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
         total_gt_rows += len(gt_table.values)
         if table_name in data:
             data_table = data[table_name]
-            if table_name == 'PRC_RESID':
-                pass
 
             # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
