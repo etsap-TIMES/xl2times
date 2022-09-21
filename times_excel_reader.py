@@ -243,7 +243,9 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
             for (c, table) in cols:
                 print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
         else:
-            result[key] = pd.concat([table.dataframe for table in group])
+            result[key] = pd.concat(
+                [table.dataframe for table in group], ignore_index=True
+            )
     return result
 
 
@@ -311,7 +313,9 @@ def process_flexible_import_tables(
     def process_flexible_import_table(table: EmbeddedXlTable) -> EmbeddedXlTable:
         # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
 
-        if not table.tag.startswith("~FI_T"):
+        if not table.tag.startswith("~FI_T") and table.tag not in {
+            "~TFM_UPD",
+        }:
             return table
         df = table.dataframe
         mapping = {"YEAR": "Year", "CommName": "Comm-IN"}
@@ -321,7 +325,11 @@ def process_flexible_import_tables(
             df.rename(columns={"CURR": "Curr"}, inplace=True)
 
         nrows = df.shape[0]
-        if ("Comm-IN" in df.columns) and ("Comm-OUT" in df.columns):
+        if (
+            ("Comm-IN" in df.columns)
+            and ("Comm-OUT" in df.columns)
+            and (table.tag != "~TFM_UPD")
+        ):
             kwargs = {"TOP-IN": ["IN"] * nrows, "TOP-OUT": ["OUT"] * nrows}
             df = df.assign(**kwargs)
 
@@ -378,15 +386,17 @@ def process_flexible_import_tables(
 
         table = apply_composite_tag(table)
         df = table.dataframe
-        df, attribute_suffix = explode(df, data_columns)
 
-        # Append the data column name to the Attribute column
         attribute = "Attribute"
-        if nrows > 0:
-            i = df[attribute].notna()
-            df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
-            i = df[attribute].isna()
-            df.loc[i, attribute] = attribute_suffix[i]
+        if table.tag != "~TFM_UPD":
+            df, attribute_suffix = explode(df, data_columns)
+
+            # Append the data column name to the Attribute column
+            if nrows > 0:
+                i = df[attribute].notna()
+                df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
+                i = df[attribute].isna()
+                df.loc[i, attribute] = attribute_suffix[i]
 
         # Handle Attribute containing tilde, such as 'STOCK~2030'
         for attr in df[attribute].unique():
@@ -432,7 +442,7 @@ def process_flexible_import_tables(
         df.reset_index(drop=True, inplace=True)
 
         # Should have all index_columns and VALUE
-        if len(df.columns) != (len(index_columns) + 1):
+        if table.tag == "~FI_T" and len(df.columns) != (len(index_columns) + 1):
             raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
         # TODO: should we have a global list of column name -> type?
@@ -565,7 +575,7 @@ def process_user_constraint_tables(
         # TODO: handle other wildcard columns
 
         # TODO: should we have a global list of column name -> type?
-        df["Year"] = df["Year"].astype("Int64")
+        df = df.assign(Year=df["Year"].astype("Int64"))
 
         return replace(table, dataframe=df)
 
@@ -617,8 +627,7 @@ def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTabl
     # TODO there are multiple currencies
     currency = single_column(tables, "~Currencies", "Currency")[0]
 
-    for table in tables:
-        df = table.dataframe.copy()
+    def fill_in_missing_values_inplace(df):
         for colname in df.columns:
             # TODO make this more declarative
             if colname == "Csets" or colname == "TechName":
@@ -657,7 +666,15 @@ def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTabl
                 df[colname].fillna(start_year, inplace=True)
             elif colname == "Curr":
                 df[colname].fillna(currency, inplace=True)
-        result.append(replace(table, dataframe=df))
+
+    for table in tables:
+        if table.tag == "~TFM_UPD":
+            # Missing values in update tables are wildcards and should not be filled in
+            result.append(table)
+        else:
+            df = table.dataframe.copy()
+            fill_in_missing_values_inplace(df)
+            result.append(replace(table, dataframe=df))
     return result
 
 
@@ -681,6 +698,9 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
             return [x.strip() for x in s.split(",")]
         else:
             return s
+
+    if table.tag == "~TFM_UPD":
+        return table
 
     df = table.dataframe.copy()
     c = df.applymap(has_comma)
@@ -794,7 +814,9 @@ def process_currencies(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         df = table.dataframe.copy()
 
         # TODO: work out how to implement this correctly, EUR18 etc. do not appear in raw tables
-        df["Curr"] = df["Curr"].apply(lambda x: x.replace("MEUR20", "EUR"))
+        df["Curr"] = df["Curr"].apply(
+            lambda x: None if x is None else x.replace("MEUR20", "EUR")
+        )
 
         return replace(table, dataframe=df)
 
@@ -971,22 +993,6 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     regions = single_column(tables, "~BookRegions_Map", "Region")
 
-    tech_commodity_pairs = set()
-    for table in tables:
-        if (
-            table.tag.startswith("~FI_T")
-            and "TechName" in table.dataframe.columns
-            and "Comm-IN" in table.dataframe.columns
-        ):
-            pairs = (
-                table.dataframe[["TechName", "Comm-IN"]]
-                .apply(tuple, axis=1)
-                .values.tolist()
-            )
-            tech_commodity_pairs = tech_commodity_pairs.union(pairs)
-
-    process_names = set(merge_columns(tables, "~FI_Process", "TechName"))
-
     result = []
     dropped = []
     for table in tables:
@@ -1005,25 +1011,50 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             or table.tag == "~TFM_UPD"
             or table.tag == "~TFM_COMGRP"
         ):
-            put_into_table = table.tag if table.tag == "~TFM_COMGRP" else "~FI_T"
-
             df = table.dataframe.copy()
             nrows = df.shape[0]
 
-            if "TimeSlice" not in table.dataframe.columns.values:
-                df.insert(0, "TimeSlice", [None] * nrows)
-            if "LimType" not in table.dataframe.columns.values:
-                df.insert(1, "LimType", [None] * nrows)
+            # Standardize column names
+            query_columns = {
+                "PSet_Set",
+                "PSet_PN",
+                "PSet_PD",
+                "PSet_CI",
+                "PSet_CO",
+                "CSet_Set",
+                "CSet_CN",
+                "CSet_CD",
+            }
+            known_columns = {
+                "Attribute",
+                "Year",
+                "TimeSlice",
+                "LimType",
+                "CommGrp",
+                "Curr",
+                "Stage",
+                "SOW",
+                "Other_Indexes",
+                "AllRegions",
+            } | query_columns
+            lowercase_cols = df.columns.map(lambda x: x.casefold())
+            colmap = {}
+            for standard_col in known_columns:
+                lowercase_col = standard_col.casefold()
+                if lowercase_col in lowercase_cols:
+                    i = lowercase_cols.get_loc(lowercase_col)
+                    colmap[df.columns[i]] = standard_col
+            df.rename(columns=colmap, inplace=True)
 
-            if "AllRegions" in table.dataframe.columns:
+            if "AllRegions" in df.columns:
                 for region in regions:
                     df[region] = df["AllRegions"]
                 df.drop(columns=["AllRegions"], inplace=True)
 
             if table.tag == "~TFM_INS-TS":
                 # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
-                if "Region" not in table.dataframe.columns.values:
-                    df = df.assign(Region=[regions] * nrows)
+                if "Region" not in df.columns.values:
+                    df = df.assign(Region=[regions] * len(df))
                     df = df.explode(["Region"], ignore_index=True)
             else:
                 # Transpose region columns to new VALUE column and add corresponding regions in new Region column
@@ -1040,79 +1071,57 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 df = df.assign(Region=[region_cols] * nrows)
                 df = df.assign(VALUE=data)
                 df = df.explode(["Region", "VALUE"], ignore_index=True)
+                unknown_columns = [
+                    col_name
+                    for col_name in df.columns.values
+                    if col_name not in known_columns | {"Region", "VALUE"}
+                ]
+                df.drop(columns=unknown_columns, inplace=True)
 
-            # TODO: This needs to support wildcards as per the table in part IV doc, page 19
-            if "Cset_CN" in df.columns:
-                df["Comm-OUT"] = df["Cset_CN"]
-                df["Comm-IN"] = df["Cset_CN"]
-                df.drop(columns=["Cset_CN"], inplace=True)
-
-            # TODO what to do about Other_indexes?
-
-            if "PSET_PN" in df.columns:
-                df.rename(columns={"PSET_PN": "Pset_PN"}, inplace=True)
-
-            if "Pset_PN" in df.columns and "Pset_CI" in df.columns:
-                df["TechName"] = [None] * nrows
-                df["Comm-IN"] = [None] * nrows
-                for index, row in df.iterrows():
-                    tech_name_wildcard = row["Pset_PN"]
-                    # TODO: these can be comma separated
-                    comm = row["Pset_CI"]
-                    regexp = (
-                        None
-                        if tech_name_wildcard == None
-                        else re.compile(tech_name_wildcard.replace("*", ".*"))
+            def has_no_wildcards(list):
+                return all(
+                    list.apply(
+                        lambda x: x is not None
+                        and x[0] != "-"
+                        and "*" not in x
+                        and "," not in x
+                        and "?" not in x
                     )
-                    matched_tech_commodity = [
-                        t
-                        for t in tech_commodity_pairs
-                        if (
-                            t[0] == None
-                            if regexp == None
-                            else (t[0] != None and regexp.match(t[0]))
-                        )
-                        and comm == t[1]
-                    ]
-                    df.at[index, "TechName"] = [t[0] for t in matched_tech_commodity]
-                    df.at[index, "Comm-IN"] = [t[1] for t in matched_tech_commodity]
-                df = df.explode(["TechName", "Comm-IN"], ignore_index=True)
-                df.drop(columns=["Pset_PN", "Pset_CI"], inplace=True)
-                result.append(replace(table, dataframe=df, tag=put_into_table))
+                )
 
-            elif "Pset_PN" in df.columns:
-                df["TechName"] = [None] * nrows
-                for index, row in df.iterrows():
-                    tech_name_wildcard = row["Pset_PN"]
-                    regexp = (
-                        None
-                        if tech_name_wildcard == None
-                        else re.compile(tech_name_wildcard.replace("*", ".*"))
-                    )
-                    matched_tech = [
-                        t for t in process_names if regexp != None and regexp.match(t)
-                    ]
-                    df.at[index, "TechName"] = list(set(matched_tech))
-                df = df.explode(["TechName"], ignore_index=True)
-                df.drop(columns=["Pset_PN"], inplace=True)
-                result.append(replace(table, dataframe=df, tag=put_into_table))
-
-            elif "Pset_CI" in df.columns:
-                df["Comm-IN"] = [None] * nrows
-                for index, row in df.iterrows():
-                    # TODO: these can be comma separated
-                    comm = row["Pset_CI"]
-                    matched_commodity = [
-                        t[1] for t in tech_commodity_pairs if comm == t[1]
-                    ]
-                    df.at[index, "Comm-IN"] = list(set(matched_commodity))
-                df = df.explode(["Comm-IN"], ignore_index=True)
-                df.drop(columns=["Pset_CI"], inplace=True)
-                result.append(replace(table, dataframe=df, tag=put_into_table))
-
+            if (
+                table.tag == "~TFM_INS-TS"
+                and set(df.columns) & query_columns == {"CSet_CN"}
+                and has_no_wildcards(df["CSet_CN"])
+            ):
+                df["Comm-OUT"] = df["CSet_CN"]
+                df["Comm-IN"] = df["CSet_CN"]
+                df.drop(columns=["CSet_CN"], inplace=True)
+                result.append(replace(table, dataframe=df, tag="~FI_T"))
+            elif (
+                table.tag == "~TFM_INS-TS"
+                and set(df.columns) & query_columns == {"PSet_PN"}
+                and has_no_wildcards(df["PSet_PN"])
+            ):
+                df.rename(columns={"PSet_PN": "TechName"}, inplace=True)
+                result.append(replace(table, dataframe=df, tag="~FI_T"))
             else:
-                # No filters
-                result.append(replace(table, dataframe=df, tag=put_into_table))
+                # wildcard expansion will happen later
+                if table.tag == "~TFM_INS-TS":
+                    # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
+                    data_columns = [
+                        colname
+                        for colname in df.columns.values
+                        if colname not in known_columns | {"Region", "TS_Filter"}
+                    ]
+                    df, years = explode(df, data_columns)
+                    df = df.assign(Year=years)
+                kwargs = {}
+                for standard_col in known_columns:
+                    if standard_col not in df.columns:
+                        kwargs[standard_col] = [None] * len(df)
+                df = df.assign(**kwargs)
+                result.append(replace(table, dataframe=df))
 
         elif table.tag == "~TFM_DINS":
             df = table.dataframe.copy()
@@ -1193,30 +1202,227 @@ def process_transform_availability(
     return result
 
 
-def process_transform_update(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    result = []
-    dropped = []
-    for table in tables:
-        if table.tag != "~TFM_UPD":
-            result.append(table)
-        else:
-            dropped.append(table)
+def has_negative_patterns(pattern):
+    return pattern[0] == "-" or ",-" in pattern
 
-    if len(dropped) > 0:
-        # TODO handle
-        by_tag = [
-            (key, list(group))
-            for key, group in groupby(
-                sorted(dropped, key=lambda t: t.tag), lambda t: t.tag
-            )
-        ]
-        for (key, group) in by_tag:
-            print(
-                f"WARNING: Dropped {len(group)} transform update tables ({key})"
-                f" rather than processing them"
-            )
 
-    return result
+def remove_negative_patterns(pattern):
+    return ",".join([word for word in pattern.split(",") if word[0] != "-"])
+
+
+def remove_positive_patterns(pattern):
+    return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
+
+
+def create_regexp(pattern):
+    # exclude negative patterns
+    if has_negative_patterns(pattern):
+        pattern = remove_negative_patterns(pattern)
+    if len(pattern) == 0:
+        return re.compile(pattern)  # matches everything
+    # escape special characters
+    # Backslash must come first
+    special = "\\.|^$+()[]{}"
+    for c in special:
+        pattern = pattern.replace(c, "\\" + c)
+    # Handle VEDA wildcards
+    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", "|")
+    # Do not match substrings
+    pattern = "^" + pattern + "$"
+    return re.compile(pattern)
+
+
+def create_negative_regexp(pattern):
+    pattern = remove_positive_patterns(pattern)
+    if len(pattern) == 0:
+        pattern = "^$"  # matches nothing
+    return create_regexp(pattern)
+
+
+def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
+    # So we construct tables whose indices are names, etc. and use pd.filter
+    processes = tables["~FI_Process"]
+    duplicated_processes = processes[["TechName"]].duplicated()
+    if any(duplicated_processes):
+        duplicated_process_names = processes["TechName"][duplicated_processes]
+        print(
+            f"WARNING: {len(duplicated_process_names)} duplicated processes: {duplicated_process_names.values[1:3]}"
+        )
+        processes.drop_duplicates(subset="TechName", inplace=True)
+    processes_by_name = (
+        processes[["TechName"]]
+        .dropna()
+        .set_index("TechName", drop=False)
+        .rename_axis("index")
+    )
+    processes_by_desc = (
+        processes[["TechName", "TechDesc"]].dropna().set_index("TechDesc")
+    )
+    processes_by_sets = processes[["TechName", "Sets"]].dropna().set_index("Sets")
+    processes_and_commodities = tables["~FI_T"]
+    processes_by_comm_in = (
+        processes_and_commodities[["TechName", "Comm-IN"]]
+        .dropna()
+        .drop_duplicates()
+        .set_index("Comm-IN")
+    )
+    processes_by_comm_out = (
+        processes_and_commodities[["TechName", "Comm-OUT"]]
+        .dropna()
+        .drop_duplicates()
+        .set_index("Comm-OUT")
+    )
+    commodities = tables["~FI_Comm"]
+    commodities_by_name = (
+        commodities[["CommName"]]
+        .dropna()
+        .set_index("CommName", drop=False)
+        .rename_axis("index")
+    )
+    commodities_by_desc = (
+        commodities[["CommName", "CommDesc"]].dropna().set_index("CommDesc")
+    )
+    commodities_by_sets = commodities[["CommName", "Csets"]].dropna().set_index("Csets")
+
+    def filter_by_pattern(df, pattern):
+        df = df.filter(regex=create_regexp(pattern), axis="index")
+        exclude = df.filter(regex=create_negative_regexp(pattern), axis="index").index
+        return df.drop(exclude)
+
+    def intersect(acc, df):
+        if acc is None:
+            return df
+        return acc.merge(df)
+
+    def get_matching_processes(row):
+        matching_processes = None
+        if row.PSet_PN is not None:
+            matching_processes = intersect(
+                matching_processes, filter_by_pattern(processes_by_name, row.PSet_PN)
+            )
+        if row.PSet_PD is not None:
+            matching_processes = intersect(
+                matching_processes, filter_by_pattern(processes_by_desc, row.PSet_PD)
+            )
+        if row.PSet_Set is not None:
+            matching_processes = intersect(
+                matching_processes, filter_by_pattern(processes_by_sets, row.PSet_Set)
+            )
+        if row.PSet_CI is not None:
+            matching_processes = intersect(
+                matching_processes, filter_by_pattern(processes_by_comm_in, row.PSet_CI)
+            )
+        if row.PSet_CO is not None:
+            matching_processes = intersect(
+                matching_processes,
+                filter_by_pattern(processes_by_comm_out, row.PSet_CO),
+            )
+        if matching_processes is not None and any(matching_processes.duplicated()):
+            raise ValueError("duplicated")
+        return matching_processes
+
+    def get_matching_commodities(row):
+        matching_commodities = None
+        if row.CSet_CN is not None:
+            matching_commodities = intersect(
+                matching_commodities,
+                filter_by_pattern(commodities_by_name, row.CSet_CN),
+            )
+        if row.CSet_CD is not None:
+            matching_commodities = intersect(
+                matching_commodities,
+                filter_by_pattern(commodities_by_desc, row.CSet_CD),
+            )
+        if row.CSet_Set is not None:
+            matching_commodities = intersect(
+                matching_commodities,
+                filter_by_pattern(commodities_by_sets, row.CSet_Set),
+            )
+        return matching_commodities
+
+    for tag in {"~TFM_INS", "~TFM_UPD"}:
+        if tag in tables:
+            upd = tables[tag]
+            for i in range(0, len(upd)):
+                row = upd.iloc[i]
+                debug = False
+                if debug:
+                    print(row)
+                matching_processes = get_matching_processes(row)
+                if matching_processes is not None and len(matching_processes) == 0:
+                    print(f"WARNING: {tag} row matched no processes")
+                    continue
+                matching_commodities = get_matching_commodities(row)
+                if matching_commodities is not None and len(matching_commodities) == 0:
+                    print(f"WARNING: {tag} row matched no commodities")
+                    continue
+                df = tables["~FI_T"]
+                if any(df.index.duplicated()):
+                    raise ValueError("~FI_T table has duplicated indices")
+                if tag == "~TFM_UPD":
+                    # construct query into ~FI_T to get indices of matching rows
+                    df = df.reset_index()
+                    if matching_processes is not None:
+                        df = df.merge(matching_processes, on="TechName")
+                    if debug:
+                        print(f"{len(df)} rows after processes")
+                        if any(df["index"].duplicated()):
+                            raise ValueError("~FI_T table has duplicated indices")
+                    if matching_commodities is not None:
+                        df = df.merge(
+                            matching_commodities.rename(columns={"CommName": "Comm-IN"})
+                        )
+                    if debug:
+                        print(f"{len(df)} rows after commodities")
+                        if any(df["index"].duplicated()):
+                            raise ValueError("~FI_T table has duplicated indices")
+                    attribute = row.Attribute
+                    if attribute is not None:
+                        df = df.query("Attribute == @attribute")
+                    if debug:
+                        print(f"{len(df)} rows after Attribute")
+                        if any(df["index"].duplicated()):
+                            raise ValueError("~FI_T table has duplicated indices")
+                    region = row.Region
+                    if region is not None:
+                        df = df.query("Region == @region")
+                    if debug:
+                        print(f"{len(df)} rows after Region")
+                        if any(df["index"].duplicated()):
+                            raise ValueError("~FI_T table has duplicated indices")
+                    df = df.set_index("index")
+                    if debug:
+                        if any(df.index.duplicated()):
+                            raise ValueError("~FI_T table has duplicated indices")
+                    if isinstance(row.VALUE, str) and row.VALUE[0] in {
+                        "*",
+                        "+",
+                        "-",
+                        "/",
+                    }:
+                        df = df.astype({"VALUE": float}).eval("VALUE=VALUE" + row.VALUE)
+                    else:
+                        df = df.assign(VALUE=[row.VALUE] * len(df))
+                    if len(df) == 0:
+                        print(f"WARNING: {tag} row matched nothing")
+                    tables["~FI_T"].update(df)
+                else:
+                    # Construct 1-row data frame for data
+                    # Cross merge with processes and commodities (if they exist)
+                    row = row.filter(df.columns)
+                    row = pd.DataFrame([row])
+                    if matching_processes is not None:
+                        row = matching_processes.merge(row, how="cross")
+                    if matching_commodities is not None:
+                        matching_commodities.rename(
+                            columns={"CommName": "Comm-IN"}, inplace=True
+                        )
+                        kwargs = {"Comm-OUT": "Comm-IN"}
+                        matching_commodities = matching_commodities.assign(**kwargs)
+                        row = matching_commodities.merge(row, how="cross")
+                    tables["~FI_T"] = pd.concat([df, row], ignore_index=True)
+    return tables
 
 
 def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
@@ -1392,7 +1598,6 @@ def convert_xl_to_times(
         process_commodities,
         process_processes,
         process_transform_availability,
-        process_transform_update,
         fill_in_missing_values,
         process_time_slices,
         expand_rows_parallel,  # slow
@@ -1403,6 +1608,7 @@ def convert_xl_to_times(
         extract_commodity_groups,
         merge_tables,
         process_datayears,
+        process_transform_update,
         lambda tables: dump_tables(tables, "merged_tables.txt"),
         lambda tables: produce_times_tables(tables, mappings),
     ]
