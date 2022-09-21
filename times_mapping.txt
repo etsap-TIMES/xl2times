@@ -1,4 +1,4 @@
-ACT_BND[REG,DATAYEAR,PRC,TSLVL,BD,VALUE] = ~FI_T(Region,Year,TechName,TimeSlice,LimType,Attribute:ACT_BND)
+ACT_BND[REG,DATAYEAR,PRC,TSLVL,BD,VALUE] = ~FI_T(Region,Year,TechName,TimeSlice,LimType,Attribute:ACTBND)
 ACT_COST[REG,DATAYEAR,PRC,CUR,VALUE] = ~FI_T(Region,Year,TechName,Curr,Attribute:ACT_COST)
 ACT_CUM[REG,PRC,DATAYEAR,DATAYEAR,BD,VALUE] = ~TODO(Region,TechName,Year,Year,LimType,TODO-ACT_CUM)
 ACT_EFF[REG,DATAYEAR,PRC,COM,TSLVL,VALUE] = ~FI_T(Region,Year,TechName,Comm-IN,TimeSlice,Attribute:CEFF)
