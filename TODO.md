@@ -10,6 +10,7 @@
 - Code formatting
 - Integrate type checker into CI (mypy?)
 - Decide at what point to reach out to TIMES community and announce project (and ask for help?)
+- Figure out how to handle columns that start with * but are not comments (manual isn't clear on this)
 - Decide what to do about ~TFM_FILL. These tables look like the Excel files are meant to be updated by the tool
 - Create a glossary?
 - Remove additional rows in output that are not in ground truth
@@ -158,7 +159,7 @@ Special handling for flexible import tables (~FI\_T)
 
 <br/>
 
-Special handling for transformation insert tables (~TFM\_INS, ~TFM\_UPD):
+Special handling for transformation insert tables (~TFM\_INS):
 
 - Duplicate rows with comma-separated values
 - Remove blank rows
@@ -171,7 +172,15 @@ Special handling for transformation insert tables (~TFM\_INS, ~TFM\_UPD):
 - [ ] Create a TechName column.   For each row, replicate it across all TechNames that match the filters specified by the Pset columns.  Pset\_PN is a name filter with \* as wildcard.
 - [ ] Create a Commodity column.  For each row, replicate it across all commodities that match the filters specified by the Cset columns.
   - [ ] This step can be skipped for attributes that don't involve commodities, but it won't hurt either way
+- Create a Year, TimeSlice, etc. columns as for FI_T tables.
 - [ ] Now treat it like a ~FI\_T table
+
+<br/>
+
+Special handling for transformation update tables (~TFM\_UPD):
+- Follow the steps for transformation insert tables, but note that values can be prefixed with an operator
+- For each row, find a matching row in some ~FI\_T table, and apply the update
+- This is easier to do after merging the FI\_T tables
 
 <br/>
 
