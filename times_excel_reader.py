@@ -268,7 +268,7 @@ def explode(df, data_columns):
     value_column = "VALUE"
     df = df.assign(VALUE=data)
     nrows = df.shape[0]
-    df = df.explode(value_column)
+    df = df.explode(value_column, ignore_index=True)
 
     names = pd.Series(data_columns * nrows, index=df.index, dtype=str)
     # Remove rows with no VALUE
@@ -535,7 +535,7 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
         df = df.applymap(split_by_commas)
         for colname in columns_with_commas:
             # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.explode.html#pandas.DataFrame.explode
-            df = df.explode(colname)
+            df = df.explode(colname, ignore_index=True)
     return replace(table, dataframe=df)
 
 
@@ -750,7 +750,7 @@ def process_commodity_emissions(tables: List[EmbeddedXlTable]) -> List[EmbeddedX
             if "Region" in df.columns.values:
                 df = df.astype({"Region": "string"})
                 df["Region"] = df["Region"].map(lambda s: s.split(","))
-                df = df.explode("Region")
+                df = df.explode("Region", ignore_index=True)
                 df = df[df["Region"].isin(regions)]
 
             nrows = df.shape[0]
@@ -867,7 +867,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
                 if "Region" not in table.dataframe.columns.values:
                     df = df.assign(Region=[regions] * nrows)
-                    df = df.explode(["Region"])
+                    df = df.explode(["Region"], ignore_index=True)
             else:
                 # Transpose region columns to new VALUE column and add corresponding regions in new Region column
                 region_cols = [
@@ -882,7 +882,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 df = df[other_columns]
                 df = df.assign(Region=[region_cols] * nrows)
                 df = df.assign(VALUE=data)
-                df = df.explode(["Region", "VALUE"])
+                df = df.explode(["Region", "VALUE"], ignore_index=True)
 
             # TODO: This needs to support wildcards as per the table in part IV doc, page 19
             if "Cset_CN" in df.columns:
@@ -919,7 +919,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                     ]
                     df.at[index, "TechName"] = [t[0] for t in matched_tech_commodity]
                     df.at[index, "Comm-IN"] = [t[1] for t in matched_tech_commodity]
-                df = df.explode(["TechName", "Comm-IN"])
+                df = df.explode(["TechName", "Comm-IN"], ignore_index=True)
                 df.drop(columns=["Pset_PN", "Pset_CI"], inplace=True)
                 result.append(replace(table, dataframe=df, tag=put_into_table))
 
@@ -942,7 +942,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                         )
                     ]
                     df.at[index, "TechName"] = list(set(matched_tech))
-                df = df.explode(["TechName"])
+                df = df.explode(["TechName"], ignore_index=True)
                 df.drop(columns=["Pset_PN"], inplace=True)
                 result.append(replace(table, dataframe=df, tag=put_into_table))
 
@@ -955,7 +955,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                         t[1] for t in tech_commodity_pairs if comm == t[1]
                     ]
                     df.at[index, "Comm-IN"] = list(set(matched_commodity))
-                df = df.explode(["Comm-IN"])
+                df = df.explode(["Comm-IN"], ignore_index=True)
                 df.drop(columns=["Pset_CI"], inplace=True)
                 result.append(replace(table, dataframe=df, tag=put_into_table))
 
@@ -988,7 +988,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             df = df[other_columns]
             df = df.assign(Region=[region_cols] * nrows)
             df = df.assign(DEMAND=data)
-            df = df.explode(["Region", "DEMAND"])
+            df = df.explode(["Region", "DEMAND"], ignore_index=True)
 
             df.rename(columns={"Cset_CN": "Comm-IN"}, inplace=True)
 
