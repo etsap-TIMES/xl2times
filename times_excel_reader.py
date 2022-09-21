@@ -1341,7 +1341,7 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
             )
         return matching_commodities
 
-    for tag in {"~TFM_INS", "~TFM_UPD"}:
+    for tag in {"~TFM_INS", "~TFM_INS-TS", "~TFM_UPD"}:
         if tag in tables:
             upd = tables[tag]
             for i in range(0, len(upd)):
