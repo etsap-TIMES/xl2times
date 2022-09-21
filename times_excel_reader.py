@@ -833,6 +833,8 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             )
             tech_commodity_pairs = tech_commodity_pairs.union(pairs)
 
+    process_names = set(merge_columns(tables, "~FI_Process", "TechName"))
+
     result = []
     dropped = []
     for table in tables:
@@ -936,13 +938,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                         else re.compile(tech_name_wildcard.replace("*", ".*"))
                     )
                     matched_tech = [
-                        t[0]
-                        for t in tech_commodity_pairs
-                        if (
-                            t[0] == None
-                            if regexp == None
-                            else (t[0] != None and regexp.match(t[0]))
-                        )
+                        t for t in process_names if regexp != None and regexp.match(t)
                     ]
                     df.at[index, "TechName"] = list(set(matched_tech))
                 df = df.explode(["TechName"], ignore_index=True)
