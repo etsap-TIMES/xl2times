@@ -381,53 +381,52 @@ def process_flexible_import_tables(
         df, attribute_suffix = explode(df, data_columns)
 
         # Append the data column name to the Attribute column
-        attribute = "Attribute"
         if nrows > 0:
-            i = df[attribute].notna()
-            df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
-            i = df[attribute].isna()
-            df.loc[i, attribute] = attribute_suffix[i]
+            i = df["Attribute"].notna()
+            df.loc[i, "Attribute"] = df.loc[i, "Attribute"] + "~" + attribute_suffix[i]
+            i = df["Attribute"].isna()
+            df.loc[i, "Attribute"] = attribute_suffix[i]
 
         # Handle Attribute containing tilde, such as 'STOCK~2030'
-        for attr in df[attribute].unique():
+        for attr in df["Attribute"].unique():
             if "~" in attr:
-                i = df[attribute] == attr
+                i = df["Attribute"] == attr
                 parts = attr.split("~")
                 for value in parts:
                     colname, typed_value = get_colname(value)
                     if colname is None:
-                        df.loc[i, attribute] = typed_value
+                        df.loc[i, "Attribute"] = typed_value
                     else:
                         df.loc[i, colname] = typed_value
 
         # Handle Other_Indexes
         other = "Other_Indexes"
-        for attr in df[attribute].unique():
+        for attr in df["Attribute"].unique():
             if attr == "FLO_EMIS":
-                i = df[attribute] == attr
+                i = df["Attribute"] == attr
                 df.loc[i & df[other].isna(), other] = "ACT"
             elif attr == "EFF":
-                i = df[attribute] == attr
+                i = df["Attribute"] == attr
                 df.loc[i, "Comm-IN"] = "ACT"
-                df.loc[i, attribute] = "CEFF"
+                df.loc[i, "Attribute"] = "CEFF"
             elif attr == "OUTPUT":
-                i = df[attribute] == attr
+                i = df["Attribute"] == attr
                 df.loc[i, "Comm-IN"] = df.loc[i, "Comm-OUT-A"]
-                df.loc[i, attribute] = "CEFF"
+                df.loc[i, "Attribute"] = "CEFF"
             elif attr == "END":
-                i = df[attribute] == attr
+                i = df["Attribute"] == attr
                 df.loc[i, "Year"] = df.loc[i, "VALUE"].astype("int") + 1
                 df.loc[i, other] = "EOH"
-                df.loc[i, attribute] = "PRC_NOFF"
+                df.loc[i, "Attribute"] = "PRC_NOFF"
             elif attr == "TOP-IN":
-                i = df[attribute] == attr
+                i = df["Attribute"] == attr
                 df.loc[i, other] = df.loc[i, "Comm-IN"]
-                df.loc[i, attribute] = "IO"
+                df.loc[i, "Attribute"] = "IO"
             elif attr == "TOP-OUT":
-                i = df[attribute] == attr
+                i = df["Attribute"] == attr
                 df.loc[i, other] = df.loc[i, "Comm-OUT"]
-                df.loc[i, attribute] = "IO"
-        filter = ~((df[attribute] == "IO") & df[other].isna())
+                df.loc[i, "Attribute"] = "IO"
+        filter = ~((df["Attribute"] == "IO") & df[other].isna())
         df = df[filter]
         df.reset_index(drop=True, inplace=True)
 
@@ -486,7 +485,10 @@ def process_user_constraint_tables(
             return table
         df = table.dataframe
 
-        # TODO: apply table.uc_sets
+        if table.uc_sets:
+            print(
+                f"WARNING: Ignoring uc_sets '{table.uc_sets}': {table.filename} {table.sheetname} {table.range}"
+            )
 
         # Fill in UC_N blank cells with value from above
         df["UC_N"] = df["UC_N"].ffill()

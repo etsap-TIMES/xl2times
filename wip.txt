@@ -1,0 +1,14 @@
+missing
+UC-UP_R-RSDCK_GAS_X0,LHS,IE,2019,R-RSDCK_GAS_X0,RSDCK,ANNUAL,1.0
+
+additional:
+UC-UP_R-RSDCK_GAS_X0,LHS,IE,2019,              ,     ,ANNUAL,1.0
+
+
+sheetname: RSDCK_share
+range: D19:S23
+filename: ..\times-ireland-model\..\times-ireland-model\SuppXLS\Scen_B_RSD_UC.xlsx
+uc_sets: T_E:, R_E:AllRegions
+tag: ~UC_T: UC_COMPRD~UP
+UC_N                ,PSET_CI,PSET_CO,Pset_PN,CSET_CN,UC_FLO~2019,2019,2020,2025,2030,2050,2070,UC_RHSRTS~2019,UC_RHSRTS~0,UC_Desc
+UC-UP_R-RSDCK_GAS_X0,RSDGAS ,RSDCK  ,       ,RSDCK  ,1          ,-0.222344866297429,-0.244579352927172,-0.259558387723328,-0.259558387723328,-0.259558387723328,-0.259558387723328,0,5,Maximum share of Gas in residential Cooking
