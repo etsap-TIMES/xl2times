@@ -317,6 +317,9 @@ def process_flexible_import_tables(
         mapping = {"YEAR": "Year", "CommName": "Comm-IN"}
         df = df.rename(columns=mapping)
 
+        if "CURR" in df.columns.values:
+            df.rename(columns={"CURR": "Curr"}, inplace=True)
+
         nrows = df.shape[0]
         if ("Comm-IN" in df.columns) and ("Comm-OUT" in df.columns):
             kwargs = {"TOP-IN": ["IN"] * nrows, "TOP-OUT": ["OUT"] * nrows}
