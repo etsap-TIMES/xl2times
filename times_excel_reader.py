@@ -435,14 +435,166 @@ def process_flexible_import_tables(
         if len(df.columns) != (len(index_columns) + 1):
             raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
-        # Note the logic in produce_times_tables that allows mappings to filter by the attribute column
-
         # TODO: should we have a global list of column name -> type?
         df["Year"] = df["Year"].astype("Int64")
 
         return replace(table, dataframe=df)
 
     return [process_flexible_import_table(t) for t in tables]
+
+
+def process_user_constraint_tables(
+    tables: List[EmbeddedXlTable],
+) -> List[EmbeddedXlTable]:
+    legal_values = {
+        # TODO: load these from mapping file?
+        "Attribute": {
+            "UC_ACT",
+            "UC_ATTR",
+            "UC_CAP",
+            "UC_COMNET",
+            "UC_COMPRD",
+            "UC_FLO",
+            "UC_NCAP",
+            "UC_N",
+            "UC_RHSRT",
+            "UC_RHSRTS",
+            "UC_RHSTS",
+            "UC_R_EACH",
+            "UC_R_SUM",
+        },
+        "Region": single_column(tables, "~BookRegions_Map", "Region"),
+        "LimType": {"LO", "UP"},
+        "Side": {"LHS", "RHS"},
+    }
+
+    commodity_names = set(merge_columns(tables, "~FI_Comm", "CommName"))
+    process_names = set(merge_columns(tables, "~FI_Process", "TechName"))
+
+    def get_colname(value):
+        if value.isdigit():
+            return "Year", int(value)
+        for name, values in legal_values.items():
+            if value in values:
+                return name, value
+        return None, value
+
+    def process_user_constraint_table(table: EmbeddedXlTable) -> EmbeddedXlTable:
+        # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
+
+        if not table.tag.startswith("~UC_T"):
+            return table
+        df = table.dataframe
+
+        # TODO: apply table.uc_sets
+
+        # Fill in UC_N blank cells with value from above
+        df["UC_N"] = df["UC_N"].ffill()
+
+        if "UC_Desc" in df.columns:
+            df.drop("UC_Desc", axis=1, inplace=True)
+
+        if "CSET_CN" in table.dataframe.columns.values:
+            df.rename(columns={"CSET_CN": "Cset_CN"}, inplace=True)
+
+        known_columns = [
+            "UC_N",
+            "Region",
+            "Pset_Set",
+            "Pset_PN",
+            "Pset_PD",
+            "Pset_CI",
+            "Pset_CO",
+            "Cset_CN",
+            "Cset_CD",
+            "Side",
+            "Attribute",
+            "UC_ATTR",
+            "Year",
+            "LimType",
+            "Top_Check",
+            # TODO remove these?
+            "TimeSlice",
+            "CommName",
+            "TechName",
+        ]
+        data_columns = [x for x in df.columns.values if x not in known_columns]
+
+        # Populate columns
+        nrows = df.shape[0]
+        for colname in known_columns:
+            if colname not in df.columns:
+                df[colname] = [None] * nrows
+        table = replace(table, dataframe=df)
+
+        # TODO: detect RHS correctly
+        i = df["Side"].isna()
+        df.loc[i, "Side"] = "LHS"
+
+        table = apply_composite_tag(table)
+        df = table.dataframe
+        df, attribute_suffix = explode(df, data_columns)
+
+        # Append the data column name to the Attribute column
+        if nrows > 0:
+            i = df["Attribute"].notna()
+            df.loc[i, "Attribute"] = df.loc[i, "Attribute"] + "~" + attribute_suffix[i]
+            i = df["Attribute"].isna()
+            df.loc[i, "Attribute"] = attribute_suffix[i]
+
+        # Handle Attribute containing tilde, such as 'STOCK~2030'
+        for attr in df["Attribute"].unique():
+            if "~" in attr:
+                i = df["Attribute"] == attr
+                parts = attr.split("~")
+                for value in parts:
+                    colname, typed_value = get_colname(value)
+                    if colname is None:
+                        df.loc[i, "Attribute"] = typed_value
+                    else:
+                        df.loc[i, colname] = typed_value
+
+        apply_wildcards(df, commodity_names, "Cset_CN", "CommName")
+        df.drop("Cset_CN", axis=1, inplace=True)
+        df = df.explode(["CommName"], ignore_index=True)
+
+        apply_wildcards(df, process_names, "Pset_PN", "TechName")
+        df.drop("Pset_PN", axis=1, inplace=True)
+        df = df.explode(["TechName"], ignore_index=True)
+
+        # TODO: handle other wildcard columns
+
+        # TODO: should we have a global list of column name -> type?
+        df["Year"] = df["Year"].astype("Int64")
+
+        return replace(table, dataframe=df)
+
+    return [process_user_constraint_table(t) for t in tables]
+
+
+def apply_wildcards(
+    df: DataFrame, candidates: List[str], wildcard_col: str, output_col: str
+):
+    wildcard_map = {}
+    all_wildcards = df[wildcard_col].unique()
+    for wildcard_string in all_wildcards:
+        if wildcard_string == None:
+            wildcard_map[wildcard_string] = None
+        else:
+            wildcard_list = wildcard_string.split(",")
+            current_list = []
+            for wildcard in wildcard_list:
+                if wildcard.startswith("-"):
+                    wildcard = wildcard[1:]
+                    regexp = re.compile(wildcard.replace("*", ".*"))
+                    current_list = [s for s in current_list if not regexp.match(s)]
+                else:
+                    regexp = re.compile(wildcard.replace("*", ".*"))
+                    additions = [s for s in candidates if regexp.match(s)]
+                    current_list = list(set(current_list + additions))
+            wildcard_map[wildcard_string] = current_list
+
+    df[output_col] = df[wildcard_col].map(wildcard_map)
 
 
 def merge_columns(tables: List[EmbeddedXlTable], tag: str, colname: str):
@@ -1067,32 +1219,6 @@ def process_transform_update(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
     return result
 
 
-def process_user_constraints(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    result = []
-    dropped = []
-    for table in tables:
-        if not table.tag.startswith("~UC_"):
-            result.append(table)
-        else:
-            dropped.append(table)
-
-    if len(dropped) > 0:
-        # TODO handle
-        by_tag = [
-            (key, list(group))
-            for key, group in groupby(
-                sorted(dropped, key=lambda t: t.tag), lambda t: t.tag
-            )
-        ]
-        for (key, group) in by_tag:
-            print(
-                f"WARNING: Dropped {len(group)} user constraint tables ({key})"
-                f" rather than processing them"
-            )
-
-    return result
-
-
 def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     def timeslices_table(
         table: EmbeddedXlTable, regions: str, result: List[EmbeddedXlTable]
@@ -1211,6 +1337,8 @@ def dump_tables(tables: List, filename: str) -> List:
                 text_file.write(f"sheetname: {t.sheetname}\n")
                 text_file.write(f"range: {t.range}\n")
                 text_file.write(f"filename: {t.filename}\n")
+                if t.uc_sets:
+                    text_file.write(f"uc_sets: {t.uc_sets}\n")
                 df = t.dataframe
             else:
                 tag = t[0]
@@ -1259,15 +1387,15 @@ def convert_xl_to_times(
         remove_tables_with_formulas,  # slow
         process_transform_insert,
         process_flexible_import_tables,  # slow
+        process_user_constraint_tables,
         process_commodity_emissions,
         process_commodities,
         process_processes,
         process_transform_availability,
         process_transform_update,
-        process_user_constraints,
         fill_in_missing_values,
         process_time_slices,
-        lambda tables: [expand_rows(t) for t in tables],  # slow
+        expand_rows_parallel,  # slow
         remove_invalid_values,
         process_time_periods,
         process_currencies,
@@ -1297,6 +1425,11 @@ def convert_xl_to_times(
     )
 
     return output
+
+
+def expand_rows_parallel(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    with ProcessPoolExecutor() as executor:
+        return list(executor.map(expand_rows, tables))
 
 
 def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
