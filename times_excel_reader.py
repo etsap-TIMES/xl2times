@@ -784,6 +784,16 @@ def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     return result
 
 
+def process_datayears(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    # Datayears is the set of all years in ~FI_T's Year column
+    # We ignore values < 1000 because those signify interpolation/extrapolation rules
+    # (see Table 8 of Part IV of the Times Documentation)
+    datayears = tables["~FI_T"]["Year"].where(lambda x: x >= 1000).dropna()
+    datayears = datayears.drop_duplicates().sort_values()
+    tables["DataYear"] = pd.DataFrame({"Year": datayears})
+    return tables
+
+
 def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
     for table in tables:
@@ -1265,6 +1275,7 @@ def convert_xl_to_times(
         apply_fixups,
         extract_commodity_groups,
         merge_tables,
+        process_datayears,
         lambda tables: dump_tables(tables, "merged_tables.txt"),
         lambda tables: produce_times_tables(tables, mappings),
     ]
