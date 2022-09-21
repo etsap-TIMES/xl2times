@@ -1286,7 +1286,7 @@ def convert_xl_to_times(
         start_time = time.time()
         output = transform(input)
         end_time = time.time()
-        print(f"transform took {end_time-start_time:.2f} seconds")
+        print(f"transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds")
         results.append(output)
         input = output
 
