@@ -1582,6 +1582,9 @@ def produce_times_tables(
                     df = df.loc[i, :]
                     if colname not in df.columns:
                         df = df.rename(columns={"VALUE": colname})
+            # TODO find the correct tech group
+            if "TechGroup" in mapping.xl_cols:
+                df["TechGroup"] = df["TechName"]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols) - set(df.columns)
                 print(
