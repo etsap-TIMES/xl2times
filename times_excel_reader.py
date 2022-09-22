@@ -69,6 +69,18 @@ class Tag(str, Enum):
         return tag in cls._value2member_map_
 
 
+query_columns = {
+    "PSet_Set",
+    "PSet_PN",
+    "PSet_PD",
+    "PSet_CI",
+    "PSet_CO",
+    "CSet_Set",
+    "CSet_CN",
+    "CSet_CD",
+}
+
+
 def extract_tables(filename: str) -> List[EmbeddedXlTable]:
     start_time = time.time()
 
@@ -766,12 +778,13 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
         else:
             return s
 
-    if table.tag == Tag.tfm_upd:
-        return table
-
     df = table.dataframe.copy()
     c = df.applymap(has_comma)
-    columns_with_commas = [colname for colname in c.columns.values if c[colname].any()]
+    columns_with_commas = [
+        colname
+        for colname in c.columns.values
+        if c[colname].any() and colname not in query_columns
+    ]
     if len(columns_with_commas) > 0:
         # Transform comma-separated strings into lists
         df = df.applymap(split_by_commas)
@@ -1076,16 +1089,6 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             nrows = df.shape[0]
 
             # Standardize column names
-            query_columns = {
-                "PSet_Set",
-                "PSet_PN",
-                "PSet_PD",
-                "PSet_CI",
-                "PSet_CO",
-                "CSet_Set",
-                "CSet_CN",
-                "CSet_CD",
-            }
             known_columns = {
                 "Attribute",
                 "Year",
@@ -1285,9 +1288,9 @@ def create_regexp(pattern):
     for c in special:
         pattern = pattern.replace(c, "\\" + c)
     # Handle VEDA wildcards
-    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", "|")
+    pattern = pattern.replace("*", ".*").replace("?", ".")
     # Do not match substrings
-    pattern = "^" + pattern + "$"
+    pattern = "|".join(["^" + word + "$" for word in pattern.split(",")])
     return re.compile(pattern)
 
 
@@ -1345,7 +1348,8 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     commodities_by_sets = commodities[["CommName", "Csets"]].dropna().set_index("Csets")
 
     def filter_by_pattern(df, pattern):
-        df = df.filter(regex=create_regexp(pattern), axis="index")
+        # Duplicates can be created when a process has multiple commodities that match the pattern
+        df = df.filter(regex=create_regexp(pattern), axis="index").drop_duplicates()
         exclude = df.filter(regex=create_negative_regexp(pattern), axis="index").index
         return df.drop(exclude)
 
