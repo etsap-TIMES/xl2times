@@ -1299,7 +1299,7 @@ def create_negative_regexp(pattern):
     return create_regexp(pattern)
 
 
-def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
     processes = tables[Tag.fi_process]
@@ -1403,6 +1403,7 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
 
     for tag in {Tag.tfm_ins, Tag.tfm_ins_ts, Tag.tfm_upd}:
         if tag in tables:
+            start_time = time.time()
             upd = tables[tag]
             for i in range(0, len(upd)):
                 row = upd.iloc[i]
@@ -1482,6 +1483,10 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
                         matching_commodities = matching_commodities.assign(**kwargs)
                         row = matching_commodities.merge(row, how="cross")
                     tables[Tag.fi_t] = pd.concat([df, row], ignore_index=True)
+        print(
+            f"  process_wildcards: {tag} took {time.time()-start_time:.2f} seconds for {len(upd)} rows"
+        )
+
     return tables
 
 
@@ -1678,7 +1683,7 @@ def convert_xl_to_times(
         extract_commodity_groups,
         merge_tables,
         process_datayears,
-        process_transform_update,
+        process_wildcards,
         convert_to_string,
         lambda tables: dump_tables(tables, "merged_tables.txt"),
         lambda tables: produce_times_tables(tables, mappings),
