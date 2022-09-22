@@ -3,6 +3,7 @@ from openpyxl.worksheet.cell_range import CellRange
 from pandas.core.frame import DataFrame
 import pandas as pd
 from dataclasses import dataclass, replace
+from enum import Enum
 from typing import Dict, List
 from more_itertools import locate, one
 from itertools import groupby
@@ -37,6 +38,37 @@ class TimesXlMap:
     filter_rows: bool
 
 
+class Tag(str, Enum):
+    active_p_def = "~ACTIVEPDEF"
+    book_regions_map = "~BOOKREGIONS_MAP"
+    comemi = "~COMEMI"
+    comagg = "~COMAGG"
+    currencies = "~CURRENCIES"
+    def_units = "~DEFUNITS"
+    fi_comm = "~FI_COMM"
+    fi_process = "~FI_PROCESS"
+    fi_t = "~FI_T"
+    start_year = "~STARTYEAR"
+    tfm_ava = "~TFM_AVA"
+    tfm_comgrp = "~TFM_COMGRP"
+    tfm_dins = "~TFM_DINS"
+    tfm_fill = "~TFM_FILL"
+    tfm_fill_r = "~TFM_FILL-R"
+    tfm_ins = "~TFM_INS"
+    tfm_ins_ts = "~TFM_INS-TS"
+    tfm_topins = "~TFM_TOPINS"
+    tfm_upd = "~TFM_UPD"
+    todo = "~TODO"
+    time_periods = "~TIMEPERIODS"
+    time_slices = "~TIMESLICES"
+    uc_sets = "~UC_SETS"
+    uc_t = "~UC_T"
+
+    @classmethod
+    def has_tag(cls, tag):
+        return tag in cls._value2member_map_
+
+
 def extract_tables(filename: str) -> List[EmbeddedXlTable]:
     start_time = time.time()
 
@@ -53,7 +85,7 @@ def extract_tables(filename: str) -> List[EmbeddedXlTable]:
             for colname in df.columns:
                 value = str(row[colname])
                 if value.startswith("~"):
-                    match = re.match("~UC_SETS:(.*)", value, re.IGNORECASE)
+                    match = re.match(f"~{Tag.uc_sets}:(.*)", value, re.IGNORECASE)
                     if match:
                         parts = match.group(1).split(":")
                         if len(parts) == 2:
@@ -222,6 +254,29 @@ def remove_tables_with_formulas(tables: List[EmbeddedXlTable]) -> List[EmbeddedX
     return [table for table in tables if not has_formulas(table)]
 
 
+def normalize_tags_columns_attrs(
+    tables: List[EmbeddedXlTable],
+) -> List[EmbeddedXlTable]:
+    """Normalize (uppercase) tags, column names, and values in attribute columns."""
+    # TODO Uppercase column names and attribute values in mapping.txt when reading it
+    # TODO Check all string literals left in file
+    def normalize(table: EmbeddedXlTable) -> EmbeddedXlTable:
+        # Only uppercase upto ':', the rest can be non-uppercase values like regions
+        parts = table.tag.split(":")
+        assert len(parts) <= 2
+        parts[0] = parts[0].upper()
+        newtag = ":".join(parts)
+
+        # TODO continue:
+        # df = table.dataframe
+        # col_name_map = {x: x.upper() for x in df.columns}
+
+        # return replace(table, tag=newtag, dataframe=df)
+        return replace(table, tag=newtag)
+
+    return [normalize(table) for table in tables]
+
+
 def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
     """Merge tables of the same types"""
     result = {}
@@ -285,7 +340,7 @@ def timeslices(tables: List[EmbeddedXlTable]):
     # TODO merge with other timeslice code
 
     # No idea why casing of Weekly is special
-    cols = single_table(tables, "~TimeSlices").dataframe.columns
+    cols = single_table(tables, Tag.time_slices).dataframe.columns
     timeslices = [col if col == "Weekly" else col.upper() for col in cols]
     timeslices.insert(0, "ANNUAL")
     return timeslices
@@ -297,13 +352,14 @@ def process_flexible_import_tables(
     legal_values = {
         "LimType": {"LO", "UP", "FX"},
         "TimeSlice": timeslices(tables),
-        "Comm-OUT": set(merge_columns(tables, "~FI_Comm", "CommName")),
-        "Region": single_column(tables, "~BookRegions_Map", "Region"),
-        "Curr": single_column(tables, "~Currencies", "Currency"),
+        "Comm-OUT": set(merge_columns(tables, Tag.fi_comm, "CommName")),
+        "Region": single_column(tables, Tag.book_regions_map, "Region"),
+        "Curr": single_column(tables, Tag.currencies, "Currency"),
         "Other_Indexes": {"Input", "Output"},
     }
 
     def get_colname(value):
+        # TODO make sure to do case-insensitive comparisons when parsing composite column names
         if value.isdigit():
             return "Year", int(value)
         for name, values in legal_values.items():
@@ -314,8 +370,8 @@ def process_flexible_import_tables(
     def process_flexible_import_table(table: EmbeddedXlTable) -> EmbeddedXlTable:
         # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
 
-        if not table.tag.startswith("~FI_T") and table.tag not in {
-            "~TFM_UPD",
+        if not table.tag.startswith(Tag.fi_t) and table.tag not in {
+            Tag.tfm_upd,
         }:
             return table
         df = table.dataframe
@@ -329,7 +385,7 @@ def process_flexible_import_tables(
         if (
             ("Comm-IN" in df.columns)
             and ("Comm-OUT" in df.columns)
-            and (table.tag != "~TFM_UPD")
+            and (table.tag != Tag.tfm_upd)
         ):
             kwargs = {"TOP-IN": ["IN"] * nrows, "TOP-OUT": ["OUT"] * nrows}
             df = df.assign(**kwargs)
@@ -389,7 +445,7 @@ def process_flexible_import_tables(
         df = table.dataframe
 
         attribute = "Attribute"
-        if table.tag != "~TFM_UPD":
+        if table.tag != Tag.tfm_upd:
             df, attribute_suffix = explode(df, data_columns)
 
             # Append the data column name to the Attribute column
@@ -443,7 +499,7 @@ def process_flexible_import_tables(
         df.reset_index(drop=True, inplace=True)
 
         # Should have all index_columns and VALUE
-        if table.tag == "~FI_T" and len(df.columns) != (len(index_columns) + 1):
+        if table.tag == Tag.fi_t and len(df.columns) != (len(index_columns) + 1):
             raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
         # TODO: should we have a global list of column name -> type?
@@ -474,15 +530,16 @@ def process_user_constraint_tables(
             "UC_R_EACH",
             "UC_R_SUM",
         },
-        "Region": single_column(tables, "~BookRegions_Map", "Region"),
+        "Region": single_column(tables, Tag.book_regions_map, "Region"),
         "LimType": {"LO", "UP"},
         "Side": {"LHS", "RHS"},
     }
 
-    commodity_names = set(merge_columns(tables, "~FI_Comm", "CommName"))
-    process_names = set(merge_columns(tables, "~FI_Process", "TechName"))
+    commodity_names = set(merge_columns(tables, Tag.fi_comm, "CommName"))
+    process_names = set(merge_columns(tables, Tag.fi_process, "TechName"))
 
     def get_colname(value):
+        # TODO make sure to do case-insensitive comparisons when parsing composite column names
         if value.isdigit():
             return "Year", int(value)
         for name, values in legal_values.items():
@@ -493,7 +550,7 @@ def process_user_constraint_tables(
     def process_user_constraint_table(table: EmbeddedXlTable) -> EmbeddedXlTable:
         # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
 
-        if not table.tag.startswith("~UC_T"):
+        if not table.tag.startswith(Tag.uc_t):
             return table
         df = table.dataframe
 
@@ -623,22 +680,22 @@ def single_column(tables: List[EmbeddedXlTable], tag: str, colname: str):
 
 def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
-    regions = single_column(tables, "~BookRegions_Map", "Region")
-    start_year = one(single_column(tables, "~StartYear", "VALUE"))
+    regions = single_column(tables, Tag.book_regions_map, "Region")
+    start_year = one(single_column(tables, Tag.start_year, "VALUE"))
     # TODO there are multiple currencies
-    currency = single_column(tables, "~Currencies", "Currency")[0]
+    currency = single_column(tables, Tag.currencies, "Currency")[0]
 
     def fill_in_missing_values_inplace(df):
         for colname in df.columns:
             # TODO make this more declarative
             if colname == "Csets" or colname == "TechName":
                 missing_value_inherit(df, colname)
-            elif colname == "LimType" and table.tag == "~FI_Comm" and False:
+            elif colname == "LimType" and table.tag == Tag.fi_comm and False:
                 isna = df[colname].isna()
                 ismat = df["Csets"] == "MAT"
                 df.loc[isna & ismat, colname] = "FX"
                 df.loc[isna & ~ismat, colname] = "LO"
-            elif colname == "LimType" and table.tag == "~FI_T":
+            elif colname == "LimType" and table.tag == Tag.fi_t:
                 isna = df[colname].isna()
                 islo = df["Attribute"].isin({"BS_STIME", "GR_VARGEN", "RCAP_BND"})
                 isfx = df["Attribute"].isin(
@@ -669,7 +726,7 @@ def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTabl
                 df[colname].fillna(currency, inplace=True)
 
     for table in tables:
-        if table.tag == "~TFM_UPD":
+        if table.tag == Tag.tfm_upd:
             # Missing values in update tables are wildcards and should not be filled in
             result.append(table)
         else:
@@ -700,7 +757,7 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
         else:
             return s
 
-    if table.tag == "~TFM_UPD":
+    if table.tag == Tag.tfm_upd:
         return table
 
     df = table.dataframe.copy()
@@ -717,7 +774,7 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
 
 def remove_invalid_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     # TODO pull this out
-    regions = single_column(tables, "~BookRegions_Map", "Region")
+    regions = single_column(tables, Tag.book_regions_map, "Region")
     # TODO pull this out
     constraints = {
         "Csets": {"NRG", "MAT", "DEM", "ENV", "FIN"},
@@ -760,6 +817,10 @@ def read_mappings(filename: str) -> List[TimesXlMap]:
             col_map = {}
             for index, value in enumerate(xl_cols):
                 col_map[value] = times_cols[index]
+            # Uppercase and validate tags:
+            if xl_name.startswith("~"):
+                xl_name = xl_name.upper()
+                assert Tag.has_tag(xl_name), f"Tag {xl_name} not found"
             entry = TimesXlMap(
                 times_name=times_name,
                 times_cols=times_cols,
@@ -770,7 +831,7 @@ def read_mappings(filename: str) -> List[TimesXlMap]:
             )
 
             # TODO remove: Filter out mappings that are not yet finished
-            if entry.xl_name != "~TODO" and not any(
+            if entry.xl_name != Tag.todo and not any(
                 c.startswith("TODO") for c in entry.xl_cols
             ):
                 mappings.append(entry)
@@ -783,11 +844,11 @@ def read_mappings(filename: str) -> List[TimesXlMap]:
 
 
 def process_time_periods(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    start_year = get_scalar("~StartYear", tables)
-    active_pdef = get_scalar("~ActivePDef", tables)
+    start_year = get_scalar(Tag.start_year, tables)
+    active_pdef = get_scalar(Tag.active_p_def, tables)
 
     def process_time_periods_table(table: EmbeddedXlTable):
-        if table.tag != "~TimePeriods":
+        if table.tag != Tag.time_periods:
             return table
 
         df = table.dataframe.copy()
@@ -826,7 +887,7 @@ def process_currencies(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     def apply_fixups_table(table: EmbeddedXlTable):
-        if not table.tag.startswith("~FI_T"):
+        if not table.tag.startswith(Tag.fi_t):
             return table
 
         df = table.dataframe.copy()
@@ -852,7 +913,7 @@ def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 
 def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    fit_tables = [t for t in tables if t.tag == "~FI_T"]
+    fit_tables = [t for t in tables if t.tag == Tag.fi_t]
 
     gmap_tables = []
     for fit_table in fit_tables:
@@ -903,17 +964,17 @@ def remove_fill_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     # TODO for the moment, assume VEDA has updated these tables but we will need a tool to do this
     result = []
     for table in tables:
-        if table.tag != "~TFM_FILL" and not table.tag.startswith("~TFM_Fill-R"):
+        if table.tag != Tag.tfm_fill and not table.tag.startswith(Tag.tfm_fill_r):
             result.append(table)
     return result
 
 
 def process_commodity_emissions(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    regions = single_column(tables, "~BookRegions_Map", "Region")
+    regions = single_column(tables, Tag.book_regions_map, "Region")
 
     result = []
     for table in tables:
-        if table.tag != "~COMEMI":
+        if table.tag != Tag.comemi:
             result.append(table)
         else:
             df = table.dataframe.copy()
@@ -942,11 +1003,11 @@ def process_commodity_emissions(tables: List[EmbeddedXlTable]) -> List[EmbeddedX
 
 
 def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    regions = ",".join(single_column(tables, "~BookRegions_Map", "Region"))
+    regions = ",".join(single_column(tables, Tag.book_regions_map, "Region"))
 
     result = []
     for table in tables:
-        if table.tag != "~FI_Comm" and table.tag != "~FI_COMM":
+        if table.tag != Tag.fi_comm and table.tag != Tag.fi_comm:
             result.append(table)
         else:
             df = table.dataframe.copy()
@@ -957,7 +1018,7 @@ def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
                 df["LimType"] = [None] * nrows
             if "CSet" in table.dataframe.columns.values:
                 df = df.rename(columns={"CSet": "Csets"})
-            result.append(replace(table, dataframe=df, tag="~FI_Comm"))
+            result.append(replace(table, dataframe=df, tag=Tag.fi_comm))
 
     return result
 
@@ -966,7 +1027,7 @@ def process_datayears(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     # Datayears is the set of all years in ~FI_T's Year column
     # We ignore values < 1000 because those signify interpolation/extrapolation rules
     # (see Table 8 of Part IV of the Times Documentation)
-    datayears = tables["~FI_T"]["Year"].where(lambda x: x >= 1000).dropna()
+    datayears = tables[Tag.fi_t]["Year"].where(lambda x: x >= 1000).dropna()
     datayears = datayears.drop_duplicates().sort_values()
     tables["DataYear"] = pd.DataFrame({"Year": datayears})
     return tables
@@ -975,7 +1036,7 @@ def process_datayears(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     result = []
     for table in tables:
-        if table.tag != "~FI_Process":
+        if table.tag != Tag.fi_process:
             result.append(table)
         else:
             df = table.dataframe.copy()
@@ -992,26 +1053,16 @@ def process_processes(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 
 def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
-    regions = single_column(tables, "~BookRegions_Map", "Region")
+    regions = single_column(tables, Tag.book_regions_map, "Region")
+    tfm_tags = [Tag.tfm_ins, Tag.tfm_dins, Tag.tfm_topins, Tag.tfm_upd, Tag.tfm_comgrp]
 
     result = []
     dropped = []
     for table in tables:
-        if (
-            not table.tag.startswith("~TFM_INS")
-            and not table.tag.startswith("~TFM_DINS")
-            and not table.tag.startswith("~TFM_TOPINS")
-            and not table.tag.startswith("~TFM_UPD")
-            and not table.tag.startswith("~TFM_COMGRP")
-        ):
+        if not any(table.tag.startswith(t) for t in tfm_tags):
             result.append(table)
 
-        elif (
-            table.tag == "~TFM_INS"
-            or table.tag == "~TFM_INS-TS"
-            or table.tag == "~TFM_UPD"
-            or table.tag == "~TFM_COMGRP"
-        ):
+        elif table.tag in [Tag.tfm_ins, Tag.tfm_ins_ts, Tag.tfm_upd, Tag.tfm_comgrp]:
             df = table.dataframe.copy()
             nrows = df.shape[0]
 
@@ -1052,7 +1103,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                     df[region] = df["AllRegions"]
                 df.drop(columns=["AllRegions"], inplace=True)
 
-            if table.tag == "~TFM_INS-TS":
+            if table.tag == Tag.tfm_ins_ts:
                 # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
                 if "Region" not in df.columns.values:
                     df = df.assign(Region=[regions] * len(df))
@@ -1091,24 +1142,24 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 )
 
             if (
-                table.tag == "~TFM_INS-TS"
+                table.tag == Tag.tfm_ins_ts
                 and set(df.columns) & query_columns == {"CSet_CN"}
                 and has_no_wildcards(df["CSet_CN"])
             ):
                 df["Comm-OUT"] = df["CSet_CN"]
                 df["Comm-IN"] = df["CSet_CN"]
                 df.drop(columns=["CSet_CN"], inplace=True)
-                result.append(replace(table, dataframe=df, tag="~FI_T"))
+                result.append(replace(table, dataframe=df, tag=Tag.fi_t))
             elif (
-                table.tag == "~TFM_INS-TS"
+                table.tag == Tag.tfm_ins_ts
                 and set(df.columns) & query_columns == {"PSet_PN"}
                 and has_no_wildcards(df["PSet_PN"])
             ):
                 df.rename(columns={"PSet_PN": "TechName"}, inplace=True)
-                result.append(replace(table, dataframe=df, tag="~FI_T"))
+                result.append(replace(table, dataframe=df, tag=Tag.fi_t))
             else:
                 # wildcard expansion will happen later
-                if table.tag == "~TFM_INS-TS":
+                if table.tag == Tag.tfm_ins_ts:
                     # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
                     data_columns = [
                         colname
@@ -1124,7 +1175,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 df = df.assign(**kwargs)
                 result.append(replace(table, dataframe=df))
 
-        elif table.tag == "~TFM_DINS":
+        elif table.tag == Tag.tfm_dins:
             df = table.dataframe.copy()
             nrows = df.shape[0]
 
@@ -1153,7 +1204,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
 
             df.rename(columns={"Cset_CN": "Comm-IN"}, inplace=True)
 
-            result.append(replace(table, dataframe=df, tag="~FI_T"))
+            result.append(replace(table, dataframe=df, tag=Tag.fi_t))
 
         else:
             dropped.append(table)
@@ -1181,7 +1232,7 @@ def process_transform_availability(
     result = []
     dropped = []
     for table in tables:
-        if table.tag != "~TFM_AVA":
+        if table.tag != Tag.tfm_ava:
             result.append(table)
         else:
             dropped.append(table)
@@ -1243,7 +1294,7 @@ def create_negative_regexp(pattern):
 def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
-    processes = tables["~FI_Process"]
+    processes = tables[Tag.fi_process]
     duplicated_processes = processes[["TechName"]].duplicated()
     if any(duplicated_processes):
         duplicated_process_names = processes["TechName"][duplicated_processes]
@@ -1261,7 +1312,7 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
         processes[["TechName", "TechDesc"]].dropna().set_index("TechDesc")
     )
     processes_by_sets = processes[["TechName", "Sets"]].dropna().set_index("Sets")
-    processes_and_commodities = tables["~FI_T"]
+    processes_and_commodities = tables[Tag.fi_t]
     processes_by_comm_in = (
         processes_and_commodities[["TechName", "Comm-IN"]]
         .dropna()
@@ -1274,7 +1325,7 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
         .drop_duplicates()
         .set_index("Comm-OUT")
     )
-    commodities = tables["~FI_Comm"]
+    commodities = tables[Tag.fi_comm]
     commodities_by_name = (
         commodities[["CommName"]]
         .dropna()
@@ -1342,7 +1393,7 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
             )
         return matching_commodities
 
-    for tag in {"~TFM_INS", "~TFM_INS-TS", "~TFM_UPD"}:
+    for tag in {Tag.tfm_ins, Tag.tfm_ins_ts, Tag.tfm_upd}:
         if tag in tables:
             upd = tables[tag]
             for i in range(0, len(upd)):
@@ -1358,10 +1409,10 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
                 if matching_commodities is not None and len(matching_commodities) == 0:
                     print(f"WARNING: {tag} row matched no commodities")
                     continue
-                df = tables["~FI_T"]
+                df = tables[Tag.fi_t]
                 if any(df.index.duplicated()):
                     raise ValueError("~FI_T table has duplicated indices")
-                if tag == "~TFM_UPD":
+                if tag == Tag.tfm_upd:
                     # construct query into ~FI_T to get indices of matching rows
                     df = df.reset_index()
                     if matching_processes is not None:
@@ -1407,7 +1458,7 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
                         df = df.assign(VALUE=[row.VALUE] * len(df))
                     if len(df) == 0:
                         print(f"WARNING: {tag} row matched nothing")
-                    tables["~FI_T"].update(df)
+                    tables[Tag.fi_t].update(df)
                 else:
                     # Construct 1-row data frame for data
                     # Cross merge with processes and commodities (if they exist)
@@ -1422,7 +1473,7 @@ def process_transform_update(tables: Dict[str, DataFrame]) -> Dict[str, DataFram
                         kwargs = {"Comm-OUT": "Comm-IN"}
                         matching_commodities = matching_commodities.assign(**kwargs)
                         row = matching_commodities.merge(row, how="cross")
-                    tables["~FI_T"] = pd.concat([df, row], ignore_index=True)
+                    tables[Tag.fi_t] = pd.concat([df, row], ignore_index=True)
     return tables
 
 
@@ -1466,10 +1517,10 @@ def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         )
 
     result = []
-    regions = ",".join(single_column(tables, "~BookRegions_Map", "Region"))
+    regions = ",".join(single_column(tables, Tag.book_regions_map, "Region"))
 
     for table in tables:
-        if table.tag != "~TimeSlices":
+        if table.tag != Tag.time_slices:
             result.append(table)
         else:
             timeslices_table(table, regions, result)
@@ -1597,6 +1648,7 @@ def convert_xl_to_times(
 
     transforms = [
         lambda tables: dump_tables(tables, "raw_tables.txt"),
+        normalize_tags_columns_attrs,
         remove_fill_tables,
         lambda tables: [remove_comment_rows(t) for t in tables],
         lambda tables: [remove_comment_cols(t) for t in tables],
