@@ -330,6 +330,7 @@ def explode(df, data_columns):
     ]
     df = df[other_columns]
     value_column = "VALUE"
+    # assign is needed here because we want to make a copy
     df = df.assign(VALUE=data)
     nrows = df.shape[0]
     df = df.explode(value_column, ignore_index=True)
@@ -393,8 +394,8 @@ def process_flexible_import_tables(
             and ("Comm-OUT" in df.columns)
             and (table.tag != Tag.tfm_upd)
         ):
-            kwargs = {"TOP-IN": ["IN"] * nrows, "TOP-OUT": ["OUT"] * nrows}
-            df = df.assign(**kwargs)
+            df["TOP-IN"] = ["IN"] * nrows
+            df["TOP-OUT"] = ["OUT"] * nrows
 
         # Remove any TechDesc column
         if "TechDesc" in df.columns:
@@ -502,7 +503,7 @@ def process_flexible_import_tables(
                 df.loc[i, attribute] = "IO"
         filter = ~((df[attribute] == "IO") & df[other].isna())
         df = df[filter]
-        df.reset_index(drop=True, inplace=True)
+        df = df.reset_index(drop=True)
 
         # Should have all index_columns and VALUE
         if table.tag == Tag.fi_t and len(df.columns) != (len(index_columns) + 1):
@@ -639,7 +640,7 @@ def process_user_constraint_tables(
         # TODO: handle other wildcard columns
 
         # TODO: should we have a global list of column name -> type?
-        df = df.assign(Year=df["Year"].astype("Int64"))
+        df["Year"] = df["Year"].astype("Int64")
 
         return replace(table, dataframe=df)
 
@@ -992,7 +993,7 @@ def process_commodity_emissions(tables: List[EmbeddedXlTable]) -> List[EmbeddedX
             ]
             df, names = explode(df, data_columns)
             df.rename(columns={"VALUE": "EMCB"}, inplace=True)
-            df = df.assign(Other_Indexes=names)
+            df["Other_Indexes"] = names
 
             if "Region" in df.columns.values:
                 df = df.astype({"Region": "string"})
@@ -1114,7 +1115,7 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             if table.tag == Tag.tfm_ins_ts:
                 # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
                 if "Region" not in df.columns.values:
-                    df = df.assign(Region=[regions] * len(df))
+                    df["Region"] = [regions] * len(df)
                     df = df.explode(["Region"], ignore_index=True)
             else:
                 # Transpose region columns to new VALUE column and add corresponding regions in new Region column
@@ -1128,8 +1129,8 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                 ]
                 data = df[region_cols].values.tolist()
                 df = df[other_columns]
-                df = df.assign(Region=[region_cols] * nrows)
-                df = df.assign(VALUE=data)
+                df["Region"] = [region_cols] * nrows
+                df["VALUE"] = data
                 df = df.explode(["Region", "VALUE"], ignore_index=True)
                 unknown_columns = [
                     col_name
@@ -1175,12 +1176,10 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
                         if colname not in known_columns | {"Region", "TS_Filter"}
                     ]
                     df, years = explode(df, data_columns)
-                    df = df.assign(Year=years)
-                kwargs = {}
+                    df["Year"] = years
                 for standard_col in known_columns:
                     if standard_col not in df.columns:
-                        kwargs[standard_col] = [None] * len(df)
-                df = df.assign(**kwargs)
+                        df[standard_col] = [None] * len(df)
                 result.append(replace(table, dataframe=df))
 
         elif table.tag == Tag.tfm_dins:
@@ -1206,8 +1205,8 @@ def process_transform_insert(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
             ]
             data = df[region_cols].values.tolist()
             df = df[other_columns]
-            df = df.assign(Region=[region_cols] * nrows)
-            df = df.assign(DEMAND=data)
+            df["Region"] = [region_cols] * nrows
+            df["DEMAND"] = data
             df = df.explode(["Region", "DEMAND"], ignore_index=True)
 
             df.rename(columns={"Cset_CN": "Comm-IN"}, inplace=True)
@@ -1464,7 +1463,7 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                     }:
                         df = df.astype({"VALUE": float}).eval("VALUE=VALUE" + row.VALUE)
                     else:
-                        df = df.assign(VALUE=[row.VALUE] * len(df))
+                        df["VALUE"] = [row.VALUE] * len(df)
                     if len(df) == 0:
                         print(f"WARNING: {tag} row matched nothing")
                     tables[Tag.fi_t].update(df)
@@ -1479,8 +1478,9 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                         matching_commodities.rename(
                             columns={"CommName": "Comm-IN"}, inplace=True
                         )
-                        kwargs = {"Comm-OUT": "Comm-IN"}
-                        matching_commodities = matching_commodities.assign(**kwargs)
+                        matching_commodities["Comm-OUT"] = matching_commodities[
+                            "Comm-IN"
+                        ]
                         row = matching_commodities.merge(row, how="cross")
                     tables[Tag.fi_t] = pd.concat([df, row], ignore_index=True)
         print(
