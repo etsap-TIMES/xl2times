@@ -783,11 +783,11 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
     columns_with_commas = [
         colname
         for colname in c.columns.values
-        if c[colname].any() and colname not in query_columns
+        if colname not in query_columns and c[colname].any()
     ]
     if len(columns_with_commas) > 0:
         # Transform comma-separated strings into lists
-        df = df.applymap(split_by_commas)
+        df[columns_with_commas] = df[columns_with_commas].applymap(split_by_commas)
         for colname in columns_with_commas:
             # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.explode.html#pandas.DataFrame.explode
             df = df.explode(colname, ignore_index=True)
