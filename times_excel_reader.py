@@ -243,9 +243,10 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
             for (c, table) in cols:
                 print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
         else:
-            result[key] = pd.concat(
-                [table.dataframe for table in group], ignore_index=True
-            )
+            df = pd.concat([table.dataframe for table in group], ignore_index=True)
+            if "Year" in df.columns.values:
+                df["Year"] = df["Year"].astype("Int64")
+            result[key] = df
     return result
 
 
@@ -1476,6 +1477,15 @@ def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     return result
 
 
+def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    output = {}
+    for key, value in input.items():
+        output[key] = value.applymap(
+            lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
+        )
+    return output
+
+
 def produce_times_tables(
     input: Dict[str, DataFrame], mappings: List[TimesXlMap]
 ) -> Dict[str, DataFrame]:
@@ -1609,6 +1619,7 @@ def convert_xl_to_times(
         merge_tables,
         process_datayears,
         process_transform_update,
+        convert_to_string,
         lambda tables: dump_tables(tables, "merged_tables.txt"),
         lambda tables: produce_times_tables(tables, mappings),
     ]
@@ -1651,7 +1662,7 @@ def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
     result = {}
     for filename in os.listdir(input_dir):
         result[filename.split(".")[0]] = pd.read_csv(
-            os.path.join(input_dir, filename), float_precision="round_trip"
+            os.path.join(input_dir, filename), dtype=str
         )
     return result
 
@@ -1687,8 +1698,9 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
                     f" {data_table.columns.values}, should be {transformed_gt_cols}"
                 )
             else:
-                gt_rows = set(tuple(i) for i in gt_table.values.tolist())
-                data_rows = set(tuple(i) for i in data_table.values.tolist())
+                # both are in string form so can be compared without any issues
+                gt_rows = set(tuple(row) for row in gt_table.values.tolist())
+                data_rows = set(tuple(row) for row in data_table.values.tolist())
                 total_correct_rows += len(gt_rows.intersection(data_rows))
                 additional = data_rows - gt_rows
                 missing = gt_rows - data_rows
