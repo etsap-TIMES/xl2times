@@ -4,7 +4,10 @@
 
 This project is an open source tool to convert TIMES model Excel input files to DD format ready for processing by GAMS.  The intention is to make it easier for people to reproduce research results on TIMES models.
 
-TIMES is an energy systems model generator from the International Energy Agency that is used around the world to inform energy policy - https://iea-etsap.org/index.php/etsap-tools/model-generators/times
+[TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) is an energy systems model generator from the International Energy Agency that is used around the world to inform energy policy.
+It is fully explained in the [TIMES Model Documentation](https://iea-etsap.org/index.php/documentation).
+
+The Excel input format accepted by this tool is documented in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf).  Example inputs are available at https://github.com/kanors-emr/Model_Demo_Adv_Veda
 
 ## Development Setup
 
