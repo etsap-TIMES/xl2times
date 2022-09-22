@@ -701,7 +701,9 @@ def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTabl
                 ismat = df["Csets"] == "MAT"
                 df.loc[isna & ismat, colname] = "FX"
                 df.loc[isna & ~ismat, colname] = "LO"
-            elif colname == "LimType" and table.tag == Tag.fi_t:
+            elif colname == "LimType" and (
+                table.tag == Tag.fi_t or table.tag.startswith("~TFM")
+            ):
                 isna = df[colname].isna()
                 islo = df["Attribute"].isin({"BS_STIME", "GR_VARGEN", "RCAP_BND"})
                 isfx = df["Attribute"].isin(
