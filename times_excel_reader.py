@@ -198,6 +198,9 @@ def cell_is_empty(value) -> bool:
 
 
 def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
+    if table.dataframe.size == 0:
+        return table
+
     df = table.dataframe.copy()
     comment_rows = list(
         locate(
@@ -223,6 +226,9 @@ def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
 
 
 def remove_comment_cols(table: EmbeddedXlTable) -> EmbeddedXlTable:
+    if table.dataframe.size == 0:
+        return table
+
     comment_cols = list(
         locate(
             table.dataframe.columns,
@@ -263,7 +269,7 @@ def normalize_tags_columns_attrs(
     def normalize(table: EmbeddedXlTable) -> EmbeddedXlTable:
         # Only uppercase upto ':', the rest can be non-uppercase values like regions
         parts = table.tag.split(":")
-        assert len(parts) <= 2
+        # assert len(parts) <= 2
         parts[0] = parts[0].upper()
         newtag = ":".join(parts)
 
