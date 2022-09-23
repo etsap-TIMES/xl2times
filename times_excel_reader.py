@@ -1408,6 +1408,12 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
         if tag in tables:
             start_time = time.time()
             upd = tables[tag]
+            new_rows = []
+            # reset index to make sure there are no duplicates
+            tables[Tag.fi_t].reset_index(drop=True, inplace=True)
+            if tag == Tag.tfm_upd:
+                # copy old index to new column 'index'
+                tables[Tag.fi_t].reset_index(inplace=True)
             for i in range(0, len(upd)):
                 row = upd.iloc[i]
                 debug = False
@@ -1426,7 +1432,6 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                     raise ValueError("~FI_T table has duplicated indices")
                 if tag == Tag.tfm_upd:
                     # construct query into ~FI_T to get indices of matching rows
-                    df = df.reset_index()
                     if matching_processes is not None:
                         df = df.merge(matching_processes, on="TechName")
                     if debug:
@@ -1455,7 +1460,10 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                         print(f"{len(df)} rows after Region")
                         if any(df["index"].duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
+                    # so that we can update the original table, copy original index back that was lost when merging
                     df = df.set_index("index")
+                    # for speed, extract just the VALUE column as that is the only one being updated
+                    df = df[["VALUE"]]
                     if debug:
                         if any(df.index.duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
@@ -1486,7 +1494,11 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                             "Comm-IN"
                         ]
                         row = matching_commodities.merge(row, how="cross")
-                    tables[Tag.fi_t] = pd.concat([df, row], ignore_index=True)
+                    new_rows.append(row)
+
+            if tag != Tag.tfm_upd:
+                new_rows.append(df)
+                tables[Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
         print(
             f"  process_wildcards: {tag} took {time.time()-start_time:.2f} seconds for {len(upd)} rows"
         )
