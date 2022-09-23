@@ -1045,13 +1045,27 @@ def process_commodities(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     return result
 
 
-def process_datayears(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def process_years(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     # Datayears is the set of all years in ~FI_T's Year column
     # We ignore values < 1000 because those signify interpolation/extrapolation rules
     # (see Table 8 of Part IV of the Times Documentation)
     datayears = tables[Tag.fi_t]["Year"].where(lambda x: x >= 1000).dropna()
     datayears = datayears.drop_duplicates().sort_values()
     tables["DataYear"] = pd.DataFrame({"Year": datayears})
+
+    # Pastyears is the set of all years before ~StartYear
+    start_year = tables[Tag.start_year]["VALUE"][0]
+    pastyears = datayears.where(lambda x: x <= start_year).dropna()
+    tables["PastYear"] = pd.DataFrame({"Year": pastyears})
+
+    # Modelyears is the union of pastyears and the representative years of the model (middleyears)
+    modelyears = (
+        pastyears.append(tables[Tag.time_periods]["M"], ignore_index=True)
+        .drop_duplicates()
+        .sort_values()
+    )
+    tables["ModelYear"] = pd.DataFrame({"Year": modelyears})
+
     return tables
 
 
@@ -1701,7 +1715,7 @@ def convert_xl_to_times(
         apply_fixups,
         extract_commodity_groups,
         merge_tables,
-        process_datayears,
+        process_years,
         process_wildcards,
         convert_to_string,
         lambda tables: dump_tables(tables, "merged_tables.txt"),
