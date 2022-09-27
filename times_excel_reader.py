@@ -17,9 +17,26 @@ from functools import reduce
 from pathlib import Path
 import pickle
 
+# ============================================================================
+# ===============                   CLASSES                   ================
+# ============================================================================
+
 
 @dataclass
 class EmbeddedXlTable:
+    """This class defines a table object as a pandas dataframe wrapped with some metadata.
+
+    Attributes:
+        tag         Table tag associated with this table in the excel file used as input. You can see a list of all the
+                    possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+        uc_sets     User constrained tables are declared with tags which indicate their type and domain of coverage. This variable contains these two values.
+                    See section 2.4.7 in https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+        sheetname   Name of the excel worksheet where this table was extracted from.
+        range       Range of rows and columns that contained this table in the original excel worksheet.
+        filename    Name of the original excel file where this table was extracted from.
+        dataframe   Pandas dataframe containing the values of the table.
+    """
+
     tag: str
     uc_sets: Dict[str, str]
     sheetname: str
@@ -30,6 +47,22 @@ class EmbeddedXlTable:
 
 @dataclass
 class TimesXlMap:
+    """This class defines mapping data objects between the TIMES excel tables
+    used by the tool for input and the transformed tables it outputs. The mappings
+    are defined in the times_mapping.txt file.
+
+    Attributes:
+        times_name      Name of the table in its output form.
+        times_cols      Name of the columns that the table will have in its output form.
+                        They will be in the header of the output csv files.
+        xl_name         Tag for the excel table used as input. You can see a list of all the
+                        possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+        xl_cols         Columns from the excel table used as input.
+        col_map         A mapping associating times_cols values with col_map values.
+        filter_rows     Boolean indicating that only rows with the desired value in the
+                        Attribute column should be outputted. If false all rows are outputted.
+    """
+
     times_name: str
     times_cols: List[str]
     xl_name: str
@@ -39,6 +72,12 @@ class TimesXlMap:
 
 
 class Tag(str, Enum):
+    """
+    Enum class to enumerate all the accepted table tags by this program.
+    You can see a list of all the possible tags in section 2.4 of
+    https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+    """
+
     active_p_def = "~ACTIVEPDEF"
     book_regions_map = "~BOOKREGIONS_MAP"
     comemi = "~COMEMI"
@@ -69,6 +108,10 @@ class Tag(str, Enum):
         return tag in cls._value2member_map_
 
 
+# ============================================================================
+# ===============             TOP-LEVEL FUNCTIONS             ================
+# ============================================================================
+
 query_columns = {
     "PSet_Set",
     "PSet_PN",
@@ -81,135 +124,241 @@ query_columns = {
 }
 
 
-def extract_tables(filename: str) -> List[EmbeddedXlTable]:
-    start_time = time.time()
+def read_mappings(filename: str) -> List[TimesXlMap]:
+    """
+    Function to load mappings from a text file between the excel sheets we use as input and
+    the tables we give as output. The mappings have the following structure:
 
-    workbook = load_workbook(filename=filename, data_only=True)
+    OUTPUT_TABLE[DATAYEAR,VALUE] = ~TimePeriods(Year,B)
 
-    tables = []
-    for sheet in workbook.worksheets:
-        # Creating dataframe with dtype=object solves problems with ints being cast to floats
-        # https://stackoverflow.com/questions/40251948/stop-pandas-from-converting-int-to-float-due-to-an-insertion-in-another-column
-        df = pd.DataFrame(sheet.values, dtype=object)
-        uc_sets = {}
+    where OUTPUT_TABLE is the name of the table we output and it includes a list of the
+    different fields or column names it includes. On the other side, TimePeriods is the type
+    of table that we will use as input to produce that table, and the arguments are the
+    columns of that table to use to produce the output. The last argument can be of the
+    form `Attribute:ATTRNAME` which means the output will be filtered to only the rows of
+    the input table that have `ATTRNAME` in the Attribute column.
 
-        for row_index, row in df.iterrows():
-            for colname in df.columns:
-                value = str(row[colname])
-                if value.startswith("~"):
-                    match = re.match(f"~{Tag.uc_sets}:(.*)", value, re.IGNORECASE)
-                    if match:
-                        parts = match.group(1).split(":")
-                        if len(parts) == 2:
-                            uc_sets[parts[0].strip()] = parts[1].strip()
-                        else:
-                            print(
-                                f"WARNING: Malformed UC_SET in {sheet.title}, {filename}"
-                            )
-                    else:
-                        col_index = df.columns.get_loc(colname)
-                        tables.append(
-                            extract_table(
-                                row_index, col_index, uc_sets, df, sheet.title, filename
-                            )
-                        )
+    The mappings are loaded into TimesXlMap objects. See the description of that class for more
+    information of the different fields they contain.
 
-    end_time = time.time()
-    if end_time - start_time > 2:
-        print(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
-
-    return tables
-
-
-def extract_table(
-    tag_row: int,
-    tag_col: int,
-    uc_sets: Dict[str, str],
-    df: DataFrame,
-    sheetname: str,
-    filename: str,
-) -> EmbeddedXlTable:
-    # If the cell to the right is not empty then we read a scalar from it
-    # Otherwise the row below is the header
-    if not cell_is_empty(df.iloc[tag_row, tag_col + 1]):
-        range = str(
-            CellRange(
-                min_col=tag_col + 2,
-                min_row=tag_row + 1,
-                max_col=tag_col + 2,
-                max_row=tag_row + 1,
+    :param filename:        Name of the text file containing the mappings.
+    :return:                List of mappings in TimesXlMap format.
+    """
+    mappings = []
+    dropped = []
+    with open(filename) as file:
+        while True:
+            line = file.readline().rstrip()
+            if line == "":
+                break
+            (times, xl) = line.split(" = ")
+            (times_name, times_cols_str) = list(filter(None, re.split("\[|\]", times)))
+            (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
+            times_cols = times_cols_str.split(",")
+            xl_cols = xl_cols_str.split(",")
+            filter_rows = False
+            if xl_cols[-1].startswith("Attribute:"):
+                xl_cols[-1] = xl_cols[-1].replace("Attribute:", "")
+                filter_rows = True
+            col_map = {}
+            for index, value in enumerate(xl_cols):
+                col_map[value] = times_cols[index]
+            # Uppercase and validate tags:
+            if xl_name.startswith("~"):
+                xl_name = xl_name.upper()
+                assert Tag.has_tag(xl_name), f"Tag {xl_name} not found"
+            entry = TimesXlMap(
+                times_name=times_name,
+                times_cols=times_cols,
+                xl_name=xl_name,
+                xl_cols=xl_cols,
+                col_map=col_map,
+                filter_rows=filter_rows,
             )
-        )
-        table_df = DataFrame(columns=["VALUE"])
-        table_df.loc[0] = [df.iloc[tag_row, tag_col + 1]]
-        uc_sets = {}
+
+            # TODO remove: Filter out mappings that are not yet finished
+            if entry.xl_name != Tag.todo and not any(
+                c.startswith("TODO") for c in entry.xl_cols
+            ):
+                mappings.append(entry)
+            else:
+                dropped.append(line)
+
+    if len(dropped) > 0:
+        print(f"WARNING: Dropping {len(dropped)} mappings that are not yet complete")
+    return mappings
+
+
+def convert_xl_to_times(
+    dir: str, input_files: List[str], mappings: List[TimesXlMap]
+) -> Dict[str, DataFrame]:
+    pickle_file = "raw_tables.pkl"
+    if os.path.isfile(pickle_file):
+        raw_tables = pickle.load(open(pickle_file, "rb"))
+        print(f"WARNING: Using pickled data not xlsx")
     else:
-        header_row = tag_row + 1
+        raw_tables = []
+        filenames = [os.path.join(dir, filename) for filename in input_files]
 
-        start_col = tag_col
-        while start_col > 0 and not cell_is_empty(df.iloc[header_row, start_col - 1]):
-            start_col -= 1
-
-        end_col = tag_col
-        while end_col < df.shape[1] and not cell_is_empty(df.iloc[header_row, end_col]):
-            end_col += 1
-
-        end_row = header_row
-        while end_row < df.shape[0] and not are_cells_all_empty(
-            df, end_row, start_col, end_col
-        ):
-            end_row += 1
-
-        # Excel cell numbering starts at 1, while pandas starts at 0
-        range = str(
-            CellRange(
-                min_col=start_col + 1,
-                min_row=header_row + 1,
-                max_col=end_col + 1,
-                max_row=end_row + 1,
-            )
-        )
-
-        if end_row - header_row == 1 and end_col - start_col == 1:
-            # Interpret single cell tables as a single data item with a column name VALUE
-            table_df = DataFrame(df.iloc[header_row, start_col:end_col])
-            table_df.columns = ["VALUE"]
+        use_pool = True
+        if use_pool:
+            with ProcessPoolExecutor() as executor:
+                for result in executor.map(extract_tables, filenames):
+                    raw_tables.extend(result)
         else:
-            table_df = DataFrame(df.iloc[header_row + 1 : end_row, start_col:end_col])
-            # Make all columns names strings as some are integers e.g. years
-            table_df.columns = [str(x) for x in df.iloc[header_row, start_col:end_col]]
+            for f in filenames:
+                result = extract_tables(f)
+                raw_tables.extend(result)
+        pickle.dump(raw_tables, open(pickle_file, "wb"))
 
-    table_df.reset_index(drop=True, inplace=True)
-    table_df = table_df.applymap(
-        lambda cell: cell if not isinstance(cell, float) else round_sig(cell, 15)
+    print(
+        f"Extracted {len(raw_tables)} tables,"
+        f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
     )
 
-    return EmbeddedXlTable(
-        filename=filename,
-        sheetname=sheetname,
-        range=range,
-        tag=df.iloc[tag_row, tag_col],
-        uc_sets=uc_sets,
-        dataframe=table_df,
+    transforms = [
+        lambda tables: dump_tables(tables, "raw_tables.txt"),
+        normalize_tags_columns_attrs,
+        remove_fill_tables,
+        lambda tables: [remove_comment_rows(t) for t in tables],
+        lambda tables: [remove_comment_cols(t) for t in tables],
+        remove_tables_with_formulas,  # slow
+        process_transform_insert,
+        process_flexible_import_tables,  # slow
+        process_user_constraint_tables,
+        process_commodity_emissions,
+        process_commodities,
+        process_processes,
+        process_transform_availability,
+        fill_in_missing_values,
+        process_time_slices,
+        expand_rows_parallel,  # slow
+        remove_invalid_values,
+        process_time_periods,
+        process_currencies,
+        apply_fixups,
+        extract_commodity_groups,
+        merge_tables,
+        process_years,
+        process_wildcards,
+        convert_to_string,
+        lambda tables: dump_tables(tables, "merged_tables.txt"),
+        lambda tables: produce_times_tables(tables, mappings),
+    ]
+
+    results = []
+    input = raw_tables
+    for transform in transforms:
+        start_time = time.time()
+        output = transform(input)
+        end_time = time.time()
+        print(
+            f"transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
+        )
+        results.append(output)
+        input = output
+
+    print(
+        f"Conversion complete, {len(output)} tables produced,"
+        f" {sum(df.shape[0] for tablename, df in output.items())} rows"
+    )
+
+    return output
+
+
+def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
+    os.makedirs(output_dir, exist_ok=True)
+    for item in os.listdir(output_dir):
+        if item.endswith(".csv"):
+            os.remove(os.path.join(output_dir, item))
+    for tablename, df in tables.items():
+        df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
+
+
+def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
+    result = {}
+    for filename in os.listdir(input_dir):
+        result[filename.split(".")[0]] = pd.read_csv(
+            os.path.join(input_dir, filename), dtype=str
+        )
+    return result
+
+
+def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
+    print(
+        f"Ground truth contains {len(ground_truth)} tables,"
+        f" {sum(df.shape[0] for tablename, df in ground_truth.items())} rows"
+    )
+
+    missing = set(ground_truth.keys()) - set(data.keys())
+    missing_str = ", ".join(
+        [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
+    )
+    if len(missing) > 0:
+        print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
+
+    total_gt_rows = 0
+    total_correct_rows = 0
+    for table_name, gt_table in sorted(
+        ground_truth.items(), reverse=True, key=lambda t: len(t[1].values)
+    ):
+        total_gt_rows += len(gt_table.values)
+        if table_name in data:
+            data_table = data[table_name]
+
+            # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
+            transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
+
+            if transformed_gt_cols != list(data[table_name].columns):
+                print(
+                    f"WARNING: Table {table_name} header incorrect, was"
+                    f" {data_table.columns.values}, should be {transformed_gt_cols}"
+                )
+            else:
+                # both are in string form so can be compared without any issues
+                gt_rows = set(tuple(row) for row in gt_table.values.tolist())
+                data_rows = set(tuple(row) for row in data_table.values.tolist())
+                total_correct_rows += len(gt_rows.intersection(data_rows))
+                additional = data_rows - gt_rows
+                missing = gt_rows - data_rows
+                if len(additional) != 0 or len(missing) != 0:
+                    print(
+                        f"WARNING: Table {table_name} ({data_table.shape[0]} rows,"
+                        f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
+                        f" additional rows and is missing {len(missing)} rows"
+                    )
+                    DataFrame(additional).to_csv(
+                        os.path.join("output", table_name + "_additional.csv"),
+                        index=False,
+                    )
+                    DataFrame(missing).to_csv(
+                        os.path.join("output", table_name + "_missing.csv"), index=False
+                    )
+
+    print(
+        f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
+        f" in output ({total_correct_rows}/{total_gt_rows})"
     )
 
 
-def are_cells_all_empty(df, row: int, start_col: int, end_col: int) -> bool:
-    for col in range(start_col, end_col):
-        if not cell_is_empty(df.iloc[row, col]):
-            return False
-    return True
-
-
-def cell_is_empty(value) -> bool:
-    return (
-        value is None
-        or (isinstance(value, numpy.float64) and numpy.isnan(value))
-        or (isinstance(value, str) and len(value.strip()) == 0)
-    )
+#############################################################################
+################             TRANSFORM FUNCTIONS             ################
+#############################################################################
 
 
 def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
+    """
+    Return a modified copy of 'table' where rows with cells containig '*'
+    or '\I:' in their first or third columns have been deleted. These characters
+    are defined in https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+    as comment identifiers (pag 15).
+    TODO: we believe the deletion of the third column is a bug. We tried deleting that part
+    of the code but we failed to parse a row as a consequence. We need to investigate why,
+    fix that parsing and remove the deletion of the third column.
+
+    :param table:       Table object in EmbeddedXlTable format.
+    :return:            Table object in EmbeddedXlTable format without comment rows.
+    """
     if table.dataframe.size == 0:
         return table
 
@@ -224,7 +373,9 @@ def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
     df.drop(index=comment_rows, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # TODO tidy
+    # TODO: the deletion of this third column is a bug. Removing it causes the
+    # program to fail parse all rows. We need to fix the parsing so it can read
+    # all rows and remove this code block.
     if df.shape[1] > 1:
         comment_rows = list(
             locate(
@@ -238,6 +389,13 @@ def remove_comment_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
 
 
 def remove_comment_cols(table: EmbeddedXlTable) -> EmbeddedXlTable:
+    """
+    Return a modified copy of 'table' where columns with labels starting with '*'
+    have been deleted.
+
+    :param table:       Table object in EmbeddedXlTable format.
+    :return:            Table object in EmbeddedXlTable format without comment columns.
+    """
     if table.dataframe.size == 0:
         return table
 
@@ -260,6 +418,14 @@ def remove_comment_cols(table: EmbeddedXlTable) -> EmbeddedXlTable:
 
 
 def remove_tables_with_formulas(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    """
+    Return a modified copy of 'tables' where tables with formulas (as identified by an
+    initial '=') have deleted from the list.
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of tables in EmbeddedXlTable format without any formulas.
+    """
+
     def is_formula(s):
         return isinstance(s, str) and len(s) > 0 and s[0] == "="
 
@@ -275,7 +441,13 @@ def remove_tables_with_formulas(tables: List[EmbeddedXlTable]) -> List[EmbeddedX
 def normalize_tags_columns_attrs(
     tables: List[EmbeddedXlTable],
 ) -> List[EmbeddedXlTable]:
-    """Normalize (uppercase) tags, column names, and values in attribute columns."""
+    """
+    Normalize (uppercase) tags, column names, and values in attribute columns.
+
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of tables in EmbeddedXlTable format with normalzed values.
+    """
     # TODO Uppercase column names and attribute values in mapping.txt when reading it
     # TODO Check all string literals left in file
     def normalize(table: EmbeddedXlTable) -> EmbeddedXlTable:
@@ -296,7 +468,14 @@ def normalize_tags_columns_attrs(
 
 
 def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
-    """Merge tables of the same types"""
+    """
+    Merge all tables in 'tables' with the same table tag, as long as they share the same
+    column field values. Print a warning for those that don't share the same column values.
+    Return a dictionary linking each table tag with its merged table.
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            Dictionary associating a given table tag with its merged table.
+    """
     result = {}
     for key, value in groupby(sorted(tables, key=lambda t: t.tag), lambda t: t.tag):
         group = list(value)
@@ -323,51 +502,22 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
     return result
 
 
-def apply_composite_tag(table: EmbeddedXlTable) -> EmbeddedXlTable:
-    """Process composite tags e.g. ~FI_T: COM_PKRSV"""
-    if ":" in table.tag:
-        (newtag, varname) = table.tag.split(":")
-        varname = varname.strip()
-        df = table.dataframe.copy()
-        df["Attribute"].fillna(varname, inplace=True)
-        return replace(table, tag=newtag, dataframe=df)
-    else:
-        return table
-
-
-def explode(df, data_columns):
-    data = df[data_columns].values.tolist()
-    other_columns = [
-        colname for colname in df.columns.values if colname not in data_columns
-    ]
-    df = df[other_columns]
-    value_column = "VALUE"
-    # assign is needed here because we want to make a copy
-    df = df.assign(VALUE=data)
-    nrows = df.shape[0]
-    df = df.explode(value_column, ignore_index=True)
-
-    names = pd.Series(data_columns * nrows, index=df.index, dtype=str)
-    # Remove rows with no VALUE
-    filter = df[value_column].notna()
-    df = df[filter]
-    names = names[filter]
-    return df, names
-
-
-def timeslices(tables: List[EmbeddedXlTable]):
-    # TODO merge with other timeslice code
-
-    # No idea why casing of Weekly is special
-    cols = single_table(tables, Tag.time_slices).dataframe.columns
-    timeslices = [col if col == "Weekly" else col.upper() for col in cols]
-    timeslices.insert(0, "ANNUAL")
-    return timeslices
-
-
 def process_flexible_import_tables(
     tables: List[EmbeddedXlTable],
 ) -> List[EmbeddedXlTable]:
+    """
+    Attempt to process all flexible import tables in 'tables'. The processing includes:
+    - Checking that the table is indeed a flexible import table. If not, return it unmodified.
+    - Removing, adding and renaming columns as needed.
+    - Populating index columns.
+    - Handing Attribute column and Other Indexes.
+    See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16.
+
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of tables in EmbeddedXlTable format with all FI_T processed.
+    """
+    # Get a list of allowed values for each category.
     legal_values = {
         "LimType": {"LO", "UP", "FX"},
         "TimeSlice": timeslices(tables),
@@ -378,6 +528,7 @@ def process_flexible_import_tables(
     }
 
     def get_colname(value):
+        # Return the value in the desired format along with the associated category (if any)
         # TODO make sure to do case-insensitive comparisons when parsing composite column names
         if value.isdigit():
             return "Year", int(value)
@@ -387,12 +538,13 @@ def process_flexible_import_tables(
         return None, value
 
     def process_flexible_import_table(table: EmbeddedXlTable) -> EmbeddedXlTable:
-        # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
-
+        # Make sure it's a flexible import table, and return the table untouched if not
         if not table.tag.startswith(Tag.fi_t) and table.tag not in {
             Tag.tfm_upd,
         }:
             return table
+
+        # Rename, add and remove specific columns if the circumstances are right
         df = table.dataframe
         mapping = {"YEAR": "Year", "CommName": "Comm-IN"}
         df = df.rename(columns=mapping)
@@ -467,7 +619,7 @@ def process_flexible_import_tables(
         if table.tag != Tag.tfm_upd:
             df, attribute_suffix = explode(df, data_columns)
 
-            # Append the data column name to the Attribute column
+            # Append the data column name to the Attribute column values
             if nrows > 0:
                 i = df[attribute].notna()
                 df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
@@ -532,6 +684,18 @@ def process_flexible_import_tables(
 def process_user_constraint_tables(
     tables: List[EmbeddedXlTable],
 ) -> List[EmbeddedXlTable]:
+    """
+    Attempt to process all tables in 'tables' as user constraint tables. The processing includes:
+    - Checking that the table is indeed a user constraint table. If not, return it unmodified.
+    - Removing, adding and renaming columns as needed.
+    - Populating index columns.
+    - Handing Attribute column and wildcards.
+    See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16.
+
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of tables in EmbeddedXlTable format with all FI_T processed.
+    """
     legal_values = {
         # TODO: load these from mapping file?
         "Attribute": {
@@ -659,45 +823,15 @@ def process_user_constraint_tables(
     return [process_user_constraint_table(t) for t in tables]
 
 
-def apply_wildcards(
-    df: DataFrame, candidates: List[str], wildcard_col: str, output_col: str
-):
-    wildcard_map = {}
-    all_wildcards = df[wildcard_col].unique()
-    for wildcard_string in all_wildcards:
-        if wildcard_string == None:
-            wildcard_map[wildcard_string] = None
-        else:
-            wildcard_list = wildcard_string.split(",")
-            current_list = []
-            for wildcard in wildcard_list:
-                if wildcard.startswith("-"):
-                    wildcard = wildcard[1:]
-                    regexp = re.compile(wildcard.replace("*", ".*"))
-                    current_list = [s for s in current_list if not regexp.match(s)]
-                else:
-                    regexp = re.compile(wildcard.replace("*", ".*"))
-                    additions = [s for s in candidates if regexp.match(s)]
-                    current_list = list(set(current_list + additions))
-            wildcard_map[wildcard_string] = current_list
-
-    df[output_col] = df[wildcard_col].map(wildcard_map)
-
-
-def merge_columns(tables: List[EmbeddedXlTable], tag: str, colname: str):
-    columns = [table.dataframe[colname].values for table in tables if table.tag == tag]
-    return numpy.concatenate(columns)
-
-
-def single_table(tables: List[EmbeddedXlTable], tag: str):
-    return one(table for table in tables if table.tag == tag)
-
-
-def single_column(tables: List[EmbeddedXlTable], tag: str, colname: str):
-    return single_table(tables, tag).dataframe[colname].values
-
-
 def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    """
+    Attempt to fill in missing values for all tables except update tables (as these contain
+    wildcards). How the value is filled in depends on the name of the column the empty values
+    belong to.
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of tables in EmbeddedXlTable format with empty values filled in.
+    """
     result = []
     regions = single_column(tables, Tag.book_regions_map, "Region")
     start_year = one(single_column(tables, Tag.start_year, "VALUE"))
@@ -757,17 +891,14 @@ def fill_in_missing_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTabl
     return result
 
 
-def missing_value_inherit(df: DataFrame, colname: str):
-    last = None
-    for index, value in df[colname].items():
-        if value == None:
-            df.loc[index, colname] = last
-        else:
-            last = value
-
-
 def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
-    """Expand out certain columns with entries containing commas"""
+    """
+    Expand entries with commas into separate entries in the same column. Do this
+    for all tables except transformation update tables.
+
+    :param table:       Table in EmbeddedXlTable format.
+    :return:            Table in EmbeddedXlTable format with expanded comma entries.
+    """
 
     def has_comma(s):
         return isinstance(s, str) and "," in s
@@ -795,9 +926,18 @@ def expand_rows(table: EmbeddedXlTable) -> EmbeddedXlTable:
 
 
 def remove_invalid_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
+    """
+    Remove all entries of any dataframes that are considered invalid. The rules for
+    allowing an entry can be seen in the 'constraints' dictionary below.
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of tables in EmbeddedXlTable format with disallowed entries removed.
+    """
     # TODO pull this out
     regions = single_column(tables, Tag.book_regions_map, "Region")
     # TODO pull this out
+    # Rules for allowing entries. Each entry of the dictionary designates a rule for a
+    # a given column, and the values that are allowed for that column.
     constraints = {
         "Csets": {"NRG", "MAT", "DEM", "ENV", "FIN"},
         "Region": regions,
@@ -817,52 +957,6 @@ def remove_invalid_values(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable
             df.reset_index(drop=True, inplace=True)
         result.append(replace(table, dataframe=df))
     return result
-
-
-def read_mappings(filename: str) -> List[TimesXlMap]:
-    mappings = []
-    dropped = []
-    with open(filename) as file:
-        while True:
-            line = file.readline().rstrip()
-            if line == "":
-                break
-            (times, xl) = line.split(" = ")
-            (times_name, times_cols_str) = list(filter(None, re.split("\[|\]", times)))
-            (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
-            times_cols = times_cols_str.split(",")
-            xl_cols = xl_cols_str.split(",")
-            filter_rows = False
-            if xl_cols[-1].startswith("Attribute:"):
-                xl_cols[-1] = xl_cols[-1].replace("Attribute:", "")
-                filter_rows = True
-            col_map = {}
-            for index, value in enumerate(xl_cols):
-                col_map[value] = times_cols[index]
-            # Uppercase and validate tags:
-            if xl_name.startswith("~"):
-                xl_name = xl_name.upper()
-                assert Tag.has_tag(xl_name), f"Tag {xl_name} not found"
-            entry = TimesXlMap(
-                times_name=times_name,
-                times_cols=times_cols,
-                xl_name=xl_name,
-                xl_cols=xl_cols,
-                col_map=col_map,
-                filter_rows=filter_rows,
-            )
-
-            # TODO remove: Filter out mappings that are not yet finished
-            if entry.xl_name != Tag.todo and not any(
-                c.startswith("TODO") for c in entry.xl_cols
-            ):
-                mappings.append(entry)
-            else:
-                dropped.append(line)
-
-    if len(dropped) > 0:
-        print(f"WARNING: Dropping {len(dropped)} mappings that are not yet complete")
-    return mappings
 
 
 def process_time_periods(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
@@ -971,13 +1065,6 @@ def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
         )
     )
     return tables
-
-
-def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
-    table = next(filter(lambda t: t.tag == table_tag, tables))
-    if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
-        raise ValueError("Not scalar table")
-    return table.dataframe["VALUE"].values[0]
 
 
 def remove_fill_tables(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
@@ -1276,43 +1363,6 @@ def process_transform_availability(
             )
 
     return result
-
-
-def has_negative_patterns(pattern):
-    return pattern[0] == "-" or ",-" in pattern
-
-
-def remove_negative_patterns(pattern):
-    return ",".join([word for word in pattern.split(",") if word[0] != "-"])
-
-
-def remove_positive_patterns(pattern):
-    return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
-
-
-def create_regexp(pattern):
-    # exclude negative patterns
-    if has_negative_patterns(pattern):
-        pattern = remove_negative_patterns(pattern)
-    if len(pattern) == 0:
-        return re.compile(pattern)  # matches everything
-    # escape special characters
-    # Backslash must come first
-    special = "\\.|^$+()[]{}"
-    for c in special:
-        pattern = pattern.replace(c, "\\" + c)
-    # Handle VEDA wildcards
-    pattern = pattern.replace("*", ".*").replace("?", ".")
-    # Do not match substrings
-    pattern = "|".join(["^" + word + "$" for word in pattern.split(",")])
-    return re.compile(pattern)
-
-
-def create_negative_regexp(pattern):
-    pattern = remove_positive_patterns(pattern)
-    if len(pattern) == 0:
-        pattern = "^$"  # matches nothing
-    return create_regexp(pattern)
 
 
 def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
@@ -1665,86 +1715,224 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
-def convert_xl_to_times(
-    dir: str, input_files: List[str], mappings: List[TimesXlMap]
-) -> Dict[str, DataFrame]:
-    pickle_file = "raw_tables.pkl"
-    if os.path.isfile(pickle_file):
-        raw_tables = pickle.load(open(pickle_file, "rb"))
-        print(f"WARNING: Using pickled data not xlsx")
-    else:
-        raw_tables = []
-        filenames = [os.path.join(dir, filename) for filename in input_files]
-
-        use_pool = True
-        if use_pool:
-            with ProcessPoolExecutor() as executor:
-                for result in executor.map(extract_tables, filenames):
-                    raw_tables.extend(result)
-        else:
-            for f in filenames:
-                result = extract_tables(f)
-                raw_tables.extend(result)
-        pickle.dump(raw_tables, open(pickle_file, "wb"))
-
-    print(
-        f"Extracted {len(raw_tables)} tables,"
-        f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
-    )
-
-    transforms = [
-        lambda tables: dump_tables(tables, "raw_tables.txt"),
-        normalize_tags_columns_attrs,
-        remove_fill_tables,
-        lambda tables: [remove_comment_rows(t) for t in tables],
-        lambda tables: [remove_comment_cols(t) for t in tables],
-        remove_tables_with_formulas,  # slow
-        process_transform_insert,
-        process_flexible_import_tables,  # slow
-        process_user_constraint_tables,
-        process_commodity_emissions,
-        process_commodities,
-        process_processes,
-        process_transform_availability,
-        fill_in_missing_values,
-        process_time_slices,
-        expand_rows_parallel,  # slow
-        remove_invalid_values,
-        process_time_periods,
-        process_currencies,
-        apply_fixups,
-        extract_commodity_groups,
-        merge_tables,
-        process_years,
-        process_wildcards,
-        convert_to_string,
-        lambda tables: dump_tables(tables, "merged_tables.txt"),
-        lambda tables: produce_times_tables(tables, mappings),
-    ]
-
-    results = []
-    input = raw_tables
-    for transform in transforms:
-        start_time = time.time()
-        output = transform(input)
-        end_time = time.time()
-        print(
-            f"transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
-        )
-        results.append(output)
-        input = output
-
-    print(
-        f"Conversion complete, {len(output)} tables produced,"
-        f" {sum(df.shape[0] for tablename, df in output.items())} rows"
-    )
-
-    return output
-
-
 def expand_rows_parallel(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     with ProcessPoolExecutor() as executor:
         return list(executor.map(expand_rows, tables))
+
+
+# ============================================================================
+# ===============           HELPER FUNCTIONS                 =================
+# ============================================================================
+
+
+def apply_composite_tag(table: EmbeddedXlTable) -> EmbeddedXlTable:
+    """
+    Handles table level declarations. Declarations can be included in the table
+    tag and will apply to all data that doesn't have a different value for that
+    index specified. For example, ~FI_T: DEMAND would assign DEMAND as the
+    attribute for all values in the table that don't have an attribute specification
+    at the column or row level. After applying the declaration this function will
+    return the modified table with the simplified table tag (e.g. ~FI_T).
+
+    See page 15 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+    for more context.
+
+    :param table:      Table in EmbeddedXlTable format.
+    :return:           Table in EmbeddedXlTable format with declarations applied
+                       and table tag simplified.
+    """
+    if ":" in table.tag:
+        (newtag, varname) = table.tag.split(":")
+        varname = varname.strip()
+        df = table.dataframe.copy()
+        df["Attribute"].fillna(varname, inplace=True)
+        return replace(table, tag=newtag, dataframe=df)
+    else:
+        return table
+
+
+def explode(df, data_columns):
+    """
+    Transpose the 'data_columns' in each row into a column of values, replicating the other
+    columns. The name for the new column is "VALUE".
+
+    :param df:              Dataframe to be exploded.
+    :param data_columns:    Names of the columns to be exploded.
+    :return:                Tuple with the exploded dataframe and a Series of the original
+                            column name for each value in each new row.
+    """
+    data = df[data_columns].values.tolist()
+    other_columns = [
+        colname for colname in df.columns.values if colname not in data_columns
+    ]
+    df = df[other_columns]
+    value_column = "VALUE"
+    df = df.assign(VALUE=data)
+    nrows = df.shape[0]
+    df = df.explode(value_column, ignore_index=True)
+
+    names = pd.Series(data_columns * nrows, index=df.index, dtype=str)
+    # Remove rows with no VALUE
+    filter = df[value_column].notna()
+    df = df[filter]
+    names = names[filter]
+    return df, names
+
+
+def timeslices(tables: List[EmbeddedXlTable]):
+    """
+    Given a list of tables with a unique table with a time slice tag, return a list
+    with all the column names of that table + "ANNUAL".
+
+    :param tables:          List of tables in EmbeddedXlTable format.
+    :return:                List of column names of the unique time slice table.
+    """
+    # TODO merge with other timeslice code
+
+    # No idea why casing of Weekly is special
+    cols = single_table(tables, Tag.time_slices).dataframe.columns
+    timeslices = [col if col == "Weekly" else col.upper() for col in cols]
+    timeslices.insert(0, "ANNUAL")
+    return timeslices
+
+
+def single_table(tables: List[EmbeddedXlTable], tag: str):
+    """
+    Make sure exactly one table in 'tables' has the given table tag, and return it.
+    If there are none or more than one raise an error.
+
+    :param tables:          List of tables in EmbeddedXlTable format.
+    :param tag:             Tag name.
+    :return:                Table with the given tag in EmbeddedXlTable format.
+    """
+    return one(table for table in tables if table.tag == tag)
+
+
+def single_column(tables: List[EmbeddedXlTable], tag: str, colname: str):
+    """
+    Make sure exactly one table in 'tables' has the given table tag, and return the
+    values for the given column name. If there are none or more than one raise an error.
+
+    :param tables:          List of tables in EmbeddedXlTable format.
+    :param tag:             Tag name.
+    :param colname:         Column name to return the values of.
+    :return:                Table with the given tag in EmbeddedXlTable format.
+    """
+    return single_table(tables, tag).dataframe[colname].values
+
+
+def merge_columns(tables: List[EmbeddedXlTable], tag: str, colname: str):
+    """
+    Return a list with all the values belonging to a column 'colname' from
+    a table with the given tag.
+
+    :param tables:          List of tables in EmbeddedXlTable format.
+    :param tag:             Tag name to select tables
+    :param colname:         Column name to select values.
+    :return:                List of values for the given column name and tag.
+    """
+    columns = [table.dataframe[colname].values for table in tables if table.tag == tag]
+    return numpy.concatenate(columns)
+
+
+def apply_wildcards(
+    df: DataFrame, candidates: List[str], wildcard_col: str, output_col: str
+):
+    """
+    Apply wildcards values to a list of candidates. Wildcards are values containing '*'. For example,
+    a value containing '*SOLID*' would include all the values in 'candidates' containing 'SOLID' in the middle.
+
+
+
+    :param df:              Dataframe containing all values.
+    :param candidates:      List of candidate strings to apply the wildcard to.
+    :param wildcard_col:    Name of column containing the wildcards.
+    :param output_col:      Name of the column to dump the wildcard matches to.
+    :return:                A dataframe containing all the wildcard matches on its 'output_col' column.
+    """
+
+    wildcard_map = {}
+    all_wildcards = df[wildcard_col].unique()
+    for wildcard_string in all_wildcards:
+        if wildcard_string == None:
+            wildcard_map[wildcard_string] = None
+        else:
+            wildcard_list = wildcard_string.split(",")
+            current_list = []
+            for wildcard in wildcard_list:
+                if wildcard.startswith("-"):
+                    wildcard = wildcard[1:]
+                    regexp = re.compile(wildcard.replace("*", ".*"))
+                    current_list = [s for s in current_list if not regexp.match(s)]
+                else:
+                    regexp = re.compile(wildcard.replace("*", ".*"))
+                    additions = [s for s in candidates if regexp.match(s)]
+                    current_list = list(set(current_list + additions))
+            wildcard_map[wildcard_string] = current_list
+
+    df[output_col] = df[wildcard_col].map(wildcard_map)
+
+
+def missing_value_inherit(df: DataFrame, colname: str):
+    """
+    For each None value in the specifed column of the dataframe, replace it with the last
+    non-None value. If no previous non-None value is found leave it as it is. This function
+    modifies the supplied dataframe and returns None.
+
+    :param df:          Dataframe to be filled in.
+    :param colname:     Name of the column to be filled in.
+    :return:            None. The dataframe is filled in in place.
+    """
+    last = None
+    for index, value in df[colname].items():
+        if value == None:
+            df.loc[index, colname] = last
+        else:
+            last = value
+
+
+def get_scalar(table_tag: str, tables: List[EmbeddedXlTable]):
+    table = next(filter(lambda t: t.tag == table_tag, tables))
+    if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
+        raise ValueError("Not scalar table")
+    return table.dataframe["VALUE"].values[0]
+
+
+def has_negative_patterns(pattern):
+    return pattern[0] == "-" or ",-" in pattern
+
+
+def remove_negative_patterns(pattern):
+    return ",".join([word for word in pattern.split(",") if word[0] != "-"])
+
+
+def remove_positive_patterns(pattern):
+    return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
+
+
+def create_regexp(pattern):
+    # exclude negative patterns
+    if has_negative_patterns(pattern):
+        pattern = remove_negative_patterns(pattern)
+    if len(pattern) == 0:
+        return re.compile(pattern)  # matches everything
+    # escape special characters
+    # Backslash must come first
+    special = "\\.|^$+()[]{}"
+    for c in special:
+        pattern = pattern.replace(c, "\\" + c)
+    # Handle VEDA wildcards
+    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", "|")
+    # Do not match substrings
+    pattern = "^" + pattern + "$"
+    return re.compile(pattern)
+
+
+def create_negative_regexp(pattern):
+    pattern = remove_positive_patterns(pattern)
+    if len(pattern) == 0:
+        pattern = "^$"  # matches nothing
+    return create_regexp(pattern)
 
 
 def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
@@ -1756,76 +1944,178 @@ def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
         df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
 
 
-def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
-    result = {}
-    for filename in os.listdir(input_dir):
-        result[filename.split(".")[0]] = pd.read_csv(
-            os.path.join(input_dir, filename), dtype=str
-        )
-    return result
-
-
-def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
-    print(
-        f"Ground truth contains {len(ground_truth)} tables,"
-        f" {sum(df.shape[0] for tablename, df in ground_truth.items())} rows"
-    )
-
-    missing = set(ground_truth.keys()) - set(data.keys())
-    missing_str = ", ".join(
-        [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
-    )
-    if len(missing) > 0:
-        print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
-
-    total_gt_rows = 0
-    total_correct_rows = 0
-    for table_name, gt_table in sorted(
-        ground_truth.items(), reverse=True, key=lambda t: len(t[1].values)
-    ):
-        total_gt_rows += len(gt_table.values)
-        if table_name in data:
-            data_table = data[table_name]
-
-            # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
-            transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
-
-            if transformed_gt_cols != list(data[table_name].columns):
-                print(
-                    f"WARNING: Table {table_name} header incorrect, was"
-                    f" {data_table.columns.values}, should be {transformed_gt_cols}"
-                )
-            else:
-                # both are in string form so can be compared without any issues
-                gt_rows = set(tuple(row) for row in gt_table.values.tolist())
-                data_rows = set(tuple(row) for row in data_table.values.tolist())
-                total_correct_rows += len(gt_rows.intersection(data_rows))
-                additional = data_rows - gt_rows
-                missing = gt_rows - data_rows
-                if len(additional) != 0 or len(missing) != 0:
-                    print(
-                        f"WARNING: Table {table_name} ({data_table.shape[0]} rows,"
-                        f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
-                        f" additional rows and is missing {len(missing)} rows"
-                    )
-                    DataFrame(additional).to_csv(
-                        os.path.join("output", table_name + "_additional.csv"),
-                        index=False,
-                    )
-                    DataFrame(missing).to_csv(
-                        os.path.join("output", table_name + "_missing.csv"), index=False
-                    )
-
-    print(
-        f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
-        f" in output ({total_correct_rows}/{total_gt_rows})"
-    )
-
-
 def round_sig(x, sig_figs):
     if x == 0.0:
         return 0.0
     return round(x, -int(floor(log10(abs(x)))) + sig_figs - 1)
+
+
+def extract_tables(filename: str) -> List[EmbeddedXlTable]:
+    """
+    This function calls the extract_table function on each individual table in each worksheet of the
+    given excel file.
+
+    :param filename:      Path to the excel file we will extract tables from.
+    :return:              List of table objects in EmbeddedXlTable format.
+    """
+    start_time = time.time()
+
+    workbook = load_workbook(filename=filename, data_only=True)
+
+    tables = []
+    for sheet in workbook.worksheets:
+        # Creating dataframe with dtype=object solves problems with ints being cast to floats
+        # https://stackoverflow.com/questions/40251948/stop-pandas-from-converting-int-to-float-due-to-an-insertion-in-another-column
+        df = pd.DataFrame(sheet.values, dtype=object)
+        uc_sets = {}
+
+        for row_index, row in df.iterrows():
+            for colname in df.columns:
+                value = str(row[colname])
+                if value.startswith("~"):
+                    match = re.match(f"~{Tag.uc_sets}:(.*)", value, re.IGNORECASE)
+                    if match:
+                        parts = match.group(1).split(":")
+                        if len(parts) == 2:
+                            uc_sets[parts[0].strip()] = parts[1].strip()
+                        else:
+                            print(
+                                f"WARNING: Malformed UC_SET in {sheet.title}, {filename}"
+                            )
+                    else:
+                        col_index = df.columns.get_loc(colname)
+                        tables.append(
+                            extract_table(
+                                row_index, col_index, uc_sets, df, sheet.title, filename
+                            )
+                        )
+
+    end_time = time.time()
+    if end_time - start_time > 2:
+        print(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
+
+    return tables
+
+
+def extract_table(
+    tag_row: int,
+    tag_col: int,
+    uc_sets: Dict[str, str],
+    df: DataFrame,
+    sheetname: str,
+    filename: str,
+) -> EmbeddedXlTable:
+    """
+    For each individual table tag found in a worksheet, this function aims to extract
+    the associated table. We recognise several types of tables:
+    - Single cell tables:   Tables with only one value, either below or to the right of
+                            the table tag. We interpret these as a single data item with
+                            a column name VALUE.
+    - Multiple cell tables: Tables with multiple values, possibly extending accross
+                            several rows and columns. We delimitate them using empty
+                            spaces around them and the column names are determined by the
+                            values in the row immediately below the table tag
+
+    :param tag_row:         Row number for the tag designating the table to be extracted
+    :param tag_col:         Column number for the tag designating the table to be extracted
+    :param df:              Dataframe object containing all values for the worksheet being evaluated
+    :param sheetname:       Name of the worksheet being evaluated
+    :param filename:        Path to the excel file being evaluated.
+    :return:                Table object in the EmbeddedXlTable format.
+    """
+    # If the cell to the right is not empty then we read a scalar from it
+    # Otherwise the row below is the header
+    if not cell_is_empty(df.iloc[tag_row, tag_col + 1]):
+        range = str(
+            CellRange(
+                min_col=tag_col + 2,
+                min_row=tag_row + 1,
+                max_col=tag_col + 2,
+                max_row=tag_row + 1,
+            )
+        )
+        table_df = DataFrame(columns=["VALUE"])
+        table_df.loc[0] = [df.iloc[tag_row, tag_col + 1]]
+        uc_sets = {}
+    else:
+        header_row = tag_row + 1
+
+        start_col = tag_col
+        while start_col > 0 and not cell_is_empty(df.iloc[header_row, start_col - 1]):
+            start_col -= 1
+
+        end_col = tag_col
+        while end_col < df.shape[1] and not cell_is_empty(df.iloc[header_row, end_col]):
+            end_col += 1
+
+        end_row = header_row
+        while end_row < df.shape[0] and not are_cells_all_empty(
+            df, end_row, start_col, end_col
+        ):
+            end_row += 1
+
+        # Excel cell numbering starts at 1, while pandas starts at 0
+        range = str(
+            CellRange(
+                min_col=start_col + 1,
+                min_row=header_row + 1,
+                max_col=end_col + 1,
+                max_row=end_row + 1,
+            )
+        )
+
+        if end_row - header_row == 1 and end_col - start_col == 1:
+            # Interpret single cell tables as a single data item with a column name VALUE
+            table_df = DataFrame(df.iloc[header_row, start_col:end_col])
+            table_df.columns = ["VALUE"]
+        else:
+            table_df = DataFrame(df.iloc[header_row + 1 : end_row, start_col:end_col])
+            # Make all columns names strings as some are integers e.g. years
+            table_df.columns = [str(x) for x in df.iloc[header_row, start_col:end_col]]
+
+    table_df.reset_index(drop=True, inplace=True)
+    table_df = table_df.applymap(
+        lambda cell: cell if not isinstance(cell, float) else round_sig(cell, 15)
+    )
+
+    return EmbeddedXlTable(
+        filename=filename,
+        sheetname=sheetname,
+        range=range,
+        tag=df.iloc[tag_row, tag_col],
+        uc_sets=uc_sets,
+        dataframe=table_df,
+    )
+
+
+def are_cells_all_empty(df, row: int, start_col: int, end_col: int) -> bool:
+    """
+    Check if all cells in a given row are empty by calling cell_is_empty() on them.
+
+    :param df:              Dataframe object containing all values for the worksheet being evaluated
+    :param row:             Row of the dataframe to be evaluated.
+    :param start_col:       Initial column of the dataframe to be evaluated.
+    :param end_col:         Final column of the dataframe to be evaluated.
+    :return:                Boolean indicating if all the cells are empty.
+    """
+    for col in range(start_col, end_col):
+        if not cell_is_empty(df.iloc[row, col]):
+            return False
+    return True
+
+
+def cell_is_empty(value) -> bool:
+    """
+    Check if the given cell is empty.
+
+    :param value:           Cell value.
+    :return:                Boolean indicating if the cells are empty.
+    """
+    return (
+        value is None
+        or (isinstance(value, numpy.float64) and numpy.isnan(value))
+        or (isinstance(value, str) and len(value.strip()) == 0)
+    )
 
 
 if __name__ == "__main__":
