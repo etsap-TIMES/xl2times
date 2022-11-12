@@ -1030,21 +1030,29 @@ def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     fit_tables = [t for t in tables if t.tag == Tag.fi_t]
+    fi_process_tables = [t for t in tables if t.tag == Tag.fi_process]
+
+    dmd_techs = set()
+    for fi_process_table in fi_process_tables:
+        df = fi_process_table.dataframe
+        dmd = df["Sets"] == "DMD"
+        dmd_techs = dmd_techs.union(set(df[dmd]["TechName"]))
 
     gmap_tables = []
     for fit_table in fit_tables:
-        # TODO: looks like NRG may come from ~TFM_Csets
+        # Energy input
         inputs = fit_table.dataframe[["Region", "TechName", "Comm-IN"]].copy()
         inputs["TechName"] = inputs["TechName"].astype(str) + "_NRGI"
         inputs.rename(columns={"Comm-IN": "Comm"}, inplace=True)
 
-        # TODO: looks like NRG may come from ~TFM_Csets
+        # Energy output
         outputs = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
         outputs["TechName"] = outputs["TechName"].astype(str) + "_NRGO"
         outputs.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
 
-        # TODO: looks like techs in DEMO group are specified via CommGrp column in VT_IE_TRA.xlsx ACT2FLO B6:AF33
+        # Demand output
         demo = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
+        demo = demo[demo["TechName"].isin(dmd_techs)]
         demo["TechName"] = demo["TechName"].astype(str) + "_DEMO"
         demo.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
 
