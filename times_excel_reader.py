@@ -1042,16 +1042,21 @@ def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
     for fit_table in fit_tables:
         # Energy input
         inputs = fit_table.dataframe[["Region", "TechName", "Comm-IN"]].copy()
+        inputs = inputs[~inputs["TechName"].isnull()]
+        inputs = inputs[~inputs["Comm-IN"].isnull()]
         inputs["TechName"] = inputs["TechName"].astype(str) + "_NRGI"
         inputs.rename(columns={"Comm-IN": "Comm"}, inplace=True)
 
         # Energy output
         outputs = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
+        outputs = outputs[~outputs["TechName"].isnull()]
+        outputs = outputs[~outputs["Comm-OUT"].isnull()]
         outputs["TechName"] = outputs["TechName"].astype(str) + "_NRGO"
         outputs.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
 
         # Demand output
         demo = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
+        demo = demo[~demo["Comm-OUT"].isnull()]
         demo = demo[demo["TechName"].isin(dmd_techs)]
         demo["TechName"] = demo["TechName"].astype(str) + "_DEMO"
         demo.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
