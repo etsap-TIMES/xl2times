@@ -1044,6 +1044,8 @@ def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
         inputs = fit_table.dataframe[["Region", "TechName", "Comm-IN"]].copy()
         inputs = inputs[~inputs["TechName"].isnull()]
         inputs = inputs[~inputs["Comm-IN"].isnull()]
+        # TODO find where ACT is coming from and fix
+        inputs = inputs[inputs["Comm-IN"] != "ACT"]
         inputs["TechName"] = inputs["TechName"].astype(str) + "_NRGI"
         inputs.rename(columns={"Comm-IN": "Comm"}, inplace=True)
 
@@ -1051,6 +1053,11 @@ def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
         outputs = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
         outputs = outputs[~outputs["TechName"].isnull()]
         outputs = outputs[~outputs["Comm-OUT"].isnull()]
+        outputs = outputs[~outputs["TechName"].isin(dmd_techs)]
+        # TODO this removes two rows where tech is in CHP set
+        outputs = outputs[outputs["Comm-OUT"] != "ELCC"]
+        outputs = outputs[~outputs["Comm-OUT"].str.startswith("BIO")]
+        outputs = outputs[~outputs["Comm-OUT"].str.startswith("PWR")]
         outputs["TechName"] = outputs["TechName"].astype(str) + "_NRGO"
         outputs.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
 
@@ -1062,6 +1069,20 @@ def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
         demo.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
 
         gmap_tables += [inputs, outputs, demo]
+
+        # Additional:
+        #   NRGO: 447
+        #   NRGI: 619
+        #     SH2LDEL_01, not in gt, PRE set, in SUPH2LC, out SUPH2LD, there is one _NRGI,SUPH2LC in gt FT-INDH2L
+        #   DEMO: 40
+        # Missing: 7
+        #   IE,S-DCE-CS_NRGI,SRVELC-DC-C
+        #   IE,IMPNRGZ_NRGO,SRVELC-DC-C
+        #   IE,FT-RSDAHT_NRGO,RSDAHT2
+        #   IE,IMPNRGZ_NRGO,RSDAHT2
+        #   IE,FT-SRVELC_NRGO,SRVELC-DC-C
+        #   IE,P-TH-OCGT-GAS00-SK4_NRGO,ELCC (CHP)
+        #   IE,P-TH-OCGT-GAS00-SK3_NRGO,ELCC (CHP)
 
     merged = pd.concat(gmap_tables, ignore_index=True, sort=False)
 
