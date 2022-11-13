@@ -1030,13 +1030,26 @@ def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     fit_tables = [t for t in tables if t.tag == Tag.fi_t]
-    fi_process_tables = [t for t in tables if t.tag == Tag.fi_process]
+    process_tables = [t for t in tables if t.tag == Tag.fi_process]
+    commodity_tables = [t for t in tables if t.tag == Tag.fi_comm]
 
-    dmd_techs = set()
-    for fi_process_table in fi_process_tables:
-        df = fi_process_table.dataframe
-        dmd = df["Sets"] == "DMD"
-        dmd_techs = dmd_techs.union(set(df[dmd]["TechName"]))
+    demand_processes = set()
+    for process_table in process_tables:
+        df = process_table.dataframe
+        demand_processes = demand_processes.union(
+            set(df[df["Sets"] == "DMD"]["TechName"])
+        )
+
+    demand_commodities = set()
+    environment_commodities = set()
+    for commodity_table in commodity_tables:
+        df = commodity_table.dataframe
+        demand_commodities = demand_commodities.union(
+            set(df[df["Csets"] == "DEM"]["CommName"])
+        )
+        environment_commodities = environment_commodities.union(
+            set(df[df["Csets"] == "ENV"]["CommName"])
+        )
 
     gmap_tables = []
     for fit_table in fit_tables:
@@ -1053,7 +1066,9 @@ def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
         outputs = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
         outputs = outputs[~outputs["TechName"].isnull()]
         outputs = outputs[~outputs["Comm-OUT"].isnull()]
-        outputs = outputs[~outputs["TechName"].isin(dmd_techs)]
+        outputs = outputs[~outputs["TechName"].isin(demand_processes)]
+        outputs = outputs[~outputs["Comm-OUT"].isin(demand_commodities)]
+        outputs = outputs[~outputs["Comm-OUT"].isin(environment_commodities)]
         # TODO this removes two rows where tech is in CHP set
         outputs = outputs[outputs["Comm-OUT"] != "ELCC"]
         outputs = outputs[~outputs["Comm-OUT"].str.startswith("BIO")]
@@ -1064,14 +1079,16 @@ def extract_commodity_groups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTa
         # Demand output
         demo = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
         demo = demo[~demo["Comm-OUT"].isnull()]
-        demo = demo[demo["TechName"].isin(dmd_techs)]
+        demo = demo[demo["TechName"].isin(demand_processes)]
         demo["TechName"] = demo["TechName"].astype(str) + "_DEMO"
         demo.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
 
         gmap_tables += [inputs, outputs, demo]
 
         # Additional:
-        #   NRGO: 447
+        #   NRGO: 411
+        #     R-SH_Det_BDL_X0_NRGO,RSDSH_Det, process PRE, com NRG
+        #       RSDSH_Det, 21 in gt for NRGO, R-SW_Det_GAS_N2, process PRE, com NRG
         #   NRGI: 619
         #     SH2LDEL_01, not in gt, PRE set, in SUPH2LC, out SUPH2LD, there is one _NRGI,SUPH2LC in gt FT-INDH2L
         #   DEMO: 40
