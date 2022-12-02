@@ -497,7 +497,7 @@ def merge_tables(tables: List[EmbeddedXlTable]) -> Dict[str, DataFrame]:
         else:
             df = pd.concat([table.dataframe for table in group], ignore_index=True)
             if "Year" in df.columns.values:
-                df["Year"] = df["Year"].astype("Int64")
+                df["Year"] = pd.to_numeric(df["Year"]).astype("Int64")
             result[key] = df
     return result
 
@@ -1003,7 +1003,7 @@ def process_currencies(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
 
 def apply_fixups(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
     def apply_fixups_table(table: EmbeddedXlTable):
-        if not table.tag.startswith(Tag.fi_t):
+        if not table.tag.startswith(Tag.fi_t) or table.dataframe.size == 0:
             return table
 
         df = table.dataframe.copy()
@@ -1639,10 +1639,10 @@ def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         ts_map = []
         for i in range(1, len(timeslices)):
             col, val = timeslices[i]
-            if val is not None:
-                timeslices[i] = (col, timeslices[i - 1][1] + val)
-                for j in range(0, i):
-                    ts_map.append((timeslices[j][1], timeslices[i][1]))
+            previousVal = timeslices[i - 1][1]
+            timeslices[i] = (col, previousVal if val is None else previousVal + val)
+            for j in range(0, i):
+                ts_map.append((timeslices[j][1], timeslices[i][1]))
 
         ts_maps = {
             "Region": regions,
