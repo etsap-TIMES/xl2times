@@ -1614,9 +1614,10 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             if tag != Tag.tfm_upd:
                 new_rows.append(df)
                 tables[Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
-        print(
-            f"  process_wildcards: {tag} took {time.time()-start_time:.2f} seconds for {len(upd)} rows"
-        )
+
+            print(
+                f"  process_wildcards: {tag} took {time.time()-start_time:.2f} seconds for {len(upd)} rows"
+            )
 
     return tables
 
@@ -1638,9 +1639,10 @@ def process_time_slices(tables: List[EmbeddedXlTable]) -> List[EmbeddedXlTable]:
         ts_map = []
         for i in range(1, len(timeslices)):
             col, val = timeslices[i]
-            timeslices[i] = (col, timeslices[i - 1][1] + val)
-            for j in range(0, i):
-                ts_map.append((timeslices[j][1], timeslices[i][1]))
+            if val is not None:
+                timeslices[i] = (col, timeslices[i - 1][1] + val)
+                for j in range(0, i):
+                    ts_map.append((timeslices[j][1], timeslices[i][1]))
 
         ts_maps = {
             "Region": regions,
