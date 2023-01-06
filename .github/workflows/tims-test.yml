@@ -49,4 +49,4 @@ jobs:
       - name: Run tool and check output
         working-directory: times-excel-reader
         run: |
-          python times_excel_reader.py
+          python times_excel_reader.py ../times-ireland-model
