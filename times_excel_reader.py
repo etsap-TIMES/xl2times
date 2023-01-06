@@ -16,6 +16,7 @@ import time
 from functools import reduce
 from pathlib import Path
 import pickle
+import argparse
 
 # ============================================================================
 # ===============                   CLASSES                   ================
@@ -190,10 +191,10 @@ def read_mappings(filename: str) -> List[TimesXlMap]:
 
 
 def convert_xl_to_times(
-    dir: str, input_files: List[str], mappings: List[TimesXlMap]
+    dir: str, input_files: List[str], mappings: List[TimesXlMap], use_pkl: bool
 ) -> Dict[str, DataFrame]:
     pickle_file = "raw_tables.pkl"
-    if os.path.isfile(pickle_file):
+    if use_pkl and os.path.isfile(pickle_file):
         raw_tables = pickle.load(open(pickle_file, "rb"))
         print(f"WARNING: Using pickled data not xlsx")
     else:
@@ -2172,30 +2173,35 @@ def cell_is_empty(value) -> bool:
 
 
 if __name__ == "__main__":
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "input_dir", type=str, help="Input directory containing xlsx files"
+    )
+    args_parser.add_argument(
+        "--output_dir", type=str, default="output", help="Output directory"
+    )
+    args_parser.add_argument(
+        "--ground_truth_dir",
+        type=str,
+        default="ground_truth",
+        help="Ground truth directory to compare with output",
+    )
+    args_parser.add_argument("--use_pkl", action="store_true")
+    args = args_parser.parse_args()
+
     mappings = read_mappings("times_mapping.txt")
 
-    uk = False
-    if uk:
-        xl_files_dir = "input"
-        input_files = [
-            "SysSettings.xlsx",
-            "VT_UK_RES.xlsx",
-            "VT_UK_ELC.xlsx",
-            "VT_UK_IND.xlsx",
-            "VT_UK_AGR.xlsx",
-        ]
-    else:
-        # Make sure you set A3 in SysSettings.xlsx#Regions to Single-region if comparing with times-ireland-model_gams
-        xl_files_dir = os.path.join("..", "times-ireland-model")
-        input_files = [
-            str(path)
-            for path in Path(xl_files_dir).rglob("*.xlsx")
-            if not path.name.startswith("~")
-        ]
+    input_files = [
+        str(path)
+        for path in Path(args.input_dir).rglob("*.xlsx")
+        if not path.name.startswith("~")
+    ]
+    print(f"Loading {len(input_files)} files from {args.input_dir}")
 
-    tables = convert_xl_to_times(xl_files_dir, input_files, mappings)
+    tables = convert_xl_to_times(args.input_dir, input_files, mappings, args.use_pkl)
 
-    write_csv_tables(tables, "output")
+    write_csv_tables(tables, args.output_dir)
 
-    ground_truth = read_csv_tables("ground_truth")
-    compare(tables, ground_truth)
+    if args.ground_truth_dir:
+        ground_truth = read_csv_tables(args.ground_truth_dir)
+        compare(tables, ground_truth)
