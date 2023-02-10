@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{d0560950-2b3c-4961-b164-845aaabca15c}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>times_excel_reader.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>MSBuild|env-new|$(MSBuildProjectFullPath)</InterpreterId>
+    <CommandLineArguments>..\times-ireland-model &gt; out.txt</CommandLineArguments>
+    <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
+    <Environment>PYDEVD_WARN_SLOW_RESOLVE_TIMEOUT=2</Environment>
+    <InterpreterArguments>
+    </InterpreterArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="requirements.txt" />
+    <Content Include="TextFile1.txt" />
+    <Content Include="times_mapping.txt" />
+    <Content Include="times_reader\__pycache__\datatypes.cpython-38.pyc" />
+    <Content Include="times_reader\__pycache__\excel.cpython-38.pyc" />
+    <Content Include="times_reader\__pycache__\main.cpython-38.pyc" />
+    <Content Include="times_reader\__pycache__\transforms.cpython-38.pyc" />
+    <Content Include="times_reader\__pycache__\transform_utils.cpython-38.pyc" />
+    <Content Include="times_reader\__pycache__\utils.cpython-38.pyc" />
+    <Content Include="times_reader\__pycache__\__init__.cpython-38.pyc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="times_excel_reader.py" />
+    <Compile Include="times_reader\datatypes.py" />
+    <Compile Include="times_reader\excel.py" />
+    <Compile Include="times_reader\main.py" />
+    <Compile Include="times_reader\transforms.py" />
+    <Compile Include="times_reader\utils.py" />
+    <Compile Include="times_reader\__init__.py" />
+    <Compile Include="utils\dd_to_csv.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="times_reader\" />
+    <Folder Include="times_reader\__pycache__\" />
+    <Folder Include="utils" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="env-new\">
+      <Id>env-new</Id>
+      <Version>3.8</Version>
+      <Description>env-new (Python 3.8 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
+    <Interpreter Include="env8\">
+      <Id>env8</Id>
+      <Version>3.8</Version>
+      <Description>env8 (Python 3.8 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
