@@ -128,6 +128,7 @@ def normalize_tags_columns_attrs(
     :param tables:      List of tables in EmbeddedXlTable format.
     :return:            List of tables in EmbeddedXlTable format with normalzed values.
     """
+
     # TODO Uppercase column names and attribute values in mapping.txt when reading it
     # TODO Check all string literals left in file
     def normalize(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
@@ -172,7 +173,7 @@ def merge_tables(tables: List[datatypes.EmbeddedXlTable]) -> Dict[str, DataFrame
             print(
                 f"WARNING: Cannot merge tables with tag {key} as their columns are not identical"
             )
-            for (c, table) in cols:
+            for c, table in cols:
                 print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
         else:
             df = pd.concat([table.dataframe for table in group], ignore_index=True)
@@ -1106,7 +1107,7 @@ def process_transform_insert(
                 sorted(dropped, key=lambda t: t.tag), lambda t: t.tag
             )
         ]
-        for (key, group) in by_tag:
+        for key, group in by_tag:
             print(
                 f"WARNING: Dropped {len(group)} transform insert tables ({key})"
                 f" rather than processing them"
@@ -1134,7 +1135,7 @@ def process_transform_availability(
                 sorted(dropped, key=lambda t: t.tag), lambda t: t.tag
             )
         ]
-        for (key, group) in by_tag:
+        for key, group in by_tag:
             print(
                 f"WARNING: Dropped {len(group)} transform availability tables ({key})"
                 f" rather than processing them"
@@ -1482,8 +1483,8 @@ def produce_times_tables(
 
 
 def dump_tables(tables: List, filename: str) -> List:
-    os.makedirs("output", exist_ok=True)
-    with open(rf"output/{filename}", "w") as text_file:
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "w") as text_file:
         for t in tables if isinstance(tables, List) else tables.items():
             if isinstance(t, datatypes.EmbeddedXlTable):
                 tag = t.tag

@@ -80,8 +80,8 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
 
 
 def convert_xl_to_times(
-    dir: str,
     input_files: List[str],
+    output_dir: str,
     mappings: List[datatypes.TimesXlMap],
     use_pkl: bool,
 ) -> Dict[str, DataFrame]:
@@ -91,15 +91,14 @@ def convert_xl_to_times(
         print(f"WARNING: Using pickled data not xlsx")
     else:
         raw_tables = []
-        filenames = [os.path.join(dir, filename) for filename in input_files]
 
         use_pool = True
         if use_pool:
             with ProcessPoolExecutor() as executor:
-                for result in executor.map(excel.extract_tables, filenames):
+                for result in executor.map(excel.extract_tables, input_files):
                     raw_tables.extend(result)
         else:
-            for f in filenames:
+            for f in input_files:
                 result = excel.extract_tables(f)
                 raw_tables.extend(result)
         pickle.dump(raw_tables, open(pickle_file, "wb"))
@@ -110,7 +109,7 @@ def convert_xl_to_times(
     )
 
     transform_list = [
-        lambda tables: dump_tables(tables, "raw_tables.txt"),
+        lambda tables: dump_tables(tables, os.path.join(output_dir, "raw_tables.txt")),
         transforms.normalize_tags_columns_attrs,
         transforms.remove_fill_tables,
         lambda tables: [transforms.remove_comment_rows(t) for t in tables],
@@ -135,7 +134,9 @@ def convert_xl_to_times(
         transforms.process_years,
         transforms.process_wildcards,
         convert_to_string,
-        lambda tables: dump_tables(tables, "merged_tables.txt"),
+        lambda tables: dump_tables(
+            tables, os.path.join(output_dir, "merged_tables.txt")
+        ),
         lambda tables: produce_times_tables(tables, mappings),
     ]
 
@@ -177,7 +178,9 @@ def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
     return result
 
 
-def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
+def compare(
+    data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame], output_dir: str
+):
     print(
         f"Ground truth contains {len(ground_truth)} tables,"
         f" {sum(df.shape[0] for tablename, df in ground_truth.items())} rows"
@@ -221,11 +224,12 @@ def compare(data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame]):
                         f" additional rows and is missing {len(missing)} rows"
                     )
                     DataFrame(additional).to_csv(
-                        os.path.join("output", table_name + "_additional.csv"),
+                        os.path.join(output_dir, table_name + "_additional.csv"),
                         index=False,
                     )
                     DataFrame(missing).to_csv(
-                        os.path.join("output", table_name + "_missing.csv"), index=False
+                        os.path.join(output_dir, table_name + "_missing.csv"),
+                        index=False,
                     )
 
     print(
@@ -305,8 +309,8 @@ def produce_times_tables(
 
 
 def dump_tables(tables: List, filename: str) -> List:
-    os.makedirs("output", exist_ok=True)
-    with open(rf"output/{filename}", "w") as text_file:
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "w") as text_file:
         for t in tables if isinstance(tables, List) else tables.items():
             if isinstance(t, datatypes.EmbeddedXlTable):
                 tag = t.tag

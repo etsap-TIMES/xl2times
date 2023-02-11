@@ -29,11 +29,11 @@ if __name__ == "__main__":
     print(f"Loading {len(input_files)} files from {args.input_dir}")
 
     tables = times_reader.convert_xl_to_times(
-        args.input_dir, input_files, mappings, args.use_pkl
+        input_files, args.output_dir, mappings, args.use_pkl
     )
 
     times_reader.write_csv_tables(tables, args.output_dir)
 
     if args.ground_truth_dir:
         ground_truth = times_reader.read_csv_tables(args.ground_truth_dir)
-        times_reader.compare(tables, ground_truth)
+        times_reader.compare(tables, ground_truth, args.output_dir)
