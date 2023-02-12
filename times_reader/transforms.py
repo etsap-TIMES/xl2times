@@ -941,6 +941,32 @@ def process_processes(
     return result
 
 
+def generate_dummy_processes(
+        tables: List[datatypes.EmbeddedXlTable], include_dummy_processes=True
+) -> List[datatypes.EmbeddedXlTable]:
+    if include_dummy_processes:
+        dummy_processes = [
+            ["IMPNRGZ", "IMPNRGZ", "", "", ""],
+            ["IMPMATZ", "IMPMATZ", "", "", ""],
+            ["IMPDEMZ", "IMPDEMZ", "", "", ""]]
+
+        df = pd.DataFrame(dummy_processes, columns=["TechName", "TechDesc", "Tact", "Tcap", "PrimaryCG"])
+        df.insert(0, "Sets", ["IMP"] * len(dummy_processes))
+
+        result = datatypes.EmbeddedXlTable(
+            tag="~FI_PROCESS",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=df
+        )
+
+        tables.append(result)
+
+    return tables
+
+
 def process_transform_insert(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:

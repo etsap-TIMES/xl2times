@@ -120,6 +120,7 @@ def convert_xl_to_times(
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
         transforms.process_commodities,
+        transforms.generate_dummy_processes,
         transforms.process_processes,
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
