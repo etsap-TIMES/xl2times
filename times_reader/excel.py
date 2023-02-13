@@ -87,7 +87,7 @@ def extract_table(
     """
     # If the cell to the right is not empty then we read a scalar from it
     # Otherwise the row below is the header
-    if not cell_is_empty(df.iloc[tag_row, tag_col + 1]):
+    if df.shape[1] > tag_col + 1 and not cell_is_empty(df.iloc[tag_row, tag_col + 1]):
         range = str(
             CellRange(
                 min_col=tag_col + 2,
