@@ -566,6 +566,8 @@ def fill_in_missing_values(
                 df[colname].fillna(
                     "ANNUAL", inplace=True
                 )  # ACT_CSTUP should use DAYNITE
+            elif colname == "Sets" and table.tag == datatypes.Tag.fi_process:
+                df[colname].fillna(method="ffill", inplace=True)
             elif colname == "Region":
                 df[colname].fillna(",".join(regions), inplace=True)
             elif colname == "Year":
