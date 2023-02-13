@@ -3,6 +3,7 @@ input/*
 output/*
 ground_truth/*
 /.vs
+/.vscode
 /env*
 *.pyproj.*
 speedscope.json
