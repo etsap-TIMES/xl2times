@@ -981,22 +981,38 @@ def generate_dummy_processes(
             ["IMPDEMZ", "IMPDEMZ", "", "", ""],
         ]
 
-        df = pd.DataFrame(
+        ndummies = len(dummy_processes)
+
+        df1 = pd.DataFrame(
             dummy_processes,
             columns=["TechName", "TechDesc", "Tact", "Tcap", "PrimaryCG"],
         )
-        df.insert(0, "Sets", ["IMP"] * len(dummy_processes))
 
-        result = datatypes.EmbeddedXlTable(
+        df1.insert(0, "Sets", ["IMP"] * ndummies)
+
+        dummy_process_declaration = datatypes.EmbeddedXlTable(
             tag="~FI_PROCESS",
             uc_sets={},
             sheetname="",
             range="",
             filename="",
-            dataframe=df,
+            dataframe=df1,
         )
 
-        tables.append(result)
+        df2 = df1[["TechName", "TechDesc"]].copy()
+        df2["ACTCOST"] = 1111
+
+        dummy_process_data_specification = datatypes.EmbeddedXlTable(
+            tag="~FI_T",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=df2,
+        )
+
+        tables.append(dummy_process_declaration)
+        tables.append(dummy_process_data_specification)
 
     return tables
 
