@@ -926,11 +926,15 @@ def process_processes(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     result = []
+    veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
+
     for table in tables:
         if table.tag != datatypes.Tag.fi_process:
             result.append(table)
         else:
             df = table.dataframe.copy()
+            df["Sets"].replace(veda_sets_to_times, inplace=True)
+            # TODO: Store original set-process combination and use it to process e.g. COST
             nrows = df.shape[0]
             if "Vintage" not in table.dataframe.columns.values:
                 df["Vintage"] = [None] * nrows
