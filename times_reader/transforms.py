@@ -218,8 +218,12 @@ def process_flexible_import_tables(
                 return name, value
         return None, value
 
+    veda_process_sets = list(
+        filter(lambda table: table.tag == "VedaProcessSets", tables)
+    )[0].dataframe
+
     def process_flexible_import_table(
-        table: datatypes.EmbeddedXlTable,
+        table: datatypes.EmbeddedXlTable, veda_process_sets
     ) -> datatypes.EmbeddedXlTable:
         # Make sure it's a flexible import table, and return the table untouched if not
         if not table.tag.startswith(datatypes.Tag.fi_t) and table.tag not in {
@@ -352,6 +356,18 @@ def process_flexible_import_tables(
         df = df[filter]
         df = df.reset_index(drop=True)
 
+        # Fill other_indexes for COST
+        cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
+        for process in df["TechName"].loc[df[attribute] == "COST"].unique():
+            veda_process_set = (
+                veda_process_sets["Sets"]
+                .loc[veda_process_sets["TechName"] == process]
+                .unique()
+            )
+            df[other].loc[
+                (df["TechName"] == process) & (df[attribute] == "COST")
+            ] = cost_mapping[veda_process_set[0]]
+
         # Should have all index_columns and VALUE
         if table.tag == datatypes.Tag.fi_t and len(df.columns) != (
             len(index_columns) + 1
@@ -363,7 +379,7 @@ def process_flexible_import_tables(
 
         return replace(table, dataframe=df)
 
-    return [process_flexible_import_table(t) for t in tables]
+    return [process_flexible_import_table(t, veda_process_sets) for t in tables]
 
 
 def process_user_constraint_tables(
@@ -952,13 +968,17 @@ def process_processes(
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
 
+    processes_and_sets = pd.DataFrame({"Sets": [], "TechName": []})
+
     for table in tables:
         if table.tag != datatypes.Tag.fi_process:
             result.append(table)
         else:
             df = table.dataframe.copy()
+            processes_and_sets = pd.concat(
+                [processes_and_sets, df[["Sets", "TechName"]].ffill()]
+            )
             df["Sets"].replace(veda_sets_to_times, inplace=True)
-            # TODO: Store original set-process combination and use it to process e.g. COST
             nrows = df.shape[0]
             if "Vintage" not in table.dataframe.columns.values:
                 df["Vintage"] = [None] * nrows
@@ -967,6 +987,19 @@ def process_processes(
             if "Tslvl" not in table.dataframe.columns.values:
                 df.insert(6, "Tslvl", ["ANNUAL"] * nrows)
             result.append(replace(table, dataframe=df))
+
+    veda_process_sets = datatypes.EmbeddedXlTable(
+        tag="VedaProcessSets",
+        uc_sets={},
+        sheetname="",
+        range="",
+        filename="",
+        dataframe=processes_and_sets.loc[
+            processes_and_sets["Sets"].isin(veda_sets_to_times.keys())
+        ],
+    )
+
+    result.append(veda_process_sets)
 
     return result
 
