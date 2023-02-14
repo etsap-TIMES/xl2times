@@ -117,11 +117,11 @@ def convert_xl_to_times(
         lambda tables: [transforms.remove_comment_cols(t) for t in tables],
         transforms.remove_tables_with_formulas,  # slow
         transforms.process_transform_insert,
+        transforms.process_processes,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
         transforms.process_commodities,
-        transforms.process_processes,
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
         transforms.process_time_slices,
