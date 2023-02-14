@@ -702,6 +702,30 @@ def process_currencies(
     return [process_currencies_table(table) for table in tables]
 
 
+def generate_all_regions(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    extra_regions = ["IMPEXP", "MINRNW"]
+    df = pd.DataFrame(extra_regions, columns=["Region"])
+
+    for table in tables:
+        if table.tag == datatypes.Tag.book_regions_map:
+            df = df.append(table.dataframe)
+
+    result = datatypes.EmbeddedXlTable(
+        tag="AllRegions",
+        uc_sets={},
+        sheetname="",
+        range="",
+        filename="",
+        dataframe=df,
+    )
+
+    tables.append(result)
+
+    return tables
+
+
 def apply_fixups(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
