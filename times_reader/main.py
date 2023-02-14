@@ -110,6 +110,7 @@ def convert_xl_to_times(
 
     transform_list = [
         lambda tables: dump_tables(tables, os.path.join(output_dir, "raw_tables.txt")),
+        transforms.generate_dummy_processes,
         transforms.normalize_tags_columns_attrs,
         transforms.remove_fill_tables,
         lambda tables: [transforms.remove_comment_rows(t) for t in tables],
@@ -120,7 +121,6 @@ def convert_xl_to_times(
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
         transforms.process_commodities,
-        transforms.generate_dummy_processes,
         transforms.process_processes,
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
