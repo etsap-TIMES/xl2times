@@ -223,7 +223,7 @@ def process_flexible_import_tables(
     )[0].dataframe
 
     def process_flexible_import_table(
-        table: datatypes.EmbeddedXlTable, veda_process_sets
+        table: datatypes.EmbeddedXlTable, veda_process_sets: DataFrame
     ) -> datatypes.EmbeddedXlTable:
         # Make sure it's a flexible import table, and return the table untouched if not
         if not table.tag.startswith(datatypes.Tag.fi_t) and table.tag not in {
@@ -728,16 +728,16 @@ def generate_all_regions(
         if table.tag == datatypes.Tag.book_regions_map:
             df = df.append(table.dataframe)
 
-    result = datatypes.EmbeddedXlTable(
-        tag="AllRegions",
-        uc_sets={},
-        sheetname="",
-        range="",
-        filename="",
-        dataframe=df,
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="AllRegions",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=df,
+        )
     )
-
-    tables.append(result)
 
     return tables
 
