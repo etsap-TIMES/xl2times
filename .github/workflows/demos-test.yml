@@ -15,7 +15,6 @@ jobs:
         run: |
           wget -nv https://iea-etsap.org/demo-models/VEDA-TIMES%20Demo%20Models.zip
           unzip *.zip
-          mv "VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" times-excel-reader/demos-xlsx
 
       - name: Convert xls to xlsx
         run: |
@@ -37,5 +36,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          mv "../VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" demos-xlsx
           find . -name "*.dd"
           python utils/run_demos.py
