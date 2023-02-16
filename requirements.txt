@@ -3,3 +3,4 @@ pandas >= 1.5
 more-itertools
 pre-commit
 black
+tabulate
