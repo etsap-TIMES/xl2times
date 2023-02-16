@@ -15,7 +15,7 @@ jobs:
         run: |
           wget -nv https://iea-etsap.org/demo-models/VEDA-TIMES%20Demo%20Models.zip
           unzip *.zip
-          mv "VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" demos-xlsx
+          mv "VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" times-excel-reader/demos-xlsx
 
       - name: Convert xls to xlsx
         run: |
@@ -27,10 +27,10 @@ jobs:
         with:
           path: times-excel-reader
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
-          path: demos-dd
+          path: times-excel-reader/demos-dd
 
       - name: Run tool
         working-directory: times-excel-reader
