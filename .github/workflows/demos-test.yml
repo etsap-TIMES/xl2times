@@ -20,7 +20,6 @@ jobs:
         run: |
           sudo apt install libreoffice-calc default-jre libreoffice-java-common
           find . -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
-          find . -name "*.xlsx"
 
       - uses: actions/checkout@v3
         with:
@@ -37,5 +36,4 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           mv "../VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" demos-xlsx
-          find . -name "*.dd"
           python utils/run_demos.py
