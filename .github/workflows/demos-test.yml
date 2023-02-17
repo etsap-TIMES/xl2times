@@ -14,17 +14,12 @@ jobs:
   demos-test:
     runs-on: ubuntu-latest
 
+    env:
+      # A dummy key for the XLSX cache. Increment this when you want this Action to
+      # ignore cache and re-download and convert demo files
+      DUMMY_XLSX_CACHE_KEY: 0
+
     steps:
-      - name: Download demo files
-        run: |
-          wget -nv https://iea-etsap.org/demo-models/VEDA-TIMES%20Demo%20Models.zip
-          unzip *.zip
-
-      - name: Convert xls to xlsx
-        run: |
-          sudo apt install libreoffice-calc default-jre libreoffice-java-common
-          find . -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
-
       - uses: actions/checkout@v3
         with:
           path: times-excel-reader
@@ -34,10 +29,34 @@ jobs:
           repository: olejandro/demos-dd
           path: times-excel-reader/demos-dd
 
+      - name: Cache demo xlsx files
+        uses: actions/cache@v2
+        id: cache-xlsx
+        with:
+          path: times-excel-reader/demos-xlsx
+          key: ${{ env.DUMMY_XLSX_CACHE_KEY }}
+
+      - name: Download demo files and convert to xlsx
+        if: steps.cache-xlsx.outputs.cache-hit != 'true'
+        run: |
+          wget -nv https://iea-etsap.org/demo-models/VEDA-TIMES%20Demo%20Models.zip
+          unzip *.zip
+          mv "./VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" times-excel-reader/demos-xlsx
+          sudo apt install libreoffice-calc default-jre libreoffice-java-common
+          find times-excel-reader/demos-xlsx -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
+
+      # Upload the converted xlsx files as an artifact so that we can download it
+      # and reproduce any CI failures locally
+      - name: Upload xlsx files as artifact
+        uses: actions/upload-artifact@v3
+        if: steps.cache-xlsx.outputs.cache-hit != 'true'
+        with:
+          name: demos-xlsx
+          path: times-excel-reader/demos-xlsx
+
       - name: Run tool
         working-directory: times-excel-reader
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          mv "../VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" demos-xlsx
           python utils/run_demos.py
