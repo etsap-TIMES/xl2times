@@ -218,9 +218,7 @@ def process_flexible_import_tables(
                 return name, value
         return None, value
 
-    veda_process_sets = list(
-        filter(lambda table: table.tag == "VedaProcessSets", tables)
-    )[0].dataframe
+    veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
 
     def process_flexible_import_table(
         table: datatypes.EmbeddedXlTable, veda_process_sets: DataFrame
@@ -721,8 +719,13 @@ def process_currencies(
 def generate_all_regions(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
-    extra_regions = ["IMPEXP", "MINRNW"]
-    df = pd.DataFrame(extra_regions, columns=["Region"])
+    """
+    Include IMPEXP and MINRNW together with the user-defined regions in the AllRegions set
+    IMPEXP and MINRNW are external regions that are defined by default by Veda
+    """
+
+    external_regions = ["IMPEXP", "MINRNW"]
+    df = pd.DataFrame(external_regions, columns=["Region"])
 
     for table in tables:
         if table.tag == datatypes.Tag.book_regions_map:
@@ -1007,23 +1010,26 @@ def process_processes(
 def generate_dummy_processes(
     tables: List[datatypes.EmbeddedXlTable], include_dummy_processes=True
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Define dummy processes and specify default cost data for them to ensure that a TIMES model
+    can always be solved. This covers situations when a commodity cannot be supplied
+    by other means. Significant cost is usually associated with the activity of these
+    processes to ensure that they are used as a last resort
+    """
+
     if include_dummy_processes:
         dummy_processes = [
-            ["IMPNRGZ", "IMPNRGZ", "", "", ""],
-            ["IMPMATZ", "IMPMATZ", "", "", ""],
-            ["IMPDEMZ", "IMPDEMZ", "", "", ""],
+            ["IMP", "IMPNRGZ", "Dummy import of NRG commodities", "", "", ""],
+            ["IMP", "IMPMATZ", "Dummy import of MAT commodities", "", "", ""],
+            ["IMP", "IMPDEMZ", "Dummy import of DEM commodities", "", "", ""],
         ]
-
-        ndummies = len(dummy_processes)
 
         df1 = pd.DataFrame(
             dummy_processes,
-            columns=["TechName", "TechDesc", "Tact", "Tcap", "PrimaryCG"],
+            columns=["Sets", "TechName", "TechDesc", "Tact", "Tcap", "PrimaryCG"],
         )
 
-        df1.insert(0, "Sets", ["IMP"] * ndummies)
-
-        dummy_process_declaration = datatypes.EmbeddedXlTable(
+        dummy_process_definition = datatypes.EmbeddedXlTable(
             tag="~FI_PROCESS",
             uc_sets={},
             sheetname="",
@@ -1033,6 +1039,8 @@ def generate_dummy_processes(
         )
 
         df2 = df1[["TechName", "TechDesc"]].copy()
+        # Use this as default activity cost for dummy processes
+        # TODO: Should this be included in settings instead?
         df2["ACTCOST"] = 1111
 
         dummy_process_data_specification = datatypes.EmbeddedXlTable(
@@ -1044,7 +1052,7 @@ def generate_dummy_processes(
             dataframe=df2,
         )
 
-        tables.append(dummy_process_declaration)
+        tables.append(dummy_process_definition)
         tables.append(dummy_process_data_specification)
 
     return tables
