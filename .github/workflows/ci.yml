@@ -36,6 +36,9 @@ jobs:
           pre-commit install
           pre-commit run --all-files
 
+
+      # TIMS
+
       - uses: actions/checkout@v3
         with:
           repository: samwebster/times-ireland-model
@@ -55,6 +58,9 @@ jobs:
         working-directory: times-excel-reader
         run: |
           python times_excel_reader.py ../times-ireland-model
+
+
+      # Demos
 
       - uses: actions/checkout@v3
         with:
