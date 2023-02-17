@@ -1,4 +1,4 @@
-name: CI-demos
+name: CI
 
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -24,13 +24,45 @@ jobs:
         with:
           path: times-excel-reader
 
+      - name: Install packages
+        working-directory: times-excel-reader
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Check code formatting
+        working-directory: times-excel-reader
+        run: |
+          pre-commit install
+          pre-commit run --all-files
+
+      - uses: actions/checkout@v3
+        with:
+          repository: samwebster/times-ireland-model
+          path: times-ireland-model
+
+      - uses: actions/checkout@v3
+        with:
+          repository: MaREI-EPMG/times-ireland-model_gams
+          path: times-ireland-model_gams
+
+      - name: Convert ground truth DD to CSV
+        working-directory: times-excel-reader
+        run: |
+          python utils/dd_to_csv.py ../times-ireland-model_gams/model ground_truth
+
+      - name: Run tool on TIMS
+        working-directory: times-excel-reader
+        run: |
+          python times_excel_reader.py ../times-ireland-model
+
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
           path: times-excel-reader/demos-dd
 
       - name: Cache demo xlsx files
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-xlsx
         with:
           path: times-excel-reader/demos-xlsx
@@ -54,9 +86,7 @@ jobs:
           name: demos-xlsx
           path: times-excel-reader/demos-xlsx
 
-      - name: Run tool
+      - name: Run tool on demos
         working-directory: times-excel-reader
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           python utils/run_demos.py
