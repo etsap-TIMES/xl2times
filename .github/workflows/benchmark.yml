@@ -1,28 +1,37 @@
-name: CI-demos
+name: CI
 
 on:
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
 
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
 jobs:
-  demos-test:
+  benchmark:
     runs-on: ubuntu-latest
 
-    env:
-      # A dummy key for the XLSX cache. Increment this when you want this Action to
-      # ignore cache and re-download and convert demo files
-      DUMMY_XLSX_CACHE_KEY: 0
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           path: times-excel-reader
+
+      - name: Install packages
+        working-directory: times-excel-reader
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Check code formatting
+        working-directory: times-excel-reader
+        run: |
+          pre-commit install
+          pre-commit run --all-files
+
+      # ---------- ETSAP Demo models
 
       - uses: actions/checkout@v3
         with:
@@ -54,9 +63,24 @@ jobs:
           name: demos-xlsx
           path: times-excel-reader/demos-xlsx
 
-      - name: Run tool
+      - name: Run tool on demo models
+        working-directory: times-excel-reader
+        run: python utils/run_demos.py
+
+      # ---------- TIMES Ireland Model
+
+      - uses: actions/checkout@v2
+        with:
+          repository: samwebster/times-ireland-model
+          path: times-ireland-model
+
+      - uses: actions/checkout@v2
+        with:
+          repository: MaREI-EPMG/times-ireland-model_gams
+          path: times-ireland-model_gams
+
+      - name: Run tool on Ireland model
         working-directory: times-excel-reader
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          python utils/run_demos.py
+          python utils/dd_to_csv.py ../times-ireland-model_gams/model ground_truth
+          python times_excel_reader.py ../times-ireland-model
