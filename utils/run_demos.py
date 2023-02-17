@@ -28,7 +28,7 @@ def run_demo_model(demo_num):
         )
         if not res.returncode == 0:
             # Remove partial outputs so that next run retries
-            shutil.rmtree(csv_folder)
+            shutil.rmtree(csv_folder, ignore_errors=True)
             return (0.0, "FAIL dd_to_csv: " + res.stderr.splitlines()[-1])
 
     # Then run the tool
