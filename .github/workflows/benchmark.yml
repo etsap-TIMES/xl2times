@@ -20,7 +20,7 @@ jobs:
       DUMMY_XLSX_CACHE_KEY: 0
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           path: times-excel-reader
 
@@ -44,7 +44,7 @@ jobs:
           path: times-excel-reader/demos-dd
 
       - name: Cache demo xlsx files
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-xlsx
         with:
           path: times-excel-reader/demos-xlsx
@@ -74,12 +74,12 @@ jobs:
 
       # ---------- TIMES Ireland Model
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           repository: samwebster/times-ireland-model
           path: times-ireland-model
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           repository: MaREI-EPMG/times-ireland-model_gams
           path: times-ireland-model_gams
