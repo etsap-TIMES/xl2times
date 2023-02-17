@@ -218,6 +218,7 @@ def process_flexible_import_tables(
                 return name, value
         return None, value
 
+    # TODO decide whether VedaProcessSets should become a new Enum type or part of TimesModelData type
     veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
 
     def process_flexible_import_table(
@@ -1024,36 +1025,37 @@ def generate_dummy_processes(
             ["IMP", "IMPDEMZ", "Dummy import of DEM commodities", "", "", ""],
         ]
 
-        df1 = pd.DataFrame(
+        process_declarations = pd.DataFrame(
             dummy_processes,
             columns=["Sets", "TechName", "TechDesc", "Tact", "Tcap", "PrimaryCG"],
         )
 
-        dummy_process_definition = datatypes.EmbeddedXlTable(
-            tag="~FI_PROCESS",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=df1,
+        tables.append(
+            datatypes.EmbeddedXlTable(
+                tag="~FI_PROCESS",
+                uc_sets={},
+                sheetname="",
+                range="",
+                filename="",
+                dataframe=process_declarations,
+            )
         )
 
-        df2 = df1[["TechName", "TechDesc"]].copy()
+        process_data_specs = process_declarations[["TechName", "TechDesc"]].copy()
         # Use this as default activity cost for dummy processes
         # TODO: Should this be included in settings instead?
-        df2["ACTCOST"] = 1111
+        process_data_specs["ACTCOST"] = 1111
 
-        dummy_process_data_specification = datatypes.EmbeddedXlTable(
-            tag="~FI_T",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=df2,
+        tables.append(
+            datatypes.EmbeddedXlTable(
+                tag="~FI_T",
+                uc_sets={},
+                sheetname="",
+                range="",
+                filename="",
+                dataframe=process_data_specs,
+            )
         )
-
-        tables.append(dummy_process_definition)
-        tables.append(dummy_process_data_specification)
 
     return tables
 
