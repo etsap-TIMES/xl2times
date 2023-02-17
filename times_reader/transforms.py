@@ -448,9 +448,6 @@ def process_user_constraint_tables(
         # Fill in UC_N blank cells with value from above
         df["UC_N"] = df["UC_N"].ffill()
 
-        if "UC_Desc" in df.columns:
-            df.drop("UC_Desc", axis=1, inplace=True)
-
         if "CSET_CN" in table.dataframe.columns.values:
             df.rename(columns={"CSET_CN": "Cset_CN"}, inplace=True)
 
@@ -470,6 +467,7 @@ def process_user_constraint_tables(
             "Year",
             "LimType",
             "Top_Check",
+            "UC_Desc",
             # TODO remove these?
             "TimeSlice",
             "CommName",
@@ -1538,67 +1536,6 @@ def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
         )
     return output
-
-
-def produce_times_tables(
-    input: Dict[str, DataFrame], mappings: List[datatypes.TimesXlMap]
-) -> Dict[str, DataFrame]:
-    print(
-        f"produce_times_tables: {len(input)} tables incoming,"
-        f" {sum(len(value) for (_, value) in input.items())} rows"
-    )
-    result = {}
-    used_tables = set()
-    for mapping in mappings:
-        if not mapping.xl_name in input:
-            print(
-                f"WARNING: Cannot produce table {mapping.times_name} because input table"
-                f" {mapping.xl_name} does not exist"
-            )
-        else:
-            used_tables.add(mapping.xl_name)
-            df = input[mapping.xl_name].copy()
-            if mapping.filter_rows:
-                # Select just the rows where the attribute value matches the last mapping column or output table name
-                if not "Attribute" in df.columns:
-                    print(
-                        f"WARNING: Cannot produce table {mapping.times_name} because input"
-                        f" table {mapping.xl_name} does not contain an Attribute column"
-                    )
-                else:
-                    colname = mapping.xl_cols[-1]
-                    filter = set(x.lower() for x in {colname, mapping.times_name})
-                    i = df["Attribute"].str.lower().isin(filter)
-                    df = df.loc[i, :]
-                    if colname not in df.columns:
-                        df = df.rename(columns={"VALUE": colname})
-            # TODO find the correct tech group
-            if "TechGroup" in mapping.xl_cols:
-                df["TechGroup"] = df["TechName"]
-            if not all(c in df.columns for c in mapping.xl_cols):
-                missing = set(mapping.xl_cols) - set(df.columns)
-                print(
-                    f"WARNING: Cannot produce table {mapping.times_name} because input"
-                    f" table {mapping.xl_name} does not contain the required columns"
-                    f" - {', '.join(missing)}"
-                )
-            else:
-                cols_to_drop = [x for x in df.columns if not x in mapping.xl_cols]
-                df.drop(columns=cols_to_drop, inplace=True)
-                df.drop_duplicates(inplace=True)
-                df.reset_index(drop=True, inplace=True)
-                df.rename(columns=mapping.col_map, inplace=True)
-                i = df[mapping.times_cols[-1]].notna()
-                df = df.loc[i, mapping.times_cols]
-                result[mapping.times_name] = df
-
-    unused_tables = set(input.keys()) - used_tables
-    if len(unused_tables) > 0:
-        print(
-            f"WARNING: {len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
-        )
-
-    return result
 
 
 def dump_tables(tables: List, filename: str) -> List:
