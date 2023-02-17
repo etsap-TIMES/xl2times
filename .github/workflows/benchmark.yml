@@ -14,6 +14,11 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
 
+    env:
+      # A dummy key for the XLSX cache. Increment this when you want this Action to
+      # ignore cache and re-download and convert demo files
+      DUMMY_XLSX_CACHE_KEY: 0
+
     steps:
       - uses: actions/checkout@v2
         with:
