@@ -41,13 +41,13 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
-          path: times-excel-reader/demos-dd
+          path: benchmarks/dd
 
       - name: Cache demo xlsx files
         uses: actions/cache@v3
         id: cache-xlsx
         with:
-          path: times-excel-reader/demos-xlsx
+          path: benchmarks/xlsx
           key: ${{ env.DUMMY_XLSX_CACHE_KEY }}
 
       - name: Download demo files and convert to xlsx
@@ -55,9 +55,9 @@ jobs:
         run: |
           wget -nv https://iea-etsap.org/demo-models/VEDA-TIMES%20Demo%20Models.zip
           unzip *.zip
-          mv "./VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" times-excel-reader/demos-xlsx
+          mv "./VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" benchmarks/xlsx
           sudo apt install libreoffice-calc default-jre libreoffice-java-common
-          find times-excel-reader/demos-xlsx -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
+          find benchmarks/xlsx -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
 
       # Upload the converted xlsx files as an artifact so that we can download it
       # and reproduce any CI failures locally
@@ -66,26 +66,25 @@ jobs:
         if: steps.cache-xlsx.outputs.cache-hit != 'true'
         with:
           name: demos-xlsx
-          path: times-excel-reader/demos-xlsx
-
-      - name: Run tool on demo models
-        working-directory: times-excel-reader
-        run: python utils/run_demos.py
+          path: benchmarks/xlsx
 
       # ---------- TIMES Ireland Model
 
+      # We add this model as the directory `ireland` under `benchmarks/{xlsx,dd}/`
+      # so that the run_benchmarks.py script runs this model too
       - uses: actions/checkout@v3
         with:
           repository: samwebster/times-ireland-model
-          path: times-ireland-model
+          path: benchmarks/xlsx/Ireland
 
       - uses: actions/checkout@v3
         with:
           repository: MaREI-EPMG/times-ireland-model_gams
           path: times-ireland-model_gams
 
-      - name: Run tool on Ireland model
+      - name: Move Ireland DD files to correct location
+        run: mv times-ireland-model_gams/model benchmarks/dd/Ireland
+
+      - name: Run tool on all benchmarks
         working-directory: times-excel-reader
-        run: |
-          python utils/dd_to_csv.py ../times-ireland-model_gams/model ground_truth
-          python times_excel_reader.py ../times-ireland-model
+        run: python utils/run_demos.py ../benchmarks
