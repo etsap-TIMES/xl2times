@@ -1018,9 +1018,9 @@ def generate_dummy_processes(
 
     if include_dummy_processes:
         dummy_processes = [
-            ["IMP", "IMPNRGZ", "Dummy import of NRG commodities", "", "", ""],
-            ["IMP", "IMPMATZ", "Dummy import of MAT commodities", "", "", ""],
-            ["IMP", "IMPDEMZ", "Dummy import of DEM commodities", "", "", ""],
+            ["IMP", "IMPNRGZ", "Dummy Import of NRG", "", "", ""],
+            ["IMP", "IMPMATZ", "Dummy Import of MAT", "", "", ""],
+            ["IMP", "IMPDEMZ", "Dummy Import of DEM", "", "", ""],
         ]
 
         process_declarations = pd.DataFrame(
