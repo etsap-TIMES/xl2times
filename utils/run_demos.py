@@ -10,7 +10,7 @@ import time
 
 def run_demo_model(demo_num):
     xl_folder = f"demos-xlsx/DemoS_{demo_num:03d}"
-    dd_folder = f"demos-dd/DD-DemoS_{demo_num:03d}/"
+    dd_folder = f"demos-dd/DemoS_{demo_num:03d}/"
     csv_folder = f"demos-csv/DemoS_{demo_num:03d}"
     out_folder = f"demos-out/DemoS_{demo_num:03d}"
 
