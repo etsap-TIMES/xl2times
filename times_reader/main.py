@@ -56,6 +56,7 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
                 col_map = {}
                 for index, value in enumerate(times_cols):
                     col_map[value] = xl_cols[index]
+                # Uppercase and validate tags:
                 if xl_name.startswith("~"):
                     xl_name = xl_name.upper()
                     assert datatypes.Tag.has_tag(xl_name), f"Tag {xl_name} not found"
@@ -289,6 +290,7 @@ def produce_times_tables(
                     f" - {', '.join(missing)}"
                 )
             else:
+                # Excel columns can be duplicated into multiple Times columns
                 for (times_col, xl_col) in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 cols_to_drop = [x for x in df.columns if not x in mapping.times_cols]
