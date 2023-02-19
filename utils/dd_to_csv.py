@@ -85,6 +85,9 @@ def parse_parameter_values_from_file(
                     if word != "":
                         if word.isspace():
                             parts.append([])
+                        elif word.endswith(" "):
+                            parts[-1].append(word.strip())
+                            parts.append([])
                         else:
                             parts[-1].append(word)
                 words = ["".join(part) for part in parts]
@@ -92,8 +95,8 @@ def parse_parameter_values_from_file(
                 if len(words) == 1:
                     set_data.append([*attributes])
                 elif len(words) == 2:
-                    value = words[1]
-                    set_data.append([*attributes, value])
+                    text = words[1]
+                    set_data.append([*attributes, text])
                 else:
                     raise ValueError(
                         f"Unexpected number of spaces in set value setting: {data[index]}"
@@ -109,7 +112,7 @@ def parse_parameter_values_from_file(
 
 
 def save_data_with_headers(
-    param_data: Dict[str, Union[pd.DataFrame, List[str]]],
+    param_data_dict: Dict[str, Union[pd.DataFrame, List[str]]],
     headers_data: Dict[str, List[str]],
     save_dir: str,
 ) -> None:
@@ -122,8 +125,13 @@ def save_data_with_headers(
 
     Note that the header and data dictionaries are assumed to be parallel dictionaries
     """
-    for param_name, param_data in param_data.items():
+    for param_name, param_data in param_data_dict.items():
         columns = headers_data[param_name]
+        for row in param_data:
+            if len(row) != len(columns):
+                raise ValueError(
+                    f"Mismatched number of columns for param {param_name} between data ({len(row)}) and mapping ({len(columns)})"
+                )
         df = pd.DataFrame(
             data=np.asarray(param_data)[:, 0 : len(columns)], columns=columns
         )

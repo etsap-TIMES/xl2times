@@ -50,26 +50,24 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
             if xl_cols[-1].startswith("Attribute:"):
                 xl_cols[-1] = xl_cols[-1].replace("Attribute:", "")
                 filter_rows = True
-            col_map = {}
-            for index, value in enumerate(xl_cols):
-                col_map[value] = times_cols[index]
-            # Uppercase and validate tags:
-            if xl_name.startswith("~"):
-                xl_name = xl_name.upper()
-                assert datatypes.Tag.has_tag(xl_name), f"Tag {xl_name} not found"
-            entry = datatypes.TimesXlMap(
-                times_name=times_name,
-                times_cols=times_cols,
-                xl_name=xl_name,
-                xl_cols=xl_cols,
-                col_map=col_map,
-                filter_rows=filter_rows,
-            )
 
             # TODO remove: Filter out mappings that are not yet finished
-            if entry.xl_name != datatypes.Tag.todo and not any(
-                c.startswith("TODO") for c in entry.xl_cols
-            ):
+            if xl_name != "~TODO" and not any(c.startswith("TODO") for c in xl_cols):
+                col_map = {}
+                for index, value in enumerate(times_cols):
+                    col_map[value] = xl_cols[index]
+                # Uppercase and validate tags:
+                if xl_name.startswith("~"):
+                    xl_name = xl_name.upper()
+                    assert datatypes.Tag.has_tag(xl_name), f"Tag {xl_name} not found"
+                entry = datatypes.TimesXlMap(
+                    times_name=times_name,
+                    times_cols=times_cols,
+                    xl_name=xl_name,
+                    xl_cols=xl_cols,
+                    col_map=col_map,
+                    filter_rows=filter_rows,
+                )
                 mappings.append(entry)
             else:
                 dropped.append(line)
@@ -292,11 +290,13 @@ def produce_times_tables(
                     f" - {', '.join(missing)}"
                 )
             else:
-                cols_to_drop = [x for x in df.columns if not x in mapping.xl_cols]
+                # Excel columns can be duplicated into multiple Times columns
+                for (times_col, xl_col) in mapping.col_map.items():
+                    df[times_col] = df[xl_col]
+                cols_to_drop = [x for x in df.columns if not x in mapping.times_cols]
                 df.drop(columns=cols_to_drop, inplace=True)
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
-                df.rename(columns=mapping.col_map, inplace=True)
                 i = df[mapping.times_cols[-1]].notna()
                 df = df.loc[i, mapping.times_cols]
                 result[mapping.times_name] = df
