@@ -363,8 +363,8 @@ def process_flexible_import_tables(
                 .loc[veda_process_sets["TechName"] == process]
                 .unique()
             )
-            df[other].loc[
-                (df["TechName"] == process) & (df[attribute] == "COST")
+            df.loc[
+                (df["TechName"] == process) & (df[attribute] == "COST"), other
             ] = cost_mapping[veda_process_set[0]]
 
         # Should have all index_columns and VALUE
@@ -730,7 +730,7 @@ def generate_all_regions(
 
     for table in tables:
         if table.tag == datatypes.Tag.book_regions_map:
-            df = df.append(table.dataframe)
+            df = pd.concat([df, table.dataframe])
 
     tables.append(
         datatypes.EmbeddedXlTable(
@@ -957,7 +957,9 @@ def process_years(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
     modelyears = (
-        pastyears.append(tables[datatypes.Tag.time_periods]["M"], ignore_index=True)
+        pd.concat(
+            [pastyears, tables[datatypes.Tag.time_periods]["M"]], ignore_index=True
+        )
         .drop_duplicates()
         .sort_values()
     )
