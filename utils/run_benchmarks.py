@@ -84,6 +84,15 @@ if __name__ == "__main__":
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
     repo = git.Repo(".")
+    origin = repo.remotes.origin
+    origin.fetch("main")
+    if "main" not in repo.heads:
+        repo.create_head("main", origin.refs.main).set_tracking_branch(origin.refs.main)
+    try:
+        mybranch = repo.active_branch
+    except TypeError:  # If we're not on a branch (like on CI), create one:
+        mybranch = repo.create_head("mybranch")
+
     if repo.active_branch == "main":
         print("Skipping regression tests as we're on main branch. Goodbye!")
         sys.exit(0)
@@ -92,17 +101,8 @@ if __name__ == "__main__":
         print("ERROR: your working directory is not clean. Aborting.")
         sys.exit(1)
 
-    # Checkout main branch
-    try:
-        mybranch = repo.active_branch
-    except TypeError:  # If we're not on a branch (like on CI), create one:
-        mybranch = repo.create_head("mybranch")
-    origin = repo.remotes.origin
-    origin.fetch("main")
-    repo.create_head("main", origin.refs.main).set_tracking_branch(origin.refs.main)
+    # Re-run benchmarks on main
     repo.heads.main.checkout()
-
-    # Re-run benchmarks
     print("Running benchmarks on main", end="", flush=True)
     results_main = []
     for benchmark_name in benchmarks:
