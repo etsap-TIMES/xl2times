@@ -65,7 +65,7 @@ if __name__ == "__main__":
     benchmarks = next(os.walk(path.join(benchmarks_folder, "xlsx")))[1]
     benchmarks = [b for b in sorted(benchmarks) if b[0] != "."]
 
-    print("Running benchmarks")
+    print("Running benchmarks", end="", flush=True)
     results = []
     for benchmark_name in benchmarks:
         results.append(
@@ -74,3 +74,49 @@ if __name__ == "__main__":
         print(".", end="", flush=True)
     print("\n" + tabulate(results, headers=["Demo", "Time", "Result"]) + "\n")
     # TODO exit(1) if any benchmark run failed
+
+    # Check if git status is clean
+    res = subprocess.run(
+        ["git", "status", "--porcelain"], capture_output=True, text=True
+    )
+    if res.returncode != 0 or len(res.stdout.strip()) != 0:
+        print(res.stdout)
+        print(res.stderr)
+        print("ERROR: your working directory is not clean. Aborting.")
+        sys.exit(1)
+
+    # Checkout main branch
+    res = subprocess.run(["git", "checkout", "main"], capture_output=True, text=True)
+    if res.returncode != 0:
+        print(res.stdout)
+        print(res.stderr)
+        print("ERROR: failed to checkout main branch. Aborting.")
+        sys.exit(1)
+
+    # Re-run benchmarks
+    print("Running benchmarks on main", end="", flush=True)
+    results_main = []
+    for benchmark_name in benchmarks:
+        results_main.append(
+            (benchmark_name, *run_benchmark(benchmarks_folder, benchmark_name))
+        )
+        print(".", end="", flush=True)
+    print("\n" + tabulate(results_main, headers=["Demo", "Time", "Result"]) + "\n")
+
+    # Compare results
+    accuracy = {b: float(r.split("%")[0]) for b, _, r in results}
+    accuracy_main = {b: float(r.split("%")[0]) for b, _, r in results_main}
+    if set(accuracy.keys()) != set(accuracy_main.keys()):
+        print("ERROR: number of benchmarks changed")
+        sys.exit(1)
+    for b in accuracy:
+        if accuracy[b] < accuracy_main[b]:
+            print(
+                f"ERROR: {b} accuracy dropped from {accuracy_main[b]} to {accuracy[b]}"
+            )
+            sys.exit(1)
+    # TODO also check if any table is missing more rows, and
+    # check if any new tables are missing?
+    # also check for significant time regression
+
+    print("All good. You're awesome!")
