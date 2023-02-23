@@ -67,13 +67,13 @@ if __name__ == "__main__":
 
     print("Running benchmarks", end="", flush=True)
     results = []
+    headers = ["Demo", "Time (s)", "Result"]
     for benchmark_name in benchmarks:
         results.append(
             (benchmark_name, *run_benchmark(benchmarks_folder, benchmark_name))
         )
         print(".", end="", flush=True)
-    print("\n" + tabulate(results, headers=["Demo", "Time", "Result"]) + "\n")
-    # TODO exit(1) if any benchmark run failed
+    print("\n\n" + tabulate(results, headers, floatfmt=".2f") + "\n")
 
     # Check if git status is clean
     res = subprocess.run(
@@ -101,7 +101,7 @@ if __name__ == "__main__":
             (benchmark_name, *run_benchmark(benchmarks_folder, benchmark_name))
         )
         print(".", end="", flush=True)
-    print("\n" + tabulate(results_main, headers=["Demo", "Time", "Result"]) + "\n")
+    print("\n\n" + tabulate(results_main, headers, floatfmt=".2f") + "\n")
 
     # Checkout back to branch
     res = subprocess.run(["git", "checkout", "-"], capture_output=True, text=True)
