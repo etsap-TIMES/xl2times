@@ -42,8 +42,10 @@ def run_benchmark(benchmarks_folder, benchmark_name):
         ["python", "times_excel_reader.py"] + args, capture_output=True, text=True
     )
     runtime = time.time() - start
-    with open(os.path.join(out_folder, f"benchmark_name.out"), "w") as f:
+    with open(os.path.join(benchmarks_folder, "out", f"{benchmark_name}.out"), "w") as f:
         f.write(res.stdout)
+    with open(os.path.join(benchmarks_folder, "out", f"{benchmark_name}.err"), "w") as f:
+        f.write(res.stderr)
 
     if res.returncode == 0:
         lastline = res.stdout.splitlines()[-1].split(" ")
@@ -59,6 +61,7 @@ if __name__ == "__main__":
 
     # Each benchmark is a directory in the benchmarks/xlsx/ folder:
     benchmarks = next(os.walk(os.path.join(benchmarks_folder, "xlsx")))[1]
+    benchmarks = [b for b in sorted(benchmarks) if b[0] != '.']
 
     results = []
     for benchmark_name in benchmarks:

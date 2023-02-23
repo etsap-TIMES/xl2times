@@ -80,10 +80,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: MaREI-EPMG/times-ireland-model_gams
-          path: times-ireland-model_gams
-
-      - name: Move Ireland DD files to correct location
-        run: mv times-ireland-model_gams/model benchmarks/dd/Ireland
+          path: benchmarks/dd/Ireland
 
       - name: Run tool on all benchmarks
         working-directory: times-excel-reader
