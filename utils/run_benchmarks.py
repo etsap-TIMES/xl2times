@@ -93,7 +93,7 @@ if __name__ == "__main__":
     except TypeError:  # If we're not on a branch (like on CI), create one:
         mybranch = repo.create_head("mybranch")
 
-    if repo.active_branch == "main":
+    if mybranch.name == "main":
         print("Skipping regression tests as we're on main branch. Goodbye!")
         sys.exit(0)
 
