@@ -40,13 +40,14 @@ def run_benchmark(benchmarks_folder, benchmark_name):
     ]
     start = time.time()
     res = subprocess.run(
-        ["python", "times_excel_reader.py"] + args, capture_output=True, text=True
+        ["python", "times_excel_reader.py"] + args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
     )
     runtime = time.time() - start
     with open(path.join(benchmarks_folder, "out", f"{benchmark_name}.out"), "w") as f:
         f.write(res.stdout)
-    with open(path.join(benchmarks_folder, "out", f"{benchmark_name}.err"), "w") as f:
-        f.write(res.stderr)
 
     if res.returncode == 0:
         lastline = res.stdout.splitlines()[-1].split(" ")
@@ -64,6 +65,7 @@ if __name__ == "__main__":
     benchmarks = next(os.walk(path.join(benchmarks_folder, "xlsx")))[1]
     benchmarks = [b for b in sorted(benchmarks) if b[0] != "."]
 
+    print("Running benchmarks")
     results = []
     for benchmark_name in benchmarks:
         results.append(
@@ -71,3 +73,4 @@ if __name__ == "__main__":
         )
         print(".", end="", flush=True)
     print("\n" + tabulate(results, headers=["Demo", "Time", "Result"]) + "\n")
+    # TODO exit(1) if any benchmark run failed
