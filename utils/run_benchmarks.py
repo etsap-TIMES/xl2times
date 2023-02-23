@@ -146,4 +146,4 @@ if __name__ == "__main__":
     # TODO also check if any table is missing more rows, and
     # check if any new tables are missing?
 
-    print("All good. You're awesome!")
+    print("No regressions. You're awesome!")

@@ -36,7 +36,7 @@ jobs:
           pre-commit install
           pre-commit run --all-files
 
-      # ---------- ETSAP Demo models
+      # ---------- Prepare ETSAP Demo models
 
       - uses: actions/checkout@v3
         with:
@@ -68,7 +68,7 @@ jobs:
           name: demos-xlsx
           path: benchmarks/xlsx
 
-      # ---------- TIMES Ireland Model
+      # ---------- Prepare TIMES Ireland Model
 
       # We add this model as the directory `ireland` under `benchmarks/{xlsx,dd}/`
       # so that the run_benchmarks.py script runs this model too
@@ -81,6 +81,8 @@ jobs:
         with:
           repository: MaREI-EPMG/times-ireland-model_gams
           path: benchmarks/dd/Ireland
+
+      # ---------- Run tool, check for regressions
 
       - name: Run tool on all benchmarks
         working-directory: times-excel-reader
