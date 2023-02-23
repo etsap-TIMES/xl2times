@@ -92,6 +92,14 @@ if __name__ == "__main__":
 
     # Checkout main branch
     res = subprocess.run(
+        ["git", "fetch", "origin", "main"], capture_output=True, text=True
+    )
+    if res.returncode != 0:
+        print(res.stdout)
+        print(res.stderr)
+        print("ERROR: failed to fetch main branch. Aborting.")
+        sys.exit(1)
+    res = subprocess.run(
         ["git", "checkout", "origin/main"], capture_output=True, text=True
     )
     if res.returncode != 0:
