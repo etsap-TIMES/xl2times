@@ -9,4 +9,4 @@ ground_truth/*
 speedscope.json
 *.pkl
 .venv/
-demos-*/
+benchmarks/

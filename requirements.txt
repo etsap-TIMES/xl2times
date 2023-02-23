@@ -4,3 +4,4 @@ more-itertools
 pre-commit
 black
 tabulate
+GitPython >= 3.1.31, < 3.2

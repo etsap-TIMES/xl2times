@@ -1,14 +1,14 @@
 name: CI
 
 on:
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   CI:
@@ -36,42 +36,18 @@ jobs:
           pre-commit install
           pre-commit run --all-files
 
-
-      # TIMS
-
-      - uses: actions/checkout@v3
-        with:
-          repository: samwebster/times-ireland-model
-          path: times-ireland-model
-
-      - uses: actions/checkout@v3
-        with:
-          repository: MaREI-EPMG/times-ireland-model_gams
-          path: times-ireland-model_gams
-
-      - name: Convert ground truth DD to CSV
-        working-directory: times-excel-reader
-        run: |
-          python utils/dd_to_csv.py ../times-ireland-model_gams/model ground_truth
-
-      - name: Run tool on TIMS
-        working-directory: times-excel-reader
-        run: |
-          python times_excel_reader.py ../times-ireland-model
-
-
-      # Demos
+      # ---------- Prepare ETSAP Demo models
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
-          path: times-excel-reader/demos-dd
+          path: benchmarks/dd
 
       - name: Cache demo xlsx files
         uses: actions/cache@v3
         id: cache-xlsx
         with:
-          path: times-excel-reader/demos-xlsx
+          path: benchmarks/xlsx
           key: ${{ env.DUMMY_XLSX_CACHE_KEY }}
 
       - name: Download demo files and convert to xlsx
@@ -79,9 +55,9 @@ jobs:
         run: |
           wget -nv https://iea-etsap.org/demo-models/VEDA-TIMES%20Demo%20Models.zip
           unzip *.zip
-          mv "./VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" times-excel-reader/demos-xlsx
+          mv "./VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" benchmarks/xlsx
           sudo apt install libreoffice-calc default-jre libreoffice-java-common
-          find times-excel-reader/demos-xlsx -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
+          find benchmarks/xlsx -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
 
       # Upload the converted xlsx files as an artifact so that we can download it
       # and reproduce any CI failures locally
@@ -90,9 +66,24 @@ jobs:
         if: steps.cache-xlsx.outputs.cache-hit != 'true'
         with:
           name: demos-xlsx
-          path: times-excel-reader/demos-xlsx
+          path: benchmarks/xlsx
 
-      - name: Run tool on demos
+      # ---------- Prepare TIMES Ireland Model
+
+      # We add this model as the directory `ireland` under `benchmarks/{xlsx,dd}/`
+      # so that the run_benchmarks.py script runs this model too
+      - uses: actions/checkout@v3
+        with:
+          repository: samwebster/times-ireland-model
+          path: benchmarks/xlsx/Ireland
+
+      - uses: actions/checkout@v3
+        with:
+          repository: MaREI-EPMG/times-ireland-model_gams
+          path: benchmarks/dd/Ireland
+
+      # ---------- Run tool, check for regressions
+
+      - name: Run tool on all benchmarks
         working-directory: times-excel-reader
-        run: |
-          python utils/run_demos.py
+        run: python utils/run_benchmarks.py ../benchmarks

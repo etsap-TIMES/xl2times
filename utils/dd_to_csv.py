@@ -1,6 +1,7 @@
 import argparse
 import os
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
@@ -38,7 +39,6 @@ def parse_parameter_values_from_file(
     set_data_dict = dict()
     index = 0
     while index < len(data):
-
         if data[index].startswith("PARAMETER"):
             # We expect the parameter name on the next line.
             index += 1
@@ -141,12 +141,11 @@ def save_data_with_headers(
 
 
 def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
-    filenames = [name for name in os.listdir(basedir) if name.endswith(".dd")]
+    dd_files = [p for p in Path(basedir).rglob("*.dd")]
 
     all_sets = defaultdict(list)
     all_parameters = defaultdict(list)
-    for filename in filenames:
-        path = os.path.join(basedir, filename)
+    for path in dd_files:
         print(f"Processing path: {path}")
         local_param_values, local_sets = parse_parameter_values_from_file(path)
 
