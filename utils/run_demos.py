@@ -22,13 +22,16 @@ def run_benchmark(benchmarks_folder, benchmark_name):
                 dd_folder,
                 csv_folder,
             ],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
         )
-        if not res.returncode == 0:
+        if res.returncode != 0:
             # Remove partial outputs so that next run retries
             shutil.rmtree(csv_folder, ignore_errors=True)
-            return (0.0, "FAIL dd_to_csv: " + res.stderr.splitlines()[-1])
+            print(res.stdout)
+            print(f"ERROR: dd_to_csv failed on {benchmark_name}")
+            sys.exit(1)
 
     # Then run the tool
     args = [
@@ -54,7 +57,9 @@ def run_benchmark(benchmarks_folder, benchmark_name):
         accuracy = lastline[0] + " " + lastline[-1]
         return (runtime, accuracy)
     else:
-        return (runtime, f"FAIL: {res.stderr.splitlines()[-1]}")
+        print(res.stdout)
+        print(f"ERROR: tool failed on {benchmark_name}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
