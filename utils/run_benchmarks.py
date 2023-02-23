@@ -91,7 +91,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Checkout main branch
-    res = subprocess.run(["git", "checkout", "main"], capture_output=True, text=True)
+    res = subprocess.run(
+        ["git", "checkout", "origin/main"], capture_output=True, text=True
+    )
     if res.returncode != 0:
         print(res.stdout)
         print(res.stderr)
