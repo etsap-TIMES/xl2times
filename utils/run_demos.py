@@ -116,14 +116,19 @@ if __name__ == "__main__":
     if set(accuracy.keys()) != set(accuracy_main.keys()):
         print("ERROR: number of benchmarks changed")
         sys.exit(1)
-    for b in accuracy:
-        if accuracy[b] < accuracy_main[b]:
-            print(
-                f"ERROR: {b} accuracy dropped from {accuracy_main[b]} to {accuracy[b]}"
-            )
-            sys.exit(1)
+    accu_regressions = [b for b in accuracy if accuracy[b] < accuracy_main[b]]
+
+    times = {b: t for b, t, _ in results}
+    times_main = {b: t for b, t, _ in results_main}
+    time_regressions = [b for b in times if times[b] > 1.1 * times_main[b]]
+
+    if len(accu_regressions + time_regressions) > 0:
+        if accu_regressions:
+            print(f"ERROR: accuracy regressed on: {', '.join(accu_regressions)}")
+        if time_regressions:
+            print(f"ERROR: runtime regressed on: {', '.join(time_regressions)}")
+        sys.exit(1)
     # TODO also check if any table is missing more rows, and
     # check if any new tables are missing?
-    # also check for significant time regression
 
     print("All good. You're awesome!")
