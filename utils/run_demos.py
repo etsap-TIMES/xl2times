@@ -103,6 +103,13 @@ if __name__ == "__main__":
         print(".", end="", flush=True)
     print("\n" + tabulate(results_main, headers=["Demo", "Time", "Result"]) + "\n")
 
+    # Checkout back to branch
+    res = subprocess.run(["git", "checkout", "-"], capture_output=True, text=True)
+    if res.returncode != 0:
+        print(res.stdout)
+        print(res.stderr)
+        print("WARNING: failed to checkout branch. You're still on the main branch.")
+
     # Compare results
     accuracy = {b: float(r.split("%")[0]) for b, _, r in results}
     accuracy_main = {b: float(r.split("%")[0]) for b, _, r in results_main}
