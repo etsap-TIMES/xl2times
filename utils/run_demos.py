@@ -1,4 +1,5 @@
 import os
+from os import path
 import shutil
 import subprocess
 import sys
@@ -7,13 +8,13 @@ import time
 
 
 def run_benchmark(benchmarks_folder, benchmark_name):
-    xl_folder = os.path.join(benchmarks_folder, "xlsx", benchmark_name)
-    dd_folder = os.path.join(benchmarks_folder, "dd", benchmark_name)
-    csv_folder = os.path.join(benchmarks_folder, "csv", benchmark_name)
-    out_folder = os.path.join(benchmarks_folder, "out", benchmark_name)
+    xl_folder = path.join(benchmarks_folder, "xlsx", benchmark_name)
+    dd_folder = path.join(benchmarks_folder, "dd", benchmark_name)
+    csv_folder = path.join(benchmarks_folder, "csv", benchmark_name)
+    out_folder = path.join(benchmarks_folder, "out", benchmark_name)
 
     # First convert ground truth DD to csv, if we haven't already
-    if not os.path.exists(csv_folder):
+    if not path.exists(csv_folder):
         res = subprocess.run(
             [
                 "python",
@@ -42,9 +43,9 @@ def run_benchmark(benchmarks_folder, benchmark_name):
         ["python", "times_excel_reader.py"] + args, capture_output=True, text=True
     )
     runtime = time.time() - start
-    with open(os.path.join(benchmarks_folder, "out", f"{benchmark_name}.out"), "w") as f:
+    with open(path.join(benchmarks_folder, "out", f"{benchmark_name}.out"), "w") as f:
         f.write(res.stdout)
-    with open(os.path.join(benchmarks_folder, "out", f"{benchmark_name}.err"), "w") as f:
+    with open(path.join(benchmarks_folder, "out", f"{benchmark_name}.err"), "w") as f:
         f.write(res.stderr)
 
     if res.returncode == 0:
@@ -60,8 +61,8 @@ if __name__ == "__main__":
     benchmarks_folder = sys.argv[1]
 
     # Each benchmark is a directory in the benchmarks/xlsx/ folder:
-    benchmarks = next(os.walk(os.path.join(benchmarks_folder, "xlsx")))[1]
-    benchmarks = [b for b in sorted(benchmarks) if b[0] != '.']
+    benchmarks = next(os.walk(path.join(benchmarks_folder, "xlsx")))[1]
+    benchmarks = [b for b in sorted(benchmarks) if b[0] != "."]
 
     results = []
     for benchmark_name in benchmarks:
