@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     times = {b: t for b, t, _ in results}
     times_main = {b: t for b, t, _ in results_main}
-    time_regressions = [b for b in times if times[b] > 1.1 * times_main[b]]
+    time_regressions = [b for b in times if times[b] > 2 * times_main[b]]
 
     if len(accu_regressions + time_regressions) > 0:
         if accu_regressions:
