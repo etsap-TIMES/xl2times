@@ -41,10 +41,10 @@ class TimesXlMap:
         times_name      Name of the table in its output form.
         times_cols      Name of the columns that the table will have in its output form.
                         They will be in the header of the output csv files.
-        xl_name         Tag for the excel table used as input. You can see a list of all the
+        xl_name         Tag for the Excel table used as input. You can see a list of all the
                         possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-        xl_cols         Columns from the excel table used as input.
-        col_map         A mapping associating times_cols values with col_map values.
+        xl_cols         Columns from the Excel table used as input.
+        col_map         A mapping from Excel column names to Times column names.
         filter_rows     Boolean indicating that only rows with the desired value in the
                         Attribute column should be outputted. If false all rows are outputted.
     """
@@ -83,7 +83,6 @@ class Tag(str, Enum):
     tfm_ins_ts = "~TFM_INS-TS"
     tfm_topins = "~TFM_TOPINS"
     tfm_upd = "~TFM_UPD"
-    todo = "~TODO"
     time_periods = "~TIMEPERIODS"
     time_slices = "~TIMESLICES"
     uc_sets = "~UC_SETS"

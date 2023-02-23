@@ -218,8 +218,11 @@ def process_flexible_import_tables(
                 return name, value
         return None, value
 
+    # TODO decide whether VedaProcessSets should become a new Enum type or part of TimesModelData type
+    veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
+
     def process_flexible_import_table(
-        table: datatypes.EmbeddedXlTable,
+        table: datatypes.EmbeddedXlTable, veda_process_sets: DataFrame
     ) -> datatypes.EmbeddedXlTable:
         # Make sure it's a flexible import table, and return the table untouched if not
         if not table.tag.startswith(datatypes.Tag.fi_t) and table.tag not in {
@@ -352,6 +355,18 @@ def process_flexible_import_tables(
         df = df[filter]
         df = df.reset_index(drop=True)
 
+        # Fill other_indexes for COST
+        cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
+        for process in df["TechName"].loc[df[attribute] == "COST"].unique():
+            veda_process_set = (
+                veda_process_sets["Sets"]
+                .loc[veda_process_sets["TechName"] == process]
+                .unique()
+            )
+            df.loc[
+                (df["TechName"] == process) & (df[attribute] == "COST"), other
+            ] = cost_mapping[veda_process_set[0]]
+
         # Should have all index_columns and VALUE
         if table.tag == datatypes.Tag.fi_t and len(df.columns) != (
             len(index_columns) + 1
@@ -363,7 +378,7 @@ def process_flexible_import_tables(
 
         return replace(table, dataframe=df)
 
-    return [process_flexible_import_table(t) for t in tables]
+    return [process_flexible_import_table(t, veda_process_sets) for t in tables]
 
 
 def process_user_constraint_tables(
@@ -433,9 +448,6 @@ def process_user_constraint_tables(
         # Fill in UC_N blank cells with value from above
         df["UC_N"] = df["UC_N"].ffill()
 
-        if "UC_Desc" in df.columns:
-            df.drop("UC_Desc", axis=1, inplace=True)
-
         if "CSET_CN" in table.dataframe.columns.values:
             df.rename(columns={"CSET_CN": "Cset_CN"}, inplace=True)
 
@@ -455,6 +467,7 @@ def process_user_constraint_tables(
             "Year",
             "LimType",
             "Top_Check",
+            "UC_Desc",
             # TODO remove these?
             "TimeSlice",
             "CommName",
@@ -566,6 +579,8 @@ def fill_in_missing_values(
                 df[colname].fillna(
                     "ANNUAL", inplace=True
                 )  # ACT_CSTUP should use DAYNITE
+            elif colname == "Sets" and table.tag == datatypes.Tag.fi_process:
+                df[colname].fillna(method="ffill", inplace=True)
             elif colname == "Region":
                 df[colname].fillna(",".join(regions), inplace=True)
             elif colname == "Year":
@@ -698,6 +713,35 @@ def process_currencies(
         return replace(table, dataframe=df)
 
     return [process_currencies_table(table) for table in tables]
+
+
+def generate_all_regions(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Include IMPEXP and MINRNW together with the user-defined regions in the AllRegions set
+    IMPEXP and MINRNW are external regions that are defined by default by Veda
+    """
+
+    external_regions = ["IMPEXP", "MINRNW"]
+    df = pd.DataFrame(external_regions, columns=["Region"])
+
+    for table in tables:
+        if table.tag == datatypes.Tag.book_regions_map:
+            df = pd.concat([df, table.dataframe])
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="AllRegions",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=df,
+        )
+    )
+
+    return tables
 
 
 def apply_fixups(
@@ -911,7 +955,9 @@ def process_years(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
     modelyears = (
-        pastyears.append(tables[datatypes.Tag.time_periods]["M"], ignore_index=True)
+        pd.concat(
+            [pastyears, tables[datatypes.Tag.time_periods]["M"]], ignore_index=True
+        )
         .drop_duplicates()
         .sort_values()
     )
@@ -924,11 +970,19 @@ def process_processes(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     result = []
+    veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
+
+    processes_and_sets = pd.DataFrame({"Sets": [], "TechName": []})
+
     for table in tables:
         if table.tag != datatypes.Tag.fi_process:
             result.append(table)
         else:
             df = table.dataframe.copy()
+            processes_and_sets = pd.concat(
+                [processes_and_sets, df[["Sets", "TechName"]].ffill()]
+            )
+            df["Sets"].replace(veda_sets_to_times, inplace=True)
             nrows = df.shape[0]
             if "Vintage" not in table.dataframe.columns.values:
                 df["Vintage"] = [None] * nrows
@@ -938,35 +992,70 @@ def process_processes(
                 df.insert(6, "Tslvl", ["ANNUAL"] * nrows)
             result.append(replace(table, dataframe=df))
 
+    veda_process_sets = datatypes.EmbeddedXlTable(
+        tag="VedaProcessSets",
+        uc_sets={},
+        sheetname="",
+        range="",
+        filename="",
+        dataframe=processes_and_sets.loc[
+            processes_and_sets["Sets"].isin(veda_sets_to_times.keys())
+        ],
+    )
+
+    result.append(veda_process_sets)
+
     return result
 
 
 def generate_dummy_processes(
     tables: List[datatypes.EmbeddedXlTable], include_dummy_processes=True
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Define dummy processes and specify default cost data for them to ensure that a TIMES model
+    can always be solved. This covers situations when a commodity cannot be supplied
+    by other means. Significant cost is usually associated with the activity of these
+    processes to ensure that they are used as a last resort
+    """
+
     if include_dummy_processes:
         dummy_processes = [
-            ["IMPNRGZ", "IMPNRGZ", "", "", ""],
-            ["IMPMATZ", "IMPMATZ", "", "", ""],
-            ["IMPDEMZ", "IMPDEMZ", "", "", ""],
+            ["IMP", "IMPNRGZ", "Dummy Import of NRG", "", "", ""],
+            ["IMP", "IMPMATZ", "Dummy Import of MAT", "", "", ""],
+            ["IMP", "IMPDEMZ", "Dummy Import of DEM", "", "", ""],
         ]
 
-        df = pd.DataFrame(
+        process_declarations = pd.DataFrame(
             dummy_processes,
-            columns=["TechName", "TechDesc", "Tact", "Tcap", "PrimaryCG"],
-        )
-        df.insert(0, "Sets", ["IMP"] * len(dummy_processes))
-
-        result = datatypes.EmbeddedXlTable(
-            tag="~FI_PROCESS",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=df,
+            columns=["Sets", "TechName", "TechDesc", "Tact", "Tcap", "PrimaryCG"],
         )
 
-        tables.append(result)
+        tables.append(
+            datatypes.EmbeddedXlTable(
+                tag="~FI_PROCESS",
+                uc_sets={},
+                sheetname="",
+                range="",
+                filename="",
+                dataframe=process_declarations,
+            )
+        )
+
+        process_data_specs = process_declarations[["TechName", "TechDesc"]].copy()
+        # Use this as default activity cost for dummy processes
+        # TODO: Should this be included in settings instead?
+        process_data_specs["ACTCOST"] = 1111
+
+        tables.append(
+            datatypes.EmbeddedXlTable(
+                tag="~FI_T",
+                uc_sets={},
+                sheetname="",
+                range="",
+                filename="",
+                dataframe=process_data_specs,
+            )
+        )
 
     return tables
 
@@ -1449,67 +1538,6 @@ def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
         )
     return output
-
-
-def produce_times_tables(
-    input: Dict[str, DataFrame], mappings: List[datatypes.TimesXlMap]
-) -> Dict[str, DataFrame]:
-    print(
-        f"produce_times_tables: {len(input)} tables incoming,"
-        f" {sum(len(value) for (_, value) in input.items())} rows"
-    )
-    result = {}
-    used_tables = set()
-    for mapping in mappings:
-        if not mapping.xl_name in input:
-            print(
-                f"WARNING: Cannot produce table {mapping.times_name} because input table"
-                f" {mapping.xl_name} does not exist"
-            )
-        else:
-            used_tables.add(mapping.xl_name)
-            df = input[mapping.xl_name].copy()
-            if mapping.filter_rows:
-                # Select just the rows where the attribute value matches the last mapping column or output table name
-                if not "Attribute" in df.columns:
-                    print(
-                        f"WARNING: Cannot produce table {mapping.times_name} because input"
-                        f" table {mapping.xl_name} does not contain an Attribute column"
-                    )
-                else:
-                    colname = mapping.xl_cols[-1]
-                    filter = set(x.lower() for x in {colname, mapping.times_name})
-                    i = df["Attribute"].str.lower().isin(filter)
-                    df = df.loc[i, :]
-                    if colname not in df.columns:
-                        df = df.rename(columns={"VALUE": colname})
-            # TODO find the correct tech group
-            if "TechGroup" in mapping.xl_cols:
-                df["TechGroup"] = df["TechName"]
-            if not all(c in df.columns for c in mapping.xl_cols):
-                missing = set(mapping.xl_cols) - set(df.columns)
-                print(
-                    f"WARNING: Cannot produce table {mapping.times_name} because input"
-                    f" table {mapping.xl_name} does not contain the required columns"
-                    f" - {', '.join(missing)}"
-                )
-            else:
-                cols_to_drop = [x for x in df.columns if not x in mapping.xl_cols]
-                df.drop(columns=cols_to_drop, inplace=True)
-                df.drop_duplicates(inplace=True)
-                df.reset_index(drop=True, inplace=True)
-                df.rename(columns=mapping.col_map, inplace=True)
-                i = df[mapping.times_cols[-1]].notna()
-                df = df.loc[i, mapping.times_cols]
-                result[mapping.times_name] = df
-
-    unused_tables = set(input.keys()) - used_tables
-    if len(unused_tables) > 0:
-        print(
-            f"WARNING: {len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
-        )
-
-    return result
 
 
 def dump_tables(tables: List, filename: str) -> List:
