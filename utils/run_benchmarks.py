@@ -1,3 +1,4 @@
+import git
 import os
 from os import path
 import shutil
@@ -80,33 +81,26 @@ if __name__ == "__main__":
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results, headers, floatfmt=".2f") + "\n")
 
-    # Check if git status is clean
-    res = subprocess.run(
-        ["git", "status", "--porcelain"], capture_output=True, text=True
-    )
-    if res.returncode != 0 or len(res.stdout.strip()) != 0:
-        print(res.stdout)
-        print(res.stderr)
+    # The rest of this script checks regressions against main
+    # so skip it if we're already on main
+    repo = git.Repo(".")
+    if repo.active_branch == "main":
+        print("Skipping regression tests as we're on main branch. Goodbye!")
+        sys.exit(0)
+
+    if repo.is_dirty():
         print("ERROR: your working directory is not clean. Aborting.")
         sys.exit(1)
 
     # Checkout main branch
-    res = subprocess.run(
-        ["git", "fetch", "origin", "main"], capture_output=True, text=True
-    )
-    if res.returncode != 0:
-        print(res.stdout)
-        print(res.stderr)
-        print("ERROR: failed to fetch main branch. Aborting.")
-        sys.exit(1)
-    res = subprocess.run(
-        ["git", "checkout", "origin/main"], capture_output=True, text=True
-    )
-    if res.returncode != 0:
-        print(res.stdout)
-        print(res.stderr)
-        print("ERROR: failed to checkout main branch. Aborting.")
-        sys.exit(1)
+    try:
+        mybranch = repo.active_branch
+    except TypeError:  # If we're not on a branch (like on CI), create one:
+        mybranch = repo.create_head("mybranch")
+    origin = repo.remotes.origin
+    origin.fetch("main")
+    repo.create_head("main", origin.refs.main).set_tracking_branch(origin.refs.main)
+    repo.heads.main.checkout()
 
     # Re-run benchmarks
     print("Running benchmarks on main", end="", flush=True)
@@ -119,11 +113,7 @@ if __name__ == "__main__":
     print("\n\n" + tabulate(results_main, headers, floatfmt=".2f") + "\n")
 
     # Checkout back to branch
-    res = subprocess.run(["git", "checkout", "-"], capture_output=True, text=True)
-    if res.returncode != 0:
-        print(res.stdout)
-        print(res.stderr)
-        print("WARNING: failed to checkout branch. You're still on the main branch.")
+    mybranch.checkout()
 
     # Compare results
     accuracy = {b: float(r.split("%")[0]) for b, _, r in results}
