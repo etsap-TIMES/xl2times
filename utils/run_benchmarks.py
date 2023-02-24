@@ -1,3 +1,4 @@
+import argparse
 import git
 import os
 from os import path
@@ -63,10 +64,7 @@ def run_benchmark(benchmarks_folder, benchmark_name):
         sys.exit(1)
 
 
-if __name__ == "__main__":
-    assert len(sys.argv) == 2
-    benchmarks_folder = sys.argv[1]
-
+def run_all_benchmarks(benchmarks_folder):
     # Each benchmark is a directory in the benchmarks/xlsx/ folder:
     benchmarks = next(os.walk(path.join(benchmarks_folder, "xlsx")))[1]
     benchmarks = [b for b in sorted(benchmarks) if b[0] != "."]
@@ -137,3 +135,26 @@ if __name__ == "__main__":
     # check if any new tables are missing?
 
     print("No regressions. You're awesome!")
+
+
+if __name__ == "__main__":
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "benchmarks_folder",
+        type=str,
+        help="Benchmarks directory. Assumes subdirectories `xlsx` and `dd` containing one"
+        " folder per benchmark of inputs and outputs (respectively)",
+    )
+    args_parser.add_argument(
+        "--run",
+        type=str,
+        default=None,
+        help="Run a single benchmark instead of all benchmarks",
+    )
+    args = args_parser.parse_args()
+
+    if args.run is not None:
+        runtime, _ = run_benchmark(args.benchmarks_folder, args.run)
+        print(f"Ran {args.run} in {runtime:.2f}s")
+    else:
+        run_all_benchmarks(args.benchmarks_folder)
