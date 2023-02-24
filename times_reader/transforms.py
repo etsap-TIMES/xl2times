@@ -780,75 +780,151 @@ def extract_commodity_groups(
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
     commodity_tables = [t for t in tables if t.tag == datatypes.Tag.fi_comm]
 
-    demand_processes = set()
+    # Veda determines default PCG based on this order and presence of OUT/IN commodity
+    csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
+    default_pcg_suffixes = [
+        cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
+    ]
+
+    reg_prc_pcg = pd.DataFrame(columns=["Region", "TechName", "PrimaryCG"])
     for process_table in process_tables:
-        df = process_table.dataframe
-        demand_processes = demand_processes.union(
-            set(df[df["Sets"] == "DMD"]["TechName"])
-        )
+        df = process_table.dataframe[["Region", "TechName", "PrimaryCG"]]
+        reg_prc_pcg = pd.concat([reg_prc_pcg, df])
+    reg_prc_pcg.drop_duplicates(keep="first", inplace=True)
 
-    demand_commodities = set()
-    environment_commodities = set()
+    # DataFrame with Veda PCGs specified in the process declaration tables
+    reg_prc_veda_pcg = reg_prc_pcg.loc[
+        reg_prc_pcg["PrimaryCG"].isin(default_pcg_suffixes)
+    ]
+
+    # Extract commodities and their sets
+    comm_set = pd.DataFrame(columns=["Csets", "CommName"])
     for commodity_table in commodity_tables:
-        df = commodity_table.dataframe
-        demand_commodities = demand_commodities.union(
-            set(df[df["Csets"] == "DEM"]["CommName"])
-        )
-        environment_commodities = environment_commodities.union(
-            set(df[df["Csets"] == "ENV"]["CommName"])
-        )
+        df = commodity_table.dataframe[["Csets", "CommName"]]
+        comm_set = pd.concat([comm_set, df])
+    comm_set.drop_duplicates(keep="first", inplace=True)
 
-    gmap_tables = []
+    # Construct process topology
+    prc_top = pd.DataFrame(columns=["Region", "TechName", "Comm-IN", "Comm-OUT"])
     for fit_table in fit_tables:
-        # Energy input
-        inputs = fit_table.dataframe[["Region", "TechName", "Comm-IN"]].copy()
-        inputs = inputs[~inputs["TechName"].isnull()]
-        inputs = inputs[~inputs["Comm-IN"].isnull()]
-        # TODO find where ACT is coming from and fix
-        inputs = inputs[inputs["Comm-IN"] != "ACT"]
-        inputs["TechName"] = inputs["TechName"].astype(str) + "_NRGI"
-        inputs.rename(columns={"Comm-IN": "Comm"}, inplace=True)
+        df = fit_table.dataframe[["Region", "TechName", "Comm-IN", "Comm-OUT"]]
+        prc_top = pd.concat([prc_top, df])
+    prc_top = pd.melt(
+        prc_top,
+        id_vars=["Region", "TechName"],
+        var_name="IO",
+        value_name="CommName",
+    )
+    prc_top["IO"].replace({"Comm-IN": "IN", "Comm-OUT": "OUT"}, inplace=True)
+    prc_top = prc_top.loc[
+        (
+            (prc_top["TechName"].notna())
+            & (prc_top["CommName"].notna())
+            & (prc_top["CommName"] != "ACT")
+        )
+    ]
+    prc_top.drop_duplicates(keep="first", inplace=True)
 
-        # Energy output
-        outputs = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
-        outputs = outputs[~outputs["TechName"].isnull()]
-        outputs = outputs[~outputs["Comm-OUT"].isnull()]
-        outputs = outputs[~outputs["TechName"].isin(demand_processes)]
-        outputs = outputs[~outputs["Comm-OUT"].isin(demand_commodities)]
-        outputs = outputs[~outputs["Comm-OUT"].isin(environment_commodities)]
-        # TODO this removes two rows where tech is in CHP set
-        outputs = outputs[outputs["Comm-OUT"] != "ELCC"]
-        outputs = outputs[~outputs["Comm-OUT"].str.startswith("BIO")]
-        outputs = outputs[~outputs["Comm-OUT"].str.startswith("PWR")]
-        outputs["TechName"] = outputs["TechName"].astype(str) + "_NRGO"
-        outputs.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
+    # Commodity groups by process, region and commodity
+    comm_groups = pd.merge(prc_top, comm_set, on="CommName")
+    comm_groups["CommodityGroup"] = None
+    # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
+    for region in comm_groups["Region"].unique():
+        for process in (
+            comm_groups["TechName"].loc[comm_groups["Region"] == region].unique()
+        ):
+            for cset in (
+                comm_groups["Csets"]
+                .loc[
+                    (comm_groups["Region"] == region)
+                    & (comm_groups["TechName"] == process)
+                ]
+                .unique()
+            ):
+                for io in (
+                    comm_groups["IO"]
+                    .loc[
+                        (comm_groups["Region"] == region)
+                        & (comm_groups["TechName"] == process)
+                        & (comm_groups["Csets"] == cset)
+                    ]
+                    .unique()
+                ):
+                    comm_groups["CommodityGroup"].loc[
+                        (comm_groups["Region"] == region)
+                        & (comm_groups["TechName"] == process)
+                        & (comm_groups["Csets"] == cset)
+                        & (comm_groups["IO"] == io)
+                    ] = len(
+                        comm_groups.loc[
+                            (comm_groups["Region"] == region)
+                            & (comm_groups["TechName"] == process)
+                            & (comm_groups["Csets"] == cset)
+                            & (comm_groups["IO"] == io)
+                        ]
+                    )
 
-        # Demand output
-        demo = fit_table.dataframe[["Region", "TechName", "Comm-OUT"]].copy()
-        demo = demo[~demo["Comm-OUT"].isnull()]
-        demo = demo[demo["TechName"].isin(demand_processes)]
-        demo["TechName"] = demo["TechName"].astype(str) + "_DEMO"
-        demo.rename(columns={"Comm-OUT": "Comm"}, inplace=True)
+    def name_comm_group(df):
+        """
+        Return the name of a commodity group based on the member count
+        """
 
-        gmap_tables += [inputs, outputs, demo]
+        if df["CommodityGroup"] > 1:
+            return df["TechName"] + "_" + df["Csets"] + df["IO"][:1]
+        else:
+            return df["CommName"]
 
-        # Additional:
-        #   NRGO: 411
-        #     R-SH_Det_BDL_X0_NRGO,RSDSH_Det, process PRE, com NRG
-        #       RSDSH_Det, 21 in gt for NRGO, R-SW_Det_GAS_N2, process PRE, com NRG
-        #   NRGI: 619
-        #     SH2LDEL_01, not in gt, PRE set, in SUPH2LC, out SUPH2LD, there is one _NRGI,SUPH2LC in gt FT-INDH2L
-        #   DEMO: 40
-        # Missing: 7
-        #   IE,S-DCE-CS_NRGI,SRVELC-DC-C
-        #   IE,IMPNRGZ_NRGO,SRVELC-DC-C
-        #   IE,FT-RSDAHT_NRGO,RSDAHT2
-        #   IE,IMPNRGZ_NRGO,RSDAHT2
-        #   IE,FT-SRVELC_NRGO,SRVELC-DC-C
-        #   IE,P-TH-OCGT-GAS00-SK4_NRGO,ELCC (CHP)
-        #   IE,P-TH-OCGT-GAS00-SK3_NRGO,ELCC (CHP)
+    # Replace commodity group member count with the name
+    comm_groups["CommodityGroup"] = comm_groups.apply(name_comm_group, axis=1)
 
-    merged = pd.concat(gmap_tables, ignore_index=True, sort=False)
+    comm_groups["DefaultVedaPCG"] = None
+
+    # Determine default PCG according to Veda
+    for region in comm_groups["Region"].unique():
+        for process in comm_groups["TechName"].loc[comm_groups["Region"] == region]:
+            default_set = False
+            for io in ["OUT", "IN"]:
+                if default_set:
+                    break
+                for cset in csets_ordered_for_pcg:
+                    df = comm_groups.loc[
+                        (comm_groups["Region"] == region)
+                        & (comm_groups["TechName"] == process)
+                        & (comm_groups["IO"] == io)
+                        & (comm_groups["Csets"] == cset)
+                    ]
+                    if not df.empty:
+                        comm_groups.loc[
+                            (comm_groups["Region"] == region)
+                            & (comm_groups["TechName"] == process)
+                            & (comm_groups["IO"] == io)
+                            & (comm_groups["Csets"] == cset),
+                            ["DefaultVedaPCG"],
+                        ] = True
+                        default_set = True
+                        break
+
+    # Add standard Veda PCGS named contrary to name_comm_group
+    if reg_prc_veda_pcg.shape[0]:
+        io_map = {"I": "IN", "O": "OUT"}
+        suffix_to_cset = {suffix: suffix[:3] for suffix in default_pcg_suffixes}
+        suffix_to_io = {suffix: io_map[suffix[3]] for suffix in default_pcg_suffixes}
+        df = reg_prc_veda_pcg.copy()
+        df["Csets"] = df["PrimaryCG"].replace(suffix_to_cset)
+        df["IO"] = df["PrimaryCG"].replace(suffix_to_io)
+        df["CommodityGroup"] = df["TechName"] + "_" + df["PrimaryCG"]
+        cols = ["Region", "TechName", "IO", "Csets"]
+        df = pd.merge(
+            df[cols + ["CommodityGroup"]],
+            comm_groups[cols + ["CommName"]],
+            on=cols,
+        )
+        comm_groups = pd.concat([comm_groups, df])
+        comm_groups.drop_duplicates(
+            subset=["Region", "TechName", "IO", "CommName", "Csets", "CommodityGroup"],
+            keep="first",
+            inplace=True,
+        )
 
     # TODO apply renamings from ~TFM_TOPINS e.g. RSDAHT to RSDAHT2
 
@@ -859,10 +935,75 @@ def extract_commodity_groups(
             filename="",
             uc_sets="",
             tag="COM_GMAP",
-            dataframe=merged,
+            dataframe=comm_groups,
         )
     )
     return tables
+
+
+def fill_in_missing_pcgs(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Fill in missing primary commodity groups in FI_Process tables.
+    Expand primary commodity groups specified in FI_Process tables by a suffix.
+    """
+
+    def expand_pcg_from_suffix(df):
+        """
+        Return the name of a default primary commodity group based on suffix and process name
+        """
+
+        # Veda determines default PCG based on this order and presence of OUT/IN commodity
+        default_pcg_suffixes = [
+            cset + io
+            for cset in ["DEM", "MAT", "NRG", "ENV", "FIN"]
+            for io in ["I", "O"]
+        ]
+
+        if df["PrimaryCG"] in default_pcg_suffixes:
+            return df["TechName"] + "_" + df["PrimaryCG"]
+        else:
+            return df["PrimaryCG"]
+
+    result = []
+
+    for table in tables:
+        if table.tag != datatypes.Tag.fi_process:
+            result.append(table)
+        else:
+            df = table.dataframe.copy()
+            df["PrimaryCG"] = df.apply(expand_pcg_from_suffix, axis=1)
+            default_pcgs = utils.single_table(tables, "COM_GMAP").dataframe.copy()
+            default_pcgs = default_pcgs.loc[
+                default_pcgs["DefaultVedaPCG"] == 1,
+                ["Region", "TechName", "CommodityGroup"],
+            ]
+            default_pcgs.rename(columns={"CommodityGroup": "PrimaryCG"}, inplace=True)
+            default_pcgs = pd.merge(
+                default_pcgs,
+                df.loc[df["PrimaryCG"].isna(), df.columns != "PrimaryCG"],
+                how="right",
+            )
+            df = pd.concat([df, default_pcgs])
+            df.drop_duplicates(
+                subset=[
+                    "Sets",
+                    "Region",
+                    "TechName",
+                    "TechDesc",
+                    "Tact",
+                    "Tcap",
+                    "Tslvl",
+                    "Vintage",
+                ],
+                keep="last",
+                inplace=True,
+            )
+
+            result.append(replace(table, dataframe=df))
+
+    return result
 
 
 def remove_fill_tables(
@@ -1019,10 +1160,11 @@ def generate_dummy_processes(
     """
 
     if include_dummy_processes:
+        # TODO: Activity units below are arbitrary. Suggest Veda devs not to have any.
         dummy_processes = [
-            ["IMP", "IMPNRGZ", "Dummy Import of NRG", "", "", ""],
-            ["IMP", "IMPMATZ", "Dummy Import of MAT", "", "", ""],
-            ["IMP", "IMPDEMZ", "Dummy Import of DEM", "", "", ""],
+            ["IMP", "IMPNRGZ", "Dummy Import of NRG", "PJ", "", "NRG"],
+            ["IMP", "IMPMATZ", "Dummy Import of MAT", "Mt", "", "MAT"],
+            ["IMP", "IMPDEMZ", "Dummy Import of DEM", "PJ", "", "DEM"],
         ]
 
         process_declarations = pd.DataFrame(
