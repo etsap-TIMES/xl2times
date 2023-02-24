@@ -893,7 +893,7 @@ def extract_commodity_groups(
                         & (comm_groups["IO"] == io)
                         & (comm_groups["Csets"] == cset)
                     ]
-                    if df.shape[0]:
+                    if not df.empty:
                         comm_groups.loc[
                             (comm_groups["Region"] == region)
                             & (comm_groups["TechName"] == process)
@@ -955,9 +955,10 @@ def fill_in_missing_pcgs(
         """
 
         # Veda determines default PCG based on this order and presence of OUT/IN commodity
-        csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
         default_pcg_suffixes = [
-            cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
+            cset + io
+            for cset in ["DEM", "MAT", "NRG", "ENV", "FIN"]
+            for io in ["I", "O"]
         ]
 
         if df["PrimaryCG"] in default_pcg_suffixes:
