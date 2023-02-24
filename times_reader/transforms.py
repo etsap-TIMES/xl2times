@@ -980,7 +980,7 @@ def generate_top_ire(
     top_ire = pd.merge(top_ire, ire_prc)
     top_ire = pd.merge(top_ire, veda_process_sets)
     top_ire["Region2"] = top_ire["Sets"].replace(veda_set_ext_reg_mapping)
-    top_ire[["Source", "Destination", "IN", "OUT"]] = None
+    top_ire[["Origin", "Destination", "IN", "OUT"]] = None
     for io in ["IN", "OUT"]:
         index = top_ire["IO"] == io
         top_ire.loc[index, [io]] = top_ire["CommName"].loc[index]
@@ -990,9 +990,9 @@ def generate_top_ire(
     top_ire.loc[na_in, ["IN"]] = top_ire["OUT"].loc[na_in]
     is_imp_or_min = top_ire["Sets"].isin(["IMP", "MIN"])
     is_exp = top_ire["Sets"].isin(["EXP"])
-    top_ire.loc[is_imp_or_min, ["Source"]] = top_ire["Region2"].loc[is_imp_or_min]
+    top_ire.loc[is_imp_or_min, ["Origin"]] = top_ire["Region2"].loc[is_imp_or_min]
     top_ire.loc[is_imp_or_min, ["Destination"]] = top_ire["Region"].loc[is_imp_or_min]
-    top_ire.loc[is_exp, ["Source"]] = top_ire["Region"].loc[is_exp]
+    top_ire.loc[is_exp, ["Origin"]] = top_ire["Region"].loc[is_exp]
     top_ire.loc[is_exp, ["Destination"]] = top_ire["Region2"].loc[is_exp]
     top_ire.drop(columns=["Region", "Region2", "Sets", "IO"], inplace=True)
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
