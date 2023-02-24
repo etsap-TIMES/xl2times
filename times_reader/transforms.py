@@ -938,6 +938,77 @@ def extract_commodity_groups(
             dataframe=comm_groups,
         )
     )
+
+    return tables
+
+
+def generate_top_ire(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Generate inter-regional exchange topology
+    """
+
+    veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
+    dummy_process_cset = [["NRG", "IMPNRGZ"], ["MAT", "IMPMATZ"], ["DEM", "IMPDEMZ"]]
+    veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
+    com_map = utils.single_table(tables, "COM_GMAP").dataframe
+
+    ire_prc = pd.DataFrame(columns=["Region", "TechName"])
+    for table in tables:
+        if table.tag == datatypes.Tag.fi_process:
+            df = table.dataframe
+            ire_prc = pd.concat(
+                [ire_prc, df.loc[df["Sets"] == "IRE", ["Region", "TechName"]]]
+            )
+    ire_prc.drop_duplicates(keep="first", inplace=True)
+
+    internal_regions = pd.DataFrame([], columns=["Region"])
+    for table in tables:
+        if table.tag == datatypes.Tag.book_regions_map:
+            internal_regions = pd.concat(
+                [internal_regions, table.dataframe.loc[:, ["Region"]]]
+            )
+
+    # Generate inter-regional exchange topology
+    top_ire = pd.DataFrame(dummy_process_cset, columns=["Csets", "TechName"])
+    top_ire = pd.merge(top_ire, internal_regions, how="cross")
+    top_ire = pd.merge(top_ire, com_map[["Region", "Csets", "CommName"]])
+    top_ire.drop(columns=["Csets"], inplace=True)
+    top_ire["IO"] = "OUT"
+    top_ire = pd.concat([top_ire, com_map[["Region", "TechName", "CommName", "IO"]]])
+    top_ire = pd.merge(top_ire, ire_prc)
+    top_ire = pd.merge(top_ire, veda_process_sets)
+    top_ire["Region2"] = top_ire["Sets"].replace(veda_set_ext_reg_mapping)
+    top_ire[["Source", "Destination", "IN", "OUT"]] = None
+    for io in ["IN", "OUT"]:
+        index = top_ire["IO"] == io
+        top_ire.loc[index, [io]] = top_ire["CommName"].loc[index]
+    na_out = top_ire["OUT"].isna()
+    top_ire.loc[na_out, ["OUT"]] = top_ire["IN"].loc[na_out]
+    na_in = top_ire["IN"].isna()
+    top_ire.loc[na_in, ["IN"]] = top_ire["OUT"].loc[na_in]
+    is_imp_or_min = top_ire["Sets"].isin(["IMP", "MIN"])
+    is_exp = top_ire["Sets"].isin(["EXP"])
+    top_ire.loc[is_imp_or_min, ["Source"]] = top_ire["Region2"].loc[is_imp_or_min]
+    top_ire.loc[is_imp_or_min, ["Destination"]] = top_ire["Region"].loc[is_imp_or_min]
+    top_ire.loc[is_exp, ["Source"]] = top_ire["Region"].loc[is_exp]
+    top_ire.loc[is_exp, ["Destination"]] = top_ire["Region2"].loc[is_exp]
+    top_ire.drop(columns=["Region", "Region2", "Sets", "IO"], inplace=True)
+    top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
+
+    print(top_ire)
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="TOP_IRE",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=top_ire,
+        )
+    )
     return tables
 
 

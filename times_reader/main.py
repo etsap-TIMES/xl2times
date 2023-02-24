@@ -131,6 +131,7 @@ def convert_xl_to_times(
         transforms.apply_fixups,
         transforms.extract_commodity_groups,
         transforms.fill_in_missing_pcgs,
+        transforms.generate_top_ire,
         transforms.merge_tables,
         transforms.process_years,
         transforms.process_wildcards,
