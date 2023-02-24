@@ -367,6 +367,10 @@ def process_flexible_import_tables(
                 (df["TechName"] == process) & (df[attribute] == "COST"), other
             ] = cost_mapping[veda_process_set[0]]
 
+        # Ideally we'd create a new column with the active commodity name but abuse Comm-OUT instead
+        i = (df[attribute] == "COST") & (df[other] == "EXP")
+        df.loc[i, "Comm-OUT"] = df.loc[i, "Comm-IN"]
+
         # Should have all index_columns and VALUE
         if table.tag == datatypes.Tag.fi_t and len(df.columns) != (
             len(index_columns) + 1
