@@ -677,10 +677,10 @@ def process_units(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
 
-    result = tables.copy()
     commodity_units = set()
     process_act_units = set()
     process_cap_units = set()
+    currencies = set()
 
     for table in tables:
         if table.tag == datatypes.Tag.fi_comm:
@@ -696,7 +696,10 @@ def process_units(
                 ]
             )
 
-    result.append(
+        if table.tag == datatypes.Tag.currencies:
+            currencies.update(table.dataframe["Currency"].unique())
+
+    tables.append(
         datatypes.EmbeddedXlTable(
             tag="~UNITS_ACT",
             uc_sets={},
@@ -707,7 +710,7 @@ def process_units(
         )
     )
 
-    result.append(
+    tables.append(
         datatypes.EmbeddedXlTable(
             tag="~UNITS_CAP",
             uc_sets={},
@@ -718,7 +721,7 @@ def process_units(
         )
     )
 
-    result.append(
+    tables.append(
         datatypes.EmbeddedXlTable(
             tag="~UNITS_COM",
             uc_sets={},
@@ -729,7 +732,7 @@ def process_units(
         )
     )
 
-    result.append(
+    tables.append(
         datatypes.EmbeddedXlTable(
             tag="~ALL_UNITS",
             uc_sets={},
@@ -739,13 +742,13 @@ def process_units(
             dataframe=DataFrame(
                 {"UNITS": unit}
                 for unit in commodity_units.union(process_act_units).union(
-                    process_cap_units
+                    process_cap_units.union(currencies)
                 )
             ),
         )
     )
 
-    return result
+    return tables
 
 
 def process_time_periods(
