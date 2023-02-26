@@ -1802,6 +1802,13 @@ def process_time_slices(
             if ts_level not in timeslices.keys():
                 timeslices[ts_level] = list()
 
+        # Remove ANNUAL if it is the only entry in SEASON
+        if (
+            len(timeslices["SEASON"]) == 1
+            and timeslices["SEASON"][0].upper() == "ANNUAL"
+        ):
+            timeslices["SEASON"] = list()
+
         # Create a dataframe containing regions and timeslices
         reg_ts = pd.DataFrame({"Region": regions})
         for ts_level in user_ts_levels:
