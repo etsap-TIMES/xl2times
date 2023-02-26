@@ -673,6 +673,84 @@ def remove_invalid_values(
     return result
 
 
+def process_units(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+
+    commodity_units = set()
+    process_act_units = set()
+    process_cap_units = set()
+    currencies = set()
+
+    for table in tables:
+        if table.tag == datatypes.Tag.fi_comm:
+            commodity_units.update(table.dataframe["Unit"].unique())
+
+        if table.tag == datatypes.Tag.fi_process:
+            process_act_units.update(table.dataframe["Tact"].unique())
+            process_cap_units.update(
+                [
+                    s.upper()
+                    for s in table.dataframe["Tcap"].unique()
+                    if s != None and s != ""
+                ]
+            )
+
+        if table.tag == datatypes.Tag.currencies:
+            currencies.update(table.dataframe["Currency"].unique())
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="~UNITS_ACT",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=DataFrame({"UNITS": unit} for unit in process_act_units),
+        )
+    )
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="~UNITS_CAP",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=DataFrame({"UNITS": unit} for unit in process_cap_units),
+        )
+    )
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="~UNITS_COM",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=DataFrame({"UNITS": unit} for unit in commodity_units),
+        )
+    )
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="~ALL_UNITS",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=DataFrame(
+                {"UNITS": unit}
+                for unit in commodity_units.union(process_act_units).union(
+                    process_cap_units.union(currencies)
+                )
+            ),
+        )
+    )
+
+    return tables
+
+
 def process_time_periods(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
@@ -1000,8 +1078,6 @@ def generate_top_ire(
     top_ire.loc[is_exp, ["Destination"]] = top_ire["Region2"].loc[is_exp]
     top_ire.drop(columns=["Region", "Region2", "Sets", "IO"], inplace=True)
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
-
-    print(top_ire)
 
     tables.append(
         datatypes.EmbeddedXlTable(
