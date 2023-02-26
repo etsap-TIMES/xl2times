@@ -35,6 +35,9 @@ def run_benchmark(benchmarks_folder, benchmark_name, skip_csv=False):
             print(res.stdout)
             print(f"ERROR: dd_to_csv failed on {benchmark_name}")
             sys.exit(1)
+    elif not path.exists(csv_folder):
+        print(f"ERROR: --skip_csv is true but {csv_folder} does not exist")
+        sys.exit(1)
 
     # Then run the tool
     args = [
