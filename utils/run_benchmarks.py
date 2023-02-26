@@ -9,14 +9,15 @@ from tabulate import tabulate
 import time
 
 
-def run_benchmark(benchmarks_folder, benchmark_name):
+def run_benchmark(benchmarks_folder, benchmark_name, skip_csv=False):
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark_name)
     dd_folder = path.join(benchmarks_folder, "dd", benchmark_name)
     csv_folder = path.join(benchmarks_folder, "csv", benchmark_name)
     out_folder = path.join(benchmarks_folder, "out", benchmark_name)
 
-    # First convert ground truth DD to csv, if we haven't already
-    if not path.exists(csv_folder):
+    # First convert ground truth DD to csv
+    if not skip_csv:
+        shutil.rmtree(csv_folder, ignore_errors=True)
         res = subprocess.run(
             [
                 "python",
@@ -29,11 +30,14 @@ def run_benchmark(benchmarks_folder, benchmark_name):
             text=True,
         )
         if res.returncode != 0:
-            # Remove partial outputs so that next run retries
+            # Remove partial outputs
             shutil.rmtree(csv_folder, ignore_errors=True)
             print(res.stdout)
             print(f"ERROR: dd_to_csv failed on {benchmark_name}")
             sys.exit(1)
+    elif not path.exists(csv_folder):
+        print(f"ERROR: --skip_csv is true but {csv_folder} does not exist")
+        sys.exit(1)
 
     # Then run the tool
     args = [
@@ -64,7 +68,7 @@ def run_benchmark(benchmarks_folder, benchmark_name):
         sys.exit(1)
 
 
-def run_all_benchmarks(benchmarks_folder):
+def run_all_benchmarks(benchmarks_folder, skip_csv=False):
     # Each benchmark is a directory in the benchmarks/xlsx/ folder:
     benchmarks = next(os.walk(path.join(benchmarks_folder, "xlsx")))[1]
     benchmarks = [b for b in sorted(benchmarks) if b[0] != "."]
@@ -73,9 +77,8 @@ def run_all_benchmarks(benchmarks_folder):
     results = []
     headers = ["Demo", "Time (s)", "Result"]
     for benchmark_name in benchmarks:
-        results.append(
-            (benchmark_name, *run_benchmark(benchmarks_folder, benchmark_name))
-        )
+        runtime, accuracy = run_benchmark(benchmarks_folder, benchmark_name, skip_csv)
+        results.append((benchmark_name, runtime, accuracy))
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results, headers, floatfmt=".2f") + "\n")
 
@@ -151,10 +154,16 @@ if __name__ == "__main__":
         default=None,
         help="Run a single benchmark instead of all benchmarks",
     )
+    args_parser.add_argument(
+        "--skip_csv",
+        action="store_true",
+        default=False,
+        help="Skip generating csv versions of ground truth DD files",
+    )
     args = args_parser.parse_args()
 
     if args.run is not None:
-        runtime, _ = run_benchmark(args.benchmarks_folder, args.run)
+        runtime, _ = run_benchmark(args.benchmarks_folder, args.run, args.skip_csv)
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
-        run_all_benchmarks(args.benchmarks_folder)
+        run_all_benchmarks(args.benchmarks_folder, args.skip_csv)
