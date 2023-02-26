@@ -10,7 +10,7 @@ import pandas as pd
 
 def parse_parameter_values_from_file(
     path: str,
-) -> Tuple[Dict[str, List], Dict[str, List]]:
+) -> Tuple[Dict[str, List], Dict[str, set]]:
     """
     Parse *.dd to turn it into CSV format
     There are parameters and sets, and each has a slightly different format
@@ -35,8 +35,8 @@ def parse_parameter_values_from_file(
     data = list(open(path, "r"))
     data = [line.rstrip() for line in data]
 
-    param_value_dict: Dict[str] = dict()
-    set_data_dict = dict()
+    param_value_dict: Dict[str, List] = dict()
+    set_data_dict: Dict[str, set] = dict()
     index = 0
     while index < len(data):
         if data[index].startswith("PARAMETER"):
@@ -78,7 +78,7 @@ def parse_parameter_values_from_file(
             assert data[index + 1].startswith("/")
 
             index += 2
-            set_data = []
+            set_data = set()
             while not data[index].startswith("/") and data[index] != "":
                 parts = [[]]
                 for word in data[index].split("'"):
@@ -93,10 +93,10 @@ def parse_parameter_values_from_file(
                 words = ["".join(part) for part in parts]
                 attributes = words[0].split(".")
                 if len(words) == 1:
-                    set_data.append([*attributes])
+                    set_data.add(tuple([*attributes]))
                 elif len(words) == 2:
                     text = words[1]
-                    set_data.append([*attributes, text])
+                    set_data.add(tuple([*attributes, text]))
                 else:
                     raise ValueError(
                         f"Unexpected number of spaces in set value setting: {data[index]}"
@@ -105,7 +105,7 @@ def parse_parameter_values_from_file(
                 index += 1
 
             if name in set_data_dict:
-                set_data_dict[name].extend(set_data)
+                set_data_dict[name].update(set_data)
             else:
                 set_data_dict[name] = set_data
 
