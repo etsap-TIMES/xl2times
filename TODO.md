@@ -1,48 +1,25 @@
 ## High level TODO *(rough priority/dependency order)*</sub>
 
-- Generate all output rows that are in ground truth (~40% complete currently)
-  - I estimate this task is ~80% of the remaining work
+- Generate all output rows that are in ground truth ~~(~40% complete currently)~~
   - See CI for latest status
   - See https://github.com/microsoft/times-excel-reader/wiki/State-of-Progress
 - Decide how we should manage work list and assignments - TODO file, Wiki, Issues, Milestones
 - Write an overview of how code currently works to help get new people started
 - Go over old TODO lists below and work out what is still relevant
-- Code formatting
+- ~~Code formatting~~
 - Integrate type checker into CI (mypy?)
-- Decide at what point to reach out to TIMES community and announce project (and ask for help?)
+- ~~Decide at what point to reach out to TIMES community and announce project (and ask for help?)~~
 - Figure out how to handle columns that start with * but are not comments (manual isn't clear on this)
 - Decide what to do about ~TFM_FILL. These tables look like the Excel files are meant to be updated by the tool
 - Create a glossary?
 - Remove additional rows in output that are not in ground truth
-- Test on other data sets (using CI?)
+- ~~Test on other data sets (using CI?)~~
 - Split into scenarios (we are currently just lumping all the data together into one)
 - Sort out row ordering (currently ignored)
 - Generate (or convert to) DD files
 - Measure difference between our generated DD files and ground truth
 - Get difference between generated DD files and ground truth to zero
 - Code tidying
-
-
-## OLD High level TODO list
-
-- [ ] FI_Comm (may be done except for a check)
-- [ ] FI_Process
-- [ ] PRC_ACTUNT is wrong
-- [ ] PRC_MAP is wrong
-- [ ] PRC_TSL is wrong (dd conflicts with input tables)
-- [ ] PRC_VINT is wrong
-- [ ] NCAP_PKCNT is wrong (bug in input tables?)
-- [ ] NRG_TMAP is wrong
-- [ ] COM_GRP is wrong
-- [ ] COM_TSL is wrong (includes commodities that are never used)
-- [ ] DATAYEAR is wrong
-- [ ] ACT_EFF numbers are wrong (bug in VEDA?)
-- [ ] PRC_RESID is wrong (bug in VEDA? VEDA converts 22.4486668069665 into 22.4486668069666)
-- [ ] VDA_EMCB numbers are wrong
-- [ ] VDA_FLOP is missing COM_GRP
-- [ ] FLO_SHAR is missing COM_GRP
-- [ ] Print unused Attributes
-
 
 ## OLD Mix of doc and detailed TODO list
 
@@ -79,23 +56,23 @@ Try enumerating all possible "missing value handling rules" and mark all columns
 
 There are processes in the Excel files that are not mentioned in the dd files
 
-Row ordering must be preserved by these transformations
+Row ordering must be preserved by these transformations, but only until the defaults are filled(?)
 
 <br/>
 
 Extra steps for process tables:
 
-- [ ] Remove rows for unused processes
+- [ ] Remove rows for unused processes i.e., if a process is missing from FT_Process table any data generated for it can be removed. 
 
 Missing-value handling of process tables (~FI\_PROCESS)
 
-- [ ] Sets: Inherit values from previous row if missing
+- [x] Sets: Inherit values from previous row if missing
 - [ ] Region: all regions if missing
 - [ ] Tslvl: default value depends on the value of Sets column
-- [ ] PrimaryCG: if missing, use the output commodity
-  - [ ] Can only be done after the technology tables are available
-  - [ ] Could append the output commodity column first
-- [ ] Others have constant/fixed default values
+- [x] PrimaryCG: if missing, use Veda rules to determine default
+  - [x] Can only be done after the technology tables are available
+  - [ ] ~~Could append the output commodity column first~~
+- [x] Others have constant/fixed default values
 
 <br/>
 
@@ -222,14 +199,14 @@ These tables only involve renaming columns:
 Special handling for ~TimeSlices:
 
 - [x] This table is unusual in that it is not really a table, but a set of lists of varying length, corresponding to hierarchy levels
-- [ ] For each level after the first (Season), add a list that contains all ways of choosing one value from each of the previous levels and concatenating them into a single string.  This list should be named ALL\_X, e.g. ALL\_DAYNITE.
-  - [ ] For each such list, make a second list called PARENT\_X that removes the last level from the value
-- [ ] Add a list named TS\_GROUP that contains "ANNUAL", then the entire first list (Season), then each of the ALL\_X lists
-  - [ ] At the same time, create a list of the same size named TSLVL that contains "ANNUAL", then "SEASON" repeated to the length of the first list, then X repeated to the length of ALL\_X
-- [ ] Add a list named TS\_MAP that concatenates all of the ALL\_X lists
-- [ ] Add a list named PARENT that concatenates all of the PARENT\_X lists
-- [ ] Make a table named TS\_MAP according to times\_mapping.txt
-- [ ] Make a table named TS\_GROUP according to times\_mapping.txt
+- [x] For each level after the first (Season), add a list that contains all ways of choosing one value from each of the previous levels and concatenating them into a single string.  This list should be named ALL\_X, e.g. ALL\_DAYNITE.
+  - [x] For each such list, make a second list called PARENT\_X that removes the last level from the value
+- [x] Add a list named TS\_GROUP that contains "ANNUAL", then the entire first list (Season), then each of the ALL\_X lists
+  - [x] At the same time, create a list of the same size named TSLVL that contains "ANNUAL", then "SEASON" repeated to the length of the first list, then X repeated to the length of ALL\_X
+- [x] Add a list named TS\_MAP that concatenates all of the ALL\_X lists
+- [x] Add a list named PARENT that concatenates all of the PARENT\_X lists
+- [x] Make a table named TS\_MAP according to times\_mapping.txt
+- [x] Make a table named TS\_GROUP according to times\_mapping.txt
 
 <br/>
 
