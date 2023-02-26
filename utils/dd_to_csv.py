@@ -104,7 +104,10 @@ def parse_parameter_values_from_file(
 
                 index += 1
 
-            set_data_dict[name] = set_data
+            if name in set_data_dict:
+                set_data_dict[name].extend(set_data)
+            else:
+                set_data_dict[name] = set_data
 
         index += 1
 

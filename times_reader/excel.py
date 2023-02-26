@@ -26,7 +26,7 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
     for sheet in workbook.worksheets:
         # Creating dataframe with dtype=object solves problems with ints being cast to floats
         # https://stackoverflow.com/questions/40251948/stop-pandas-from-converting-int-to-float-due-to-an-insertion-in-another-column
-        df = pd.DataFrame(sheet.values, dtype=object)
+        df = DataFrame(sheet.values, dtype=object)
         uc_sets = {}
 
         for row_index, row in df.iterrows():
@@ -88,7 +88,7 @@ def extract_table(
     # If the cell to the right is not empty then we read a scalar from it
     # Otherwise the row below is the header
     if df.shape[1] > tag_col + 1 and not cell_is_empty(df.iloc[tag_row, tag_col + 1]):
-        range = str(
+        table_range = str(
             CellRange(
                 min_col=tag_col + 2,
                 min_row=tag_row + 1,
@@ -117,7 +117,7 @@ def extract_table(
             end_row += 1
 
         # Excel cell numbering starts at 1, while pandas starts at 0
-        range = str(
+        table_range = str(
             CellRange(
                 min_col=start_col + 1,
                 min_row=header_row + 1,
@@ -131,19 +131,24 @@ def extract_table(
             table_df = DataFrame(df.iloc[header_row, start_col:end_col])
             table_df.columns = ["VALUE"]
         else:
-            table_df = DataFrame(df.iloc[header_row + 1 : end_row, start_col:end_col])
+            table_df = df.iloc[header_row + 1 : end_row, start_col:end_col]
             # Make all columns names strings as some are integers e.g. years
             table_df.columns = [str(x) for x in df.iloc[header_row, start_col:end_col]]
 
     table_df.reset_index(drop=True, inplace=True)
-    table_df = table_df.applymap(
-        lambda cell: cell if not isinstance(cell, float) else utils.round_sig(cell, 15)
-    )
+
+    # Don't use applymap because it can convert ints to floats
+    # https://pandas.pydata.org/pandas-docs/stable/user_guide/gotchas.html#gotchas-intna
+    for i in range(table_df.shape[0]):
+        for j in range(table_df.shape[1]):
+            value = table_df.iat[i, j]
+            if isinstance(value, float):
+                table_df.iat[i, j] = utils.round_sig(value, 15)
 
     return datatypes.EmbeddedXlTable(
         filename=filename,
         sheetname=sheetname,
-        range=range,
+        range=table_range,
         tag=df.iloc[tag_row, tag_col],
         uc_sets=uc_sets,
         dataframe=table_df,

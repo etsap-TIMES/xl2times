@@ -177,8 +177,6 @@ def merge_tables(tables: List[datatypes.EmbeddedXlTable]) -> Dict[str, DataFrame
                 print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
         else:
             df = pd.concat([table.dataframe for table in group], ignore_index=True)
-            if "Year" in df.columns.values:
-                df["Year"] = pd.to_numeric(df["Year"]).astype("Int64")
             result[key] = df
     return result
 
@@ -377,8 +375,19 @@ def process_flexible_import_tables(
         ):
             raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
-        # TODO: should we have a global list of column name -> type?
-        df["Year"] = df["Year"].astype("Int64")
+        df["Year2"] = df.apply(
+            lambda row: int(row["Year"].split("-")[1])
+            if "-" in str(row["Year"])
+            else "EOH",
+            axis=1,
+        )
+
+        df["Year"] = df.apply(
+            lambda row: int(row["Year"].split("-")[0])
+            if "-" in str(row["Year"])
+            else (row["Year"] if row["Year"] != "" else "BOH"),
+            axis=1,
+        )
 
         return replace(table, dataframe=df)
 
@@ -671,6 +680,84 @@ def remove_invalid_values(
             df.reset_index(drop=True, inplace=True)
         result.append(replace(table, dataframe=df))
     return result
+
+
+def process_units(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+
+    commodity_units = set()
+    process_act_units = set()
+    process_cap_units = set()
+    currencies = set()
+
+    for table in tables:
+        if table.tag == datatypes.Tag.fi_comm:
+            commodity_units.update(table.dataframe["Unit"].unique())
+
+        if table.tag == datatypes.Tag.fi_process:
+            process_act_units.update(table.dataframe["Tact"].unique())
+            process_cap_units.update(
+                [
+                    s.upper()
+                    for s in table.dataframe["Tcap"].unique()
+                    if s != None and s != ""
+                ]
+            )
+
+        if table.tag == datatypes.Tag.currencies:
+            currencies.update(table.dataframe["Currency"].unique())
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="~UNITS_ACT",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=DataFrame({"UNITS": unit} for unit in process_act_units),
+        )
+    )
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="~UNITS_CAP",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=DataFrame({"UNITS": unit} for unit in process_cap_units),
+        )
+    )
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="~UNITS_COM",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=DataFrame({"UNITS": unit} for unit in commodity_units),
+        )
+    )
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            tag="~ALL_UNITS",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=DataFrame(
+                {"UNITS": unit}
+                for unit in commodity_units.union(process_act_units).union(
+                    process_cap_units.union(currencies)
+                )
+            ),
+        )
+    )
+
+    return tables
 
 
 def process_time_periods(
@@ -1158,7 +1245,11 @@ def process_years(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     # Datayears is the set of all years in ~FI_T's Year column
     # We ignore values < 1000 because those signify interpolation/extrapolation rules
     # (see Table 8 of Part IV of the Times Documentation)
-    datayears = tables[datatypes.Tag.fi_t]["Year"].where(lambda x: x >= 1000).dropna()
+    datayears = (
+        tables[datatypes.Tag.fi_t]["Year"]
+        .apply(lambda x: x if (x is not str) and x >= 1000 else None)
+        .dropna()
+    )
     datayears = datayears.drop_duplicates().sort_values()
     tables["DataYear"] = pd.DataFrame({"Year": datayears})
 

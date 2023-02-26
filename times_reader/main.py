@@ -59,7 +59,6 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
                 # Uppercase and validate tags:
                 if xl_name.startswith("~"):
                     xl_name = xl_name.upper()
-                    assert datatypes.Tag.has_tag(xl_name), f"Tag {xl_name} not found"
                 entry = datatypes.TimesXlMap(
                     times_name=times_name,
                     times_cols=times_cols,
@@ -127,6 +126,7 @@ def convert_xl_to_times(
         transforms.remove_invalid_values,
         transforms.process_time_periods,
         transforms.process_currencies,
+        transforms.process_units,
         transforms.generate_all_regions,
         transforms.apply_fixups,
         transforms.extract_commodity_groups,
