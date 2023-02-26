@@ -1001,8 +1001,6 @@ def generate_top_ire(
     top_ire.drop(columns=["Region", "Region2", "Sets", "IO"], inplace=True)
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
 
-    print(top_ire)
-
     tables.append(
         datatypes.EmbeddedXlTable(
             tag="TOP_IRE",
@@ -1695,47 +1693,109 @@ def process_time_slices(
 ) -> List[datatypes.EmbeddedXlTable]:
     def timeslices_table(
         table: datatypes.EmbeddedXlTable,
-        regions: str,
+        regions: list,
         result: List[datatypes.EmbeddedXlTable],
     ):
-        # TODO will need to handle columns with multiple values
-        timeslices = [(col, values[0]) for col, values in table.dataframe.items()]
 
-        # No idea why casing of Weekly is special
-        timeslices = [
-            (col.upper(), val) if col != "Weekly" else (col, val)
-            for col, val in timeslices
-        ]
+        # User-specified timeslices (ordered)
+        user_ts_levels = ["SEASON", "WEEKLY", "DAYNITE"]
 
-        # Accumulate values from previous entries
-        ts_map = []
-        for i in range(1, len(timeslices)):
-            col, val = timeslices[i]
-            previousVal = timeslices[i - 1][1]
-            timeslices[i] = (col, previousVal if val is None else previousVal + val)
-            for j in range(0, i):
-                ts_map.append((timeslices[j][1], timeslices[i][1]))
-
-        ts_maps = {
-            "Region": regions,
-            "Parent": [t[0] for t in ts_map],
-            "TimesliceMap": [t[1] for t in ts_map],
+        # Ensure that all timeslice levels are uppercase
+        timeslices = {
+            col.upper(): list(values.unique())
+            for col, values in table.dataframe.items()
         }
+
+        # Ensure that timeslices keys contain all user-specified levels
+        for ts_level in user_ts_levels:
+            if ts_level not in timeslices.keys():
+                timeslices[ts_level] = list()
+
+        # Create a dataframe containing regions and timeslices
+        reg_ts = pd.DataFrame({"Region": regions})
+        for ts_level in user_ts_levels:
+            if timeslices[ts_level] != [None]:
+                reg_ts = pd.merge(
+                    reg_ts, pd.DataFrame({ts_level: timeslices[ts_level]}), how="cross"
+                )
+
+        # Include expanded names of timeslices in the dataframe
+        ncols = len(reg_ts.columns)
+        if ncols > 2:
+            for i in range(2, ncols):
+                reg_ts.iloc[:, i] = reg_ts.iloc[:, i - 1] + reg_ts.iloc[:, i]
+
+        ts_groups = pd.merge(
+            pd.DataFrame({"Region": regions}),
+            pd.DataFrame({"TSLVL": ["ANNUAL"], "TS_GROUP": ["ANNUAL"]}),
+            how="cross",
+        )
+
+        if ncols > 1:
+            ts_groups = pd.concat(
+                [
+                    ts_groups,
+                    pd.melt(
+                        reg_ts,
+                        id_vars=["Region"],
+                        var_name="TSLVL",
+                        value_name="TS_GROUP",
+                    ),
+                ]
+            )
+
+        # Generate timeslice map
+        ts_maps = pd.DataFrame([], columns=["Region", "Parent", "TimesliceMap"])
+        if ncols > 2:
+            ts_maps = pd.concat(
+                [
+                    ts_maps,
+                    reg_ts.iloc[:, [0, 1, 2]].rename(
+                        columns={
+                            reg_ts.columns[1]: "Parent",
+                            reg_ts.columns[2]: "TimesliceMap",
+                        }
+                    ),
+                ]
+            )
+
+            if ncols == 4:
+                ts_maps = pd.concat(
+                    [
+                        ts_maps,
+                        reg_ts.iloc[:, [0, 1, 3]].rename(
+                            columns={
+                                reg_ts.columns[1]: "Parent",
+                                reg_ts.columns[3]: "TimesliceMap",
+                            }
+                        ),
+                    ]
+                )
+                ts_maps = pd.concat(
+                    [
+                        ts_maps,
+                        reg_ts.iloc[:, [0, 2, 3]].rename(
+                            columns={
+                                reg_ts.columns[2]: "Parent",
+                                reg_ts.columns[3]: "TimesliceMap",
+                            }
+                        ),
+                    ]
+                )
+
+            ts_maps.drop_duplicates(keep="first", inplace=True)
+            ts_maps.sort_values(by=list(ts_maps.columns), inplace=True)
+
         result.append(replace(table, tag="TimeSliceMap", dataframe=DataFrame(ts_maps)))
 
-        timeslices.insert(0, ("ANNUAL", "ANNUAL"))
-
-        ts_groups = {
-            "Region": regions,
-            "TSLVL": [t[0] for t in timeslices],
-            "TS_GROUP": [t[1] for t in timeslices],
-        }
         result.append(
             replace(table, tag="TimeSlicesGroup", dataframe=DataFrame(ts_groups))
         )
 
     result = []
-    regions = ",".join(
+
+    # TODO: Timeslices can differ from region to region
+    regions = list(
         utils.single_column(tables, datatypes.Tag.book_regions_map, "Region")
     )
 
