@@ -20,8 +20,8 @@
         []
       ],
       "row_ignore_symbol": [
-        false,
-        false
+        [],
+        []
       ]
     }
   },
@@ -52,7 +52,9 @@
   {
     "tag_name": "fi_comm",
     "tag_allowed_in": [
-      "BY, SubRES,SysSettings"
+      "BY",
+      "SubRES",
+      "SysSettings"
     ],
     "tag_fields": {
       "fields_names": [
@@ -68,25 +70,29 @@
       ],
       "fields_aliases": [
         [
-          "commdesc, description"
+          "description"
         ],
         [
-          "commname, commodity"
+          "commodity"
         ],
         [
-          "csets, cset, sets, set"
+          "cset",
+          "sets",
+          "set"
         ],
         [
-          "ctslvl, tslvl, timeslicelevel"
+          "tslvl",
+          "timeslicelevel"
         ],
         [
-          "ctype, type, commoditytype"
+          "type",
+          "commoditytype"
         ],
         [
-          "limtype, bd"
+          "bd"
         ],
         [
-          "peakts, peaktimeslice"
+          "peaktimeslice"
         ],
         [],
         []
@@ -108,12 +114,12 @@
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -128,7 +134,8 @@
   {
     "tag_name": "fi_process",
     "tag_allowed_in": [
-      "BY, SubRES"
+      "BY",
+      "SubRES"
     ],
     "tag_fields": {
       "fields_names": [
@@ -144,26 +151,30 @@
       ],
       "fields_aliases": [
         [
-          "pcg, primarycg, primarycommoditygroup, primary_commodity_group"
+          "pcg",
+          "primarycommoditygroup",
+          "primary_commodity_group"
         ],
         [],
         [
-          "sets, set"
+          "set"
         ],
         [
-          "tact, activityunit, activity_unit"
+          "activityunit",
+          "activity_unit"
         ],
         [
-          "tcap, capacityunit, capacity_unit"
+          "capacityunit",
+          "capacity_unit"
         ],
         [
-          "techdesc, description"
+          "description"
         ],
         [
-          "techname, process"
+          "process"
         ],
         [
-          "tslvl, timeslicelevel"
+          "timeslicelevel"
         ],
         []
       ],
@@ -200,14 +211,15 @@
           "\\I:",
           "*"
         ],
-        false
+        []
       ]
     }
   },
   {
     "tag_name": "fi_t",
     "tag_allowed_in": [
-      "BY, SubRES"
+      "BY",
+      "SubRES"
     ],
     "tag_fields": {
       "fields_names": [
@@ -229,43 +241,73 @@
       ],
       "fields_aliases": [
         [
-          "attribute, parameter, prmtr, attr, attrib"
+          "parameter",
+          "prmtr",
+          "attr",
+          "attrib"
         ],
         [
-          "commname, commodity, cset_cn"
+          "commname",
+          "cset_cn"
         ],
         [
-          "comm-in, comm_in, commin, commodity-in, commodity_in, commodityin"
+          "comm-in",
+          "comm_in",
+          "commin",
+          "commodity_in",
+          "commodityin"
         ],
         [
-          "comm-in-a, comm_in-a, commin-a, commodity-in-aux, commodity_in-aux, commodityin-aux, commodity_in_aux"
+          "comm-in-a",
+          "comm_in-a",
+          "commin-a",
+          "commodity_in-aux",
+          "commodityin-aux",
+          "commodity_in_aux"
         ],
         [
-          "comm-out, comm_out, commout, commodity-out, commodity_out, commodityout"
+          "comm-out",
+          "comm_out",
+          "commout",
+          "commodity_out",
+          "commodityout"
         ],
         [
-          "comm-out-a, comm_out-a, commout-a, commodity-out-aux, commodity_out-aux, commodityout-aux, commodity_out_aux"
+          "comm-out-a",
+          "comm_out-a",
+          "commout-a",
+          "commodity_out-aux",
+          "commodityout-aux",
+          "commodity_out_aux"
         ],
         [
-          "curr, currency"
+          "curr"
         ],
         [
-          "limtype, lim_type, bd"
+          "lim_type",
+          "bd"
         ],
         [
-          "other_indexes, other_ind, oth_ind, commgrp, commodity_group"
+          "other_ind",
+          "oth_ind",
+          "commgrp",
+          "commodity_group"
         ],
         [
-          "techname, process, pset_pn"
+          "techname",
+          "pset_pn"
         ],
         [],
         [],
         [],
         [
-          "timeslice, timeslices, time_slice, time_slices, ts"
+          "timeslices",
+          "time_slice",
+          "time_slices",
+          "ts"
         ],
         [
-          "year, yr"
+          "yr"
         ]
       ],
       "row_ignore_symbol": [
@@ -353,19 +395,27 @@
       ],
       "fields_aliases": [
         [
-          "pset_ci, pset:ci, pset: ci"
+          "pset:ci",
+          "pset: ci"
         ],
         [
-          "pset_co, pset:co, pset: co"
+          "pset:co",
+          "pset: co"
         ],
         [
-          "pset_pd, pset:pd, pset: pd"
+          "pset:pd",
+          "pset: pd"
         ],
         [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
         ],
         [
-          "pset_set, pset:set, pset: set"
+          "pset:set",
+          "pset: set"
         ]
       ],
       "row_ignore_symbol": [
@@ -403,18 +453,26 @@
       ],
       "fields_aliases": [
         [
-          "cset_cd, cset:cd, cset: cd"
+          "cset:cd",
+          "cset: cd"
         ],
         [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
         ],
         [
-          "cset_set, cset:set, cset: set"
+          "cset:set",
+          "cset: set"
         ],
         [],
         [],
         [
-          "value, valfield, val_field, allregions"
+          "valfield",
+          "val_field",
+          "allregions"
         ]
       ],
       "row_ignore_symbol": [
@@ -476,7 +534,7 @@
           "c_pos_andor_forsets"
         ],
         [
-          "comment, comments"
+          "comments"
         ],
         [
           "cset_cd"
@@ -495,25 +553,26 @@
           "pset_co"
         ],
         [
-          "setdesc, set_desc"
+          "setdesc",
+          "set_desc"
         ],
         [
-          "setname, set_name"
+          "setname"
         ]
       ],
       "row_ignore_symbol": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:",
           "*"
@@ -524,7 +583,11 @@
   {
     "tag_name": "tfm_dins",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "tag_fields": {
       "fields_names": [
@@ -547,36 +610,49 @@
       "fields_aliases": [
         [],
         [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
         ],
         [
-          "currency, curr"
+          "currency"
         ],
         [
-          "limtype, lim_type, bd"
+          "lim_type",
+          "bd"
         ],
         [
-          "other_indexes, other_ind, oth_ind"
+          "other_ind",
+          "oth_ind"
         ],
         [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
         ],
         [],
         [],
         [],
         [],
         [
-          "timeslice, time_slice, ts"
+          "time_slice",
+          "ts"
         ],
         [],
         [
-          "uc_n, user_constraint"
+          "user_constraint"
         ],
         [
-          "value, valfield, val_field, allregions"
+          "valfield",
+          "val_field",
+          "allregions"
         ],
         [
-          "year, yr"
+          "yr"
         ]
       ],
       "row_ignore_symbol": [
@@ -605,7 +681,7 @@
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -639,7 +715,11 @@
   {
     "tag_name": "tfm_dins-at",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "base_tag": "tfm_dins",
     "mod_type": "at"
@@ -647,7 +727,11 @@
   {
     "tag_name": "tfm_dins-ts",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "base_tag": "tfm_dins",
     "mod_type": "ts"
@@ -655,7 +739,11 @@
   {
     "tag_name": "tfm_dins-tsl",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "base_tag": "tfm_dins",
     "mod_type": "tsl"
@@ -663,7 +751,12 @@
   {
     "tag_name": "tfm_fill",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, RegScen, TradeScen, ParScen,SysSettings"
+      "BY_Trans",
+      "SR_Trans",
+      "RegScen",
+      "TradeScen",
+      "ParScen",
+      "SysSettings"
     ],
     "tag_fields": {
       "fields_names": [
@@ -704,78 +797,99 @@
       ],
       "fields_aliases": [
         [
-          "attrib_cond, attribute_condition"
+          "attribute_condition"
         ],
         [],
         [
-          "avc_limtype, avc_lim_type"
+          "avc_lim_type"
         ],
         [
-          "avc_timeslice, avc_time_slice"
-        ],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [
-          "cset_cd, cset:cd, cset: cd"
-        ],
-        [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
-        ],
-        [
-          "cset_set, cset:set, cset: set"
-        ],
-        [
-          "currency, curr"
-        ],
-        [
-          "limtype, lim_type, bd"
-        ],
-        [],
-        [
-          "other_indexes, other_ind, oth_ind"
-        ],
-        [
-          "pset_ci, pset:ci, pset: ci"
-        ],
-        [
-          "pset_co, pset:co, pset: co"
-        ],
-        [
-          "pset_pd, pset:pd, pset: pd"
-        ],
-        [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
-        ],
-        [
-          "pset_set, pset:set, pset: set"
-        ],
-        [],
-        [
-          "sourcescen, scenario, scenario name, scen"
+          "avc_time_slice"
         ],
         [],
         [],
         [],
         [],
         [],
+        [
+          "cset:cd",
+          "cset: cd"
+        ],
+        [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        [
+          "cset:set",
+          "cset: set"
+        ],
+        [
+          "currency"
+        ],
+        [
+          "lim_type",
+          "bd"
+        ],
         [],
         [
-          "timeslice, time_slice, ts"
+          "other_ind",
+          "oth_ind"
         ],
         [
-          "top_check, top_chk"
+          "pset:ci",
+          "pset: ci"
         ],
         [
-          "val_cond, value_condition"
+          "pset:co",
+          "pset: co"
         ],
         [
-          "value, valfield, val_field, allregions"
+          "pset:pd",
+          "pset: pd"
         ],
         [
-          "year, yr"
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        [
+          "pset:set",
+          "pset: set"
+        ],
+        [],
+        [
+          "scenario",
+          "scenario name",
+          "scen"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "time_slice",
+          "ts"
+        ],
+        [
+          "top_chk"
+        ],
+        [
+          "value_condition"
+        ],
+        [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        [
+          "yr"
         ]
       ],
       "row_ignore_symbol": [
@@ -799,10 +913,10 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:"
         ],
@@ -820,7 +934,7 @@
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -855,15 +969,15 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -881,7 +995,11 @@
   {
     "tag_name": "tfm_ins",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "tag_fields": {
       "fields_names": [
@@ -923,79 +1041,98 @@
       ],
       "fields_aliases": [
         [
-          "attrib_cond, attribute_condition"
+          "attribute_condition"
         ],
         [],
         [
-          "avc_limtype, avc_lim_type"
+          "avc_lim_type"
         ],
         [
-          "avc_timeslice, avc_time_slice"
-        ],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [
-          "cset_cd, cset:cd, cset: cd"
-        ],
-        [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
-        ],
-        [
-          "cset_set, cset:set, cset: set"
-        ],
-        [
-          "currency, curr"
-        ],
-        [
-          "limtype, lim_type, bd"
-        ],
-        [
-          "other_indexes, other_ind, oth_ind"
-        ],
-        [
-          "pset_ci, pset:ci, pset: ci"
-        ],
-        [
-          "pset_co, pset:co, pset: co"
-        ],
-        [
-          "pset_pd, pset:pd, pset: pd"
-        ],
-        [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
-        ],
-        [
-          "pset_set, pset:set, pset: set"
+          "avc_time_slice"
         ],
         [],
         [],
         [],
         [],
         [],
+        [
+          "cset:cd",
+          "cset: cd"
+        ],
+        [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        [
+          "cset:set",
+          "cset: set"
+        ],
+        [
+          "currency"
+        ],
+        [
+          "lim_type",
+          "bd"
+        ],
+        [
+          "other_ind",
+          "oth_ind"
+        ],
+        [
+          "pset:ci",
+          "pset: ci"
+        ],
+        [
+          "pset:co",
+          "pset: co"
+        ],
+        [
+          "pset:pd",
+          "pset: pd"
+        ],
+        [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        [
+          "pset:set",
+          "pset: set"
+        ],
         [],
         [],
         [],
+        [],
+        [],
+        [],
+        [],
+        [],
         [
-          "timeslice, time_slice, ts"
+          "time_slice",
+          "ts"
         ],
         [
-          "top_check, top_chk"
+          "top_chk"
         ],
         [],
         [
-          "uc_n, user_constraint"
+          "user_constraint"
         ],
         [
-          "val_cond, value_condition"
+          "value_condition"
         ],
         [
-          "value, valfield, val_field, allregions"
+          "valfield",
+          "val_field",
+          "allregions"
         ],
         [
-          "year, yr"
+          "yr"
         ]
       ],
       "row_ignore_symbol": [
@@ -1019,10 +1156,10 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:"
         ],
@@ -1062,7 +1199,7 @@
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -1071,15 +1208,15 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -1105,7 +1242,11 @@
   {
     "tag_name": "tfm_ins-at",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "base_tag": "tfm_ins",
     "mod_type": "at"
@@ -1113,7 +1254,11 @@
   {
     "tag_name": "tfm_ins-ts",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "base_tag": "tfm_ins",
     "mod_type": "ts"
@@ -1121,7 +1266,11 @@
   {
     "tag_name": "tfm_ins-tsl",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "base_tag": "tfm_ins",
     "mod_type": "tsl"
@@ -1129,7 +1278,11 @@
   {
     "tag_name": "tfm_mig",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "tag_fields": {
       "fields_names": [
@@ -1180,100 +1333,126 @@
       ],
       "fields_aliases": [
         [
-          "attrib_cond, attribute_condition"
+          "attribute_condition"
         ],
         [],
         [],
         [
-          "avc_limtype, avc_lim_type"
+          "avc_lim_type"
         ],
         [
-          "avc_timeslice, avc_time_slice"
-        ],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [
-          "cset_cn2, commodity2, commname2, comm_name2, cset:cn2, cset: cn2"
-        ],
-        [
-          "cset_cd, cset:cd, cset: cd"
-        ],
-        [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
-        ],
-        [
-          "cset_set, cset:set, cset: set"
-        ],
-        [
-          "currency, curr"
-        ],
-        [
-          "currency2, curr2"
-        ],
-        [
-          "limtype, lim_type, bd"
-        ],
-        [
-          "limtype2, lim_type2, bd2"
-        ],
-        [
-          "other_indexes, other_ind, oth_ind"
-        ],
-        [
-          "other_indexes2, other_ind2, oth_ind2"
-        ],
-        [
-          "pset_ci, pset:ci, pset: ci"
-        ],
-        [
-          "pset_co, pset:co, pset: co"
-        ],
-        [
-          "pset_pd, pset:pd, pset: pd"
-        ],
-        [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
-        ],
-        [
-          "pset_set, pset:set, pset: set"
+          "avc_time_slice"
         ],
         [],
         [],
         [],
         [],
         [],
+        [
+          "cset_cn2",
+          "commname2",
+          "comm_name2",
+          "cset:cn2",
+          "cset: cn2"
+        ],
+        [
+          "cset:cd",
+          "cset: cd"
+        ],
+        [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        [
+          "cset:set",
+          "cset: set"
+        ],
+        [
+          "currency"
+        ],
+        [
+          "curr2"
+        ],
+        [
+          "lim_type",
+          "bd"
+        ],
+        [
+          "lim_type2",
+          "bd2"
+        ],
+        [
+          "other_ind",
+          "oth_ind"
+        ],
+        [
+          "other_ind2",
+          "oth_ind2"
+        ],
+        [
+          "pset:ci",
+          "pset: ci"
+        ],
+        [
+          "pset:co",
+          "pset: co"
+        ],
+        [
+          "pset:pd",
+          "pset: pd"
+        ],
+        [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        [
+          "pset:set",
+          "pset: set"
+        ],
         [],
         [],
         [],
         [],
         [],
         [],
+        [],
+        [],
+        [],
+        [],
+        [],
         [
-          "timeslice, time_slice, ts"
+          "time_slice",
+          "ts"
         ],
         [
-          "timeslice2, time_slice2, ts2"
+          "time_slice2",
+          "ts2"
         ],
         [
-          "top_check, top_chk"
+          "top_chk"
         ],
         [
-          "uc_n, user_constraint"
+          "user_constraint"
         ],
         [
-          "val_cond, value_condition"
+          "value_condition"
         ],
         [
-          "value, valfield, val_field, allregions"
+          "valfield",
+          "val_field",
+          "allregions"
         ],
         [
-          "year, yr"
+          "yr"
         ],
         [
-          "year2, yr2"
+          "yr2"
         ]
       ],
       "row_ignore_symbol": [
@@ -1301,10 +1480,10 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:",
           "*"
@@ -1361,7 +1540,7 @@
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:"
         ],
@@ -1381,10 +1560,10 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:",
           "*"
@@ -1393,7 +1572,7 @@
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -1451,7 +1630,7 @@
           "t_pos_andor_forsets"
         ],
         [
-          "comment, comments"
+          "comments"
         ],
         [
           "pset_pd"
@@ -1470,25 +1649,26 @@
           "pset_co"
         ],
         [
-          "setdesc, set_desc"
+          "setdesc",
+          "set_desc"
         ],
         [
-          "setname, set_name"
+          "setname"
         ]
       ],
       "row_ignore_symbol": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:",
           "*"
@@ -1499,7 +1679,11 @@
   {
     "tag_name": "tfm_topdins",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "tag_fields": {
       "fields_names": [
@@ -1510,14 +1694,25 @@
       ],
       "fields_aliases": [
         [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
         ],
         [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
         ],
         [],
         [
-          "value, valfield, val_field, allregions, io"
+          "valfield",
+          "val_field",
+          "allregions",
+          "io"
         ]
       ],
       "row_ignore_symbol": [
@@ -1540,7 +1735,11 @@
   {
     "tag_name": "tfm_topins",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "tag_fields": {
       "fields_names": [
@@ -1569,28 +1768,42 @@
         [],
         [],
         [
-          "cset_cd, cset:cd, cset: cd"
+          "cset:cd",
+          "cset: cd"
         ],
         [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
         ],
         [
-          "cset_set, cset:set, cset: set"
+          "cset:set",
+          "cset: set"
         ],
         [
-          "pset_ci, pset:ci, pset: ci"
+          "pset:ci",
+          "pset: ci"
         ],
         [
-          "pset_co, pset:co, pset: co"
+          "pset:co",
+          "pset: co"
         ],
         [
-          "pset_pd, pset:pd, pset: pd"
+          "pset:pd",
+          "pset: pd"
         ],
         [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
         ],
         [
-          "pset_set, pset:set, pset: set"
+          "pset:set",
+          "pset: set"
         ],
         [],
         [],
@@ -1598,14 +1811,17 @@
         [],
         [],
         [
-          "value, valfield, val_field, allregions, io"
+          "valfield",
+          "val_field",
+          "allregions",
+          "io"
         ]
       ],
       "row_ignore_symbol": [
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:"
         ],
@@ -1633,10 +1849,10 @@
         [
           "\\I:"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:"
         ]
@@ -1646,7 +1862,11 @@
   {
     "tag_name": "tfm_upd",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "tag_fields": {
       "fields_names": [
@@ -1688,79 +1908,98 @@
       ],
       "fields_aliases": [
         [
-          "attrib_cond, attribute_condition"
+          "attribute_condition"
         ],
         [],
         [
-          "avc_limtype, avc_lim_type"
+          "avc_lim_type"
         ],
         [
-          "avc_timeslice, avc_time_slice"
-        ],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [
-          "cset_cd, cset:cd, cset: cd"
-        ],
-        [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
-        ],
-        [
-          "cset_set, cset:set, cset: set"
-        ],
-        [
-          "currency, curr"
-        ],
-        [
-          "limtype, lim_type, bd"
-        ],
-        [
-          "other_indexes, other_ind, oth_ind"
-        ],
-        [
-          "pset_ci, pset:ci, pset: ci"
-        ],
-        [
-          "pset_co, pset:co, pset: co"
-        ],
-        [
-          "pset_pd, pset:pd, pset: pd"
-        ],
-        [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
-        ],
-        [
-          "pset_set, pset:set, pset: set"
+          "avc_time_slice"
         ],
         [],
         [],
         [],
         [],
         [],
+        [
+          "cset:cd",
+          "cset: cd"
+        ],
+        [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        [
+          "cset:set",
+          "cset: set"
+        ],
+        [
+          "currency"
+        ],
+        [
+          "lim_type",
+          "bd"
+        ],
+        [
+          "other_ind",
+          "oth_ind"
+        ],
+        [
+          "pset:ci",
+          "pset: ci"
+        ],
+        [
+          "pset:co",
+          "pset: co"
+        ],
+        [
+          "pset:pd",
+          "pset: pd"
+        ],
+        [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        [
+          "pset:set",
+          "pset: set"
+        ],
         [],
         [],
         [],
         [],
+        [],
+        [],
+        [],
+        [],
+        [],
         [
-          "timeslice, time_slice, ts"
+          "time_slice",
+          "ts"
         ],
         [
-          "top_check, top_chk"
+          "top_chk"
         ],
         [
-          "uc_n, user_constraint"
+          "user_constraint"
         ],
         [
-          "val_cond, value_condition"
+          "value_condition"
         ],
         [
-          "value, valfield, val_field, allregions"
+          "valfield",
+          "val_field",
+          "allregions"
         ],
         [
-          "year, yr"
+          "yr"
         ]
       ],
       "row_ignore_symbol": [
@@ -1784,10 +2023,10 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:"
         ],
@@ -1828,7 +2067,7 @@
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:"
         ],
@@ -1840,15 +2079,15 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -1870,7 +2109,11 @@
   {
     "tag_name": "tfm_upd-at",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "base_tag": "tfm_upd",
     "mod_type": "at"
@@ -1878,7 +2121,11 @@
   {
     "tag_name": "tfm_upd-ts",
     "tag_allowed_in": [
-      "BY_Trans, SR_Trans, SysSettings, RegScen, TradeScen"
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
     ],
     "base_tag": "tfm_upd",
     "mod_type": "ts"
@@ -1892,7 +2139,8 @@
   {
     "tag_name": "uc_t",
     "tag_allowed_in": [
-      "SysSettings, RegScen"
+      "SysSettings",
+      "RegScen"
     ],
     "tag_fields": {
       "fields_names": [
@@ -1935,86 +2183,108 @@
       ],
       "fields_aliases": [
         [
-          "attrib_cond, attribute_condition"
+          "attribute_condition"
         ],
         [
-          "attribute, prmtr, parameter"
+          "prmtr",
+          "parameter"
         ],
         [
-          "avc_limtype, avc_lim_type"
+          "avc_lim_type"
         ],
         [
-          "avc_timeslice, avc_time_slice"
-        ],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [
-          "cset_cd, cset:cd, cset: cd"
-        ],
-        [
-          "cset_cn, commodity, commname, comm_name, cset:cn, cset: cn"
-        ],
-        [
-          "cset_set, cset:set, cset: set"
-        ],
-        [
-          "curr, currency"
-        ],
-        [
-          "limtype, lim_type, bd"
-        ],
-        [
-          "other_indexes, other_ind, oth_ind"
-        ],
-        [
-          "pset_ci, pset:ci, pset: ci"
-        ],
-        [
-          "pset_co, pset:co, pset: co"
-        ],
-        [
-          "pset_pd, pset:pd, pset: pd"
-        ],
-        [
-          "pset_pn, process, techname, tech_name, pset:pn, pset: pn"
-        ],
-        [
-          "pset_set, pset:set, pset: set"
+          "avc_time_slice"
         ],
         [],
         [],
         [],
         [],
         [],
+        [
+          "cset:cd",
+          "cset: cd"
+        ],
+        [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        [
+          "cset:set",
+          "cset: set"
+        ],
+        [
+          "curr"
+        ],
+        [
+          "lim_type",
+          "bd"
+        ],
+        [
+          "other_ind",
+          "oth_ind"
+        ],
+        [
+          "pset:ci",
+          "pset: ci"
+        ],
+        [
+          "pset:co",
+          "pset: co"
+        ],
+        [
+          "pset:pd",
+          "pset: pd"
+        ],
+        [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        [
+          "pset:set",
+          "pset: set"
+        ],
         [],
         [],
         [],
+        [],
+        [],
+        [],
+        [],
+        [],
         [
-          "timeslice, time_slice, ts"
+          "time_slice",
+          "ts"
         ],
         [
-          "top_check, top_chk"
+          "top_chk"
         ],
         [
-          "uc_attr, uc-attr, ucattr"
+          "uc-attr",
+          "ucattr"
         ],
         [
-          "uc_desc, description, uc_description"
+          "description",
+          "uc_description"
         ],
         [
-          "uc_n, user_constraint"
+          "user_constraint"
         ],
         [
-          "val_cond, value_condition"
+          "value_condition"
         ],
         [
-          "value, valfield, val_field, allregions"
+          "valfield",
+          "val_field",
+          "allregions"
         ],
         [
-          "year, yr"
+          "yr"
         ]
       ],
       "row_ignore_symbol": [
@@ -2038,10 +2308,10 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:"
         ],
@@ -2081,7 +2351,7 @@
         [
           "\\I:"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -2090,15 +2360,15 @@
           "\\I:",
           "*"
         ],
-        false,
-        false,
-        false,
-        false,
+        [],
+        [],
+        [],
+        [],
         [
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
@@ -2146,7 +2416,7 @@
           "\\I:",
           "*"
         ],
-        false,
+        [],
         [
           "\\I:",
           "*"
