@@ -21,6 +21,17 @@
 - Get difference between generated DD files and ground truth to zero
 - Code tidying
 
+## Processing steps
+- Read files included in the case / all model files if a subset not specified
+- Make tables standard (e.g. lower case headers, etc.)
+- Read settings in syssettings
+- Fill in missing values that are independent from info in other files (e.g. process name in FI_T, sets in FI_Process, default year, etc.).
+- Process model files in groups:
+	- All the VT files + BY_TRANS together
+	- SubRES (incl. trans) one-by-one. Use info on commodities from above.
+	- Scenario files. Must be processed in the order specified / alphabetic order. Have access to all info specified before them (e.g. upd tables)
+
+
 ## OLD Mix of doc and detailed TODO list
 
 Steps to standardize a commodity table (~FI\_COMM)
@@ -62,7 +73,7 @@ Row ordering must be preserved by these transformations, but only until the defa
 
 Extra steps for process tables:
 
-- [ ] Remove rows for unused processes i.e., if a process is missing from FT_Process table any data generated for it can be removed. 
+- [ ] Remove rows for unused processes i.e., if a process is missing from FT_Process table any data generated for it can be removed.
 
 Missing-value handling of process tables (~FI\_PROCESS)
 
