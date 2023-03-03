@@ -907,13 +907,8 @@ def extract_commodity_groups(
         value_name="CommName",
     )
     prc_top["IO"].replace({"Comm-IN": "IN", "Comm-OUT": "OUT"}, inplace=True)
-    prc_top = prc_top.loc[
-        (
-            (prc_top["TechName"].notna())
-            & (prc_top["CommName"].notna())
-            & (prc_top["CommName"] != "ACT")
-        )
-    ]
+    prc_top.dropna(how="any", subset=["TechName", "CommName"], inplace=True)
+    prc_top.drop(index=prc_top[prc_top["CommName"] == "ACT"].index, inplace=True)
     prc_top.drop_duplicates(keep="first", inplace=True)
 
     # Commodity groups by process, region and commodity
@@ -921,38 +916,15 @@ def extract_commodity_groups(
     comm_groups["CommodityGroup"] = None
     # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
     for region in comm_groups["Region"].unique():
-        for process in (
-            comm_groups["TechName"].loc[comm_groups["Region"] == region].unique()
-        ):
-            for cset in (
-                comm_groups["Csets"]
-                .loc[
-                    (comm_groups["Region"] == region)
-                    & (comm_groups["TechName"] == process)
-                ]
-                .unique()
-            ):
-                for io in (
-                    comm_groups["IO"]
-                    .loc[
-                        (comm_groups["Region"] == region)
-                        & (comm_groups["TechName"] == process)
-                        & (comm_groups["Csets"] == cset)
-                    ]
-                    .unique()
-                ):
-                    comm_groups["CommodityGroup"].loc[
-                        (comm_groups["Region"] == region)
-                        & (comm_groups["TechName"] == process)
-                        & (comm_groups["Csets"] == cset)
-                        & (comm_groups["IO"] == io)
-                    ] = len(
-                        comm_groups.loc[
-                            (comm_groups["Region"] == region)
-                            & (comm_groups["TechName"] == process)
-                            & (comm_groups["Csets"] == cset)
-                            & (comm_groups["IO"] == io)
-                        ]
+        i_reg = comm_groups["Region"] == region
+        for process in comm_groups[i_reg]["TechName"].unique():
+            i_reg_prc = i_reg & (comm_groups["TechName"] == process)
+            for cset in comm_groups[i_reg_prc]["Csets"].unique():
+                i_reg_prc_cset = i_reg_prc & (comm_groups["Csets"] == cset)
+                for io in comm_groups[i_reg_prc_cset]["IO"].unique():
+                    i_reg_prc_cset_io = i_reg_prc_cset & (comm_groups["IO"] == io)
+                    comm_groups.loc[i_reg_prc_cset_io, "CommodityGroup"] = sum(
+                        i_reg_prc_cset_io
                     )
 
     def name_comm_group(df):
@@ -972,26 +944,19 @@ def extract_commodity_groups(
 
     # Determine default PCG according to Veda
     for region in comm_groups["Region"].unique():
-        for process in comm_groups["TechName"].loc[comm_groups["Region"] == region]:
+        i_reg = comm_groups["Region"] == region
+        for process in comm_groups[i_reg]["TechName"]:
+            i_reg_prc = i_reg & (comm_groups["TechName"] == process)
             default_set = False
             for io in ["OUT", "IN"]:
                 if default_set:
                     break
+                i_reg_prc_io = i_reg_prc & (comm_groups["IO"] == io)
                 for cset in csets_ordered_for_pcg:
-                    df = comm_groups.loc[
-                        (comm_groups["Region"] == region)
-                        & (comm_groups["TechName"] == process)
-                        & (comm_groups["IO"] == io)
-                        & (comm_groups["Csets"] == cset)
-                    ]
+                    i_reg_prc_io_cset = i_reg_prc_io & (comm_groups["Csets"] == cset)
+                    df = comm_groups[i_reg_prc_io_cset]
                     if not df.empty:
-                        comm_groups.loc[
-                            (comm_groups["Region"] == region)
-                            & (comm_groups["TechName"] == process)
-                            & (comm_groups["IO"] == io)
-                            & (comm_groups["Csets"] == cset),
-                            ["DefaultVedaPCG"],
-                        ] = True
+                        comm_groups.loc[i_reg_prc_io_cset, "DefaultVedaPCG"] = True
                         default_set = True
                         break
 
