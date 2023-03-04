@@ -861,9 +861,10 @@ def extract_commodity_groups(
         cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
     ]
 
-    reg_prc_pcg = pd.DataFrame(columns=["Region", "TechName", "PrimaryCG"])
+    columns = ["Region", "TechName", "PrimaryCG"]
+    reg_prc_pcg = pd.DataFrame(columns=columns)
     for process_table in process_tables:
-        df = process_table.dataframe[["Region", "TechName", "PrimaryCG"]]
+        df = process_table.dataframe[columns]
         reg_prc_pcg = pd.concat([reg_prc_pcg, df])
     reg_prc_pcg.drop_duplicates(keep="first", inplace=True)
 
@@ -873,16 +874,18 @@ def extract_commodity_groups(
     ]
 
     # Extract commodities and their sets by region
-    comm_set = pd.DataFrame(columns=["Region", "Csets", "CommName"])
+    columns = ["Region", "Csets", "CommName"]
+    comm_set = pd.DataFrame(columns=columns)
     for commodity_table in commodity_tables:
-        df = commodity_table.dataframe[["Region", "Csets", "CommName"]]
+        df = commodity_table.dataframe[columns]
         comm_set = pd.concat([comm_set, df])
     comm_set.drop_duplicates(keep="first", inplace=True)
 
     # Construct process topology
-    prc_top = pd.DataFrame(columns=["Region", "TechName", "Comm-IN", "Comm-OUT"])
+    columns = ["Region", "TechName", "Comm-IN", "Comm-OUT"]
+    prc_top = pd.DataFrame(columns=columns)
     for fit_table in fit_tables:
-        df = fit_table.dataframe[["Region", "TechName", "Comm-IN", "Comm-OUT"]]
+        df = fit_table.dataframe[columns]
         prc_top = pd.concat([prc_top, df])
     prc_top = pd.melt(
         prc_top,
@@ -924,9 +927,8 @@ def extract_commodity_groups(
     # Replace commodity group member count with the name
     comm_groups["CommodityGroup"] = comm_groups.apply(name_comm_group, axis=1)
 
-    comm_groups["DefaultVedaPCG"] = None
-
     # Determine default PCG according to Veda
+    comm_groups["DefaultVedaPCG"] = None
     for region in comm_groups["Region"].unique():
         i_reg = comm_groups["Region"] == region
         for process in comm_groups[i_reg]["TechName"]:
@@ -953,11 +955,11 @@ def extract_commodity_groups(
         df["Csets"] = df["PrimaryCG"].replace(suffix_to_cset)
         df["IO"] = df["PrimaryCG"].replace(suffix_to_io)
         df["CommodityGroup"] = df["TechName"] + "_" + df["PrimaryCG"]
-        cols = ["Region", "TechName", "IO", "Csets"]
+        columns = ["Region", "TechName", "IO", "Csets"]
         df = pd.merge(
-            df[cols + ["CommodityGroup"]],
-            comm_groups[cols + ["CommName"]],
-            on=cols,
+            df[columns + ["CommodityGroup"]],
+            comm_groups[columns + ["CommName"]],
+            on=columns,
         )
         comm_groups = pd.concat([comm_groups, df])
         comm_groups.drop_duplicates(
