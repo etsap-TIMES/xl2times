@@ -872,10 +872,10 @@ def extract_commodity_groups(
         reg_prc_pcg["PrimaryCG"].isin(default_pcg_suffixes)
     ]
 
-    # Extract commodities and their sets
-    comm_set = pd.DataFrame(columns=["Csets", "CommName"])
+    # Extract commodities and their sets by region
+    comm_set = pd.DataFrame(columns=["Region", "Csets", "CommName"])
     for commodity_table in commodity_tables:
-        df = commodity_table.dataframe[["Csets", "CommName"]]
+        df = commodity_table.dataframe[["Region", "Csets", "CommName"]]
         comm_set = pd.concat([comm_set, df])
     comm_set.drop_duplicates(keep="first", inplace=True)
 
@@ -896,7 +896,7 @@ def extract_commodity_groups(
     prc_top.drop_duplicates(keep="first", inplace=True)
 
     # Commodity groups by process, region and commodity
-    comm_groups = pd.merge(prc_top, comm_set, on="CommName")
+    comm_groups = pd.merge(prc_top, comm_set, on=["Region", "CommName"])
     comm_groups["CommodityGroup"] = None
     # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
     for region in comm_groups["Region"].unique():
