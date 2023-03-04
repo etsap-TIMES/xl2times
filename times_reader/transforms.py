@@ -237,13 +237,6 @@ def process_flexible_import_tables(
             df.rename(columns={"CURR": "Curr"}, inplace=True)
 
         nrows = df.shape[0]
-        if (
-            ("Comm-IN" in df.columns)
-            and ("Comm-OUT" in df.columns)
-            and (table.tag != datatypes.Tag.tfm_upd)
-        ):
-            df["TOP-IN"] = ["IN"] * nrows
-            df["TOP-OUT"] = ["OUT"] * nrows
 
         # Remove any TechDesc column
         if "TechDesc" in df.columns:
@@ -341,16 +334,7 @@ def process_flexible_import_tables(
                 df.loc[i, "Year"] = df.loc[i, "VALUE"].astype("int") + 1
                 df.loc[i, other] = "EOH"
                 df.loc[i, attribute] = "PRC_NOFF"
-            elif attr == "TOP-IN":
-                i = df[attribute] == attr
-                df.loc[i, other] = df.loc[i, "Comm-IN"]
-                df.loc[i, attribute] = "IO"
-            elif attr == "TOP-OUT":
-                i = df[attribute] == attr
-                df.loc[i, other] = df.loc[i, "Comm-OUT"]
-                df.loc[i, attribute] = "IO"
-        filter = ~((df[attribute] == "IO") & df[other].isna())
-        df = df[filter]
+
         df = df.reset_index(drop=True)
 
         # Fill other_indexes for COST
