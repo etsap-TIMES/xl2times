@@ -326,8 +326,7 @@ def process_flexible_import_tables(
                 df.loc[i & df[other].isna(), other] = "ACT"
             elif attr == "EFF":
                 i = df[attribute] == attr
-                df.loc[i, "Comm-IN"] = "ACT"
-                df.loc[i, attribute] = "CEFF"
+                df.loc[i, other] = "ACT"
             elif attr == "OUTPUT":
                 i = df[attribute] == attr
                 df.loc[i, "Comm-IN"] = df.loc[i, "Comm-OUT-A"]

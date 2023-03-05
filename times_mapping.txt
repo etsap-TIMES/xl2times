@@ -3,6 +3,7 @@ ACT_COST[REG,DATAYEAR,PRC,CUR,VALUE] = ~FI_T(Region,Year,TechName,Curr,Attribute
 ACT_COST[REG,DATAYEAR,PRC,CUR,VALUE] = ~FI_T(Region,Year,TechName,Curr,Attribute:ACTCOST)
 ACT_CUM[REG,PRC,DATAYEAR,DATAYEAR2,BD,VALUE] = ~FI_T(Region,TechName,Year,Year2,LimType,Attribute:CUM)
 ACT_EFF[REG,DATAYEAR,PRC,COM,TSLVL,VALUE] = ~FI_T(Region,Year,TechName,Comm-IN,TimeSlice,Attribute:CEFF)
+ACT_EFF[REG,DATAYEAR,PRC,COM,TSLVL,VALUE] = ~FI_T(Region,Year,TechName,Other_Indexes,TimeSlice,Attribute:EFF)
 ALL_REG[ALL_REG] = AllRegions(Region)
 ALL_TS[ALL_TS] = TimeSlicesGroup(TS_GROUP)
 B[DATAYEAR,VALUE] = ~TimePeriods(Year,B)
