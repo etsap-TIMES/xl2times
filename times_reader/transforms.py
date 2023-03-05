@@ -242,6 +242,7 @@ def process_flexible_import_tables(
         if "TechDesc" in df.columns:
             df.drop("TechDesc", axis=1, inplace=True)
 
+        # TODO: Review this. CommGrp is an alias for Other_Indexes
         if "CommGrp" in df.columns:
             print(
                 f"WARNING: Dropping CommGrp rather than processing it: {table.filename} {table.sheetname} {table.range}"
@@ -253,6 +254,7 @@ def process_flexible_import_tables(
         known_columns = [
             "Region",
             "TechName",
+            "CommName",
             "Comm-IN",
             "Comm-IN-A",
             "Comm-OUT",
@@ -273,6 +275,7 @@ def process_flexible_import_tables(
         index_columns = [
             "Region",
             "TechName",
+            "CommName",
             "Comm-IN",
             "Comm-IN-A",
             "Comm-OUT",
@@ -339,19 +342,22 @@ def process_flexible_import_tables(
 
         # Fill other_indexes for COST
         cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-        for process in df["TechName"].loc[df[attribute] == "COST"].unique():
+        i_cost = df[attribute] == "COST"
+        for process in df[i_cost]["TechName"].unique():
             veda_process_set = (
                 veda_process_sets["Sets"]
                 .loc[veda_process_sets["TechName"] == process]
                 .unique()
             )
-            df.loc[
-                (df["TechName"] == process) & (df[attribute] == "COST"), other
-            ] = cost_mapping[veda_process_set[0]]
+            df.loc[i_cost & (df["TechName"] == process), other] = cost_mapping[
+                veda_process_set[0]
+            ]
 
-        # Ideally we'd create a new column with the active commodity name but abuse Comm-OUT instead
-        i = (df[attribute] == "COST") & (df[other] == "EXP")
-        df.loc[i, "Comm-OUT"] = df.loc[i, "Comm-IN"]
+        # Use CommName to store the active commodity for EXP / IMP
+        i = i_cost & (df[other] == "EXP")
+        df.loc[i, "CommName"] = df.loc[i, "Comm-IN"]
+        i = i_cost & (df[other].isin(["IMP", "MIN"]))
+        df.loc[i, "CommName"] = df.loc[i, "Comm-OUT"]
 
         # Should have all index_columns and VALUE
         if table.tag == datatypes.Tag.fi_t and len(df.columns) != (
