@@ -1450,6 +1450,7 @@ def process_transform_insert(
             ):
                 df["Comm-OUT"] = df["CSet_CN"]
                 df["Comm-IN"] = df["CSet_CN"]
+                df["CommName"] = df["CSet_CN"]
                 df.drop(columns=["CSet_CN"], inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
             elif (
@@ -1502,7 +1503,7 @@ def process_transform_insert(
             df["DEMAND"] = data
             df = df.explode(["Region", "DEMAND"], ignore_index=True)
 
-            df.rename(columns={"Cset_CN": "Comm-IN"}, inplace=True)
+            df.rename(columns={"Cset_CN": "CommName"}, inplace=True)
 
             result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
 
