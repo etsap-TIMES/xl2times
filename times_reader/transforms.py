@@ -230,7 +230,7 @@ def process_flexible_import_tables(
 
         # Rename, add and remove specific columns if the circumstances are right
         df = table.dataframe
-        mapping = {"YEAR": "Year", "CommName": "Comm-IN"}
+        mapping = {"YEAR": "Year"}
         df = df.rename(columns=mapping)
 
         if "CURR" in df.columns.values:
@@ -238,6 +238,7 @@ def process_flexible_import_tables(
 
         nrows = df.shape[0]
 
+        # TODO: this should only be removed if it is a comment column
         # Remove any TechDesc column
         if "TechDesc" in df.columns:
             df.drop("TechDesc", axis=1, inplace=True)
@@ -856,7 +857,7 @@ def apply_fixups(
 def extract_commodity_groups(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
-    fit_tables = [t for t in tables if t.tag == datatypes.Tag.fi_t]
+
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
     commodity_tables = [t for t in tables if t.tag == datatypes.Tag.fi_comm]
 
@@ -886,22 +887,7 @@ def extract_commodity_groups(
         comm_set = pd.concat([comm_set, df])
     comm_set.drop_duplicates(keep="first", inplace=True)
 
-    # Construct process topology
-    columns = ["Region", "TechName", "Comm-IN", "Comm-OUT"]
-    prc_top = pd.DataFrame(columns=columns)
-    for fit_table in fit_tables:
-        df = fit_table.dataframe[columns]
-        prc_top = pd.concat([prc_top, df])
-    prc_top = pd.melt(
-        prc_top,
-        id_vars=["Region", "TechName"],
-        var_name="IO",
-        value_name="CommName",
-    )
-    prc_top["IO"].replace({"Comm-IN": "IN", "Comm-OUT": "OUT"}, inplace=True)
-    prc_top.dropna(how="any", subset=["TechName", "CommName"], inplace=True)
-    prc_top.drop(index=prc_top[prc_top["CommName"] == "ACT"].index, inplace=True)
-    prc_top.drop_duplicates(keep="first", inplace=True)
+    prc_top = utils.single_table(tables, "ProcessTopology").dataframe
 
     # Commodity groups by process, region and commodity
     comm_groups = pd.merge(prc_top, comm_set, on=["Region", "CommName"])
@@ -1267,6 +1253,49 @@ def process_processes(
     result.append(veda_process_sets)
 
     return result
+
+
+def process_topology(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Create topology
+    """
+
+    fit_tables = [t for t in tables if t.tag == datatypes.Tag.fi_t]
+
+    columns = ["Region", "TechName", "Comm-IN", "Comm-OUT"]
+    topology = pd.DataFrame(columns=columns)
+
+    for fit_table in fit_tables:
+        cols = [col for col in columns if col in fit_table.dataframe.columns]
+        df = fit_table.dataframe[cols]
+        topology = pd.concat([topology, df])
+
+    topology = pd.melt(
+        topology,
+        id_vars=["Region", "TechName"],
+        var_name="IO",
+        value_name="CommName",
+    )
+
+    topology["TechName"].fillna(method="ffill", inplace=True)
+    topology["IO"].replace({"Comm-IN": "IN", "Comm-OUT": "OUT"}, inplace=True)
+    topology.dropna(how="any", subset=["TechName", "CommName"], inplace=True)
+    topology.drop_duplicates(keep="first", inplace=True)
+
+    topology_table = datatypes.EmbeddedXlTable(
+        tag="ProcessTopology",
+        uc_sets={},
+        sheetname="",
+        range="",
+        filename="",
+        dataframe=topology,
+    )
+
+    tables.append(topology_table)
+
+    return tables
 
 
 def generate_dummy_processes(
