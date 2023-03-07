@@ -342,22 +342,23 @@ def process_flexible_import_tables(
 
         # Fill other_indexes for COST
         cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-        i_cost = df[attribute] == "COST"
-        for process in df[i_cost]["TechName"].unique():
+        i = df[attribute] == "COST"
+        for process in df[i]["TechName"].unique():
             veda_process_set = (
                 veda_process_sets["Sets"]
                 .loc[veda_process_sets["TechName"] == process]
                 .unique()
             )
-            df.loc[i_cost & (df["TechName"] == process), other] = cost_mapping[
+            df.loc[i & (df["TechName"] == process), other] = cost_mapping[
                 veda_process_set[0]
             ]
 
         # Use CommName to store the active commodity for EXP / IMP
-        i = i_cost & (df[other] == "EXP")
-        df.loc[i, "CommName"] = df.loc[i, "Comm-IN"]
-        i = i_cost & (df[other].isin(["IMP", "MIN"]))
-        df.loc[i, "CommName"] = df.loc[i, "Comm-OUT"]
+        i = df[attribute].isin(["COST", "IRE_PRICE"])
+        i_exp = i & (df[other] == "EXP")
+        df.loc[i_exp, "CommName"] = df.loc[i_exp, "Comm-IN"]
+        i_imp = i & (df[other] == "IMP")
+        df.loc[i_imp, "CommName"] = df.loc[i_imp, "Comm-OUT"]
 
         # Should have all index_columns and VALUE
         if table.tag == datatypes.Tag.fi_t and len(df.columns) != (
