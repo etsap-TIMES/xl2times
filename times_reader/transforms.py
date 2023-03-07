@@ -1476,7 +1476,6 @@ def process_transform_insert(
                 for standard_col in known_columns:
                     if standard_col not in df.columns:
                         df[standard_col] = [None] * len(df)
-                df.to_csv(table.sheetname + ".csv")
                 result.append(replace(table, dataframe=df))
 
         elif table.tag == datatypes.Tag.tfm_dins:
