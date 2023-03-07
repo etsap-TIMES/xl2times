@@ -1351,6 +1351,7 @@ def generate_dummy_processes(
     return tables
 
 
+# TODO: should we rename this to something more general, since it takes care of more than tfm_ins?
 def process_transform_insert(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
@@ -1379,6 +1380,7 @@ def process_transform_insert(
             nrows = df.shape[0]
 
             # Standardize column names
+            # TODO: CommGrp is an alias of Other_Indexes. What happens if both are present?
             known_columns = {
                 "Attribute",
                 "Year",
@@ -1474,6 +1476,7 @@ def process_transform_insert(
                 for standard_col in known_columns:
                     if standard_col not in df.columns:
                         df[standard_col] = [None] * len(df)
+                df.to_csv(table.sheetname + ".csv")
                 result.append(replace(table, dataframe=df))
 
         elif table.tag == datatypes.Tag.tfm_dins:
@@ -1697,9 +1700,10 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                         if any(df["index"].duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
                     if matching_commodities is not None:
-                        df = df.merge(
-                            matching_commodities.rename(columns={"CommName": "Comm-IN"})
-                        )
+                        matching_commodities["Comm-IN"] = matching_commodities[
+                            "CommName"
+                        ]
+                        df = df.merge(matching_commodities)
                     if debug:
                         print(f"{len(df)} rows after commodities")
                         if any(df["index"].duplicated()):
@@ -1745,9 +1749,9 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                     if matching_processes is not None:
                         row = matching_processes.merge(row, how="cross")
                     if matching_commodities is not None:
-                        matching_commodities.rename(
-                            columns={"CommName": "Comm-IN"}, inplace=True
-                        )
+                        matching_commodities["Comm-IN"] = matching_commodities[
+                            "CommName"
+                        ]
                         matching_commodities["Comm-OUT"] = matching_commodities[
                             "Comm-IN"
                         ]
