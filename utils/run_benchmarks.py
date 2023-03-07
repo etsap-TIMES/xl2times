@@ -143,12 +143,14 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
         print("ERROR: number of benchmarks changed")
         sys.exit(1)
     accu_regressions = df[df["Correct Rows"] < df["M Correct Rows"]]["Benchmark"]
+    addi_regressions = df[df["Additional Rows"] > df["M Additional Rows"]]["Benchmark"]
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
-    # TODO also check additional rows
 
-    if len(accu_regressions) + len(time_regressions) > 0:
+    if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
         if not accu_regressions.empty:
-            print(f"ERROR: accuracy regressed on: {', '.join(accu_regressions)}")
+            print(f"ERROR: correct rows regressed on: {', '.join(accu_regressions)}")
+        if not addi_regressions.empty:
+            print(f"ERROR: additional rows regressed on: {', '.join(accu_regressions)}")
         if not time_regressions.empty:
             print(f"ERROR: runtime regressed on: {', '.join(time_regressions)}")
         sys.exit(1)
