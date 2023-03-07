@@ -11,8 +11,6 @@ from tabulate import tabulate
 import time
 from typing import Tuple
 
-import pickle
-
 
 def run_benchmark(
     benchmarks_folder: str, benchmark_name: str, skip_csv: bool = False
@@ -96,7 +94,6 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
         results.append((benchmark_name, *result))
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
-    pickle.dump(results, open("temp.pkl", "wb"))
 
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
