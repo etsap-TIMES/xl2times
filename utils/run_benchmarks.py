@@ -2,14 +2,19 @@ import argparse
 import git
 import os
 from os import path
+import pandas as pd
+from re import match
 import shutil
 import subprocess
 import sys
 from tabulate import tabulate
 import time
+from typing import Tuple
 
 
-def run_benchmark(benchmarks_folder, benchmark_name, skip_csv=False):
+def run_benchmark(
+    benchmarks_folder: str, benchmark_name: str, skip_csv: bool = False
+) -> Tuple[float, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark_name)
     dd_folder = path.join(benchmarks_folder, "dd", benchmark_name)
     csv_folder = path.join(benchmarks_folder, "csv", benchmark_name)
@@ -59,9 +64,17 @@ def run_benchmark(benchmarks_folder, benchmark_name, skip_csv=False):
         f.write(res.stdout)
 
     if res.returncode == 0:
-        lastline = res.stdout.splitlines()[-1].split(" ")
-        accuracy = lastline[0] + " " + lastline[-1]
-        return (runtime, accuracy)
+        lastline = res.stdout.splitlines()[-1]
+        m = match(
+            r"(\d+\.\d)\% of ground truth rows present in output \((\d+)/(\d+)\)"
+            r", (\d+) additional rows",
+            lastline,
+        )
+        if not m:
+            print(f"ERROR: could not parse output of run:\n{lastline}")
+            sys.exit(1)
+        # return (runtime, accuracy, num_correct_rows, num_additional_rows)
+        return (runtime, float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
     else:
         print(res.stdout)
         print(f"ERROR: tool failed on {benchmark_name}")
@@ -75,12 +88,12 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
 
     print("Running benchmarks", end="", flush=True)
     results = []
-    headers = ["Demo", "Time (s)", "Result"]
+    headers = ["Benchmark", "Time (s)", "Accuracy", "Correct Rows", "Additional Rows"]
     for benchmark_name in benchmarks:
-        runtime, accuracy = run_benchmark(benchmarks_folder, benchmark_name, skip_csv)
-        results.append((benchmark_name, runtime, accuracy))
+        result = run_benchmark(benchmarks_folder, benchmark_name, skip_csv)
+        results.append((benchmark_name, *result))
         print(".", end="", flush=True)
-    print("\n\n" + tabulate(results, headers, floatfmt=".2f") + "\n")
+    print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
 
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
@@ -107,35 +120,38 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
     print("Running benchmarks on main", end="", flush=True)
     results_main = []
     for benchmark_name in benchmarks:
-        results_main.append(
-            (benchmark_name, *run_benchmark(benchmarks_folder, benchmark_name))
-        )
+        result = run_benchmark(benchmarks_folder, benchmark_name, skip_csv=True)
+        results_main.append((benchmark_name, *result))
         print(".", end="", flush=True)
-    print("\n\n" + tabulate(results_main, headers, floatfmt=".2f") + "\n")
+    print("\n\n" + tabulate(results_main, headers, floatfmt=".1f") + "\n")
 
     # Checkout back to branch
     mybranch.checkout()
 
     # Compare results
-    accuracy = {b: float(r.split("%")[0]) for b, _, r in results}
-    accuracy_main = {b: float(r.split("%")[0]) for b, _, r in results_main}
-    if set(accuracy.keys()) != set(accuracy_main.keys()):
+    main_headers = ["Benchmark"] + ["M " + h for h in headers[1:]]
+    df = pd.merge(
+        pd.DataFrame(results_main, columns=main_headers),
+        pd.DataFrame(results, columns=headers),
+        on="Benchmark",
+        how="outer",
+    )
+    if df.isna().values.any():
         print("ERROR: number of benchmarks changed")
         sys.exit(1)
-    accu_regressions = [b for b in accuracy if accuracy[b] < accuracy_main[b]]
+    accu_regressions = df[df["Correct Rows"] < df["M Correct Rows"]]["Benchmark"]
+    addi_regressions = df[df["Additional Rows"] > df["M Additional Rows"]]["Benchmark"]
+    time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
 
-    times = {b: t for b, t, _ in results}
-    times_main = {b: t for b, t, _ in results_main}
-    time_regressions = [b for b in times if times[b] > 2 * times_main[b]]
-
-    if len(accu_regressions + time_regressions) > 0:
-        if accu_regressions:
-            print(f"ERROR: accuracy regressed on: {', '.join(accu_regressions)}")
-        if time_regressions:
+    if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
+        if not accu_regressions.empty:
+            print(f"ERROR: correct rows regressed on: {', '.join(accu_regressions)}")
+        if not addi_regressions.empty:
+            print(f"ERROR: additional rows regressed on: {', '.join(accu_regressions)}")
+        if not time_regressions.empty:
             print(f"ERROR: runtime regressed on: {', '.join(time_regressions)}")
         sys.exit(1)
-    # TODO also check if any table is missing more rows, and
-    # check if any new tables are missing?
+    # TODO also check if any new tables are missing?
 
     print("No regressions. You're awesome!")
 
@@ -163,7 +179,9 @@ if __name__ == "__main__":
     args = args_parser.parse_args()
 
     if args.run is not None:
-        runtime, _ = run_benchmark(args.benchmarks_folder, args.run, args.skip_csv)
+        runtime, _, _, _ = run_benchmark(
+            args.benchmarks_folder, args.run, args.skip_csv
+        )
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
         run_all_benchmarks(args.benchmarks_folder, args.skip_csv)
