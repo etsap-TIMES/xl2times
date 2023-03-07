@@ -75,7 +75,7 @@ def timeslices(tables: List[datatypes.EmbeddedXlTable]):
     :param tables:          List of tables in EmbeddedXlTable format.
     :return:                List of column names of the unique time slice table.
     """
-    # TODO merge with other timeslice code
+    # TODO merge with other timeslice code - should we delete this def or move the other one here?
 
     # No idea why casing of Weekly is special
     cols = single_table(tables, datatypes.Tag.time_slices).dataframe.columns
@@ -162,6 +162,7 @@ def apply_wildcards(
 
 
 def missing_value_inherit(df: DataFrame, colname: str):
+    # TODO: should we use pandas.DataFrame.fillna(method="ffill") instead?
     """
     For each None value in the specifed column of the dataframe, replace it with the last
     non-None value. If no previous non-None value is found leave it as it is. This function

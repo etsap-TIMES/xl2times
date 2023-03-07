@@ -550,7 +550,7 @@ def fill_in_missing_values(
     def fill_in_missing_values_inplace(df):
         for colname in df.columns:
             # TODO make this more declarative
-            if colname == "Csets" or colname == "TechName":
+            if colname in ["Sets", "Csets", "TechName"]:
                 utils.missing_value_inherit(df, colname)
             elif colname == "LimType" and table.tag == datatypes.Tag.fi_comm and False:
                 isna = df[colname].isna()
@@ -582,8 +582,6 @@ def fill_in_missing_values(
                 df[colname].fillna(
                     "ANNUAL", inplace=True
                 )  # ACT_CSTUP should use DAYNITE
-            elif colname == "Sets" and table.tag == datatypes.Tag.fi_process:
-                df[colname].fillna(method="ffill", inplace=True)
             elif colname == "Region":
                 df[colname].fillna(",".join(regions), inplace=True)
             elif colname == "Year":
@@ -1167,6 +1165,7 @@ def process_commodities(
 
     result = []
     for table in tables:
+        # TODO: looks like the same condition is specified twice on the line below. Should we remove one?
         if table.tag != datatypes.Tag.fi_comm and table.tag != datatypes.Tag.fi_comm:
             result.append(table)
         else:
@@ -1262,7 +1261,7 @@ def process_topology(
     Create topology
     """
 
-    fit_tables = [t for t in tables if t.tag == datatypes.Tag.fi_t]
+    fit_tables = [t for t in tables if t.tag.startswith(datatypes.Tag.fi_t)]
 
     columns = ["Region", "TechName", "Comm-IN", "Comm-OUT"]
     topology = pd.DataFrame(columns=columns)
