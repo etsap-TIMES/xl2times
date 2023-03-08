@@ -23,6 +23,20 @@ query_columns = {
     "CSet_CD",
 }
 
+attr_com_def = {
+    "CEFF": ["Comm-IN", "Comm-OUT"],  # this one is a Veda alias
+    "FLO_COST": ["Comm-IN", "Comm-OUT"],
+    "FLO_DELIV": ["Comm-IN"],
+    "FLO_EMIS": ["Comm-OUT", "Comm-IN"],
+    "FLO_MARK": ["Comm-IN", "Comm-OUT"],
+    "FLO_SHAR": ["Comm-IN", "Comm-OUT"],
+    "SHARE-I": ["Comm-IN"],
+    "FLO_SUB": ["Comm-OUT", "Comm-IN"],
+    "FLO_TAX": ["Comm-OUT", "Comm-IN"],
+    "STGIN_BND": ["Comm-IN"],
+    "STGOUT_BND": ["Comm-OUT"],
+}
+
 
 def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
     """
@@ -833,8 +847,17 @@ def apply_fixups(
 
         df = table.dataframe.copy()
 
-        i = df["Attribute"].str.upper() == "FLO_SHAR"
-        df.loc[i, "Comm-IN"] = df["Comm-OUT"]
+        # Populate CommName based on defaults
+        i = (
+            df["Attribute"].str.upper().isin(attr_com_def.keys())
+            & df["CommName"].isna()
+        )
+        if len(df[i]) > 0:
+            for attr in df[i]["Attribute"].unique():
+                for com_in_out in attr_com_def[attr.upper()]:
+                    index = i & (df["Attribute"] == attr) & (df["CommName"].isna())
+                    if len(df[index]) > 0:
+                        df.loc[index, ["CommName"]] = df[index][com_in_out]
 
         # Append _NRGI (energy input) to some cells in FLO_SHAR
         i = (df["Attribute"].str.lower() == "share-i") & (
@@ -1450,8 +1473,6 @@ def process_transform_insert(
                 and set(df.columns) & query_columns == {"CSet_CN"}
                 and has_no_wildcards(df["CSet_CN"])
             ):
-                df["Comm-OUT"] = df["CSet_CN"]
-                df["Comm-IN"] = df["CSet_CN"]
                 df["CommName"] = df["CSet_CN"]
                 df.drop(columns=["CSet_CN"], inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
@@ -1699,9 +1720,6 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                         if any(df["index"].duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
                     if matching_commodities is not None:
-                        matching_commodities["Comm-IN"] = matching_commodities[
-                            "CommName"
-                        ]
                         df = df.merge(matching_commodities)
                     if debug:
                         print(f"{len(df)} rows after commodities")
@@ -1748,12 +1766,6 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                     if matching_processes is not None:
                         row = matching_processes.merge(row, how="cross")
                     if matching_commodities is not None:
-                        matching_commodities["Comm-IN"] = matching_commodities[
-                            "CommName"
-                        ]
-                        matching_commodities["Comm-OUT"] = matching_commodities[
-                            "Comm-IN"
-                        ]
                         row = matching_commodities.merge(row, how="cross")
                     new_rows.append(row)
 
