@@ -197,6 +197,7 @@ def compare(
 
     total_gt_rows = 0
     total_correct_rows = 0
+    total_additional_rows = 0
     for table_name, gt_table in sorted(
         ground_truth.items(), reverse=True, key=lambda t: len(t[1].values)
     ):
@@ -218,6 +219,7 @@ def compare(
                 data_rows = set(tuple(row) for row in data_table.values.tolist())
                 total_correct_rows += len(gt_rows.intersection(data_rows))
                 additional = data_rows - gt_rows
+                total_additional_rows += len(additional)
                 missing = gt_rows - data_rows
                 if len(additional) != 0 or len(missing) != 0:
                     print(
@@ -237,6 +239,7 @@ def compare(
     print(
         f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
         f" in output ({total_correct_rows}/{total_gt_rows})"
+        f", {total_additional_rows} additional rows"
     )
 
 
@@ -293,7 +296,7 @@ def produce_times_tables(
                 )
             else:
                 # Excel columns can be duplicated into multiple Times columns
-                for (times_col, xl_col) in mapping.col_map.items():
+                for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 cols_to_drop = [x for x in df.columns if not x in mapping.times_cols]
                 df.drop(columns=cols_to_drop, inplace=True)
