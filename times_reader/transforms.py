@@ -244,8 +244,9 @@ def process_flexible_import_tables(
             return table
 
         # Rename, add and remove specific columns if the circumstances are right
+        # TODO: We should do a full scale normalisation here, incl. renaming of aliases
         df = table.dataframe
-        mapping = {"YEAR": "Year"}
+        mapping = {"YEAR": "Year", "Timeslices": "TimeSlice"}
         df = df.rename(columns=mapping)
 
         if "CURR" in df.columns.values:
