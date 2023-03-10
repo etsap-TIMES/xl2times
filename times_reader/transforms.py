@@ -23,6 +23,7 @@ query_columns = {
     "CSet_CD",
 }
 
+# Specify, in order of priority, what to use as CommName if CommName is empty
 attr_com_def = {
     "CEFF": ["Comm-IN", "Comm-OUT"],  # this one is a Veda alias
     "FLO_COST": ["Comm-IN", "Comm-OUT"],
@@ -1189,8 +1190,7 @@ def process_commodities(
 
     result = []
     for table in tables:
-        # TODO: looks like the same condition is specified twice on the line below. Should we remove one?
-        if table.tag != datatypes.Tag.fi_comm and table.tag != datatypes.Tag.fi_comm:
+        if table.tag != datatypes.Tag.fi_comm:
             result.append(table)
         else:
             df = table.dataframe.copy()
