@@ -30,7 +30,7 @@ aliases_by_attr = {
     "ACT_CUM": ["CUM"],
     "ACT_EFF": ["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O", "EFF", "EFFICIENCY"],
     "COM_PROJ": ["DEMAND"],
-    "FLO_SHAR": ["SHARE-I", "SHARE-O"],
+    "FLO_SHAR": ["FLOSHAR", "SHARE", "SHARE-I", "SHARE-O"],
     "IRE_PRICE": ["COST"],
     "NCAP_AFA": ["AFA"],
     "NCAP_CHPR": ["CHPR"],
@@ -59,12 +59,157 @@ attr_com_def = {
     "FLO_EMIS": ["Comm-OUT", "Comm-IN"],
     "FLO_MARK": ["Comm-IN", "Comm-OUT"],
     "FLO_SHAR": ["Comm-IN", "Comm-OUT"],
+    "FLOSHAR": ["Comm-IN", "Comm-OUT"],
+    "SHARE": ["Comm-IN", "Comm-OUT"],
     "SHARE-I": ["Comm-IN"],
     "SHARE-O": ["Comm-OUT"],
     "FLO_SUB": ["Comm-OUT", "Comm-IN"],
     "FLO_TAX": ["Comm-OUT", "Comm-IN"],
     "STGIN_BND": ["Comm-IN"],
     "STGOUT_BND": ["Comm-OUT"],
+}
+
+attr_limtype_def = {
+    "FX": [
+        "ACT_LOSPL",
+        "FLO_SHAR",
+        "FLOSHAR",
+        "SHARE",
+        "SHARE-I",
+        "SHARE-O",
+        "NCAP_CHPR",
+        "REG_BDNCAP",
+    ],
+    "LO": ["BS_STIME", "GR_VARGEN", "RCAP_BND"],
+    "UP": [
+        "ACT_BND",
+        "ACT_CSTRMP",
+        "ACT_CSTSD",
+        "ACT_CUM",
+        "CUM",
+        "ACT_LOSSD",
+        "ACT_SDTIME",
+        "ACT_TIME",
+        "ACT_UPS",
+        "BS_BNDPRS",
+        "BS_SHARE",
+        "CAP_BND",
+        "COM_BNDNET",
+        "COM_BNDPRD",
+        "COM_CUMNET",
+        "COM_CUMPRD",
+        "FLO_BND",
+        "FLO_CUM",
+        "FLO_FR",
+        "FLO_MARK",
+        "IRE_BND",
+        "IRE_XBND",
+        "NCAP_AF",
+        "NCAP_AFA",
+        "AFA",
+        "NCAP_AFAC",
+        "NCAP_AFS",
+        "NCAP_AFSX",
+        "NCAP_BND",
+        "PRC_MARK",
+        "REG_BNDCST",
+        "REG_CUMCST",
+        "S_CAP_BND",
+        "S_COM_CUMNET",
+        "S_COM_CUMPRD",
+        "S_FLO_CUM",
+        "S_UC_RHS",
+        "S_UC_RHSR",
+        "S_UC_RHSRT",
+        "S_UC_RHSRTS",
+        "S_UC_RHSTS",
+        "STGIN_BND",
+        "STGOUT_BND",
+        "UC_DYNBND",
+        "UC_RHS",
+        "UC_RHSR",
+        "UC_RHSRT",
+        "UC_RHSRTS",
+        "UC_RHST",
+        "UC_RHSTS",
+    ],
+}
+
+attr_timeslice_def = {
+    "DAYNITE": ["ACT_CSTUP"],
+    "ANNUAL": [
+        "ACT_BND",
+        "ACT_EFF",
+        "CEFF-O",
+        "CEFF-I",
+        "CEFFICIENCY",
+        "EFFICIENCY",
+        "EFF",
+        "ACT_FLO",
+        "ACT_UPS",
+        "BS_BNDPRS",
+        "BS_DELTA",
+        "BS_DEMDET",
+        "BS_MAINT",
+        "BS_OMEGA",
+        "BS_RMAX",
+        "BS_SIGMA",
+        "COM_BNDNET",
+        "COM_BNDPRD",
+        "COM_BPRICE",
+        "COM_CSTBAL",
+        "COM_CSTNET",
+        "COM_CSTPRD",
+        "COM_ELAST",
+        "COM_IE",
+        "COM_SUBNET",
+        "COM_SUBPRD",
+        "COM_TAXNET",
+        "COM_TAXPRD",
+        "FLO_BND",
+        "FLO_COST",
+        "FLO_DELIV",
+        "FLO_EFF",
+        "FLO_EMIS",
+        "FLO_FUNC",
+        "FLO_SHAR",
+        "FLOSHAR",
+        "SHARE",
+        "SHARE-I",
+        "SHARE-O",
+        "FLO_SUB",
+        "FLO_TAX",
+        "G_YRFR",
+        "GR_DEMFR",
+        "IRE_BND",
+        "IRE_FLOSUM",
+        "IRE_PRICE",
+        "COST",
+        "IRE_XBND",
+        "NCAP_AF",
+        "NCAP_AFC",
+        "NCAP_AFCS",
+        "NCAP_PKCNT",
+        "PEAK",
+        "PRC_FOFF",
+        "S_UC_RHSRTS",
+        "S_UC_RHSTS",
+        "STG_CHRG",
+        "STG_LOSS",
+        "STG_SIFT",
+        "STGIN_BND",
+        "STGOUT_BND",
+        "TS_CYCLE",
+        "UC_ACT",
+        "UC_COMCON",
+        "UC_COMNET",
+        "UC_COMPRD",
+        "UC_FLO",
+        "UC_IRE",
+        "UC_RHSRTS",
+        "UC_RHSTS",
+        "VDA_FLOP",
+    ],
 }
 
 
@@ -600,31 +745,29 @@ def fill_in_missing_values(
                 ismat = df["Csets"] == "MAT"
                 df.loc[isna & ismat, colname] = "FX"
                 df.loc[isna & ~ismat, colname] = "LO"
-            elif colname == "LimType" and (
-                table.tag == datatypes.Tag.fi_t or table.tag.startswith("~TFM")
+            elif (
+                colname == "LimType"
+                and (table.tag == datatypes.Tag.fi_t or table.tag.startswith("~TFM"))
+                and len(df) > 0
             ):
                 isna = df[colname].isna()
-                islo = df["Attribute"].isin({"BS_STIME", "GR_VARGEN", "RCAP_BND"})
-                isfx = df["Attribute"].isin(
-                    {
-                        "ACT_LOSPL",
-                        "FLO_SHAR",
-                        "MARKAL-REH",
-                        "NCAP_CHPR",
-                        "VA_Attrib_C",
-                        "VA_Attrib_T",
-                        "VA_Attrib_TC",
-                    }
-                )
-                df.loc[isna & islo, colname] = "LO"
-                df.loc[isna & isfx, colname] = "FX"
-                df.loc[isna & ~islo & ~isfx, colname] = "UP"
-            elif (
-                colname == "TimeSlice" or colname == "Tslvl"
-            ):  # or colname == "CTSLvl" or colname == "PeakTS":
-                df[colname].fillna(
-                    "ANNUAL", inplace=True
-                )  # ACT_CSTUP should use DAYNITE
+                for lim in attr_limtype_def.keys():
+                    df.loc[
+                        isna & df["Attribute"].str.upper().isin(attr_limtype_def[lim]),
+                        colname,
+                    ] = lim
+            elif colname == "TimeSlice" and len(df) > 0 and "Attribute" in df.columns:
+                isna = df[colname].isna()
+                for timeslice in attr_timeslice_def.keys():
+                    df.loc[
+                        isna
+                        & df["Attribute"]
+                        .str.upper()
+                        .isin(attr_timeslice_def[timeslice]),
+                        colname,
+                    ] = timeslice
+            elif colname == "Tslvl":  # or colname == "CTSLvl" or colname == "PeakTS":
+                df[colname].fillna("ANNUAL", inplace=True)
             elif colname == "Region":
                 df[colname].fillna(",".join(regions), inplace=True)
             elif colname == "Year":
