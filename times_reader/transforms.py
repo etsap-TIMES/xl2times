@@ -1180,8 +1180,21 @@ def extract_commodity_groups(
             range="",
             filename="",
             uc_sets="",
-            tag="COM_GMAP",
+            tag="COMM_GROUPS",
             dataframe=comm_groups,
+        )
+    )
+
+    i = comm_groups["CommodityGroup"] != comm_groups["CommName"]
+
+    tables.append(
+        datatypes.EmbeddedXlTable(
+            sheetname="",
+            range="",
+            filename="",
+            uc_sets="",
+            tag="COM_GMAP",
+            dataframe=comm_groups.loc[i, ["Region", "CommodityGroup", "CommName"]],
         )
     )
 
@@ -1198,7 +1211,7 @@ def generate_top_ire(
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
     dummy_process_cset = [["NRG", "IMPNRGZ"], ["MAT", "IMPMATZ"], ["DEM", "IMPDEMZ"]]
     veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
-    com_map = utils.single_table(tables, "COM_GMAP").dataframe
+    com_map = utils.single_table(tables, "COMM_GROUPS").dataframe
 
     ire_prc = pd.DataFrame(columns=["Region", "TechName"])
     for table in tables:
@@ -1289,7 +1302,7 @@ def fill_in_missing_pcgs(
         else:
             df = table.dataframe.copy()
             df["PrimaryCG"] = df.apply(expand_pcg_from_suffix, axis=1)
-            default_pcgs = utils.single_table(tables, "COM_GMAP").dataframe.copy()
+            default_pcgs = utils.single_table(tables, "COMM_GROUPS").dataframe.copy()
             default_pcgs = default_pcgs.loc[
                 default_pcgs["DefaultVedaPCG"] == 1,
                 ["Region", "TechName", "CommodityGroup"],
