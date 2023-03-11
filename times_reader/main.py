@@ -136,6 +136,7 @@ def convert_xl_to_times(
         transforms.merge_tables,
         transforms.process_years,
         transforms.process_wildcards,
+        transforms.convert_aliases,
         convert_to_string,
         lambda tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")

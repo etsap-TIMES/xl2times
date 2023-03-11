@@ -23,15 +23,44 @@ query_columns = {
     "CSet_CD",
 }
 
+# Specify a list of aliases per TIMES attribute
+aliases_by_attr = {
+    "ACT_BND": ["ACTBND"],
+    "ACT_COST": ["ACTCOST"],
+    "ACT_CUM": ["CUM"],
+    "ACT_EFF": ["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O", "EFF", "EFFICIENCY"],
+    "COM_PROJ": ["DEMAND"],
+    "FLO_SHAR": ["SHARE-I", "SHARE-O"],
+    "IRE_PRICE": ["COST"],
+    "NCAP_AFA": ["AFA"],
+    "NCAP_CHPR": ["CHPR"],
+    "NCAP_COST": ["INVCOST"],
+    "NCAP_FOM": ["FIXOM"],
+    "NCAP_PKCNT": ["PEAK"],
+    "NCAP_START": ["START"],
+    "NCAP_TLIFE": ["LIFE"],
+    "PRC_ACTFLO": ["ACTFLO"],
+    "PRC_CAPACT": ["CAP2ACT"],
+    "PRC_RESID": ["RESID", "STOCK"],
+    "STG_EFF": ["S_EFF"],
+    "VDA_CEH": ["CEH"],
+    "VDA_EMCB": ["EMCB"],
+    "VDA_FLOP": ["FLOP"],
+}
+
 # Specify, in order of priority, what to use as CommName if CommName is empty
 attr_com_def = {
     "CEFF": ["Comm-IN", "Comm-OUT"],  # this one is a Veda alias
+    "CEFFICIENCY": ["Comm-IN", "Comm-OUT"],  # this one is an alias of the above
+    "CEFF-I": ["Comm-IN"],
+    "CEFF-O": ["Comm-OUT"],
     "FLO_COST": ["Comm-IN", "Comm-OUT"],
     "FLO_DELIV": ["Comm-IN"],
     "FLO_EMIS": ["Comm-OUT", "Comm-IN"],
     "FLO_MARK": ["Comm-IN", "Comm-OUT"],
     "FLO_SHAR": ["Comm-IN", "Comm-OUT"],
     "SHARE-I": ["Comm-IN"],
+    "SHARE-O": ["Comm-OUT"],
     "FLO_SUB": ["Comm-OUT", "Comm-IN"],
     "FLO_TAX": ["Comm-OUT", "Comm-IN"],
     "STGIN_BND": ["Comm-IN"],
@@ -341,9 +370,6 @@ def process_flexible_import_tables(
             if attr == "FLO_EMIS":
                 i = df[attribute] == attr
                 df.loc[i & df[other].isna(), other] = "ACT"
-            elif attr == "EFF":
-                i = df[attribute] == attr
-                df.loc[i, other] = "ACT"
             elif attr == "OUTPUT":
                 i = df[attribute] == attr
                 df.loc[i, "Comm-IN"] = df.loc[i, "Comm-OUT-A"]
@@ -849,6 +875,10 @@ def apply_fixups(
 
         df = table.dataframe.copy()
 
+        # Ensure that all attributes are uppercase
+        # TODO: This probably should be done earlier
+        df["Attribute"] = df["Attribute"].str.upper()
+
         # Populate CommName based on defaults
         i = (
             df["Attribute"].str.upper().isin(attr_com_def.keys())
@@ -862,16 +892,17 @@ def apply_fixups(
                         df.loc[index, ["CommName"]] = df[index][com_in_out]
 
         # Append _NRGI (energy input) to some cells in FLO_SHAR
-        i = (df["Attribute"].str.lower() == "share-i") & (
+        i = (df["Attribute"] == "SHARE-I") & (
             (df["LimType"] == "UP") | (df["LimType"] == "LO")
         )
         # TODO: looks like NRG may come from ~TFM_Csets
         df.loc[i, "Other_Indexes"] = df["TechName"].astype(str) + "_NRGI"
 
-        # TODO allow multiple columns in mapping
-        df["Attribute"] = df["Attribute"].str.replace(
-            "Share-I", "FLO_SHAR", case=False, regex=False
-        )
+        # Fill other indexes for some attributes
+        i = df["Attribute"].isin(["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"])
+        df.loc[i, "Other_Indexes"] = df[i]["CommName"]
+        i = df["Attribute"].isin(["EFF", "EFFICIENCY"])
+        df.loc[i, "Other_Indexes"] = "ACT"
 
         return replace(table, dataframe=df)
 
@@ -1908,12 +1939,30 @@ def process_time_slices(
     return result
 
 
+# TODO: looks like there is a similar function in main. Should we delete one?
 def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     output = {}
     for key, value in input.items():
         output[key] = value.applymap(
             lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
         )
+    return output
+
+
+def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    output = {}
+
+    # Ensure TIMES names for all attributes
+    replacement_dict = {}
+    for k, v in aliases_by_attr.items():
+        for alias in v:
+            replacement_dict[alias] = k
+
+    for table_type, df in input.items():
+        if "Attribute" in df.columns:
+            df.replace({"Attribute": replacement_dict}, inplace=True)
+        output[table_type] = df
+
     return output
 
 
