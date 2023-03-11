@@ -129,6 +129,7 @@ def convert_xl_to_times(
         transforms.process_currencies,
         transforms.process_units,
         transforms.generate_all_regions,
+        transforms.capitalise_attributes,
         transforms.apply_fixups,
         transforms.extract_commodity_groups,
         transforms.fill_in_missing_pcgs,

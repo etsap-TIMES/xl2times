@@ -866,6 +866,25 @@ def generate_all_regions(
     return tables
 
 
+def capitalise_attributes(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Ensure that all attributes are uppercase
+    """
+    # TODO: This should be part of normalisation
+    def capitalise_attributes_table(table: datatypes.EmbeddedXlTable):
+
+        df = table.dataframe.copy()
+        if "Attribute" in df.columns and len(df) > 0:
+            df["Attribute"] = df["Attribute"].str.upper()
+            return replace(table, dataframe=df)
+        else:
+            return table
+
+    return [capitalise_attributes_table(table) for table in tables]
+
+
 def apply_fixups(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
@@ -874,10 +893,6 @@ def apply_fixups(
             return table
 
         df = table.dataframe.copy()
-
-        # Ensure that all attributes are uppercase
-        # TODO: This probably should be done earlier
-        df["Attribute"] = df["Attribute"].str.upper()
 
         # Populate CommName based on defaults
         i = (
