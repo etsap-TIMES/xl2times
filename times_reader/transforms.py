@@ -25,17 +25,23 @@ query_columns = {
 
 # Specify a list of aliases per TIMES attribute
 aliases_by_attr = {
-    "ACT_BND": ["ACTBND"],
-    "ACT_COST": ["ACTCOST"],
+    "ACT_BND": ["ACTBND", "BNDACT"],
+    "ACT_COST": ["ACTCOST", "VAROM"],
     "ACT_CUM": ["CUM"],
     "ACT_EFF": ["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O", "EFF", "EFFICIENCY"],
     "COM_PROJ": ["DEMAND"],
+    "FLO_DELIV": ["DELIV"],
     "FLO_SHAR": ["FLOSHAR", "SHARE", "SHARE-I", "SHARE-O"],
     "IRE_PRICE": ["COST"],
+    "NCAP_AF": ["AF"],
     "NCAP_AFA": ["AFA"],
+    "NCAP_AFC": ["AFC"],
+    "NCAP_BND": [],
     "NCAP_CHPR": ["CHPR"],
     "NCAP_COST": ["INVCOST"],
+    "NCAP_CPX": ["CPX"],
     "NCAP_FOM": ["FIXOM"],
+    "NCAP_PASTI": ["PASTI"],
     "NCAP_PKCNT": ["PEAK"],
     "NCAP_START": ["START"],
     "NCAP_TLIFE": ["LIFE"],
@@ -56,6 +62,7 @@ attr_com_def = {
     "CEFF-O": ["Comm-OUT"],
     "FLO_COST": ["Comm-IN", "Comm-OUT"],
     "FLO_DELIV": ["Comm-IN"],
+    "DELIV": ["Comm-IN"],
     "FLO_EMIS": ["Comm-OUT", "Comm-IN"],
     "FLO_MARK": ["Comm-IN", "Comm-OUT"],
     "FLO_SHAR": ["Comm-IN", "Comm-OUT"],
@@ -78,11 +85,14 @@ attr_limtype_def = {
         "SHARE-I",
         "SHARE-O",
         "NCAP_CHPR",
+        "CHPR",
         "REG_BDNCAP",
     ],
     "LO": ["BS_STIME", "GR_VARGEN", "RCAP_BND"],
     "UP": [
         "ACT_BND",
+        "ACTBND",
+        "BNDACT",
         "ACT_CSTRMP",
         "ACT_CSTSD",
         "ACT_CUM",
@@ -105,6 +115,7 @@ attr_limtype_def = {
         "IRE_BND",
         "IRE_XBND",
         "NCAP_AF",
+        "AF",
         "NCAP_AFA",
         "AFA",
         "NCAP_AFAC",
@@ -139,7 +150,10 @@ attr_timeslice_def = {
     "DAYNITE": ["ACT_CSTUP"],
     "ANNUAL": [
         "ACT_BND",
+        "ACTBND",
+        "BNDACT",
         "ACT_EFF",
+        "CEFF",
         "CEFF-O",
         "CEFF-I",
         "CEFFICIENCY",
@@ -169,6 +183,7 @@ attr_timeslice_def = {
         "FLO_BND",
         "FLO_COST",
         "FLO_DELIV",
+        "DELIV",
         "FLO_EFF",
         "FLO_EMIS",
         "FLO_FUNC",
@@ -187,7 +202,9 @@ attr_timeslice_def = {
         "COST",
         "IRE_XBND",
         "NCAP_AF",
+        "AF",
         "NCAP_AFC",
+        "AFC",
         "NCAP_AFCS",
         "NCAP_PKCNT",
         "PEAK",
@@ -1031,6 +1048,10 @@ def capitalise_attributes(
 def apply_fixups(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
+
+    reg_com_flows = utils.single_table(tables, "ProcessTopology").dataframe.copy()
+    reg_com_flows.drop(columns="IO", inplace=True)
+
     def apply_fixups_table(table: datatypes.EmbeddedXlTable):
         if not table.tag.startswith(datatypes.Tag.fi_t) or table.dataframe.size == 0:
             return table
@@ -1061,6 +1082,21 @@ def apply_fixups(
         df.loc[i, "Other_Indexes"] = df[i]["CommName"]
         i = df["Attribute"].isin(["EFF", "EFFICIENCY"])
         df.loc[i, "Other_Indexes"] = "ACT"
+
+        # Fill CommName for COST (alias of IRE_PRICE) if missing
+        if "Attribute" in df.columns and "COST" in df["Attribute"].unique():
+            i = (df["Attribute"] == "COST") & df["CommName"].isna()
+            if any(i):
+                df.loc[i, "CommName"] = df[i].apply(
+                    lambda row: ",".join(
+                        reg_com_flows.loc[
+                            (reg_com_flows["Region"] == row["Region"])
+                            & (reg_com_flows["TechName"] == row["TechName"]),
+                            "CommName",
+                        ].unique()
+                    ),
+                    axis=1,
+                )
 
         return replace(table, dataframe=df)
 
