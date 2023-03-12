@@ -1097,6 +1097,7 @@ def apply_fixups(
                     ),
                     axis=1,
                 )
+                # TODO: Expand rows if multiple comma-separated commodities are included
 
         return replace(table, dataframe=df)
 

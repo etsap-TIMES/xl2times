@@ -347,12 +347,3 @@ def expand_rows_parallel(
 ) -> List[datatypes.EmbeddedXlTable]:
     with ProcessPoolExecutor() as executor:
         return list(executor.map(transforms.expand_rows, tables))
-
-
-def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
-    os.makedirs(output_dir, exist_ok=True)
-    for item in os.listdir(output_dir):
-        if item.endswith(".csv"):
-            os.remove(os.path.join(output_dir, item))
-    for tablename, df in tables.items():
-        df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
