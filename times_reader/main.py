@@ -138,7 +138,7 @@ def convert_xl_to_times(
         transforms.process_years,
         transforms.process_wildcards,
         transforms.convert_aliases,
-        convert_to_string,
+        transforms.convert_to_string,
         lambda tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
@@ -244,15 +244,6 @@ def compare(
         f" in output ({total_correct_rows}/{total_gt_rows})"
         f", {total_additional_rows} additional rows"
     )
-
-
-def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
-    output = {}
-    for key, value in input.items():
-        output[key] = value.applymap(
-            lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
-        )
-    return output
 
 
 def produce_times_tables(

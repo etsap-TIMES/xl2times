@@ -2147,7 +2147,6 @@ def process_time_slices(
     return result
 
 
-# TODO: looks like there is a similar function in main. Should we delete one?
 def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     output = {}
     for key, value in input.items():
@@ -2174,6 +2173,7 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return output
 
 
+# TODO: A function like this is also inluded in main.py. Should we delete one?
 def dump_tables(tables: List, filename: str) -> List:
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w") as text_file:
@@ -2198,6 +2198,7 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
+# TODO: A function like this is also inluded in main.py. Should we delete one?
 def expand_rows_parallel(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
