@@ -129,6 +129,7 @@ def convert_xl_to_times(
         transforms.process_currencies,
         transforms.process_units,
         transforms.generate_all_regions,
+        transforms.capitalise_attributes,
         transforms.apply_fixups,
         transforms.extract_commodity_groups,
         transforms.fill_in_missing_pcgs,
@@ -136,6 +137,7 @@ def convert_xl_to_times(
         transforms.merge_tables,
         transforms.process_years,
         transforms.process_wildcards,
+        transforms.convert_aliases,
         convert_to_string,
         lambda tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
@@ -345,12 +347,3 @@ def expand_rows_parallel(
 ) -> List[datatypes.EmbeddedXlTable]:
     with ProcessPoolExecutor() as executor:
         return list(executor.map(transforms.expand_rows, tables))
-
-
-def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
-    os.makedirs(output_dir, exist_ok=True)
-    for item in os.listdir(output_dir):
-        if item.endswith(".csv"):
-            os.remove(os.path.join(output_dir, item))
-    for tablename, df in tables.items():
-        df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
