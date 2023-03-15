@@ -147,7 +147,7 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
         if not accu_regressions.empty:
             print(f"ERROR: correct rows regressed on: {', '.join(accu_regressions)}")
         if not addi_regressions.empty:
-            print(f"ERROR: additional rows regressed on: {', '.join(accu_regressions)}")
+            print(f"ERROR: additional rows regressed on: {', '.join(addi_regressions)}")
         if not time_regressions.empty:
             print(f"ERROR: runtime regressed on: {', '.join(time_regressions)}")
         sys.exit(1)
