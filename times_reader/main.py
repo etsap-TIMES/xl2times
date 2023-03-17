@@ -304,7 +304,10 @@ def produce_times_tables(
                 df.drop(columns=cols_to_drop, inplace=True)
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
-                i = df[mapping.times_cols[-1]].notna()
+                # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
+                i = df[mapping.times_cols[-1]].notna() & (
+                    df[mapping.times_cols[-1]] != "None"
+                )
                 df = df.loc[i, mapping.times_cols]
                 result[mapping.times_name] = df
 
