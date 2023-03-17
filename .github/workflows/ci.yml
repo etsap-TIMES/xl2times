@@ -14,11 +14,6 @@ jobs:
   CI:
     runs-on: ubuntu-latest
 
-    env:
-      # A dummy key for the XLSX cache. Increment this when you want this Action to
-      # ignore cache and re-download and convert demo files
-      DUMMY_XLSX_CACHE_KEY: 0
-
     steps:
       - uses: actions/checkout@v3
         with:
@@ -43,30 +38,11 @@ jobs:
           repository: olejandro/demos-dd
           path: benchmarks/dd
 
-      - name: Cache demo xlsx files
-        uses: actions/cache@v3
-        id: cache-xlsx
+      - uses: actions/checkout@v3
         with:
+          repository: olejandro/demos-xlsx
           path: benchmarks/xlsx
-          key: ${{ env.DUMMY_XLSX_CACHE_KEY }}
-
-      - name: Download demo files and convert to xlsx
-        if: steps.cache-xlsx.outputs.cache-hit != 'true'
-        run: |
-          wget -nv https://iea-etsap.org/demo-models/VEDA-TIMES%20Demo%20Models.zip
-          unzip *.zip
-          mv "./VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" benchmarks/xlsx
-          sudo apt install libreoffice-calc default-jre libreoffice-java-common
-          find benchmarks/xlsx -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
-
-      # Upload the converted xlsx files as an artifact so that we can download it
-      # and reproduce any CI failures locally
-      - name: Upload xlsx files as artifact
-        uses: actions/upload-artifact@v3
-        if: steps.cache-xlsx.outputs.cache-hit != 'true'
-        with:
-          name: demos-xlsx
-          path: benchmarks/xlsx
+          token: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
       # ---------- Prepare TIMES Ireland Model
 

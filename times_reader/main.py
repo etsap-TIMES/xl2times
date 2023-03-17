@@ -115,6 +115,7 @@ def convert_xl_to_times(
         transforms.remove_tables_with_formulas,  # slow
         transforms.process_transform_insert,
         transforms.process_processes,
+        transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
@@ -128,6 +129,7 @@ def convert_xl_to_times(
         transforms.process_currencies,
         transforms.process_units,
         transforms.generate_all_regions,
+        transforms.capitalise_attributes,
         transforms.apply_fixups,
         transforms.extract_commodity_groups,
         transforms.fill_in_missing_pcgs,
@@ -135,6 +137,7 @@ def convert_xl_to_times(
         transforms.merge_tables,
         transforms.process_years,
         transforms.process_wildcards,
+        transforms.convert_aliases,
         convert_to_string,
         lambda tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
@@ -197,6 +200,7 @@ def compare(
 
     total_gt_rows = 0
     total_correct_rows = 0
+    total_additional_rows = 0
     for table_name, gt_table in sorted(
         ground_truth.items(), reverse=True, key=lambda t: len(t[1].values)
     ):
@@ -218,6 +222,7 @@ def compare(
                 data_rows = set(tuple(row) for row in data_table.values.tolist())
                 total_correct_rows += len(gt_rows.intersection(data_rows))
                 additional = data_rows - gt_rows
+                total_additional_rows += len(additional)
                 missing = gt_rows - data_rows
                 if len(additional) != 0 or len(missing) != 0:
                     print(
@@ -237,6 +242,7 @@ def compare(
     print(
         f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
         f" in output ({total_correct_rows}/{total_gt_rows})"
+        f", {total_additional_rows} additional rows"
     )
 
 
@@ -293,7 +299,7 @@ def produce_times_tables(
                 )
             else:
                 # Excel columns can be duplicated into multiple Times columns
-                for (times_col, xl_col) in mapping.col_map.items():
+                for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 cols_to_drop = [x for x in df.columns if not x in mapping.times_cols]
                 df.drop(columns=cols_to_drop, inplace=True)
@@ -341,12 +347,3 @@ def expand_rows_parallel(
 ) -> List[datatypes.EmbeddedXlTable]:
     with ProcessPoolExecutor() as executor:
         return list(executor.map(transforms.expand_rows, tables))
-
-
-def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
-    os.makedirs(output_dir, exist_ok=True)
-    for item in os.listdir(output_dir):
-        if item.endswith(".csv"):
-            os.remove(os.path.join(output_dir, item))
-    for tablename, df in tables.items():
-        df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
