@@ -10,7 +10,7 @@
 - Integrate type checker into CI (mypy?)
 - ~~Decide at what point to reach out to TIMES community and announce project (and ask for help?)~~
 - ~~Figure out how to handle columns that start with * but are not comments (manual isn't clear on this)~~
-- ~~Decide what to do about ~TFM_FILL. These tables look like the Excel files are meant to be updated by the tool~~
+- ~~Decide what to do about \~TFM_FILL. These tables look like the Excel files are meant to be updated by the tool~~
 - Create a glossary?
 - Remove additional rows in output that are not in ground truth
 - ~~Test on other data sets (using CI?)~~
@@ -23,7 +23,7 @@
 
 ## Processing steps
 - Read files included in the case / all model files if a subset not specified
-- Make tables standard (e.g. lower case headers, etc.)
+- Normalise the tables (e.g. lower/upper case headers, etc.)
 - Read settings in syssettings
 - Fill in missing values that are independent from info in other files (e.g. process name in FI_T, sets in FI_Process, default year, etc.).
 - Process model files in groups:
@@ -46,10 +46,10 @@ Steps to standardize a commodity table (~FI\_COMM)
   - [x] Csets: declarations are inherited until the next one is encountered
   - [x] Region: By default, it is applied to all regions of the model when not specified
     - [x] Get hold of regions from  ~BookRegions\_Map, can use comma-separated list here
-- [x] ?LimType: When not specified, the default is LO for all but MAT commodities (Csets column) with a default of FX
-- [x] ?CTSLvl: When not specified, the default is ANNUAL
-- [x] ?PeakTS: If not specified the default is ANNUAL
-- [x] ?Duplicate rows with comma-separated values (Csets, Region, PeakTS), each row getting only one of the values.
+- [x] LimType: Do nothing, when not specified. TIMES uses LO for all but MAT commodities (Csets column) with a default of FX
+- [x] CTSLvl: Do nothing, when not specified. TIMES uses ANNUAL by default.
+- [x] PeakTS: Do nothing, when not specified. TIMES uses ANNUAL by default.
+- [x] Duplicate rows with comma-separated values (Csets, Region, PeakTS), each row getting only one of the values.
 - [ ] After above, check there are no comma-separated values
 - [x] Remove rows with disallowed values
   - [x] Csets must be one of: NRG (energy), MAT (material), DEM (demand service), ENV (emissions) and FIN (financial)
@@ -83,7 +83,7 @@ Missing-value handling of process tables (~FI\_PROCESS)
 - [x] PrimaryCG: if missing, use Veda rules to determine default
   - [x] Can only be done after the technology tables are available
   - [ ] ~~Could append the output commodity column first~~
-- [x] ?Others have constant/fixed default values
+- [x] Others have constant/fixed default values
 
 <br/>
 
@@ -239,10 +239,10 @@ Special handling for ~UC\_Sets:
 
 ~DefUnits (seems to be unused)
 
-~ImpSettings (undocumented)
+~ImpSettings - is not used by Veda2. These settings are in AppData.
 
-~TFM\_Csets?
+~TFM\_Csets
 
-~TFM\_Psets?
+~TFM\_Psets
 
 ~COMAGG
