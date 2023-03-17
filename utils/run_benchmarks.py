@@ -13,12 +13,15 @@ from typing import Tuple
 
 
 def run_benchmark(
-    benchmarks_folder: str, benchmark_name: str, skip_csv: bool = False
+    benchmarks_folder: str,
+    benchmark_name: str,
+    skip_csv: bool = False,
+    out_folder: str = "out",
 ) -> Tuple[float, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark_name)
     dd_folder = path.join(benchmarks_folder, "dd", benchmark_name)
     csv_folder = path.join(benchmarks_folder, "csv", benchmark_name)
-    out_folder = path.join(benchmarks_folder, "out", benchmark_name)
+    out_folder = path.join(benchmarks_folder, out_folder, benchmark_name)
 
     # First convert ground truth DD to csv
     if not skip_csv:
@@ -60,7 +63,7 @@ def run_benchmark(
         text=True,
     )
     runtime = time.time() - start
-    with open(path.join(benchmarks_folder, "out", f"{benchmark_name}.out"), "w") as f:
+    with open(path.join(out_folder, "stdout"), "w") as f:
         f.write(res.stdout)
 
     if res.returncode == 0:
@@ -120,7 +123,9 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
     print("Running benchmarks on main", end="", flush=True)
     results_main = []
     for benchmark_name in benchmarks:
-        result = run_benchmark(benchmarks_folder, benchmark_name, skip_csv=True)
+        result = run_benchmark(
+            benchmarks_folder, benchmark_name, skip_csv=True, out_folder="out-main"
+        )
         results_main.append((benchmark_name, *result))
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results_main, headers, floatfmt=".1f") + "\n")
