@@ -978,25 +978,6 @@ def process_time_periods(
     return [process_time_periods_table(table) for table in tables]
 
 
-def process_currencies(
-    tables: List[datatypes.EmbeddedXlTable],
-) -> List[datatypes.EmbeddedXlTable]:
-    def process_currencies_table(table: datatypes.EmbeddedXlTable):
-        if "Curr" not in table.dataframe.columns:
-            return table
-
-        df = table.dataframe.copy()
-
-        # TODO: work out how to implement this correctly, EUR18 etc. do not appear in raw tables
-        df["Curr"] = df["Curr"].apply(
-            lambda x: None if x is None else x.replace("MEUR20", "EUR")
-        )
-
-        return replace(table, dataframe=df)
-
-    return [process_currencies_table(table) for table in tables]
-
-
 def generate_all_regions(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
