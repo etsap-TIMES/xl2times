@@ -13,12 +13,16 @@ from typing import Tuple
 
 
 def run_benchmark(
-    benchmarks_folder: str, benchmark_name: str, skip_csv: bool = False
+    benchmarks_folder: str,
+    benchmark_name: str,
+    skip_csv: bool = False,
+    out_folder: str = "out",
+    verbose: bool = False,
 ) -> Tuple[float, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark_name)
     dd_folder = path.join(benchmarks_folder, "dd", benchmark_name)
     csv_folder = path.join(benchmarks_folder, "csv", benchmark_name)
-    out_folder = path.join(benchmarks_folder, "out", benchmark_name)
+    out_folder = path.join(benchmarks_folder, out_folder, benchmark_name)
 
     # First convert ground truth DD to csv
     if not skip_csv:
@@ -60,8 +64,13 @@ def run_benchmark(
         text=True,
     )
     runtime = time.time() - start
-    with open(path.join(benchmarks_folder, "out", f"{benchmark_name}.out"), "w") as f:
+
+    with open(path.join(out_folder, "stdout"), "w") as f:
         f.write(res.stdout)
+    if verbose:
+        line = "-" * 80
+        print(f"\n{line}\n{benchmark_name}\n{line}\n\n{res.stdout}")
+        print(res.stderr if res.stderr is not None else "")
 
     if res.returncode == 0:
         lastline = res.stdout.splitlines()[-1]
@@ -81,7 +90,7 @@ def run_benchmark(
         sys.exit(1)
 
 
-def run_all_benchmarks(benchmarks_folder, skip_csv=False):
+def run_all_benchmarks(benchmarks_folder, skip_csv=False, verbose=False):
     # Each benchmark is a directory in the benchmarks/xlsx/ folder:
     benchmarks = next(os.walk(path.join(benchmarks_folder, "xlsx")))[1]
     benchmarks = [b for b in sorted(benchmarks) if b[0] != "."]
@@ -90,7 +99,9 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
     results = []
     headers = ["Benchmark", "Time (s)", "Accuracy", "Correct Rows", "Additional Rows"]
     for benchmark_name in benchmarks:
-        result = run_benchmark(benchmarks_folder, benchmark_name, skip_csv)
+        result = run_benchmark(
+            benchmarks_folder, benchmark_name, skip_csv=skip_csv, verbose=verbose
+        )
         results.append((benchmark_name, *result))
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
@@ -120,10 +131,28 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
     print("Running benchmarks on main", end="", flush=True)
     results_main = []
     for benchmark_name in benchmarks:
-        result = run_benchmark(benchmarks_folder, benchmark_name, skip_csv=True)
+        result = run_benchmark(
+            benchmarks_folder,
+            benchmark_name,
+            skip_csv=True,
+            out_folder="out-main",
+            verbose=verbose,
+        )
         results_main.append((benchmark_name, *result))
         print(".", end="", flush=True)
-    print("\n\n" + tabulate(results_main, headers, floatfmt=".1f") + "\n")
+
+    # Print table with combined results to make comparison easier
+    combined_results = [
+        (
+            b,
+            f"{t0:5.1f} {t:5.1f}",
+            f"{a0:5.1f} {a:5.1f}",
+            f"{c0:6d} {c:6d}",
+            f"{d0:6d} {d:6d}",
+        )
+        for ((b, t, a, c, d), (_, t0, a0, c0, d0)) in zip(results, results_main)
+    ]
+    print("\n\n" + tabulate(combined_results, headers, stralign="right") + "\n")
 
     # Checkout back to branch
     mybranch.checkout()
@@ -137,13 +166,21 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
         how="outer",
     )
     if df.isna().values.any():
-        print("ERROR: number of benchmarks changed")
+        print(f"ERROR: number of benchmarks changed:\n{df}")
         sys.exit(1)
     accu_regressions = df[df["Correct Rows"] < df["M Correct Rows"]]["Benchmark"]
     addi_regressions = df[df["Additional Rows"] > df["M Additional Rows"]]["Benchmark"]
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
 
+    runtime_change = df["Time (s)"].sum() - df["M Time (s)"].sum()
+    print(f"Change in runtime: {runtime_change:+.2f}")
+    correct_change = df["Correct Rows"].sum() - df["M Correct Rows"].sum()
+    print(f"Change in correct rows: {correct_change:+d}")
+    additional_change = df["Additional Rows"].sum() - df["M Additional Rows"].sum()
+    print(f"Change in additional rows: {additional_change:+d}")
+
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
+        print()
         if not accu_regressions.empty:
             print(f"ERROR: correct rows regressed on: {', '.join(accu_regressions)}")
         if not addi_regressions.empty:
@@ -176,12 +213,21 @@ if __name__ == "__main__":
         default=False,
         help="Skip generating csv versions of ground truth DD files",
     )
+    args_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Print output of run on each benchmark",
+    )
     args = args_parser.parse_args()
 
     if args.run is not None:
         runtime, _, _, _ = run_benchmark(
-            args.benchmarks_folder, args.run, args.skip_csv
+            args.benchmarks_folder,
+            args.run,
+            skip_csv=args.skip_csv,
+            verbose=args.verbose,
         )
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
-        run_all_benchmarks(args.benchmarks_folder, args.skip_csv)
+        run_all_benchmarks(args.benchmarks_folder, args.skip_csv, args.verbose)
