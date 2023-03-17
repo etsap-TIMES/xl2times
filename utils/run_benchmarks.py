@@ -145,10 +145,10 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False, verbose=False):
     combined_results = [
         (
             b,
-            f"{t:5.1f} {t0:5.1f}",
-            f"{a:5.1f} {a0:5.1f}",
-            f"{c:6d} {c0:6d}",
-            f"{d:6d} {d0:6d}",
+            f"{t0:5.1f} {t:5.1f}",
+            f"{a0:5.1f} {a:5.1f}",
+            f"{c0:6d} {c:6d}",
+            f"{d0:6d} {d:6d}",
         )
         for ((b, t, a, c, d), (_, t0, a0, c0, d0)) in zip(results, results_main)
     ]
