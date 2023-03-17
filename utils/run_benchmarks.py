@@ -17,6 +17,7 @@ def run_benchmark(
     benchmark_name: str,
     skip_csv: bool = False,
     out_folder: str = "out",
+    verbose: bool = False,
 ) -> Tuple[float, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark_name)
     dd_folder = path.join(benchmarks_folder, "dd", benchmark_name)
@@ -63,8 +64,12 @@ def run_benchmark(
         text=True,
     )
     runtime = time.time() - start
+
     with open(path.join(out_folder, "stdout"), "w") as f:
         f.write(res.stdout)
+    if verbose:
+        print(res.stdout)
+        print(res.stderr)
 
     if res.returncode == 0:
         lastline = res.stdout.splitlines()[-1]
@@ -84,7 +89,7 @@ def run_benchmark(
         sys.exit(1)
 
 
-def run_all_benchmarks(benchmarks_folder, skip_csv=False):
+def run_all_benchmarks(benchmarks_folder, skip_csv=False, verbose=False):
     # Each benchmark is a directory in the benchmarks/xlsx/ folder:
     benchmarks = next(os.walk(path.join(benchmarks_folder, "xlsx")))[1]
     benchmarks = [b for b in sorted(benchmarks) if b[0] != "."]
@@ -93,7 +98,9 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
     results = []
     headers = ["Benchmark", "Time (s)", "Accuracy", "Correct Rows", "Additional Rows"]
     for benchmark_name in benchmarks:
-        result = run_benchmark(benchmarks_folder, benchmark_name, skip_csv)
+        result = run_benchmark(
+            benchmarks_folder, benchmark_name, skip_csv=skip_csv, verbose=verbose
+        )
         results.append((benchmark_name, *result))
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
@@ -124,7 +131,11 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
     results_main = []
     for benchmark_name in benchmarks:
         result = run_benchmark(
-            benchmarks_folder, benchmark_name, skip_csv=True, out_folder="out-main"
+            benchmarks_folder,
+            benchmark_name,
+            skip_csv=True,
+            out_folder="out-main",
+            verbose=verbose,
         )
         results_main.append((benchmark_name, *result))
         print(".", end="", flush=True)
@@ -181,12 +192,21 @@ if __name__ == "__main__":
         default=False,
         help="Skip generating csv versions of ground truth DD files",
     )
+    args_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Print output of run on each benchmark",
+    )
     args = args_parser.parse_args()
 
     if args.run is not None:
         runtime, _, _, _ = run_benchmark(
-            args.benchmarks_folder, args.run, args.skip_csv
+            args.benchmarks_folder,
+            args.run,
+            skip_csv=args.skip_csv,
+            verbose=args.verbose,
         )
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
-        run_all_benchmarks(args.benchmarks_folder, args.skip_csv)
+        run_all_benchmarks(args.benchmarks_folder, args.skip_csv, args.verbose)
