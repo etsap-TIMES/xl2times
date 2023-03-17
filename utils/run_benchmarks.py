@@ -153,13 +153,21 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False, verbose=False):
         how="outer",
     )
     if df.isna().values.any():
-        print("ERROR: number of benchmarks changed")
+        print(f"ERROR: number of benchmarks changed:\n{df}")
         sys.exit(1)
     accu_regressions = df[df["Correct Rows"] < df["M Correct Rows"]]["Benchmark"]
     addi_regressions = df[df["Additional Rows"] > df["M Additional Rows"]]["Benchmark"]
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
 
+    runtime_change = df["Time (s)"].sum() - df["M Time (s)"].sum()
+    print(f"Change in runtime: {runtime_change}")
+    correct_change = df["Correct Rows"].sum() - df["M Correct Rows"].sum()
+    print(f"Change in correct rows: {correct_change}")
+    additional_change = df["Additional Rows"].sum() - df["M Additional Rows"].sum()
+    print(f"Change in additional rows: {additional_change}")
+
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
+        print()
         if not accu_regressions.empty:
             print(f"ERROR: correct rows regressed on: {', '.join(accu_regressions)}")
         if not addi_regressions.empty:
