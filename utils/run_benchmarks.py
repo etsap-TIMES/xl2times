@@ -68,8 +68,9 @@ def run_benchmark(
     with open(path.join(out_folder, "stdout"), "w") as f:
         f.write(res.stdout)
     if verbose:
-        print(res.stdout)
-        print(res.stderr)
+        line = "-" * 80
+        print(f"\n{line}\n{benchmark_name}\n{line}\n\n{res.stdout}")
+        print(res.stderr if res.stderr is not None else "")
 
     if res.returncode == 0:
         lastline = res.stdout.splitlines()[-1]
@@ -139,7 +140,19 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False, verbose=False):
         )
         results_main.append((benchmark_name, *result))
         print(".", end="", flush=True)
-    print("\n\n" + tabulate(results_main, headers, floatfmt=".1f") + "\n")
+
+    # Print table with combined results to make comparison easier
+    combined_results = [
+        (
+            b,
+            f"{t:5.1f} {t0:5.1f}",
+            f"{a:5.1f} {a0:5.1f}",
+            f"{c:6d} {c0:6d}",
+            f"{d:6d} {d0:6d}",
+        )
+        for ((b, t, a, c, d), (_, t0, a0, c0, d0)) in zip(results, results_main)
+    ]
+    print("\n\n" + tabulate(combined_results, headers, stralign="right") + "\n")
 
     # Checkout back to branch
     mybranch.checkout()
@@ -160,11 +173,11 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False, verbose=False):
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
 
     runtime_change = df["Time (s)"].sum() - df["M Time (s)"].sum()
-    print(f"Change in runtime: {runtime_change}")
+    print(f"Change in runtime: {runtime_change:+.2f}")
     correct_change = df["Correct Rows"].sum() - df["M Correct Rows"].sum()
-    print(f"Change in correct rows: {correct_change}")
+    print(f"Change in correct rows: {correct_change:+d}")
     additional_change = df["Additional Rows"].sum() - df["M Additional Rows"].sum()
-    print(f"Change in additional rows: {additional_change}")
+    print(f"Change in additional rows: {additional_change:+d}")
 
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
         print()
