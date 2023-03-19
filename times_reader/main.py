@@ -123,7 +123,7 @@ def convert_xl_to_times(
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
         transforms.process_time_slices,
-        expand_rows_parallel,  # slow
+        transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
         transforms.process_time_periods,
         transforms.process_units,
@@ -137,7 +137,7 @@ def convert_xl_to_times(
         transforms.process_years,
         transforms.process_wildcards,
         transforms.convert_aliases,
-        convert_to_string,
+        transforms.convert_to_string,
         lambda tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
@@ -245,15 +245,6 @@ def compare(
     )
 
 
-def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
-    output = {}
-    for key, value in input.items():
-        output[key] = value.applymap(
-            lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
-        )
-    return output
-
-
 def produce_times_tables(
     input: Dict[str, DataFrame], mappings: List[datatypes.TimesXlMap]
 ) -> Dict[str, DataFrame]:
@@ -342,10 +333,3 @@ def dump_tables(tables: List, filename: str) -> List:
             text_file.write("\n" * 2)
 
     return tables
-
-
-def expand_rows_parallel(
-    tables: List[datatypes.EmbeddedXlTable],
-) -> List[datatypes.EmbeddedXlTable]:
-    with ProcessPoolExecutor() as executor:
-        return list(executor.map(transforms.expand_rows, tables))

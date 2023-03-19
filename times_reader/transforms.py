@@ -2130,7 +2130,6 @@ def process_time_slices(
     return result
 
 
-# TODO: looks like there is a similar function in main. Should we delete one?
 def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     output = {}
     for key, value in input.items():
@@ -2155,30 +2154,6 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
         output[table_type] = df
 
     return output
-
-
-def dump_tables(tables: List, filename: str) -> List:
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "w") as text_file:
-        for t in tables if isinstance(tables, List) else tables.items():
-            if isinstance(t, datatypes.EmbeddedXlTable):
-                tag = t.tag
-                text_file.write(f"sheetname: {t.sheetname}\n")
-                text_file.write(f"range: {t.range}\n")
-                text_file.write(f"filename: {t.filename}\n")
-                if t.uc_sets:
-                    text_file.write(f"uc_sets: {t.uc_sets}\n")
-                df = t.dataframe
-            else:
-                tag = t[0]
-                df = t[1]
-            text_file.write(f"tag: {tag}\n")
-            types = ", ".join([f"{i} ({v})" for i, v in df.dtypes.items()])
-            text_file.write(f"types: {types}\n")
-            text_file.write(df.to_csv(index=False, lineterminator="\n"))
-            text_file.write("\n" * 2)
-
-    return tables
 
 
 def expand_rows_parallel(
