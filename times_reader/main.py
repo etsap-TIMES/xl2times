@@ -123,7 +123,7 @@ def convert_xl_to_times(
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
         transforms.process_time_slices,
-        expand_rows_parallel,  # slow
+        transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
         transforms.process_time_periods,
         transforms.process_currencies,
@@ -331,10 +331,3 @@ def dump_tables(tables: List, filename: str) -> List:
             text_file.write("\n" * 2)
 
     return tables
-
-
-def expand_rows_parallel(
-    tables: List[datatypes.EmbeddedXlTable],
-) -> List[datatypes.EmbeddedXlTable]:
-    with ProcessPoolExecutor() as executor:
-        return list(executor.map(transforms.expand_rows, tables))
