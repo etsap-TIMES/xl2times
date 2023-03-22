@@ -2162,10 +2162,13 @@ def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     for table_type, df in input.items():
         if "Attribute" in df.columns:
             index = df["Attribute"] == "STOCK"
+            extra_rows = []
             for region in df[index]["Region"].unique():
                 i_reg = index & (df["Region"] == region)
                 for process in df[i_reg]["TechName"].unique():
                     i_reg_prc = i_reg & (df["TechName"] == process)
+                    if any(i_reg_prc):
+                        extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
                     if len(df[i_reg_prc]["Year"].unique()) == 1:
                         year = df[i_reg_prc]["Year"].unique()[0]
                         i_attr = (
@@ -2173,27 +2176,30 @@ def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                             & (df["Region"] == region)
                             & (df["TechName"] == process)
                         )
-                        lifetime = df[i_attr]["VALUE"].unique()[-1] or 30
-                        extra_rows = [
-                            ["STOCK", region, process, "", year + lifetime, 0],
-                            ["NCAP_BND", region, process, "UP", 0, 2],
-                        ]
-                        df = pd.concat(
-                            [
-                                df,
-                                pd.DataFrame(
-                                    extra_rows,
-                                    columns=[
-                                        "Attribute",
-                                        "Region",
-                                        "TechName",
-                                        "LimType",
-                                        "Year",
-                                        "VALUE",
-                                    ],
-                                ),
-                            ]
+                        if any(i_attr):
+                            lifetime = df[i_attr]["VALUE"].unique()[-1]
+                        else:
+                            lifetime = 30
+                        extra_rows.append(
+                            ["STOCK", region, process, "", year + lifetime, 0]
                         )
+            if len(extra_rows) > 0:
+                df = pd.concat(
+                    [
+                        df,
+                        pd.DataFrame(
+                            extra_rows,
+                            columns=[
+                                "Attribute",
+                                "Region",
+                                "TechName",
+                                "LimType",
+                                "Year",
+                                "VALUE",
+                            ],
+                        ),
+                    ]
+                )
 
         output[table_type] = df
 
