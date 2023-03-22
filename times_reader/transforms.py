@@ -2156,6 +2156,50 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return output
 
 
+def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    output = {}
+
+    for table_type, df in input.items():
+        if "Attribute" in df.columns:
+            index = df["Attribute"] == "STOCK"
+            for region in df[index]["Region"].unique():
+                i_reg = index & (df["Region"] == region)
+                for process in df[i_reg]["TechName"].unique():
+                    i_reg_prc = i_reg & (df["TechName"] == process)
+                    if len(df[i_reg_prc]["Year"].unique()) == 1:
+                        year = df[i_reg_prc]["Year"].unique()[0]
+                        i_attr = (
+                            df["Attribute"].isin(["NCAP_TLIFE", "LIFE"])
+                            & (df["Region"] == region)
+                            & (df["TechName"] == process)
+                        )
+                        lifetime = df[i_attr]["VALUE"].unique()[-1] or 30
+                        extra_rows = [
+                            ["STOCK", region, process, "", year + lifetime, 0],
+                            ["NCAP_BND", region, process, "UP", 0, 2],
+                        ]
+                        df = pd.concat(
+                            [
+                                df,
+                                pd.DataFrame(
+                                    extra_rows,
+                                    columns=[
+                                        "Attribute",
+                                        "Region",
+                                        "TechName",
+                                        "LimType",
+                                        "Year",
+                                        "VALUE",
+                                    ],
+                                ),
+                            ]
+                        )
+
+        output[table_type] = df
+
+    return output
+
+
 def expand_rows_parallel(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
