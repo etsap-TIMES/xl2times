@@ -2158,7 +2158,7 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
 def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     output = {}
-
+    # TODO: This should only be applied to processes introduced in BASE
     for table_type, df in input.items():
         if table_type == datatypes.Tag.fi_t:
             index = df["Attribute"] == "STOCK"
