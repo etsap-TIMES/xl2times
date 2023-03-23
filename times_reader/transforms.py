@@ -356,6 +356,21 @@ def normalize_tags_columns_attrs(
     return [normalize(table) for table in tables]
 
 
+def include_tables_source(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Add a column specifying source filename to every table
+    """
+
+    def include_table_source(table: datatypes.EmbeddedXlTable):
+        df = table.dataframe.copy()
+        df["source_filename"] = table.filename
+        return replace(table, dataframe=df)
+
+    return [include_table_source(table) for table in tables]
+
+
 def merge_tables(tables: List[datatypes.EmbeddedXlTable]) -> Dict[str, DataFrame]:
     """
     Merge all tables in 'tables' with the same table tag, as long as they share the same
