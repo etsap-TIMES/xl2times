@@ -1907,7 +1907,7 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             )
         return matching_commodities
 
-    for tag in [datatypes.Tag.tfm_ins, datatypes.Tag.tfm_ins_ts, datatypes.Tag.tfm_upd]:
+    for tag in [datatypes.Tag.tfm_upd, datatypes.Tag.tfm_ins, datatypes.Tag.tfm_ins_ts]:
         if tag in tables:
             start_time = time.time()
             upd = tables[tag]
