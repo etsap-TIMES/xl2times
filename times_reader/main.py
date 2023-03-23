@@ -145,39 +145,13 @@ def convert_xl_to_times(
     ]
 
     input = raw_tables
-    for i, transform in enumerate(transform_list):
+    for transform in transform_list:
         start_time = time.time()
         output = transform(input)
         end_time = time.time()
         print(
             f"transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
         )
-        import ipdb
-        import sys
-
-        def are_equal(xs, ys):
-            if isinstance(xs, dict):
-                return (
-                    isinstance(ys, dict)
-                    and xs.keys() == ys.keys()
-                    and all(
-                        xs[k].sort_index(axis=1).equals(ys[k].sort_index(axis=1))
-                        for k in xs
-                    )
-                )
-            elif isinstance(xs[0], datatypes.EmbeddedXlTable):
-                return xs == ys
-            else:
-                ipdb.set_trace()
-
-        out_filename = f"output.{i:02d}.pkl"
-        if os.path.exists(out_filename):
-            correct_out = pickle.load(open(out_filename, "rb"))
-            if not are_equal(correct_out, output):
-                print("Something changed!", file=sys.stderr)
-                ipdb.set_trace()
-        else:
-            pickle.dump(output, open(out_filename, "wb"))
         input = output
 
     print(

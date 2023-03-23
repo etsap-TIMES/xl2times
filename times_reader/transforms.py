@@ -1998,27 +1998,6 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             print(
                 f"  process_wildcards: {tag} took {time.time()-start_time:.2f} seconds for {len(upd)} rows"
             )
-    tables[datatypes.Tag.fi_t].drop(columns=["index"], inplace=True)
-    tables[datatypes.Tag.fi_t].sort_index(axis=1, inplace=True)
-    tables[datatypes.Tag.fi_t].sort_values(
-        [
-            "Region",
-            "TechName",
-            "Comm-IN",
-            "Comm-IN-A",
-            "Comm-OUT",
-            "Comm-OUT-A",
-            "Attribute",
-            "Year",
-            "TimeSlice",
-            "LimType",
-            "CommName",
-            "Curr",
-            "Other_Indexes",
-        ],
-        inplace=True,
-        ignore_index=True,
-    )
 
     return tables
 
