@@ -24,7 +24,7 @@ if __name__ == "__main__":
         str(path)
         for path in Path(args.input_dir).rglob("*.xlsx")
         if not path.name.startswith("~")
-    ][:1]
+    ]
     print(f"Loading {len(input_files)} files from {args.input_dir}")
 
     tables = times_reader.convert_xl_to_times(
