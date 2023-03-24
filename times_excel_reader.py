@@ -13,7 +13,6 @@ if __name__ == "__main__":
     args_parser.add_argument(
         "--ground_truth_dir",
         type=str,
-        default="ground_truth",
         help="Ground truth directory to compare with output",
     )
     args_parser.add_argument("--use_pkl", action="store_true")
