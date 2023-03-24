@@ -30,6 +30,7 @@ aliases_by_attr = {
     "ACT_CUM": ["CUM"],
     "ACT_EFF": ["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O", "EFF", "EFFICIENCY"],
     "COM_PROJ": ["DEMAND"],
+    "FLO_EMIS": ["FEMIS", "FLO_EFF", "ENV_ACT", "ENVACT"],
     "FLO_DELIV": ["DELIV"],
     "FLO_SHAR": ["FLOSHAR", "SHARE", "SHARE-I", "SHARE-O"],
     "G_DRATE": ["DISCOUNT"],
@@ -66,6 +67,10 @@ attr_com_def = {
     "FLO_DELIV": ["Comm-IN"],
     "DELIV": ["Comm-IN"],
     "FLO_EMIS": ["Comm-OUT", "Comm-IN"],
+    "FEMIS": ["Comm-OUT", "Comm-IN"],
+    "FLO_EFF": ["Comm-OUT", "Comm-IN"],
+    "ENV_ACT": ["Comm-OUT", "Comm-IN"],
+    "ENVACT": ["Comm-OUT", "Comm-IN"],
     "FLO_MARK": ["Comm-IN", "Comm-OUT"],
     "FLO_SHAR": ["Comm-IN", "Comm-OUT"],
     "FLOSHAR": ["Comm-IN", "Comm-OUT"],
@@ -188,6 +193,9 @@ attr_timeslice_def = {
         "DELIV",
         "FLO_EFF",
         "FLO_EMIS",
+        "FEMIS",
+        "ENV_ACT",
+        "ENVACT",
         "FLO_FUNC",
         "FLO_SHAR",
         "FLOSHAR",
@@ -531,10 +539,7 @@ def process_flexible_import_tables(
         # Handle Other_Indexes
         other = "Other_Indexes"
         for attr in df[attribute].unique():
-            if attr == "FLO_EMIS":
-                i = df[attribute] == attr
-                df.loc[i & df[other].isna(), other] = "ACT"
-            elif attr == "OUTPUT":
+            if attr == "OUTPUT":
                 i = df[attribute] == attr
                 df.loc[i, "Comm-IN"] = df.loc[i, "Comm-OUT-A"]
                 df.loc[i, attribute] = "CEFF"
@@ -1064,6 +1069,8 @@ def apply_fixups(
         i = df["Attribute"].isin(["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"])
         df.loc[i, "Other_Indexes"] = df[i]["CommName"]
         i = df["Attribute"].isin(["EFF", "EFFICIENCY"])
+        df.loc[i, "Other_Indexes"] = "ACT"
+        i = df["Attribute"].isin(["ENV_ACT", "ENVACT"])
         df.loc[i, "Other_Indexes"] = "ACT"
 
         # Fill CommName for COST (alias of IRE_PRICE) if missing
