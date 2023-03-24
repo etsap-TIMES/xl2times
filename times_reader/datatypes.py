@@ -30,6 +30,17 @@ class EmbeddedXlTable:
     filename: str
     dataframe: DataFrame
 
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, EmbeddedXlTable):
+            return False
+        return (
+            self.tag == o.tag
+            and self.uc_sets == o.uc_sets
+            and self.range == o.range
+            and self.filename == o.filename
+            and self.dataframe.sort_index(axis=1).equals(o.dataframe.sort_index(axis=1))
+        )
+
 
 @dataclass
 class TimesXlMap:

@@ -133,6 +133,7 @@ def convert_xl_to_times(
         transforms.extract_commodity_groups,
         transforms.fill_in_missing_pcgs,
         transforms.generate_top_ire,
+        transforms.include_tables_source,
         transforms.merge_tables,
         transforms.process_years,
         transforms.process_wildcards,
@@ -144,7 +145,6 @@ def convert_xl_to_times(
         lambda tables: produce_times_tables(tables, mappings),
     ]
 
-    results = []
     input = raw_tables
     for transform in transform_list:
         start_time = time.time()
@@ -153,7 +153,6 @@ def convert_xl_to_times(
         print(
             f"transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
         )
-        results.append(output)
         input = output
 
     print(

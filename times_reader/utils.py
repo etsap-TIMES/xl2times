@@ -155,7 +155,7 @@ def apply_wildcards(
                 else:
                     regexp = re.compile(wildcard.replace("*", ".*"))
                     additions = [s for s in candidates if regexp.match(s)]
-                    current_list = list(set(current_list + additions))
+                    current_list = sorted(set(current_list + additions))
             wildcard_map[wildcard_string] = current_list
 
     df[output_col] = df[wildcard_col].map(wildcard_map)

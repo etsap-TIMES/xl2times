@@ -356,6 +356,21 @@ def normalize_tags_columns_attrs(
     return [normalize(table) for table in tables]
 
 
+def include_tables_source(
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Add a column specifying source filename to every table
+    """
+
+    def include_table_source(table: datatypes.EmbeddedXlTable):
+        df = table.dataframe.copy()
+        df["source_filename"] = table.filename
+        return replace(table, dataframe=df)
+
+    return [include_table_source(table) for table in tables]
+
+
 def merge_tables(tables: List[datatypes.EmbeddedXlTable]) -> Dict[str, DataFrame]:
     """
     Merge all tables in 'tables' with the same table tag, as long as they share the same
@@ -595,8 +610,7 @@ def process_user_constraint_tables(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Attempt to process all tables in 'tables' as user constraint tables. The processing includes:
-    - Checking that the table is indeed a user constraint table. If not, return it unmodified.
+    Process all user constraint tables in 'tables'. The processing includes:
     - Removing, adding and renaming columns as needed.
     - Populating index columns.
     - Handing Attribute column and wildcards.
@@ -677,7 +691,7 @@ def process_user_constraint_tables(
             "Year",
             "LimType",
             "Top_Check",
-            "UC_Desc",
+            "UC_Desc",  # Why is this in the index columns?
             # TODO remove these?
             "TimeSlice",
             "CommName",
@@ -878,7 +892,6 @@ def remove_invalid_values(
 def process_units(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
-
     commodity_units = set()
     process_act_units = set()
     process_cap_units = set()
@@ -908,7 +921,7 @@ def process_units(
             sheetname="",
             range="",
             filename="",
-            dataframe=DataFrame({"UNITS": unit} for unit in process_act_units),
+            dataframe=DataFrame({"UNITS": sorted(process_act_units)}),
         )
     )
 
@@ -919,7 +932,7 @@ def process_units(
             sheetname="",
             range="",
             filename="",
-            dataframe=DataFrame({"UNITS": unit} for unit in process_cap_units),
+            dataframe=DataFrame({"UNITS": sorted(process_cap_units)}),
         )
     )
 
@@ -930,7 +943,7 @@ def process_units(
             sheetname="",
             range="",
             filename="",
-            dataframe=DataFrame({"UNITS": unit} for unit in commodity_units),
+            dataframe=DataFrame({"UNITS": sorted(commodity_units)}),
         )
     )
 
@@ -942,10 +955,13 @@ def process_units(
             range="",
             filename="",
             dataframe=DataFrame(
-                {"UNITS": unit}
-                for unit in commodity_units.union(process_act_units).union(
-                    process_cap_units.union(currencies)
-                )
+                {
+                    "UNITS": sorted(
+                        commodity_units.union(process_act_units).union(
+                            process_cap_units.union(currencies)
+                        )
+                    )
+                }
             ),
         )
     )
@@ -1015,9 +1031,9 @@ def capitalise_attributes(
     """
     Ensure that all attributes are uppercase
     """
+
     # TODO: This should be part of normalisation
     def capitalise_attributes_table(table: datatypes.EmbeddedXlTable):
-
         df = table.dataframe.copy()
         if "Attribute" in df.columns and len(df) > 0:
             df["Attribute"] = df["Attribute"].str.upper()
@@ -1031,7 +1047,6 @@ def capitalise_attributes(
 def apply_fixups(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
-
     reg_com_flows = utils.single_table(tables, "ProcessTopology").dataframe.copy()
     reg_com_flows.drop(columns="IO", inplace=True)
 
@@ -1090,7 +1105,6 @@ def apply_fixups(
 def extract_commodity_groups(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
-
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
     commodity_tables = [t for t in tables if t.tag == datatypes.Tag.fi_comm]
 
@@ -1908,7 +1922,7 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             )
         return matching_commodities
 
-    for tag in {datatypes.Tag.tfm_ins, datatypes.Tag.tfm_ins_ts, datatypes.Tag.tfm_upd}:
+    for tag in [datatypes.Tag.tfm_upd, datatypes.Tag.tfm_ins, datatypes.Tag.tfm_ins_ts]:
         if tag in tables:
             start_time = time.time()
             upd = tables[tag]
@@ -2011,7 +2025,6 @@ def process_time_slices(
         regions: list,
         result: List[datatypes.EmbeddedXlTable],
     ):
-
         # User-specified timeslices (ordered)
         user_ts_levels = ["SEASON", "WEEKLY", "DAYNITE"]
 
