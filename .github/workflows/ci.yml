@@ -62,4 +62,8 @@ jobs:
 
       - name: Run tool on all benchmarks
         working-directory: times-excel-reader
-        run: python utils/run_benchmarks.py ../benchmarks --verbose
+        run: python utils/run_benchmarks.py ../benchmarks --verbose | tee all.out
+
+      - name: Print summary
+        working-directory: times-excel-reader
+        run: sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' all.out
