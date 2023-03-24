@@ -62,8 +62,16 @@ jobs:
 
       - name: Run tool on all benchmarks
         working-directory: times-excel-reader
-        run: python utils/run_benchmarks.py ../benchmarks --verbose | tee all.out
+        # Use tee to also save the output to out.txt so that the summary table can be
+        # printed again in the next step.
+        # Save the return code to retcode.txt so that the next step can fail the action
+        # if run_benchmarks.py failed.
+        run: |
+          (python utils/run_benchmarks.py ../benchmarks --verbose | tee out.txt; \
+            echo ${PIPESTATUS[0]} > retcode.txt)
 
       - name: Print summary
         working-directory: times-excel-reader
-        run: sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' all.out
+        run: |
+          sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
+          exit $(cat retcode.txt)
