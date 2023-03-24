@@ -29,6 +29,7 @@ aliases_by_attr = {
     "ACT_COST": ["ACTCOST", "VAROM"],
     "ACT_CUM": ["CUM"],
     "ACT_EFF": ["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O", "EFF", "EFFICIENCY"],
+    "COM_AGG": ["CAGG"],
     "COM_PROJ": ["DEMAND"],
     "FLO_DELIV": ["DELIV"],
     "FLO_SHAR": ["FLOSHAR", "SHARE", "SHARE-I", "SHARE-O"],
