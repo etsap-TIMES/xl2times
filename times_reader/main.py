@@ -112,7 +112,7 @@ def convert_xl_to_times(
         transforms.remove_fill_tables,
         lambda tables: [transforms.remove_comment_rows(t) for t in tables],
         lambda tables: [transforms.remove_comment_cols(t) for t in tables],
-        # transforms.remove_tables_with_formulas,  # slow
+        transforms.remove_tables_with_formulas,  # slow
         transforms.process_transform_insert,
         transforms.process_processes,
         transforms.process_topology,
@@ -136,7 +136,7 @@ def convert_xl_to_times(
         transforms.include_tables_source,
         transforms.merge_tables,
         transforms.process_years,
-        # transforms.process_wildcards,
+        transforms.process_wildcards,
         transforms.convert_aliases,
         transforms.convert_to_string,
         lambda tables: dump_tables(
