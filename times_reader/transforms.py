@@ -2174,7 +2174,10 @@ def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     # TODO: This should only be applied to processes introduced in BASE
     for table_type, df in input.items():
         if table_type == datatypes.Tag.fi_t:
-            index = df["Attribute"] == "STOCK"
+            # Temporary solution to include only processes in BASE
+            index = (df["Attribute"] == "STOCK") & (
+                df["source_filename"].str.contains("VT_", case=False)
+            )
             if any(index):
                 extra_rows = []
                 for region in df[index]["Region"].unique():
