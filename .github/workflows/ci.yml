@@ -3,9 +3,9 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -36,12 +36,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
-          path: benchmarks/dd
+          path: times-excel-reader/benchmarks/dd
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-xlsx
-          path: benchmarks/xlsx
+          path: times-excel-reader/benchmarks/xlsx
           token: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
       # ---------- Prepare TIMES Ireland Model
@@ -51,12 +51,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: samwebster/times-ireland-model
-          path: benchmarks/xlsx/Ireland
+          path: times-excel-reader/benchmarks/xlsx/Ireland
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/times-ireland-model_gams
-          path: benchmarks/dd/Ireland
+          path: times-excel-reader/benchmarks/dd/Ireland
 
       # ---------- Run tool, check for regressions
 
@@ -67,7 +67,7 @@ jobs:
         # Save the return code to retcode.txt so that the next step can fail the action
         # if run_benchmarks.py failed.
         run: |
-          (python utils/run_benchmarks.py ../benchmarks --verbose | tee out.txt; \
+          (python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt; \
             echo ${PIPESTATUS[0]} > retcode.txt)
 
       - name: Print summary
