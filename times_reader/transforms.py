@@ -1078,18 +1078,18 @@ def apply_fixups(
                     if len(df[index]) > 0:
                         df.loc[index, ["CommName"]] = df[index][com_in_out]
 
-        # Append _NRGI (energy input) to some cells in FLO_SHAR
-        i = (df["Attribute"] == "SHARE-I") & (
-            (df["LimType"] == "UP") | (df["LimType"] == "LO")
-        )
-        # TODO: looks like NRG may come from ~TFM_Csets
-        df.loc[i, "Other_Indexes"] = df["TechName"].astype(str) + "_NRGI"
-
         # Fill other indexes for some attributes
+        # FLO_SHAR
+        i = df["Attribute"] == "SHARE-I"
+        df.loc[i, "Other_Indexes"] = "NRGI"
+        i = df["Attribute"] == "SHARE-O"
+        df.loc[i, "Other_Indexes"] = "NRGO"
+        # ACT_EFF
         i = df["Attribute"].isin(["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"])
         df.loc[i, "Other_Indexes"] = df[i]["CommName"]
         i = df["Attribute"].isin(["EFF", "EFFICIENCY"])
         df.loc[i, "Other_Indexes"] = "ACT"
+        # FLO_EMIS
         i = df["Attribute"].isin(["ENV_ACT", "ENVACT"])
         df.loc[i, "Other_Indexes"] = "ACT"
 
