@@ -23,6 +23,11 @@ query_columns = {
     "CSet_CD",
 }
 
+csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
+default_pcg_suffixes = [
+    cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
+]
+
 # Specify a list of aliases per TIMES attribute
 aliases_by_attr = {
     "ACT_BND": ["ACTBND", "BNDACT"],
@@ -874,7 +879,7 @@ def remove_invalid_values(
     # Rules for allowing entries. Each entry of the dictionary designates a rule for a
     # a given column, and the values that are allowed for that column.
     constraints = {
-        "Csets": {"NRG", "MAT", "DEM", "ENV", "FIN"},
+        "Csets": csets_ordered_for_pcg,
         "Region": regions,
     }
 
@@ -1115,11 +1120,7 @@ def extract_commodity_groups(
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
     commodity_tables = [t for t in tables if t.tag == datatypes.Tag.fi_comm]
 
-    # Veda determines default PCG based on this order and presence of OUT/IN commodity
-    csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
-    default_pcg_suffixes = [
-        cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
-    ]
+    # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
 
     columns = ["Region", "TechName", "PrimaryCG"]
     reg_prc_pcg = pd.DataFrame(columns=columns)
@@ -1322,13 +1323,6 @@ def fill_in_missing_pcgs(
         """
         Return the name of a default primary commodity group based on suffix and process name
         """
-
-        # Veda determines default PCG based on this order and presence of OUT/IN commodity
-        default_pcg_suffixes = [
-            cset + io
-            for cset in ["DEM", "MAT", "NRG", "ENV", "FIN"]
-            for io in ["I", "O"]
-        ]
 
         if df["PrimaryCG"] in default_pcg_suffixes:
             return df["TechName"] + "_" + df["PrimaryCG"]
