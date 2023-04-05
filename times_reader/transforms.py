@@ -1669,11 +1669,6 @@ def process_transform_insert(
                     colmap[df.columns[i]] = standard_col
             df.rename(columns=colmap, inplace=True)
 
-            if "AllRegions" in df.columns:
-                for region in regions:
-                    df[region] = df["AllRegions"]
-                df.drop(columns=["AllRegions"], inplace=True)
-
             if table.tag == datatypes.Tag.tfm_ins_ts:
                 # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
                 if "Region" not in df.columns.values:
@@ -1682,18 +1677,28 @@ def process_transform_insert(
             else:
                 # Transpose region columns to new VALUE column and add corresponding regions in new Region column
                 region_cols = [
-                    col_name for col_name in df.columns.values if col_name in regions
+                    col_name
+                    for col_name in df.columns.values
+                    if col_name in set(regions) | {"AllRegions"}
                 ]
                 other_columns = [
                     col_name
                     for col_name in df.columns.values
-                    if col_name not in regions
+                    if col_name not in region_cols
                 ]
-                data = df[region_cols].values.tolist()
-                df = df[other_columns]
-                df["Region"] = [region_cols] * nrows
-                df["VALUE"] = data
-                df = df.explode(["Region", "VALUE"], ignore_index=True)
+                df = pd.melt(
+                    df,
+                    id_vars=other_columns,
+                    var_name="Region",
+                    value_name="VALUE",
+                    ignore_index=False,
+                )
+                df = df.sort_index().reset_index(drop=True)  # retain original row order
+                # This expands "AllRegions" into one row for each region:
+                df["Region"] = df["Region"].map(
+                    lambda x: regions if x == "AllRegions" else x
+                )
+                df = df.explode(["Region"])
                 unknown_columns = [
                     col_name
                     for col_name in df.columns.values
@@ -2173,6 +2178,20 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             df.replace({"Attribute": replacement_dict}, inplace=True)
         output[table_type] = df
 
+    return output
+
+
+def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+
+    output = {}
+    for table_type, df in input.items():
+        if table_type == datatypes.Tag.tfm_ins:
+            i = df["Other_Indexes"].isin(["NRGO"])
+            df.loc[i, "Other_Indexes"] = (
+                df["PSet_PN"].astype(str) + "_" + df["Other_Indexes"].astype(str)
+            )
+
+        output[table_type] = df
     return output
 
 
