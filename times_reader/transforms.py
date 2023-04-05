@@ -2181,6 +2181,18 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return output
 
 
+def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+
+    output = {}
+    for table_type, df in input.items():
+        if table_type == datatypes.Tag.tfm_ins:
+            i = df["Other_Indexes"].isin(["NRGO"])
+            df.loc[i, "Other_Indexes"] = df["PSet_PN"] + "_" + df["Other_Indexes"]
+
+        output[table_type] = df
+    return output
+
+
 def expand_rows_parallel(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:

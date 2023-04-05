@@ -135,6 +135,7 @@ def convert_xl_to_times(
         transforms.generate_top_ire,
         transforms.include_tables_source,
         transforms.merge_tables,
+        transforms.rename_cgs,
         transforms.process_years,
         transforms.process_wildcards,
         transforms.convert_aliases,
