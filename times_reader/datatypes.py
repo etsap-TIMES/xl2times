@@ -38,7 +38,13 @@ class EmbeddedXlTable:
             and self.uc_sets == o.uc_sets
             and self.range == o.range
             and self.filename == o.filename
-            and self.dataframe.sort_index(axis=1).equals(o.dataframe.sort_index(axis=1))
+            and self.dataframe.shape == o.dataframe.shape
+            and (
+                len(self.dataframe) == 0  # Empty tables don't affect our output
+                or self.dataframe.sort_index(axis=1).equals(
+                    o.dataframe.sort_index(axis=1)
+                )
+            )
         )
 
 
