@@ -2187,7 +2187,9 @@ def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     for table_type, df in input.items():
         if table_type == datatypes.Tag.tfm_ins:
             i = df["Other_Indexes"].isin(["NRGO"])
-            df.loc[i, "Other_Indexes"] = df["PSet_PN"] + "_" + df["Other_Indexes"]
+            df.loc[i, "Other_Indexes"] = (
+                df["PSet_PN"].astype(str) + "_" + df["Other_Indexes"].astype(str)
+            )
 
         output[table_type] = df
     return output
