@@ -2200,15 +2200,14 @@ def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     # TODO: This should only be applied to processes introduced in BASE
     for table_type, df in input.items():
         if table_type == datatypes.Tag.fi_t:
-            # Temporary solution to include only processes in BASE
-            index = (df["Attribute"] == "STOCK") & (
-                df["source_filename"].str.contains("VT_", case=False)
-            )
+            index = df["Attribute"] == "STOCK"
+            # Temporary solution to include only processes defined in BASE
+            i_vt = index & (df["source_filename"].str.contains("VT_", case=False))
             if any(index):
                 extra_rows = []
                 for region in df[index]["Region"].unique():
                     i_reg = index & (df["Region"] == region)
-                    for process in df[i_reg]["TechName"].unique():
+                    for process in df[(i_reg & i_vt)]["TechName"].unique():
                         i_reg_prc = i_reg & (df["TechName"] == process)
                         if any(i_reg_prc):
                             extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
