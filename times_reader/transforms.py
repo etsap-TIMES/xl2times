@@ -2195,6 +2195,59 @@ def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return output
 
 
+def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    output = {}
+    # TODO: This should only be applied to processes introduced in BASE
+    for table_type, df in input.items():
+        if table_type == datatypes.Tag.fi_t:
+            index = df["Attribute"] == "STOCK"
+            # Temporary solution to include only processes defined in BASE
+            i_vt = index & (df["source_filename"].str.contains("VT_", case=False))
+            if any(index):
+                extra_rows = []
+                for region in df[index]["Region"].unique():
+                    i_reg = index & (df["Region"] == region)
+                    for process in df[(i_reg & i_vt)]["TechName"].unique():
+                        i_reg_prc = i_reg & (df["TechName"] == process)
+                        if any(i_reg_prc):
+                            extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
+                        if len(df[i_reg_prc]["Year"].unique()) == 1:
+                            year = df[i_reg_prc]["Year"].unique()[0]
+                            i_attr = (
+                                df["Attribute"].isin(["NCAP_TLIFE", "LIFE"])
+                                & (df["Region"] == region)
+                                & (df["TechName"] == process)
+                            )
+                            if any(i_attr):
+                                lifetime = df[i_attr]["VALUE"].unique()[-1]
+                            else:
+                                lifetime = 30
+                            extra_rows.append(
+                                ["STOCK", region, process, "", year + lifetime, 0]
+                            )
+                if len(extra_rows) > 0:
+                    df = pd.concat(
+                        [
+                            df,
+                            pd.DataFrame(
+                                extra_rows,
+                                columns=[
+                                    "Attribute",
+                                    "Region",
+                                    "TechName",
+                                    "LimType",
+                                    "Year",
+                                    "VALUE",
+                                ],
+                            ),
+                        ]
+                    )
+
+        output[table_type] = df
+
+    return output
+
+
 def expand_rows_parallel(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
