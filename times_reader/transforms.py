@@ -24,6 +24,11 @@ query_columns = {
     "CSet_CD",
 }
 
+csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
+default_pcg_suffixes = [
+    cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
+]
+
 # Specify a list of aliases per TIMES attribute
 aliases_by_attr = {
     "ACT_BND": ["ACTBND", "BNDACT"],
@@ -893,7 +898,7 @@ def remove_invalid_values(
     # Rules for allowing entries. Each entry of the dictionary designates a rule for a
     # a given column, and the values that are allowed for that column.
     constraints = {
-        "Csets": {"NRG", "MAT", "DEM", "ENV", "FIN"},
+        "Csets": csets_ordered_for_pcg,
         "Region": regions,
     }
 
@@ -1092,18 +1097,18 @@ def apply_fixups(
                     if len(df[index]) > 0:
                         df.loc[index, ["CommName"]] = df[index][com_in_out]
 
-        # Append _NRGI (energy input) to some cells in FLO_SHAR
-        i = (df["Attribute"] == "SHARE-I") & (
-            (df["LimType"] == "UP") | (df["LimType"] == "LO")
-        )
-        # TODO: looks like NRG may come from ~TFM_Csets
-        df.loc[i, "Other_Indexes"] = df["TechName"].astype(str) + "_NRGI"
-
         # Fill other indexes for some attributes
+        # FLO_SHAR
+        i = df["Attribute"] == "SHARE-I"
+        df.loc[i, "Other_Indexes"] = "NRGI"
+        i = df["Attribute"] == "SHARE-O"
+        df.loc[i, "Other_Indexes"] = "NRGO"
+        # ACT_EFF
         i = df["Attribute"].isin(["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"])
         df.loc[i, "Other_Indexes"] = df[i]["CommName"]
         i = df["Attribute"].isin(["EFF", "EFFICIENCY"])
         df.loc[i, "Other_Indexes"] = "ACT"
+        # FLO_EMIS
         i = df["Attribute"].isin(["ENV_ACT", "ENVACT"])
         df.loc[i, "Other_Indexes"] = "ACT"
 
@@ -1134,11 +1139,7 @@ def extract_commodity_groups(
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
     commodity_tables = [t for t in tables if t.tag == datatypes.Tag.fi_comm]
 
-    # Veda determines default PCG based on this order and presence of OUT/IN commodity
-    csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
-    default_pcg_suffixes = [
-        cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
-    ]
+    # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
 
     columns = ["Region", "TechName", "PrimaryCG"]
     reg_prc_pcg = pd.DataFrame(columns=columns)
@@ -1341,13 +1342,6 @@ def fill_in_missing_pcgs(
         """
         Return the name of a default primary commodity group based on suffix and process name
         """
-
-        # Veda determines default PCG based on this order and presence of OUT/IN commodity
-        default_pcg_suffixes = [
-            cset + io
-            for cset in ["DEM", "MAT", "NRG", "ENV", "FIN"]
-            for io in ["I", "O"]
-        ]
 
         if df["PrimaryCG"] in default_pcg_suffixes:
             return df["TechName"] + "_" + df["PrimaryCG"]
@@ -2202,14 +2196,15 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
 def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     output = {}
-    for table_type, df in input.items():
-        if table_type == datatypes.Tag.tfm_ins:
-            i = df["Other_Indexes"].isin(["NRGO"])
-            df.loc[i, "Other_Indexes"] = (
-                df["PSet_PN"].astype(str) + "_" + df["Other_Indexes"].astype(str)
-            )
 
+    for table_type, df in input.items():
+        if table_type == datatypes.Tag.fi_t:
+            i = df["Other_Indexes"].isin(default_pcg_suffixes)
+            df.loc[i, "Other_Indexes"] = (
+                df["TechName"].astype(str) + "_" + df["Other_Indexes"].astype(str)
+            )
         output[table_type] = df
+
     return output
 
 

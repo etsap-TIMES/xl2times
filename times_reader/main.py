@@ -135,11 +135,11 @@ def convert_xl_to_times(
         transforms.generate_top_ire,
         transforms.include_tables_source,
         transforms.merge_tables,
-        transforms.rename_cgs,
         transforms.apply_more_fixups,
         transforms.process_years,
         transforms.process_wildcards,
         transforms.convert_aliases,
+        transforms.rename_cgs,
         transforms.convert_to_string,
         lambda tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
