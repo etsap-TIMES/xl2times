@@ -1,10 +1,11 @@
+from collections import defaultdict
 from pandas.core.frame import DataFrame
 import pandas as pd
 from dataclasses import replace
 from typing import Dict, List
 from more_itertools import locate, one
 from itertools import groupby
-import os
+import re
 from concurrent.futures import ProcessPoolExecutor
 import time
 from functools import reduce
@@ -772,8 +773,16 @@ def fill_in_missing_values(
     start_year = one(utils.single_column(tables, datatypes.Tag.start_year, "VALUE"))
     # TODO there are multiple currencies
     currency = utils.single_column(tables, datatypes.Tag.currencies, "Currency")[0]
+    # The default regions for VT_* files is given by ~BookRegions_Map:
+    regions = defaultdict(list)
+    brm = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
+    utils.missing_value_inherit(brm, "BookName")
+    for _, row in brm.iterrows():
+        regions[row["BookName"]].append(row["Region"])
+    all_regions = list(brm["Region"])
 
-    def fill_in_missing_values_inplace(df):
+    def fill_in_missing_values_table(table):
+        df = table.dataframe.copy()
         for colname in df.columns:
             # TODO make this more declarative
             if colname in ["Sets", "Csets", "TechName"]:
@@ -807,20 +816,30 @@ def fill_in_missing_values(
             elif colname == "Tslvl":  # or colname == "CTSLvl" or colname == "PeakTS":
                 df[colname].fillna("ANNUAL", inplace=True)
             elif colname == "Region":
-                df[colname].fillna(",".join(regions), inplace=True)
+                # Use BookRegions_Map to fill VT_* files, and all regions for other files
+                matches = re.search(r"/[^/]*?/VT_([A-Za-z0-9]+)_", table.filename)
+                if matches is not None:
+                    book = matches.group(1)
+                    if book in regions:
+                        print(table.filename, book, regions[book])
+                        df[colname].fillna(",".join(regions[book]), inplace=True)
+                    else:
+                        print(f"WARNING: book name {book} not in BookRegions_Map")
+                else:
+                    print(table.filename, None, all_regions)
+                    df[colname].fillna(",".join(all_regions), inplace=True)
             elif colname == "Year":
                 df[colname].fillna(start_year, inplace=True)
             elif colname == "Curr":
                 df[colname].fillna(currency, inplace=True)
+        return replace(table, dataframe=df)
 
     for table in tables:
         if table.tag == datatypes.Tag.tfm_upd:
             # Missing values in update tables are wildcards and should not be filled in
             result.append(table)
         else:
-            df = table.dataframe.copy()
-            fill_in_missing_values_inplace(df)
-            result.append(replace(table, dataframe=df))
+            result.append(fill_in_missing_values_table(table))
     return result
 
 
@@ -2182,7 +2201,6 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
 
 def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
-
     output = {}
     for table_type, df in input.items():
         if table_type == datatypes.Tag.tfm_ins:
