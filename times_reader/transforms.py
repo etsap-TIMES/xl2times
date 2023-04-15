@@ -1,10 +1,11 @@
+from collections import defaultdict
 from pandas.core.frame import DataFrame
 import pandas as pd
 from dataclasses import replace
 from typing import Dict, List
 from more_itertools import locate, one
 from itertools import groupby
-import os
+import re
 from concurrent.futures import ProcessPoolExecutor
 import time
 from functools import reduce
@@ -22,6 +23,11 @@ query_columns = {
     "CSet_CN",
     "CSet_CD",
 }
+
+csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
+default_pcg_suffixes = [
+    cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
+]
 
 # Specify a list of aliases per TIMES attribute
 aliases_by_attr = {
@@ -773,8 +779,16 @@ def fill_in_missing_values(
     start_year = one(utils.single_column(tables, datatypes.Tag.start_year, "VALUE"))
     # TODO there are multiple currencies
     currency = utils.single_column(tables, datatypes.Tag.currencies, "Currency")[0]
+    # The default regions for VT_* files is given by ~BookRegions_Map:
+    regions = defaultdict(list)
+    brm = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
+    utils.missing_value_inherit(brm, "BookName")
+    for _, row in brm.iterrows():
+        regions[row["BookName"]].append(row["Region"])
+    all_regions = list(brm["Region"])
 
-    def fill_in_missing_values_inplace(df):
+    def fill_in_missing_values_table(table):
+        df = table.dataframe.copy()
         for colname in df.columns:
             # TODO make this more declarative
             if colname in ["Sets", "Csets", "TechName"]:
@@ -808,20 +822,30 @@ def fill_in_missing_values(
             elif colname == "Tslvl":  # or colname == "CTSLvl" or colname == "PeakTS":
                 df[colname].fillna("ANNUAL", inplace=True)
             elif colname == "Region":
-                df[colname].fillna(",".join(regions), inplace=True)
+                # Use BookRegions_Map to fill VT_* files, and all regions for other files
+                matches = re.search(r"/[^/]*?/VT_([A-Za-z0-9]+)_", table.filename)
+                if matches is not None:
+                    book = matches.group(1)
+                    if book in regions:
+                        print(table.filename, book, regions[book])
+                        df[colname].fillna(",".join(regions[book]), inplace=True)
+                    else:
+                        print(f"WARNING: book name {book} not in BookRegions_Map")
+                else:
+                    print(table.filename, None, all_regions)
+                    df[colname].fillna(",".join(all_regions), inplace=True)
             elif colname == "Year":
                 df[colname].fillna(start_year, inplace=True)
             elif colname == "Curr":
                 df[colname].fillna(currency, inplace=True)
+        return replace(table, dataframe=df)
 
     for table in tables:
         if table.tag == datatypes.Tag.tfm_upd:
             # Missing values in update tables are wildcards and should not be filled in
             result.append(table)
         else:
-            df = table.dataframe.copy()
-            fill_in_missing_values_inplace(df)
-            result.append(replace(table, dataframe=df))
+            result.append(fill_in_missing_values_table(table))
     return result
 
 
@@ -875,7 +899,7 @@ def remove_invalid_values(
     # Rules for allowing entries. Each entry of the dictionary designates a rule for a
     # a given column, and the values that are allowed for that column.
     constraints = {
-        "Csets": {"NRG", "MAT", "DEM", "ENV", "FIN"},
+        "Csets": csets_ordered_for_pcg,
         "Region": regions,
     }
 
@@ -1074,18 +1098,18 @@ def apply_fixups(
                     if len(df[index]) > 0:
                         df.loc[index, ["CommName"]] = df[index][com_in_out]
 
-        # Append _NRGI (energy input) to some cells in FLO_SHAR
-        i = (df["Attribute"] == "SHARE-I") & (
-            (df["LimType"] == "UP") | (df["LimType"] == "LO")
-        )
-        # TODO: looks like NRG may come from ~TFM_Csets
-        df.loc[i, "Other_Indexes"] = df["TechName"].astype(str) + "_NRGI"
-
         # Fill other indexes for some attributes
+        # FLO_SHAR
+        i = df["Attribute"] == "SHARE-I"
+        df.loc[i, "Other_Indexes"] = "NRGI"
+        i = df["Attribute"] == "SHARE-O"
+        df.loc[i, "Other_Indexes"] = "NRGO"
+        # ACT_EFF
         i = df["Attribute"].isin(["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"])
         df.loc[i, "Other_Indexes"] = df[i]["CommName"]
         i = df["Attribute"].isin(["EFF", "EFFICIENCY"])
         df.loc[i, "Other_Indexes"] = "ACT"
+        # FLO_EMIS
         i = df["Attribute"].isin(["ENV_ACT", "ENVACT"])
         df.loc[i, "Other_Indexes"] = "ACT"
 
@@ -1116,11 +1140,7 @@ def extract_commodity_groups(
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
     commodity_tables = [t for t in tables if t.tag == datatypes.Tag.fi_comm]
 
-    # Veda determines default PCG based on this order and presence of OUT/IN commodity
-    csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
-    default_pcg_suffixes = [
-        cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
-    ]
+    # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
 
     columns = ["Region", "TechName", "PrimaryCG"]
     reg_prc_pcg = pd.DataFrame(columns=columns)
@@ -1323,13 +1343,6 @@ def fill_in_missing_pcgs(
         """
         Return the name of a default primary commodity group based on suffix and process name
         """
-
-        # Veda determines default PCG based on this order and presence of OUT/IN commodity
-        default_pcg_suffixes = [
-            cset + io
-            for cset in ["DEM", "MAT", "NRG", "ENV", "FIN"]
-            for io in ["I", "O"]
-        ]
 
         if df["PrimaryCG"] in default_pcg_suffixes:
             return df["TechName"] + "_" + df["PrimaryCG"]
@@ -1670,11 +1683,6 @@ def process_transform_insert(
                     colmap[df.columns[i]] = standard_col
             df.rename(columns=colmap, inplace=True)
 
-            if "AllRegions" in df.columns:
-                for region in regions:
-                    df[region] = df["AllRegions"]
-                df.drop(columns=["AllRegions"], inplace=True)
-
             if table.tag == datatypes.Tag.tfm_ins_ts:
                 # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
                 if "Region" not in df.columns.values:
@@ -1683,18 +1691,28 @@ def process_transform_insert(
             else:
                 # Transpose region columns to new VALUE column and add corresponding regions in new Region column
                 region_cols = [
-                    col_name for col_name in df.columns.values if col_name in regions
+                    col_name
+                    for col_name in df.columns.values
+                    if col_name in set(regions) | {"AllRegions"}
                 ]
                 other_columns = [
                     col_name
                     for col_name in df.columns.values
-                    if col_name not in regions
+                    if col_name not in region_cols
                 ]
-                data = df[region_cols].values.tolist()
-                df = df[other_columns]
-                df["Region"] = [region_cols] * nrows
-                df["VALUE"] = data
-                df = df.explode(["Region", "VALUE"], ignore_index=True)
+                df = pd.melt(
+                    df,
+                    id_vars=other_columns,
+                    var_name="Region",
+                    value_name="VALUE",
+                    ignore_index=False,
+                )
+                df = df.sort_index().reset_index(drop=True)  # retain original row order
+                # This expands "AllRegions" into one row for each region:
+                df["Region"] = df["Region"].map(
+                    lambda x: regions if x == "AllRegions" else x
+                )
+                df = df.explode(["Region"])
                 unknown_columns = [
                     col_name
                     for col_name in df.columns.values
@@ -2172,6 +2190,73 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     for table_type, df in input.items():
         if "Attribute" in df.columns:
             df.replace({"Attribute": replacement_dict}, inplace=True)
+        output[table_type] = df
+
+    return output
+
+
+def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    output = {}
+
+    for table_type, df in input.items():
+        if table_type == datatypes.Tag.fi_t:
+            i = df["Other_Indexes"].isin(default_pcg_suffixes)
+            df.loc[i, "Other_Indexes"] = (
+                df["TechName"].astype(str) + "_" + df["Other_Indexes"].astype(str)
+            )
+        output[table_type] = df
+
+    return output
+
+
+def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    output = {}
+    # TODO: This should only be applied to processes introduced in BASE
+    for table_type, df in input.items():
+        if table_type == datatypes.Tag.fi_t:
+            index = df["Attribute"] == "STOCK"
+            # Temporary solution to include only processes defined in BASE
+            i_vt = index & (df["source_filename"].str.contains("VT_", case=False))
+            if any(index):
+                extra_rows = []
+                for region in df[index]["Region"].unique():
+                    i_reg = index & (df["Region"] == region)
+                    for process in df[(i_reg & i_vt)]["TechName"].unique():
+                        i_reg_prc = i_reg & (df["TechName"] == process)
+                        if any(i_reg_prc):
+                            extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
+                        if len(df[i_reg_prc]["Year"].unique()) == 1:
+                            year = df[i_reg_prc]["Year"].unique()[0]
+                            i_attr = (
+                                df["Attribute"].isin(["NCAP_TLIFE", "LIFE"])
+                                & (df["Region"] == region)
+                                & (df["TechName"] == process)
+                            )
+                            if any(i_attr):
+                                lifetime = df[i_attr]["VALUE"].unique()[-1]
+                            else:
+                                lifetime = 30
+                            extra_rows.append(
+                                ["STOCK", region, process, "", year + lifetime, 0]
+                            )
+                if len(extra_rows) > 0:
+                    df = pd.concat(
+                        [
+                            df,
+                            pd.DataFrame(
+                                extra_rows,
+                                columns=[
+                                    "Attribute",
+                                    "Region",
+                                    "TechName",
+                                    "LimType",
+                                    "Year",
+                                    "VALUE",
+                                ],
+                            ),
+                        ]
+                    )
+
         output[table_type] = df
 
     return output
