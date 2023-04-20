@@ -110,7 +110,7 @@ def run_all_benchmarks(
 
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
-    repo = git.Repo(".")
+    repo = git.Repo(".")  # pyright: ignore
     origin = repo.remotes.origin
     origin.fetch("main")
     if "main" not in repo.heads:

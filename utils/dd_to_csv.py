@@ -9,7 +9,7 @@ import pandas as pd
 
 
 def parse_parameter_values_from_file(
-    path: str,
+    path: Path,
 ) -> Tuple[Dict[str, List], Dict[str, set]]:
     """
     Parse *.dd to turn it into CSV format
