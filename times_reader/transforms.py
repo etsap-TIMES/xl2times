@@ -826,12 +826,10 @@ def fill_in_missing_values(
                 if matches is not None:
                     book = matches.group(1)
                     if book in regions:
-                        print(table.filename, book, regions[book])
                         df[colname].fillna(",".join(regions[book]), inplace=True)
                     else:
                         print(f"WARNING: book name {book} not in BookRegions_Map")
                 else:
-                    print(table.filename, None, all_regions)
                     df[colname].fillna(",".join(all_regions), inplace=True)
             elif colname == "Year":
                 df[colname].fillna(start_year, inplace=True)
