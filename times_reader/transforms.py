@@ -1238,7 +1238,7 @@ def extract_commodity_groups(
             sheetname="",
             range="",
             filename="",
-            uc_sets="",
+            uc_sets={},
             tag="COMM_GROUPS",
             dataframe=comm_groups,
         )
@@ -1251,7 +1251,7 @@ def extract_commodity_groups(
             sheetname="",
             range="",
             filename="",
-            uc_sets="",
+            uc_sets={},
             tag="COM_GMAP",
             dataframe=comm_groups.loc[i, ["Region", "CommodityGroup", "CommName"]],
         )
@@ -2030,7 +2030,7 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                     new_rows.append(row)
 
             if tag != datatypes.Tag.tfm_upd:
-                new_rows.append(df)
+                new_rows.append(df)  # pyright: ignore
                 tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
 
             print(

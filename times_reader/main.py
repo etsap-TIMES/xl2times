@@ -148,6 +148,7 @@ def convert_xl_to_times(
     ]
 
     input = raw_tables
+    output = {}
     for transform in transform_list:
         start_time = time.time()
         output = transform(input)

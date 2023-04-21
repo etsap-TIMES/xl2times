@@ -1,7 +1,7 @@
 from pandas.core.frame import DataFrame
 import pandas as pd
 from dataclasses import replace
-from typing import Dict, List
+from typing import Iterable, List
 from more_itertools import locate, one
 from itertools import groupby
 import numpy
@@ -124,7 +124,7 @@ def merge_columns(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: st
 
 
 def apply_wildcards(
-    df: DataFrame, candidates: List[str], wildcard_col: str, output_col: str
+    df: DataFrame, candidates: Iterable[str], wildcard_col: str, output_col: str
 ):
     """
     Apply wildcards values to a list of candidates. Wildcards are values containing '*'. For example,
