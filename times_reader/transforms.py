@@ -827,12 +827,10 @@ def fill_in_missing_values(
                 if matches is not None:
                     book = matches.group(1)
                     if book in regions:
-                        print(table.filename, book, regions[book])
                         df[colname].fillna(",".join(regions[book]), inplace=True)
                     else:
                         print(f"WARNING: book name {book} not in BookRegions_Map")
                 else:
-                    print(table.filename, None, all_regions)
                     df[colname].fillna(",".join(all_regions), inplace=True)
             elif colname == "Year":
                 df[colname].fillna(start_year, inplace=True)
@@ -1241,7 +1239,7 @@ def extract_commodity_groups(
             sheetname="",
             range="",
             filename="",
-            uc_sets="",
+            uc_sets={},
             tag="COMM_GROUPS",
             dataframe=comm_groups,
         )
@@ -1254,7 +1252,7 @@ def extract_commodity_groups(
             sheetname="",
             range="",
             filename="",
-            uc_sets="",
+            uc_sets={},
             tag="COM_GMAP",
             dataframe=comm_groups.loc[i, ["Region", "CommodityGroup", "CommName"]],
         )
@@ -2033,7 +2031,7 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                     new_rows.append(row)
 
             if tag != datatypes.Tag.tfm_upd:
-                new_rows.append(df)
+                new_rows.append(df)  # pyright: ignore
                 tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
 
             print(

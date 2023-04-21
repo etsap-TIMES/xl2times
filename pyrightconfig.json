@@ -1,0 +1,15 @@
+{
+  "include": [
+    "times_reader",
+    "utils",
+    "times_excel_reader.py"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__"
+  ],
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.10",
+  "pythonPlatform": "All"
+}

@@ -31,6 +31,8 @@ jobs:
           pre-commit install
           pre-commit run --all-files
 
+      - uses: jakebailey/pyright-action@v1 # Type checking
+
       # ---------- Prepare ETSAP Demo models
 
       - uses: actions/checkout@v3
