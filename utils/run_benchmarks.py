@@ -232,7 +232,7 @@ if __name__ == "__main__":
     if args.run is not None:
         benchmark = next((b for b in spec["benchmarks"] if b["name"] == args.run), None)
         if benchmark is None:
-            print(f"ERROR: could not find {args.run} in {args.benchmark_yaml}")
+            print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
             sys.exit(1)
 
         runtime, _, _, _ = run_benchmark(
