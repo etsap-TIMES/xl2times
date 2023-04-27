@@ -199,9 +199,17 @@ def compare(
     if len(missing) > 0:
         print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
 
+    additional_tables = set(data.keys()) - set(ground_truth.keys())
+    additional_str = ", ".join(
+        [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
+    )
+    if len(additional_tables) > 0:
+        print(f"WARNING: {len(additional_tables)} additional tables: {additional_str}")
+    # Additional rows starts as the sum of lengths of additional tables produced
+    total_additional_rows = sum(len(data[x]) for x in additional_tables)
+
     total_gt_rows = 0
     total_correct_rows = 0
-    total_additional_rows = 0
     for table_name, gt_table in sorted(
         ground_truth.items(), reverse=True, key=lambda t: len(t[1])
     ):
