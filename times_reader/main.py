@@ -46,14 +46,18 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
             (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
             times_cols = times_cols_str.split(",")
             xl_cols = xl_cols_str.split(",")
-            filter_rows = False
-            if xl_cols[-1].startswith("Attribute:"):
-                xl_cols[-1] = xl_cols[-1].replace("Attribute:", "")
-                filter_rows = True
+            filter_rows = {}
+            for i, s in enumerate(xl_cols):
+                if ":" in s:
+                    [col_name, col_val] = s.split(":")
+                    filter_rows[col_name.strip()] = col_val.strip()
+                    xl_cols[i] = col_val.strip()
+                    # TODO del xl_cols[-1]?
 
             # TODO remove: Filter out mappings that are not yet finished
             if xl_name != "~TODO" and not any(c.startswith("TODO") for c in xl_cols):
                 col_map = {}
+                assert len(times_cols) <= len(xl_cols)
                 for index, value in enumerate(times_cols):
                     col_map[value] = xl_cols[index]
                 # Uppercase and validate tags:
@@ -265,20 +269,22 @@ def produce_times_tables(
         else:
             used_tables.add(mapping.xl_name)
             df = input[mapping.xl_name].copy()
-            if mapping.filter_rows:
-                # Select just the rows where the attribute value matches the last mapping column or output table name
-                if not "Attribute" in df.columns:
+            # Filter rows according to filter_rows mapping:
+            for filter_col, filter_val in mapping.filter_rows.items():
+                if filter_col not in df.columns:
                     print(
                         f"WARNING: Cannot produce table {mapping.times_name} because input"
-                        f" table {mapping.xl_name} does not contain an Attribute column"
+                        f" table {mapping.xl_name} does not contain column {filter_col}"
                     )
-                else:
-                    colname = mapping.xl_cols[-1]
-                    filter = set(x.lower() for x in {colname, mapping.times_name})
-                    i = df["Attribute"].str.lower().isin(filter)
-                    df = df.loc[i, :]
-                    if colname not in df.columns:
-                        df = df.rename(columns={"VALUE": colname})
+                    # TODO break this loop and continue outer loop?
+                filter = set(x.lower() for x in {filter_val})
+                i = df[filter_col].str.lower().isin(filter)
+                df = df.loc[i, :]
+                # Only for Attributes, if the attribute name is not a column in the table,
+                # rename VALUE to the attribute name
+                # TODO generalize this and have mapping.rename_cols dict?
+                if filter_col == "Attribute" and filter_val not in df.columns:
+                    df = df.rename(columns={"VALUE": filter_val})
             # TODO find the correct tech group
             if "TechGroup" in mapping.xl_cols:
                 df["TechGroup"] = df["TechName"]
