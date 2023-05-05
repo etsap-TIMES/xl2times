@@ -51,8 +51,7 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
                 if ":" in s:
                     [col_name, col_val] = s.split(":")
                     filter_rows[col_name.strip()] = col_val.strip()
-                    xl_cols[i] = col_val.strip()
-                    # TODO del xl_cols[-1]?
+            xl_cols = [s for s in xl_cols if ":" not in s]
 
             # TODO remove: Filter out mappings that are not yet finished
             if xl_name != "~TODO" and not any(c.startswith("TODO") for c in xl_cols):
@@ -280,11 +279,6 @@ def produce_times_tables(
                 filter = set(x.lower() for x in {filter_val})
                 i = df[filter_col].str.lower().isin(filter)
                 df = df.loc[i, :]
-                # Only for Attributes, if the attribute name is not a column in the table,
-                # rename VALUE to the attribute name
-                # TODO generalize this and have mapping.rename_cols dict?
-                if filter_col == "Attribute" and filter_val not in df.columns:
-                    df = df.rename(columns={"VALUE": filter_val})
             # TODO find the correct tech group
             if "TechGroup" in mapping.xl_cols:
                 df["TechGroup"] = df["TechName"]
