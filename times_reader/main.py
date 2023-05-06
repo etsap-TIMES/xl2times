@@ -309,6 +309,9 @@ def produce_times_tables(
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
                 i = df[mapping.times_cols[-1]].notna() & (df != "None").all(axis=1)
                 df = df.loc[i, mapping.times_cols]
+                # Drop tables that are empty after filtering and dropping Nones:
+                if len(df) == 0:
+                    continue
                 result[mapping.times_name] = df
 
     unused_tables = set(input.keys()) - used_tables
