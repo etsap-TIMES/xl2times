@@ -62,8 +62,8 @@ class TimesXlMap:
                         possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
         xl_cols         Columns from the Excel table used as input.
         col_map         A mapping from Excel column names to Times column names.
-        filter_rows     Boolean indicating that only rows with the desired value in the
-                        Attribute column should be outputted. If false all rows are outputted.
+        filter_rows     A map from column name to value to filter rows to. If {}, all
+                        rows are outputted. E.g., {'Attribute': 'COM_ELAST'}
     """
 
     times_name: str
@@ -71,7 +71,7 @@ class TimesXlMap:
     xl_name: str
     xl_cols: List[str]
     col_map: Dict[str, str]
-    filter_rows: bool
+    filter_rows: Dict[str, str]
 
 
 class Tag(str, Enum):

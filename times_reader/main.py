@@ -46,14 +46,17 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
             (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
             times_cols = times_cols_str.split(",")
             xl_cols = xl_cols_str.split(",")
-            filter_rows = False
-            if xl_cols[-1].startswith("Attribute:"):
-                xl_cols[-1] = xl_cols[-1].replace("Attribute:", "")
-                filter_rows = True
+            filter_rows = {}
+            for i, s in enumerate(xl_cols):
+                if ":" in s:
+                    [col_name, col_val] = s.split(":")
+                    filter_rows[col_name.strip()] = col_val.strip()
+            xl_cols = [s for s in xl_cols if ":" not in s]
 
             # TODO remove: Filter out mappings that are not yet finished
             if xl_name != "~TODO" and not any(c.startswith("TODO") for c in xl_cols):
                 col_map = {}
+                assert len(times_cols) <= len(xl_cols)
                 for index, value in enumerate(times_cols):
                     col_map[value] = xl_cols[index]
                 # Uppercase and validate tags:
@@ -189,7 +192,7 @@ def compare(
 ):
     print(
         f"Ground truth contains {len(ground_truth)} tables,"
-        f" {sum(df.shape[0] for tablename, df in ground_truth.items())} rows"
+        f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
     )
 
     missing = set(ground_truth.keys()) - set(data.keys())
@@ -199,28 +202,37 @@ def compare(
     if len(missing) > 0:
         print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
 
+    additional_tables = set(data.keys()) - set(ground_truth.keys())
+    additional_str = ", ".join(
+        [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
+    )
+    if len(additional_tables) > 0:
+        print(f"WARNING: {len(additional_tables)} additional tables: {additional_str}")
+    # Additional rows starts as the sum of lengths of additional tables produced
+    total_additional_rows = sum(len(data[x]) for x in additional_tables)
+
     total_gt_rows = 0
     total_correct_rows = 0
-    total_additional_rows = 0
     for table_name, gt_table in sorted(
-        ground_truth.items(), reverse=True, key=lambda t: len(t[1].values)
+        ground_truth.items(), reverse=True, key=lambda t: len(t[1])
     ):
-        total_gt_rows += len(gt_table.values)
+        total_gt_rows += len(gt_table)
         if table_name in data:
             data_table = data[table_name]
 
             # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
+            data_cols = list(data_table.columns)
 
-            if transformed_gt_cols != list(data[table_name].columns):
+            if transformed_gt_cols != data_cols:
                 print(
                     f"WARNING: Table {table_name} header incorrect, was"
-                    f" {data_table.columns.values}, should be {transformed_gt_cols}"
+                    f" {data_cols}, should be {transformed_gt_cols}"
                 )
             else:
                 # both are in string form so can be compared without any issues
-                gt_rows = set(tuple(row) for row in gt_table.values.tolist())
-                data_rows = set(tuple(row) for row in data_table.values.tolist())
+                gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
+                data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
                 total_correct_rows += len(gt_rows.intersection(data_rows))
                 additional = data_rows - gt_rows
                 total_additional_rows += len(additional)
@@ -231,10 +243,12 @@ def compare(
                         f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
                         f" additional rows and is missing {len(missing)} rows"
                     )
+                if len(additional) != 0:
                     DataFrame(additional).to_csv(
                         os.path.join(output_dir, table_name + "_additional.csv"),
                         index=False,
                     )
+                if len(missing) != 0:
                     DataFrame(missing).to_csv(
                         os.path.join(output_dir, table_name + "_missing.csv"),
                         index=False,
@@ -265,20 +279,17 @@ def produce_times_tables(
         else:
             used_tables.add(mapping.xl_name)
             df = input[mapping.xl_name].copy()
-            if mapping.filter_rows:
-                # Select just the rows where the attribute value matches the last mapping column or output table name
-                if not "Attribute" in df.columns:
+            # Filter rows according to filter_rows mapping:
+            for filter_col, filter_val in mapping.filter_rows.items():
+                if filter_col not in df.columns:
                     print(
                         f"WARNING: Cannot produce table {mapping.times_name} because input"
-                        f" table {mapping.xl_name} does not contain an Attribute column"
+                        f" table {mapping.xl_name} does not contain column {filter_col}"
                     )
-                else:
-                    colname = mapping.xl_cols[-1]
-                    filter = set(x.lower() for x in {colname, mapping.times_name})
-                    i = df["Attribute"].str.lower().isin(filter)
-                    df = df.loc[i, :]
-                    if colname not in df.columns:
-                        df = df.rename(columns={"VALUE": colname})
+                    # TODO break this loop and continue outer loop?
+                filter = set(x.lower() for x in {filter_val})
+                i = df[filter_col].str.lower().isin(filter)
+                df = df.loc[i, :]
             # TODO find the correct tech group
             if "TechGroup" in mapping.xl_cols:
                 df["TechGroup"] = df["TechName"]
@@ -298,8 +309,15 @@ def produce_times_tables(
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
-                i = df[mapping.times_cols[-1]].notna() & (df != "None").all(axis=1)
+                i = (
+                    df[mapping.times_cols[-1]].notna()
+                    & (df != "None").all(axis=1)
+                    & (df != "").all(axis=1)
+                )
                 df = df.loc[i, mapping.times_cols]
+                # Drop tables that are empty after filtering and dropping Nones:
+                if len(df) == 0:
+                    continue
                 result[mapping.times_name] = df
 
     unused_tables = set(input.keys()) - used_tables

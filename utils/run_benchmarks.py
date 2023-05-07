@@ -13,6 +13,19 @@ from typing import Any, Tuple
 import yaml
 
 
+def parse_result(lastline):
+    m = match(
+        r"(\d+\.\d)\% of ground truth rows present in output \((\d+)/(\d+)\)"
+        r", (\d+) additional rows",
+        lastline,
+    )
+    if not m:
+        print(f"ERROR: could not parse output of run:\n{lastline}")
+        sys.exit(1)
+    # return (accuracy, num_correct_rows, num_additional_rows)
+    return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
+
+
 def run_benchmark(
     benchmarks_folder: str,
     benchmark: Any,
@@ -77,17 +90,10 @@ def run_benchmark(
         print(res.stderr if res.stderr is not None else "")
 
     if res.returncode == 0:
-        lastline = res.stdout.splitlines()[-1]
-        m = match(
-            r"(\d+\.\d)\% of ground truth rows present in output \((\d+)/(\d+)\)"
-            r", (\d+) additional rows",
-            lastline,
+        (accuracy, num_correct, num_additional) = parse_result(
+            res.stdout.splitlines()[-1]
         )
-        if not m:
-            print(f"ERROR: could not parse output of run:\n{lastline}")
-            sys.exit(1)
-        # return (runtime, accuracy, num_correct_rows, num_additional_rows)
-        return (runtime, float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
+        return (runtime, accuracy, num_correct, num_additional)
     else:
         print(res.stdout)
         print(f"ERROR: tool failed on {benchmark['name']}")
@@ -95,7 +101,11 @@ def run_benchmark(
 
 
 def run_all_benchmarks(
-    benchmarks_folder: str, benchmarks: list, skip_csv=False, verbose=False
+    benchmarks_folder: str,
+    benchmarks: list,
+    skip_csv=False,
+    skip_main=False,
+    verbose=False,
 ):
     print("Running benchmarks", end="", flush=True)
     results = []
@@ -124,24 +134,39 @@ def run_all_benchmarks(
         print("Skipping regression tests as we're on main branch. Goodbye!")
         sys.exit(0)
 
-    if repo.is_dirty():
-        print("ERROR: your working directory is not clean. Aborting.")
-        sys.exit(1)
-
-    # Re-run benchmarks on main
-    repo.heads.main.checkout()
-    print("Running benchmarks on main", end="", flush=True)
-    results_main = []
-    for benchmark in benchmarks:
-        result = run_benchmark(
-            benchmarks_folder,
-            benchmark,
-            skip_csv=True,
-            out_folder="out-main",
-            verbose=verbose,
+    if skip_main:
+        results_main = []
+        for benchmark in benchmarks:
+            with open(
+                path.join(benchmarks_folder, "out-main", benchmark["name"], "stdout"),
+                "r",
+            ) as f:
+                result = parse_result(f.readlines()[-1])
+            # Use a fake runtime
+            results_main.append((benchmark["name"], 999, *result))
+        print(
+            f"Skipped running on main. Using results from {path.join(benchmarks_folder, 'out-main')}"
         )
-        results_main.append((benchmark["name"], *result))
-        print(".", end="", flush=True)
+
+    else:
+        if repo.is_dirty():
+            print("ERROR: your working directory is not clean. Aborting.")
+            sys.exit(1)
+
+        # Re-run benchmarks on main
+        repo.heads.main.checkout()
+        print("Running benchmarks on main", end="", flush=True)
+        results_main = []
+        for benchmark in benchmarks:
+            result = run_benchmark(
+                benchmarks_folder,
+                benchmark,
+                skip_csv=True,
+                out_folder="out-main",
+                verbose=verbose,
+            )
+            results_main.append((benchmark["name"], *result))
+            print(".", end="", flush=True)
 
     # Print table with combined results to make comparison easier
     combined_results = [
@@ -215,6 +240,12 @@ if __name__ == "__main__":
         help="Skip generating csv versions of ground truth DD files",
     )
     args_parser.add_argument(
+        "--skip_main",
+        action="store_true",
+        default=False,
+        help="Skip running tool on main and reuse existing result files",
+    )
+    args_parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
@@ -232,7 +263,7 @@ if __name__ == "__main__":
     if args.run is not None:
         benchmark = next((b for b in spec["benchmarks"] if b["name"] == args.run), None)
         if benchmark is None:
-            print(f"ERROR: could not find {args.run} in {args.benchmark_yaml}")
+            print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
             sys.exit(1)
 
         runtime, _, _, _ = run_benchmark(
@@ -244,5 +275,9 @@ if __name__ == "__main__":
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
         run_all_benchmarks(
-            benchmarks_folder, spec["benchmarks"], args.skip_csv, args.verbose
+            benchmarks_folder,
+            spec["benchmarks"],
+            args.skip_csv,
+            args.skip_main,
+            args.verbose,
         )
