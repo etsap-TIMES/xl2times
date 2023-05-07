@@ -234,10 +234,12 @@ def compare(
                         f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
                         f" additional rows and is missing {len(missing)} rows"
                     )
+                if len(additional) != 0:
                     DataFrame(additional).to_csv(
                         os.path.join(output_dir, table_name + "_additional.csv"),
                         index=False,
                     )
+                if len(missing) != 0:
                     DataFrame(missing).to_csv(
                         os.path.join(output_dir, table_name + "_missing.csv"),
                         index=False,
