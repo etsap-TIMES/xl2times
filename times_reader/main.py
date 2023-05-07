@@ -192,7 +192,7 @@ def compare(
 ):
     print(
         f"Ground truth contains {len(ground_truth)} tables,"
-        f" {sum(df.shape[0] for tablename, df in ground_truth.items())} rows"
+        f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
     )
 
     missing = set(ground_truth.keys()) - set(data.keys())
@@ -202,28 +202,37 @@ def compare(
     if len(missing) > 0:
         print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
 
+    additional_tables = set(data.keys()) - set(ground_truth.keys())
+    additional_str = ", ".join(
+        [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
+    )
+    if len(additional_tables) > 0:
+        print(f"WARNING: {len(additional_tables)} additional tables: {additional_str}")
+    # Additional rows starts as the sum of lengths of additional tables produced
+    total_additional_rows = sum(len(data[x]) for x in additional_tables)
+
     total_gt_rows = 0
     total_correct_rows = 0
-    total_additional_rows = 0
     for table_name, gt_table in sorted(
-        ground_truth.items(), reverse=True, key=lambda t: len(t[1].values)
+        ground_truth.items(), reverse=True, key=lambda t: len(t[1])
     ):
-        total_gt_rows += len(gt_table.values)
+        total_gt_rows += len(gt_table)
         if table_name in data:
             data_table = data[table_name]
 
             # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
+            data_cols = list(data_table.columns)
 
-            if transformed_gt_cols != list(data[table_name].columns):
+            if transformed_gt_cols != data_cols:
                 print(
                     f"WARNING: Table {table_name} header incorrect, was"
-                    f" {data_table.columns.values}, should be {transformed_gt_cols}"
+                    f" {data_cols}, should be {transformed_gt_cols}"
                 )
             else:
                 # both are in string form so can be compared without any issues
-                gt_rows = set(tuple(row) for row in gt_table.values.tolist())
-                data_rows = set(tuple(row) for row in data_table.values.tolist())
+                gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
+                data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
                 total_correct_rows += len(gt_rows.intersection(data_rows))
                 additional = data_rows - gt_rows
                 total_additional_rows += len(additional)
@@ -300,8 +309,15 @@ def produce_times_tables(
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
-                i = df[mapping.times_cols[-1]].notna() & (df != "None").all(axis=1)
+                i = (
+                    df[mapping.times_cols[-1]].notna()
+                    & (df != "None").all(axis=1)
+                    & (df != "").all(axis=1)
+                )
                 df = df.loc[i, mapping.times_cols]
+                # Drop tables that are empty after filtering and dropping Nones:
+                if len(df) == 0:
+                    continue
                 result[mapping.times_name] = df
 
     unused_tables = set(input.keys()) - used_tables
