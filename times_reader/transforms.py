@@ -1476,7 +1476,7 @@ def process_years(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
     # Pastyears is the set of all years before ~StartYear
     start_year = tables[datatypes.Tag.start_year]["VALUE"][0]
-    pastyears = datayears.where(lambda x: x <= start_year).dropna()
+    pastyears = datayears.where(lambda x: x < start_year).dropna()
     tables["PastYear"] = pd.DataFrame({"Year": pastyears})
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
