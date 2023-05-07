@@ -361,12 +361,14 @@ def normalize_tags_columns_attrs(
         parts[0] = parts[0].upper()
         newtag = ":".join(parts)
 
+        df = table.dataframe
+        # Strip leading and trailing whitespaces from column names
+        df.columns = df.columns.str.strip()
+
         # TODO continue:
-        # df = table.dataframe
         # col_name_map = {x: x.upper() for x in df.columns}
 
-        # return replace(table, tag=newtag, dataframe=df)
-        return replace(table, tag=newtag)
+        return replace(table, tag=newtag, dataframe=df)
 
     return [normalize(table) for table in tables]
 
