@@ -797,6 +797,10 @@ def fill_in_missing_values(
     for _, row in brm.iterrows():
         regions[row["BookName"]].append(row["Region"])
     all_regions = list(brm["Region"])
+    ts_levels = (
+        utils.single_table(tables, "TimeSlicesGroup").dataframe["TSLVL"].unique()
+    )
+    ele_default_tslvl = "DAYNITE" if "DAYNITE" in ts_levels else "ANNUAL"
 
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
@@ -833,7 +837,7 @@ def fill_in_missing_values(
             elif colname == "Tslvl":  # or colname == "CTSLvl" or colname == "PeakTS":
                 isna = df[colname].isna()
                 isele = df["Sets"] == "ELE"
-                df.loc[isna & isele, colname] = "DAYNITE"
+                df.loc[isna & isele, colname] = ele_default_tslvl
                 df.loc[isna & ~isele, colname] = "ANNUAL"
             elif colname == "Region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
