@@ -64,6 +64,15 @@ aliases_by_attr = {
     "VDA_FLOP": ["FLOP"],
 }
 
+attr_prop = {
+    "COM_LIM": "LimType",
+    "COM_TSL": "CTSLvl",
+    "COM_TYPE": "Ctype",
+    "PRC_PCG": "PrimaryCG",
+    "PRC_TSL": "Tslvl",
+    "PRC_VINT": "Vintage",
+}
+
 # Specify, in order of priority, what to use as CommName if CommName is empty
 attr_com_def = {
     "CEFF": ["Comm-IN", "Comm-OUT"],  # this one is a Veda alias
@@ -788,6 +797,10 @@ def fill_in_missing_values(
     for _, row in brm.iterrows():
         regions[row["BookName"]].append(row["Region"])
     all_regions = list(brm["Region"])
+    ts_levels = (
+        utils.single_table(tables, "TimeSlicesGroup").dataframe["TSLVL"].unique()
+    )
+    ele_default_tslvl = "DAYNITE" if "DAYNITE" in ts_levels else "ANNUAL"
 
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
@@ -822,7 +835,10 @@ def fill_in_missing_values(
                         colname,
                     ] = timeslice
             elif colname == "Tslvl":  # or colname == "CTSLvl" or colname == "PeakTS":
-                df[colname].fillna("ANNUAL", inplace=True)
+                isna = df[colname].isna()
+                isele = df["Sets"] == "ELE"
+                df.loc[isna & isele, colname] = ele_default_tslvl
+                df.loc[isna & ~isele, colname] = "ANNUAL"
             elif colname == "Region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
                 matches = re.search(r"/[^/]*?/VT_([A-Za-z0-9]+)_", table.filename)
@@ -1639,6 +1655,7 @@ def process_transform_insert(
     regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "Region")
     tfm_tags = [
         datatypes.Tag.tfm_ins,
+        datatypes.Tag.tfm_ins_txt,
         datatypes.Tag.tfm_dins,
         datatypes.Tag.tfm_topins,
         datatypes.Tag.tfm_upd,
@@ -1653,6 +1670,7 @@ def process_transform_insert(
 
         elif table.tag in [
             datatypes.Tag.tfm_ins,
+            datatypes.Tag.tfm_ins_txt,
             datatypes.Tag.tfm_ins_ts,
             datatypes.Tag.tfm_upd,
             datatypes.Tag.tfm_comgrp,
@@ -1948,7 +1966,12 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             )
         return matching_commodities
 
-    for tag in [datatypes.Tag.tfm_upd, datatypes.Tag.tfm_ins, datatypes.Tag.tfm_ins_ts]:
+    for tag in [
+        datatypes.Tag.tfm_upd,
+        datatypes.Tag.tfm_ins,
+        datatypes.Tag.tfm_ins_ts,
+        datatypes.Tag.tfm_ins_txt,
+    ]:
         if tag in tables:
             start_time = time.time()
             upd = tables[tag]
@@ -2031,8 +2054,13 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                     if matching_commodities is not None:
                         row = matching_commodities.merge(row, how="cross")
                     new_rows.append(row)
+            if tag == datatypes.Tag.tfm_ins_txt:
+                # df_prc = tables[datatypes.Tag.fi_process]
+                # df_com = tables[datatypes.Tag.fi_comm]
+                new_rows.append(df)  # pyright: ignore
+                tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
 
-            if tag != datatypes.Tag.tfm_upd:
+            if tag != datatypes.Tag.tfm_upd and tag != datatypes.Tag.tfm_ins_txt:
                 new_rows.append(df)  # pyright: ignore
                 tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
 
