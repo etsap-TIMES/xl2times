@@ -831,7 +831,10 @@ def fill_in_missing_values(
                         colname,
                     ] = timeslice
             elif colname == "Tslvl":  # or colname == "CTSLvl" or colname == "PeakTS":
-                df[colname].fillna("ANNUAL", inplace=True)
+                isna = df[colname].isna()
+                isele = df["Sets"] == "ELE"
+                df.loc[isna & isele, colname] = "DAYNITE"
+                df.loc[isna & ~isele, colname] = "ANNUAL"
             elif colname == "Region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
                 matches = re.search(r"/[^/]*?/VT_([A-Za-z0-9]+)_", table.filename)
