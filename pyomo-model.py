@@ -82,3 +82,8 @@ m.e11 = Constraint(expr=m.x10 + m.x13 >= 13413.96)
 m.e12 = Constraint(expr=0.1 * m.x7 + 0.2 * m.x15 - m.x18 == 0)
 m.e13 = Constraint(expr=0.1 * m.x8 + 0.2 * m.x16 - m.x19 == 0)
 m.e14 = Constraint(expr=0.1 * m.x9 + 0.2 * m.x17 - m.x20 == 0)
+
+# glpsol must be on the path otherwise you get 'NoneType' object is not iterable!
+opt = SolverFactory("glpk")
+results = opt.solve(m)
+print(results)
