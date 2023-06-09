@@ -8,6 +8,7 @@ import numpy
 import re
 from . import datatypes
 from . import utils
+from .datatypes import Col
 
 
 def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
@@ -96,7 +97,7 @@ def extract_table(
                 max_row=tag_row + 1,
             )
         )
-        table_df = DataFrame(columns=["VALUE"])
+        table_df = DataFrame(columns=[Col("VALUE")])
         table_df.loc[0] = [df.iloc[tag_row, tag_col + 1]]
         uc_sets = {}
     else:
@@ -129,12 +130,14 @@ def extract_table(
         if end_row - header_row == 1 and end_col - start_col == 1:
             # Interpret single cell tables as a single data item with a column name VALUE
             table_df = DataFrame(df.iloc[header_row, start_col:end_col])
-            table_df.columns = ["VALUE"]
+            table_df.columns = [Col("VALUE")]
         else:
             table_df = df.iloc[header_row + 1 : end_row, start_col:end_col]
             # Make all columns names strings as some are integers e.g. years
             table_df.columns = [str(x) for x in df.iloc[header_row, start_col:end_col]]
 
+    # Normalize column names
+    table_df.rename(lambda s: datatypes.Col(s), axis="columns", inplace=True)
     table_df.reset_index(drop=True, inplace=True)
 
     # Don't use applymap because it can convert ints to floats

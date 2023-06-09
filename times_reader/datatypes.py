@@ -8,6 +8,41 @@ from pandas.core.frame import DataFrame
 # ============================================================================
 
 
+class Col(str):
+    """A subclass of string to be used as column names for our DataFrames.
+    This class normalizes case and whitespace of the supplied column names.
+    """
+
+    def __new__(cls, content):
+        if isinstance(content, cls):
+            return super().__new__(cls, str(content))
+        if isinstance(content, str):
+            return super().__new__(cls, str(content).strip().upper())
+
+    def __eq__(self, other):
+        if other is None:
+            return False
+        if isinstance(other, Col):
+            return super().__eq__(other)
+        if isinstance(other, str):
+            # raise ValueError("Cannot compare Col and str -- use only Col!")
+            return self == Col(other)
+        return super().__eq__(other)
+
+    def __hash__(self):
+        return super().__hash__()
+
+    def __repr__(self) -> str:
+        return f"Col({super().__str__()})"
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+
+def Cols(col_names: List[str]) -> List[Col]:
+    return [Col(x) for x in col_names]
+
+
 @dataclass
 class EmbeddedXlTable:
     """This class defines a table object as a pandas dataframe wrapped with some metadata.
@@ -67,11 +102,11 @@ class TimesXlMap:
     """
 
     times_name: str
-    times_cols: List[str]
+    times_cols: List[Col]
     xl_name: str
-    xl_cols: List[str]
-    col_map: Dict[str, str]
-    filter_rows: Dict[str, str]
+    xl_cols: List[Col]
+    col_map: Dict[Col, Col]
+    filter_rows: Dict[Col, str]
 
 
 class Tag(str, Enum):

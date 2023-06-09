@@ -1,17 +1,15 @@
 from pandas.core.frame import DataFrame
 import pandas as pd
-from dataclasses import replace
 from typing import Dict, List
-from itertools import groupby
 import re
 import os
 from concurrent.futures import ProcessPoolExecutor
 import time
-from functools import reduce
 import pickle
 from . import datatypes
 from . import excel
 from . import transforms
+from .datatypes import Col
 
 
 def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
@@ -44,14 +42,14 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
             (times, xl) = line.split(" = ")
             (times_name, times_cols_str) = list(filter(None, re.split("\[|\]", times)))
             (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
-            times_cols = times_cols_str.split(",")
+            times_cols = list(map(Col, times_cols_str.split(",")))
             xl_cols = xl_cols_str.split(",")
             filter_rows = {}
-            for i, s in enumerate(xl_cols):
+            for s in xl_cols:
                 if ":" in s:
                     [col_name, col_val] = s.split(":")
-                    filter_rows[col_name.strip()] = col_val.strip()
-            xl_cols = [s for s in xl_cols if ":" not in s]
+                    filter_rows[Col(col_name)] = col_val.strip()
+            xl_cols = [Col(s) for s in xl_cols if ":" not in s]
 
             # TODO remove: Filter out mappings that are not yet finished
             if xl_name != "~TODO" and not any(c.startswith("TODO") for c in xl_cols):
@@ -92,7 +90,7 @@ def convert_xl_to_times(
     else:
         raw_tables = []
 
-        use_pool = True
+        use_pool = False
         if use_pool:
             with ProcessPoolExecutor() as executor:
                 for result in executor.map(excel.extract_tables, input_files):
@@ -160,6 +158,20 @@ def convert_xl_to_times(
             f"transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
         )
         input = output
+        # TODO flag
+        # Assert that all dataframes use only the Col type for column names:
+        if isinstance(output, list):
+            for e in output:
+                for c in e.dataframe.columns:
+                    if not isinstance(c, datatypes.Col):
+                        raise ValueError(f"Error: {e} uses non-Col column name {c}")
+        elif isinstance(output, dict):
+            for tag, df in output.items():
+                for c in df.columns:
+                    if not isinstance(c, datatypes.Col):
+                        raise ValueError(f"Error: {tag} uses non-Col column name {c}")
+        else:
+            raise ValueError("Unexpected output type after transform")
 
     print(
         f"Conversion complete, {len(output)} tables produced,"
@@ -287,12 +299,13 @@ def produce_times_tables(
                         f" table {mapping.xl_name} does not contain column {filter_col}"
                     )
                     # TODO break this loop and continue outer loop?
-                filter = set(x.lower() for x in {filter_val})
-                i = df[filter_col].str.lower().isin(filter)
+                # filter = set(x.upper() for x in {filter_val})
+                # i = df[filter_col].str.upper().isin(filter)
+                i = df[filter_col].str.upper() == filter_val.upper()
                 df = df.loc[i, :]
             # TODO find the correct tech group
-            if "TechGroup" in mapping.xl_cols:
-                df["TechGroup"] = df["TechName"]
+            if Col("TechGroup") in mapping.xl_cols:
+                df[Col("TechGroup")] = df[Col("TechName")]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols) - set(df.columns)
                 print(
