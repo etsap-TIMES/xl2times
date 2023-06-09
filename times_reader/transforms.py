@@ -1135,7 +1135,7 @@ def apply_fixups(
                         & (df[Col("CommName")].isna())
                     )
                     if len(df[index]) > 0:
-                        df.loc[index, [Col("CommName")]] = df[index][com_in_out]
+                        df.loc[index, [Col("CommName")]] = df[index][Col(com_in_out)]
 
         # Fill other indexes for some attributes
         # FLO_SHAR
@@ -2325,14 +2325,16 @@ def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                             df,
                             pd.DataFrame(
                                 extra_rows,
-                                columns=[
-                                    "Attribute",
-                                    "Region",
-                                    "TechName",
-                                    "LimType",
-                                    "Year",
-                                    "VALUE",
-                                ],
+                                columns=Cols(
+                                    [
+                                        "Attribute",
+                                        "Region",
+                                        "TechName",
+                                        "LimType",
+                                        "Year",
+                                        "VALUE",
+                                    ]
+                                ),
                             ),
                         ]
                     )
