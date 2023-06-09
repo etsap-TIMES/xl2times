@@ -1416,10 +1416,12 @@ def fill_in_missing_pcgs(
                 default_pcgs[Col("DefaultVedaPCG")] == 1,
                 Cols(["Region", "TechName", "CommodityGroup"]),
             ]
-            default_pcgs.rename(columns={"CommodityGroup": "PrimaryCG"}, inplace=True)
+            default_pcgs.rename(
+                columns={Col("CommodityGroup"): Col("PrimaryCG")}, inplace=True
+            )
             default_pcgs = pd.merge(
                 default_pcgs,
-                df.loc[df[Col("PrimaryCG")].isna(), df.columns != "PrimaryCG"],
+                df.loc[df[Col("PrimaryCG")].isna(), df.columns != Col("PrimaryCG")],
                 how="right",
             )
             df = pd.concat([df, default_pcgs])
