@@ -329,6 +329,173 @@ def produce_times_tables(
     return result
 
 
+# TODO should this be a part of the restructured mapping file?
+table_order = [
+    "ALL_TS",
+    "ALL_REG",
+    "REG",
+    "COM_GRP",
+    "COM",
+    "PRC",
+    "CUR",
+    "UNITS",
+    "UNITS_COM",
+    "UNITS_CAP",
+    "UNITS_ACT",
+    "UNITS_MONY",
+    "G_DYEAR",
+    "COM_DESC",
+    "COM_GMAP",
+    "COM_LIM",
+    "COM_TMAP",
+    "COM_TSL",
+    "COM_UNIT",
+    "NRG_TMAP",
+    "PRC_ACTUNT",
+    "PRC_DESC",
+    "PRC_MAP",
+    "PRC_NOFF",
+    "PRC_TSL",
+    "PRC_VINT",
+    "PRC_DSCNCAP",
+    "TS_GROUP",
+    "TS_MAP",
+    "DATAYEAR",
+    "PASTYEAR",
+    "MODLYEAR",
+    "TOP",
+    "TOP_IRE",
+    "COM_PEAK",
+    "COM_PKTS",
+    "UC_N",
+    "UC_R_SUM",
+    "UC_R_EACH",
+    "UC_ATTR",
+    "B",
+    "E",
+    "ACT_BND",
+    "ACT_COST",
+    "ACT_CUM",
+    "NCAP_AF",
+    "NCAP_AFA",
+    "NCAP_BND",
+    "NCAP_CHPR",
+    "NCAP_COST",
+    "NCAP_CPX",
+    "NCAP_DRATE",
+    "NCAP_ELIFE",
+    "NCAP_FOM",
+    "NCAP_ILED",
+    "NCAP_PASTI",
+    "NCAP_TLIFE",
+    "NCAP_START",
+    "CAP_BND",
+    "COM_BNDNET",
+    "COM_CSTNET",
+    "COM_FR",
+    "COM_IE",
+    "COM_TAXNET",
+    "COM_AGG",
+    "COM_ELAST",
+    "COM_PROJ",
+    "COM_STEP",
+    "COM_VOC",
+    "FLO_COST",
+    "FLO_DELIV",
+    "FLO_FR",
+    "FLO_FUNC",
+    "FLO_FUNCX",
+    "FLO_SHAR",
+    "FLO_SUB",
+    "FLO_TAX",
+    "FLO_MARK",
+    "PRC_RESID",
+    "NCAP_PKCNT",
+    "COM_PKRSV",
+    "COM_PKFLX",
+    "STG_EFF",
+    "STG_LOSS",
+    "STGIN_BND",
+    "PRC_ACTFLO",
+    "PRC_CAPACT",
+    "G_DRATE",
+    "G_YRFR",
+    "G_CUREX",
+    "IRE_FLO",
+    "IRE_FLOSUM",
+    "IRE_PRICE",
+    "SHAPE",
+    "UC_RHSRT",
+    "UC_RHSRTS",
+    "UC_RHSTS",
+    "UC_FLO",
+    "UC_ACT",
+    "UC_CAP",
+    "UC_NCAP",
+    "UC_COMPRD",
+    "UC_COMNET",
+    "UC_IRE",
+    "NCAP_DISC",
+    "VDA_FLOP",
+    "VDA_EMCB",
+    "VDA_CEH",
+    "FLO_EMIS",
+    "NCAP_AFC",
+    "NCAP_AFCS",
+    "ACT_EFF",
+]
+
+
+def write_dd_files(
+    tables: Dict[str, DataFrame], mappings: List[datatypes.TimesXlMap], output_dir: str
+):
+    os.makedirs(output_dir, exist_ok=True)
+    for item in os.listdir(output_dir):
+        if item.endswith(".dd"):
+            os.remove(os.path.join(output_dir, item))
+
+    def convert_set(df: DataFrame):
+        try:
+            descriptions = df.pop("TEXT")
+        except KeyError:
+            descriptions = [None] * len(df)
+        for row, desc in zip(df.itertuples(index=False), descriptions):
+            row_str = "'.'".join((str(x) for x in row))
+            desc = f" '{desc}'" if desc is not None else ""
+            yield f"'{row_str}'{desc}\n"
+
+    def convert_parameter(tablename: str, df: DataFrame):
+        if "VALUE" not in df.columns:
+            raise KeyError(f"Unable to find VALUE column in parameter {tablename}")
+        for row in df.itertuples(index=False):
+            val = row.VALUE
+            row_str = "'.'".join(
+                (str(x) for k, x in row._asdict().items() if k != "VALUE")
+            )
+            yield f"'{row_str}' {val}\n" if row_str else f"{val}\n"
+
+    sets = {m.times_name for m in mappings if "VALUE" not in m.col_map}
+    # Compute map fname -> tables: right now ALL_TS -> ts.dd, rest -> output.dd
+    tables_in_file = {
+        "ts.dd": ["ALL_TS"],
+        "output.dd": [t for t in table_order if t != "ALL_TS"],
+    }
+
+    for fname, tablenames in tables_in_file.items():
+        with open(os.path.join(output_dir, fname), "w") as fout:
+            for tablename in [t for t in tablenames if t in tables]:
+                df = tables[tablename]
+                if tablename in sets:
+                    fout.write(f"SET {tablename}\n/\n")
+                    lines = convert_set(df)
+                else:
+                    fout.write(f"PARAMETER\n{tablename} ' '/\n")
+                    lines = convert_parameter(tablename, df)
+                fout.writelines(sorted(lines))
+                fout.write("\n/;\n")
+    pass
+
+
 def dump_tables(tables: List, filename: str) -> List:
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w") as text_file:
