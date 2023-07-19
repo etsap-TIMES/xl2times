@@ -30,6 +30,23 @@ class EmbeddedXlTable:
     filename: str
     dataframe: DataFrame
 
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, EmbeddedXlTable):
+            return False
+        return (
+            self.tag == o.tag
+            and self.uc_sets == o.uc_sets
+            and self.range == o.range
+            and self.filename == o.filename
+            and self.dataframe.shape == o.dataframe.shape
+            and (
+                len(self.dataframe) == 0  # Empty tables don't affect our output
+                or self.dataframe.sort_index(axis=1).equals(
+                    o.dataframe.sort_index(axis=1)
+                )
+            )
+        )
+
 
 @dataclass
 class TimesXlMap:
@@ -45,8 +62,8 @@ class TimesXlMap:
                         possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
         xl_cols         Columns from the Excel table used as input.
         col_map         A mapping from Excel column names to Times column names.
-        filter_rows     Boolean indicating that only rows with the desired value in the
-                        Attribute column should be outputted. If false all rows are outputted.
+        filter_rows     A map from column name to value to filter rows to. If {}, all
+                        rows are outputted. E.g., {'Attribute': 'COM_ELAST'}
     """
 
     times_name: str
@@ -54,7 +71,7 @@ class TimesXlMap:
     xl_name: str
     xl_cols: List[str]
     col_map: Dict[str, str]
-    filter_rows: bool
+    filter_rows: Dict[str, str]
 
 
 class Tag(str, Enum):
@@ -66,27 +83,46 @@ class Tag(str, Enum):
 
     active_p_def = "~ACTIVEPDEF"
     book_regions_map = "~BOOKREGIONS_MAP"
-    comemi = "~COMEMI"
     comagg = "~COMAGG"
+    comemi = "~COMEMI"
     currencies = "~CURRENCIES"
+    defaultyear = "~DEFAULTYEAR"
     def_units = "~DEFUNITS"
+    endyear = "~ENDYEAR"
     fi_comm = "~FI_COMM"
     fi_process = "~FI_PROCESS"
     fi_t = "~FI_T"
+    milestoneyears = "~MILESTONEYEARS"
     start_year = "~STARTYEAR"
     tfm_ava = "~TFM_AVA"
     tfm_comgrp = "~TFM_COMGRP"
+    tfm_csets = "~TFM_CSETS"
     tfm_dins = "~TFM_DINS"
+    tfm_dins_at = "~TFM_DINS-AT"
+    tfm_dins_ts = "~TFM_DINS-TS"
+    tfm_dins_tsl = "~TFM_DINS-TSL"
     tfm_fill = "~TFM_FILL"
     tfm_fill_r = "~TFM_FILL-R"
     tfm_ins = "~TFM_INS"
+    tfm_ins_at = "~TFM_INS-AT"
     tfm_ins_ts = "~TFM_INS-TS"
+    tfm_ins_tsl = "~TFM_INS-TSL"
+    tfm_ins_txt = "~TFM_INS-TXT"
+    tfm_mig = "~TFM_MIG"
+    tfm_psets = "~TFM_PSETS"
+    tfm_topdins = "~TFM_TOPDINS"
     tfm_topins = "~TFM_TOPINS"
     tfm_upd = "~TFM_UPD"
+    tfm_upd_at = "~TFM_UPD-AT"
+    tfm_upd_ts = "~TFM_UPD-TS"
     time_periods = "~TIMEPERIODS"
     time_slices = "~TIMESLICES"
+    tradelinks = "~TRADELINKS"
+    tradelinks_dins = "~TRADELINKS_DINS"
     uc_sets = "~UC_SETS"
     uc_t = "~UC_T"
+    # This is used by Veda for unit conversion when displaying results
+    # unitconversion = "~UNITCONVERSION"
 
     @classmethod
     def has_tag(cls, tag):

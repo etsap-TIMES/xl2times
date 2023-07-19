@@ -1,7 +1,7 @@
 from pandas.core.frame import DataFrame
 import pandas as pd
 from dataclasses import replace
-from typing import Dict, List
+from typing import Iterable, List
 from more_itertools import locate, one
 from itertools import groupby
 import numpy
@@ -75,7 +75,7 @@ def timeslices(tables: List[datatypes.EmbeddedXlTable]):
     :param tables:          List of tables in EmbeddedXlTable format.
     :return:                List of column names of the unique time slice table.
     """
-    # TODO merge with other timeslice code
+    # TODO merge with other timeslice code - should we delete this def or move the other one here?
 
     # No idea why casing of Weekly is special
     cols = single_table(tables, datatypes.Tag.time_slices).dataframe.columns
@@ -124,7 +124,7 @@ def merge_columns(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: st
 
 
 def apply_wildcards(
-    df: DataFrame, candidates: List[str], wildcard_col: str, output_col: str
+    df: DataFrame, candidates: Iterable[str], wildcard_col: str, output_col: str
 ):
     """
     Apply wildcards values to a list of candidates. Wildcards are values containing '*'. For example,
@@ -155,13 +155,14 @@ def apply_wildcards(
                 else:
                     regexp = re.compile(wildcard.replace("*", ".*"))
                     additions = [s for s in candidates if regexp.match(s)]
-                    current_list = list(set(current_list + additions))
+                    current_list = sorted(set(current_list + additions))
             wildcard_map[wildcard_string] = current_list
 
     df[output_col] = df[wildcard_col].map(wildcard_map)
 
 
 def missing_value_inherit(df: DataFrame, colname: str):
+    # TODO: should we use pandas.DataFrame.fillna(method="ffill") instead?
     """
     For each None value in the specifed column of the dataframe, replace it with the last
     non-None value. If no previous non-None value is found leave it as it is. This function
