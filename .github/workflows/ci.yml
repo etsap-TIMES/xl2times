@@ -19,8 +19,9 @@ jobs:
           chmod +x osx_x64_64_sfx.exe
           mkdir GAMS
           pushd  GAMS
-          ../osx_x64_64_sfx.exe
-          export PATH=$PATH:$(pwd)/gams44.1_osx_x64_sfx
+          ../osx_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
+          export PATH=$PATH:$(pwd)/gams44.1_osx_x64
+          ls gams44.1_osx_x64/
           popd
           echo Creating license file at $HOME/Library/Application\ Support/GAMS
           mkdir -p $HOME/Library/Application\ Support/GAMS
