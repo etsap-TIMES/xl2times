@@ -16,6 +16,7 @@ jobs:
     steps:
       - run: |
           curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/macosx/osx_x64_64_sfx.exe -o osx_x64_64_sfx.exe
+          chmod +x osx_x64_64_sfx.exe
           mkdir GAMS
           pushd  GAMS
           ../osx_x64_64_sfx.exe
