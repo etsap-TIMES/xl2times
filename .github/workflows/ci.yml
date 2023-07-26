@@ -22,8 +22,12 @@ jobs:
           ../osx_x64_64_sfx.exe
           export PATH=$PATH:$(pwd)/gams44.1_osx_x64_sfx
           popd
+          echo Creating license file at $HOME/Library/Application\ Support/GAMS
           mkdir -p $HOME/Library/Application\ Support/GAMS
           echo "$GAMS_LICENSE" > $HOME/Library/Application\ Support/GAMS/gamslice.txt
+          ls -l $HOME/Library/Application\ Support/GAMS/
+          echo Trying to run GAMS on trnsport
+          echo $PATH
           gamslib trnsport
           gams trnsport
         env:
