@@ -1,7 +1,6 @@
 import argparse
 import git
-import os
-from os import path
+from os import path, symlink
 import pandas as pd
 from re import match
 import shutil
@@ -24,6 +23,76 @@ def parse_result(lastline):
         sys.exit(1)
     # return (accuracy, num_correct_rows, num_additional_rows)
     return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
+
+
+def run_benchmark_dd(
+    benchmarks_folder: str,
+    benchmark: Any,
+    skip_csv: bool = False,
+    out_folder: str = "out",
+    verbose: bool = False,
+) -> Tuple[float, float, int, int]:
+    xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
+    dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
+    csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])
+    out_folder = path.join(benchmarks_folder, out_folder, benchmark["name"])
+
+    # # First run the tool and generate DD output
+    # args = [
+    #     "--output_dir",
+    #     out_folder,
+    #     "--dd",
+    # ]
+    # if "inputs" in benchmark:
+    #     args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
+    # else:
+    #     args.append(xl_folder)
+    # start = time.time()
+    # res = subprocess.run(
+    #     ["python", "times_excel_reader.py"] + args,
+    #     stdout=subprocess.PIPE,
+    #     stderr=subprocess.STDOUT,
+    #     text=True,
+    # )
+    # runtime = time.time() - start
+
+    # with open(path.join(out_folder, "stdout"), "w") as f:
+    #     f.write(res.stdout)
+    # if verbose:
+    #     line = "-" * 80
+    #     print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
+    #     print(res.stderr if res.stderr is not None else "")
+
+    # if res.returncode != 0:
+    #     print(res.stdout)
+    #     print(f"ERROR: tool failed on {benchmark['name']}")
+    #     sys.exit(1)
+
+    # Copy GAMS scaffolding
+    scaffolding_folder = path.join(
+        path.dirname(path.realpath(__file__)), "..", "gams_scaffold"
+    )
+    print(f"Copying files from {scaffolding_folder} to {out_folder}")
+    shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
+    # Create link to TIMES source TODO get path as arg
+    symlink("/home/sid/TIMES_model", path.join(out_folder, "source"), True)
+
+    # Run GAMS
+    res = subprocess.run(
+        ["gams", "runmodel"],
+        cwd=out_folder,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    print(res.stdout)
+    if res.returncode != 0:
+        # print(res.stdout)
+        print(res.stderr if res.stderr is not None else "")
+        print(f"ERROR: GAMS failed on {benchmark['name']}")
+        sys.exit(1)
+
+    return (runtime, None, None, None)  # TODO accuracy etc
 
 
 def run_benchmark(
@@ -234,6 +303,12 @@ if __name__ == "__main__":
         help="Run a single benchmark instead of all benchmarks",
     )
     args_parser.add_argument(
+        "--dd",
+        action="store_true",
+        default=False,
+        help="Generate DD files, and use GAMS to compare with ground truth",
+    )
+    args_parser.add_argument(
         "--skip_csv",
         action="store_true",
         default=False,
@@ -266,12 +341,20 @@ if __name__ == "__main__":
             print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
             sys.exit(1)
 
-        runtime, _, _, _ = run_benchmark(
-            benchmarks_folder,
-            benchmark,
-            skip_csv=args.skip_csv,
-            verbose=args.verbose,
-        )
+        if args.dd:
+            runtime, _, _, _ = run_benchmark_dd(
+                benchmarks_folder,
+                benchmark,
+                skip_csv=args.skip_csv,
+                verbose=args.verbose,
+            )
+        else:
+            runtime, _, _, _ = run_benchmark(
+                benchmarks_folder,
+                benchmark,
+                skip_csv=args.skip_csv,
+                verbose=args.verbose,
+            )
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
         run_all_benchmarks(
