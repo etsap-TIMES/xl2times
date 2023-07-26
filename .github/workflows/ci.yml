@@ -20,8 +20,8 @@ jobs:
           mkdir GAMS
           pushd  GAMS
           ../osx_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
-          export PATH=$PATH:$(pwd)/gams44.1_osx_x64
-          ls gams44.1_osx_x64/
+          export PATH=$PATH:$(pwd)/gams44.1_osx_x64_64
+          ls gams44.1_osx_x64_64
           popd
           echo Creating license file at $HOME/Library/Application\ Support/GAMS
           mkdir -p $HOME/Library/Application\ Support/GAMS
