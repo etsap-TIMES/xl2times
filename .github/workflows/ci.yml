@@ -11,9 +11,89 @@ on:
   workflow_dispatch:
 
 jobs:
+  # CI:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - name: Install GAMS
+  #       run: |
+  #         curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/macosx/osx_x64_64_sfx.exe -o osx_x64_64_sfx.exe
+  #         chmod +x osx_x64_64_sfx.exe
+  #         mkdir GAMS
+  #         pushd  GAMS
+  #         ../osx_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
+  #         export PATH=$PATH:$(pwd)/gams44.1_osx_x64_64
+  #         popd
+  #         echo Creating license file at $HOME/Library/Application\ Support/GAMS
+  #         mkdir -p $HOME/Library/Application\ Support/GAMS
+  #         echo "$GAMS_LICENSE" > $HOME/Library/Application\ Support/GAMS/gamslice.txt
+  #         ls -l $HOME/Library/Application\ Support/GAMS/
+  #       env:
+  #         GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+  #     - name: Test GAMS on demo 1
+  #       run: |
+  #         export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_osx_x64_64
+  #         echo $PATH
+  #         wget https://github.com/etsap-TIMES/times-excel-reader/files/12169097/DemoS_001-all.zip
+  #         unzip DemoS_001-all.zip
+  #         rm DemoS_001-all/source
+  #         ln -s $GITHUB_WORKSPACE/times-model $GITHUB_WORKSPACE/DemoS_001-all/source
+  #         cd DemoS_001-all
+  #         gams runmodel
+
   CI:
+    # TODO switch back to ubuntu
     runs-on: macos-latest
+
     steps:
+      - uses: actions/checkout@v3
+        with:
+          path: times-excel-reader
+
+      - name: Install packages
+        working-directory: times-excel-reader
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Check code formatting
+        working-directory: times-excel-reader
+        run: |
+          pre-commit install
+          pre-commit run --all-files
+
+      - uses: jakebailey/pyright-action@v1 # Type checking
+        with:
+          version: 1.1.304
+
+      # ---------- Prepare ETSAP Demo models
+
+      - uses: actions/checkout@v3
+        with:
+          repository: olejandro/demos-dd
+          path: times-excel-reader/benchmarks/dd
+
+      - uses: actions/checkout@v3
+        with:
+          repository: olejandro/demos-xlsx
+          path: times-excel-reader/benchmarks/xlsx
+          token: ${{ secrets.GH_PAT_DEMOS_XLSX }}
+
+      # ---------- Prepare TIMES Ireland Model
+
+      # We add this model as the directory `ireland` under `benchmarks/{xlsx,dd}/`
+      # so that the run_benchmarks.py script runs this model too
+      - uses: actions/checkout@v3
+        with:
+          repository: samwebster/times-ireland-model
+          path: times-excel-reader/benchmarks/xlsx/Ireland
+
+      - uses: actions/checkout@v3
+        with:
+          repository: olejandro/times-ireland-model_gams
+          path: times-excel-reader/benchmarks/dd/Ireland
+
+      # ---------- Install GAMS
+
       - name: Install GAMS
         run: |
           curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/macosx/osx_x64_64_sfx.exe -o osx_x64_64_sfx.exe
@@ -29,85 +109,27 @@ jobs:
           ls -l $HOME/Library/Application\ Support/GAMS/
         env:
           GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
-      - uses: actions/checkout@v3
-        with:
-          repository: etsap-TIMES/TIMES_model
-          path: times-model
-      - name: Test GAMS on demo 1
+
+      - name: Run tool on benchmarks, compare GDX outputs
+        working-directory: times-excel-reader
         run: |
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_osx_x64_64
-          echo $PATH
-          wget https://github.com/etsap-TIMES/times-excel-reader/files/12169097/DemoS_001-all.zip
-          unzip DemoS_001-all.zip
-          rm DemoS_001-all/source
-          ln -s $GITHUB_WORKSPACE/times-model $GITHUB_WORKSPACE/DemoS_001-all/source
-          cd DemoS_001-all
-          gams runmodel
-  # CI:
-  #   runs-on: ubuntu-latest
+          python utils/run_benchmarks.py benchmarks.yml --dd --verbose
 
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         path: times-excel-reader
+      # # ---------- Run tool, check for regressions
 
-  #     - name: Install packages
-  #       working-directory: times-excel-reader
-  #       run: |
-  #         python -m pip install --upgrade pip
-  #         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      # - name: Run tool on all benchmarks
+      #   working-directory: times-excel-reader
+      #   # Use tee to also save the output to out.txt so that the summary table can be
+      #   # printed again in the next step.
+      #   # Save the return code to retcode.txt so that the next step can fail the action
+      #   # if run_benchmarks.py failed.
+      #   run: |
+      #     (python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt; \
+      #       echo ${PIPESTATUS[0]} > retcode.txt)
 
-  #     - name: Check code formatting
-  #       working-directory: times-excel-reader
-  #       run: |
-  #         pre-commit install
-  #         pre-commit run --all-files
-
-  #     - uses: jakebailey/pyright-action@v1 # Type checking
-  #       with:
-  #         version: 1.1.304
-
-  #     # ---------- Prepare ETSAP Demo models
-
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         repository: olejandro/demos-dd
-  #         path: times-excel-reader/benchmarks/dd
-
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         repository: olejandro/demos-xlsx
-  #         path: times-excel-reader/benchmarks/xlsx
-  #         token: ${{ secrets.GH_PAT_DEMOS_XLSX }}
-
-  #     # ---------- Prepare TIMES Ireland Model
-
-  #     # We add this model as the directory `ireland` under `benchmarks/{xlsx,dd}/`
-  #     # so that the run_benchmarks.py script runs this model too
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         repository: samwebster/times-ireland-model
-  #         path: times-excel-reader/benchmarks/xlsx/Ireland
-
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         repository: olejandro/times-ireland-model_gams
-  #         path: times-excel-reader/benchmarks/dd/Ireland
-
-  #     # ---------- Run tool, check for regressions
-
-  #     - name: Run tool on all benchmarks
-  #       working-directory: times-excel-reader
-  #       # Use tee to also save the output to out.txt so that the summary table can be
-  #       # printed again in the next step.
-  #       # Save the return code to retcode.txt so that the next step can fail the action
-  #       # if run_benchmarks.py failed.
-  #       run: |
-  #         (python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt; \
-  #           echo ${PIPESTATUS[0]} > retcode.txt)
-
-  #     - name: Print summary
-  #       working-directory: times-excel-reader
-  #       run: |
-  #         sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
-  #         exit $(cat retcode.txt)
+      # - name: Print summary
+      #   working-directory: times-excel-reader
+      #   run: |
+      #     sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
+      #     exit $(cat retcode.txt)
