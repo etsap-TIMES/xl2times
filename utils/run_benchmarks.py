@@ -37,45 +37,45 @@ def run_benchmark_dd(
     csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])
     out_folder = path.join(benchmarks_folder, out_folder, benchmark["name"])
 
-    # # First run the tool and generate DD output
-    # args = [
-    #     "--output_dir",
-    #     out_folder,
-    #     "--dd",
-    # ]
-    # if "inputs" in benchmark:
-    #     args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
-    # else:
-    #     args.append(xl_folder)
-    # start = time.time()
-    # res = subprocess.run(
-    #     ["python", "times_excel_reader.py"] + args,
-    #     stdout=subprocess.PIPE,
-    #     stderr=subprocess.STDOUT,
-    #     text=True,
-    # )
-    # runtime = time.time() - start
+    # First run the tool and generate DD output
+    args = [
+        "--output_dir",
+        out_folder,
+        "--dd",
+    ]
+    if "inputs" in benchmark:
+        args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
+    else:
+        args.append(xl_folder)
+    start = time.time()
+    res = subprocess.run(
+        ["python", "times_excel_reader.py"] + args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    runtime = time.time() - start
 
-    # with open(path.join(out_folder, "stdout"), "w") as f:
-    #     f.write(res.stdout)
-    # if verbose:
-    #     line = "-" * 80
-    #     print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
-    #     print(res.stderr if res.stderr is not None else "")
+    with open(path.join(out_folder, "stdout"), "w") as f:
+        f.write(res.stdout)
+    if verbose:
+        line = "-" * 80
+        print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
+        print(res.stderr if res.stderr is not None else "")
 
-    # if res.returncode != 0:
-    #     print(res.stdout)
-    #     print(f"ERROR: tool failed on {benchmark['name']}")
-    #     sys.exit(1)
+    if res.returncode != 0:
+        print(res.stdout)
+        print(f"ERROR: tool failed on {benchmark['name']}")
+        sys.exit(1)
 
     # Copy GAMS scaffolding
     scaffolding_folder = path.join(
         path.dirname(path.realpath(__file__)), "..", "gams_scaffold"
     )
-    print(f"Copying files from {scaffolding_folder} to {out_folder}")
     shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
     # Create link to TIMES source TODO get path as arg
-    symlink("/home/sid/TIMES_model", path.join(out_folder, "source"), True)
+    if not path.exists(path.join(out_folder, "source")):
+        symlink("/home/sid/TIMES_model", path.join(out_folder, "source"), True)
 
     # Run GAMS
     res = subprocess.run(
@@ -85,14 +85,63 @@ def run_benchmark_dd(
         stderr=subprocess.STDOUT,
         text=True,
     )
-    print(res.stdout)
     if res.returncode != 0:
-        # print(res.stdout)
+        print(res.stdout)
         print(res.stderr if res.stderr is not None else "")
         print(f"ERROR: GAMS failed on {benchmark['name']}")
         sys.exit(1)
+    if "error" in res.stdout.lower():
+        return (runtime, "Error running GAMS")
 
-    return (runtime, None, None, None)  # TODO accuracy etc
+    # Run GAMS on ground truth:
+    shutil.copytree(scaffolding_folder, dd_folder, dirs_exist_ok=True)
+    # Modify batinclude files according to benchmarks.yml's `dd_files`
+    scenario_run = open(path.join(dd_folder, "scenario.run")).readlines()
+    with open(path.join(dd_folder, "scenario.run"), "w") as f:
+        for line in scenario_run:
+            if line.strip() == "$BATINCLUDE output.dd":
+                for file in benchmark["dd_files"]:
+                    f.write(f"$BATINCLUDE {file}.dd\n")
+                continue
+            f.write(line)
+    # TODO also get milestone years from benchmarks.yml
+    # Create link to TIMES source TODO get path as arg
+    if not path.exists(path.join(dd_folder, "source")):
+        symlink("/home/sid/TIMES_model", path.join(dd_folder, "source"), True)
+    res = subprocess.run(
+        ["gams", "runmodel"],
+        cwd=dd_folder,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if res.returncode != 0:
+        print(res.stdout)
+        print(res.stderr if res.stderr is not None else "")
+        print(f"ERROR: GAMS failed on {benchmark['name']} ground truth")
+        sys.exit(1)
+    if "error" in res.stdout.lower():
+        return (runtime, "Error running GAMS on ground truth")
+
+    # Run gdxdiff to compare
+    res = subprocess.run(
+        [
+            "gdxdiff",
+            path.join(dd_folder, "scenario.gdx"),
+            path.join(out_folder, "scenario.gdx"),
+            path.join(out_folder, "diffile.gdx"),
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if res.returncode != 0:
+        print(res.stdout)
+        print(res.stderr if res.stderr is not None else "")
+        print(f"ERROR: gdxdiff failed on {benchmark['name']}")
+        return (runtime, "Different")
+
+    return (runtime, "OK")
 
 
 def run_benchmark(
@@ -357,10 +406,25 @@ if __name__ == "__main__":
             )
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
-        run_all_benchmarks(
-            benchmarks_folder,
-            spec["benchmarks"],
-            args.skip_csv,
-            args.skip_main,
-            args.verbose,
-        )
+        if args.dd:
+            print("Running benchmarks", end="", flush=True)
+            results = []
+            headers = ["Benchmark", "Time (s)", "Result"]
+            for benchmark in [b for b in spec["benchmarks"] if "dd_files" in b]:
+                result = run_benchmark_dd(
+                    benchmarks_folder,
+                    benchmark,
+                    skip_csv=args.skip_csv,
+                    verbose=args.verbose,
+                )
+                results.append((benchmark["name"], *result))
+                print(".", end="", flush=True)
+            print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
+        else:
+            run_all_benchmarks(
+                benchmarks_folder,
+                spec["benchmarks"],
+                args.skip_csv,
+                args.skip_main,
+                args.verbose,
+            )
