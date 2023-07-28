@@ -91,6 +91,8 @@ def run_benchmark_dd(
         print(f"ERROR: GAMS failed on {benchmark['name']}")
         sys.exit(1)
     if "error" in res.stdout.lower():
+        print(res.stdout)
+        print(f"ERROR: GAMS errored on {benchmark['name']}")
         return (runtime, "Error running GAMS")
 
     # Run GAMS on ground truth:
@@ -121,6 +123,8 @@ def run_benchmark_dd(
         print(f"ERROR: GAMS failed on {benchmark['name']} ground truth")
         sys.exit(1)
     if "error" in res.stdout.lower():
+        print(res.stdout)
+        print(f"ERROR: GAMS errored on {benchmark['name']}")
         return (runtime, "Error running GAMS on ground truth")
 
     # Run gdxdiff to compare
