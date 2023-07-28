@@ -102,7 +102,7 @@ jobs:
           pushd  GAMS
           # ../linux_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
           ../linux_x64_64_sfx.exe
-          export PATH=$PATH:$(pwd)/gams44.1_linux_x64_64
+          export PATH=$PATH:$(pwd)/gams44.1_linux_x64_64_sfx
           popd
           echo Creating license file at $HOME/.local/share/GAMS
           mkdir -p $HOME/.local/share/GAMS
@@ -114,7 +114,8 @@ jobs:
       - name: Run tool on benchmarks, compare GDX outputs
         working-directory: times-excel-reader
         run: |
-          export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64
+          export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
+          which gams
           python utils/run_benchmarks.py benchmarks.yml --dd --verbose
 
       # # ---------- Run tool, check for regressions
