@@ -33,7 +33,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         (newtag, varname) = table.tag.split(":")
         varname = varname.strip()
         df = table.dataframe.copy()
-        df["Attribute"].fillna(varname, inplace=True)
+        df["attribute"].fillna(varname, inplace=True)
         return replace(table, tag=newtag, dataframe=df)
     else:
         return table
@@ -54,8 +54,8 @@ def explode(df, data_columns):
         colname for colname in df.columns.values if colname not in data_columns
     ]
     df = df[other_columns]
-    value_column = "VALUE"
-    df = df.assign(VALUE=data)
+    value_column = "value"
+    df = df.assign(value=data)
     nrows = df.shape[0]
     df = df.explode(value_column, ignore_index=True)
 
@@ -184,7 +184,7 @@ def get_scalar(table_tag: str, tables: List[datatypes.EmbeddedXlTable]):
     table = next(filter(lambda t: t.tag == table_tag, tables))
     if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
         raise ValueError("Not scalar table")
-    return table.dataframe["VALUE"].values[0]
+    return table.dataframe["value"].values[0]
 
 
 def has_negative_patterns(pattern):
