@@ -3,9 +3,9 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -13,11 +13,6 @@ on:
 jobs:
   CI:
     runs-on: ubuntu-latest
-
-    env:
-      # A dummy key for the XLSX cache. Increment this when you want this Action to
-      # ignore cache and re-download and convert demo files
-      DUMMY_XLSX_CACHE_KEY: 0
 
     steps:
       - uses: actions/checkout@v3
@@ -36,37 +31,22 @@ jobs:
           pre-commit install
           pre-commit run --all-files
 
+      - uses: jakebailey/pyright-action@v1 # Type checking
+        with:
+          version: 1.1.304
+
       # ---------- Prepare ETSAP Demo models
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
-          path: benchmarks/dd
+          path: times-excel-reader/benchmarks/dd
 
-      - name: Cache demo xlsx files
-        uses: actions/cache@v3
-        id: cache-xlsx
+      - uses: actions/checkout@v3
         with:
-          path: benchmarks/xlsx
-          key: ${{ env.DUMMY_XLSX_CACHE_KEY }}
-
-      - name: Download demo files and convert to xlsx
-        if: steps.cache-xlsx.outputs.cache-hit != 'true'
-        run: |
-          wget -nv https://iea-etsap.org/demo-models/VEDA-TIMES%20Demo%20Models.zip
-          unzip *.zip
-          mv "./VEDA-TIMES Demo Models/ETSAP_DemoS_VFE" benchmarks/xlsx
-          sudo apt install libreoffice-calc default-jre libreoffice-java-common
-          find benchmarks/xlsx -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
-
-      # Upload the converted xlsx files as an artifact so that we can download it
-      # and reproduce any CI failures locally
-      - name: Upload xlsx files as artifact
-        uses: actions/upload-artifact@v3
-        if: steps.cache-xlsx.outputs.cache-hit != 'true'
-        with:
-          name: demos-xlsx
-          path: benchmarks/xlsx
+          repository: olejandro/demos-xlsx
+          path: times-excel-reader/benchmarks/xlsx
+          token: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
       # ---------- Prepare TIMES Ireland Model
 
@@ -75,15 +55,27 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: samwebster/times-ireland-model
-          path: benchmarks/xlsx/Ireland
+          path: times-excel-reader/benchmarks/xlsx/Ireland
 
       - uses: actions/checkout@v3
         with:
-          repository: MaREI-EPMG/times-ireland-model_gams
-          path: benchmarks/dd/Ireland
+          repository: olejandro/times-ireland-model_gams
+          path: times-excel-reader/benchmarks/dd/Ireland
 
       # ---------- Run tool, check for regressions
 
       - name: Run tool on all benchmarks
         working-directory: times-excel-reader
-        run: python utils/run_benchmarks.py ../benchmarks
+        # Use tee to also save the output to out.txt so that the summary table can be
+        # printed again in the next step.
+        # Save the return code to retcode.txt so that the next step can fail the action
+        # if run_benchmarks.py failed.
+        run: |
+          (python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt; \
+            echo ${PIPESTATUS[0]} > retcode.txt)
+
+      - name: Print summary
+        working-directory: times-excel-reader
+        run: |
+          sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
+          exit $(cat retcode.txt)

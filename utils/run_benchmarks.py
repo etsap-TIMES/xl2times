@@ -9,16 +9,34 @@ import subprocess
 import sys
 from tabulate import tabulate
 import time
-from typing import Tuple
+from typing import Any, Tuple
+import yaml
+
+
+def parse_result(lastline):
+    m = match(
+        r"(\d+\.\d)\% of ground truth rows present in output \((\d+)/(\d+)\)"
+        r", (\d+) additional rows",
+        lastline,
+    )
+    if not m:
+        print(f"ERROR: could not parse output of run:\n{lastline}")
+        sys.exit(1)
+    # return (accuracy, num_correct_rows, num_additional_rows)
+    return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
 
 
 def run_benchmark(
-    benchmarks_folder: str, benchmark_name: str, skip_csv: bool = False
+    benchmarks_folder: str,
+    benchmark: Any,
+    skip_csv: bool = False,
+    out_folder: str = "out",
+    verbose: bool = False,
 ) -> Tuple[float, float, int, int]:
-    xl_folder = path.join(benchmarks_folder, "xlsx", benchmark_name)
-    dd_folder = path.join(benchmarks_folder, "dd", benchmark_name)
-    csv_folder = path.join(benchmarks_folder, "csv", benchmark_name)
-    out_folder = path.join(benchmarks_folder, "out", benchmark_name)
+    xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
+    dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
+    csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])
+    out_folder = path.join(benchmarks_folder, out_folder, benchmark["name"])
 
     # First convert ground truth DD to csv
     if not skip_csv:
@@ -38,7 +56,7 @@ def run_benchmark(
             # Remove partial outputs
             shutil.rmtree(csv_folder, ignore_errors=True)
             print(res.stdout)
-            print(f"ERROR: dd_to_csv failed on {benchmark_name}")
+            print(f"ERROR: dd_to_csv failed on {benchmark['name']}")
             sys.exit(1)
     elif not path.exists(csv_folder):
         print(f"ERROR: --skip_csv is true but {csv_folder} does not exist")
@@ -46,12 +64,15 @@ def run_benchmark(
 
     # Then run the tool
     args = [
-        xl_folder,
         "--output_dir",
         out_folder,
         "--ground_truth_dir",
         csv_folder,
     ]
+    if "inputs" in benchmark:
+        args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
+    else:
+        args.append(xl_folder)
     start = time.time()
     res = subprocess.run(
         ["python", "times_excel_reader.py"] + args,
@@ -60,44 +81,46 @@ def run_benchmark(
         text=True,
     )
     runtime = time.time() - start
-    with open(path.join(benchmarks_folder, "out", f"{benchmark_name}.out"), "w") as f:
+
+    with open(path.join(out_folder, "stdout"), "w") as f:
         f.write(res.stdout)
+    if verbose:
+        line = "-" * 80
+        print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
+        print(res.stderr if res.stderr is not None else "")
 
     if res.returncode == 0:
-        lastline = res.stdout.splitlines()[-1]
-        m = match(
-            r"(\d+\.\d)\% of ground truth rows present in output \((\d+)/(\d+)\)"
-            r", (\d+) additional rows",
-            lastline,
+        (accuracy, num_correct, num_additional) = parse_result(
+            res.stdout.splitlines()[-1]
         )
-        if not m:
-            print(f"ERROR: could not parse output of run:\n{lastline}")
-            sys.exit(1)
-        # return (runtime, accuracy, num_correct_rows, num_additional_rows)
-        return (runtime, float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
+        return (runtime, accuracy, num_correct, num_additional)
     else:
         print(res.stdout)
-        print(f"ERROR: tool failed on {benchmark_name}")
+        print(f"ERROR: tool failed on {benchmark['name']}")
         sys.exit(1)
 
 
-def run_all_benchmarks(benchmarks_folder, skip_csv=False):
-    # Each benchmark is a directory in the benchmarks/xlsx/ folder:
-    benchmarks = next(os.walk(path.join(benchmarks_folder, "xlsx")))[1]
-    benchmarks = [b for b in sorted(benchmarks) if b[0] != "."]
-
+def run_all_benchmarks(
+    benchmarks_folder: str,
+    benchmarks: list,
+    skip_csv=False,
+    skip_main=False,
+    verbose=False,
+):
     print("Running benchmarks", end="", flush=True)
     results = []
     headers = ["Benchmark", "Time (s)", "Accuracy", "Correct Rows", "Additional Rows"]
-    for benchmark_name in benchmarks:
-        result = run_benchmark(benchmarks_folder, benchmark_name, skip_csv)
-        results.append((benchmark_name, *result))
+    for benchmark in benchmarks:
+        result = run_benchmark(
+            benchmarks_folder, benchmark, skip_csv=skip_csv, verbose=verbose
+        )
+        results.append((benchmark["name"], *result))
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
 
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
-    repo = git.Repo(".")
+    repo = git.Repo(".")  # pyright: ignore
     origin = repo.remotes.origin
     origin.fetch("main")
     if "main" not in repo.heads:
@@ -111,19 +134,52 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
         print("Skipping regression tests as we're on main branch. Goodbye!")
         sys.exit(0)
 
-    if repo.is_dirty():
-        print("ERROR: your working directory is not clean. Aborting.")
-        sys.exit(1)
+    if skip_main:
+        results_main = []
+        for benchmark in benchmarks:
+            with open(
+                path.join(benchmarks_folder, "out-main", benchmark["name"], "stdout"),
+                "r",
+            ) as f:
+                result = parse_result(f.readlines()[-1])
+            # Use a fake runtime
+            results_main.append((benchmark["name"], 999, *result))
+        print(
+            f"Skipped running on main. Using results from {path.join(benchmarks_folder, 'out-main')}"
+        )
 
-    # Re-run benchmarks on main
-    repo.heads.main.checkout()
-    print("Running benchmarks on main", end="", flush=True)
-    results_main = []
-    for benchmark_name in benchmarks:
-        result = run_benchmark(benchmarks_folder, benchmark_name, skip_csv=True)
-        results_main.append((benchmark_name, *result))
-        print(".", end="", flush=True)
-    print("\n\n" + tabulate(results_main, headers, floatfmt=".1f") + "\n")
+    else:
+        if repo.is_dirty():
+            print("ERROR: your working directory is not clean. Aborting.")
+            sys.exit(1)
+
+        # Re-run benchmarks on main
+        repo.heads.main.checkout()
+        print("Running benchmarks on main", end="", flush=True)
+        results_main = []
+        for benchmark in benchmarks:
+            result = run_benchmark(
+                benchmarks_folder,
+                benchmark,
+                skip_csv=True,
+                out_folder="out-main",
+                verbose=verbose,
+            )
+            results_main.append((benchmark["name"], *result))
+            print(".", end="", flush=True)
+
+    # Print table with combined results to make comparison easier
+    combined_results = [
+        (
+            f"{b:<20}",
+            f"{t0:5.1f} {t:5.1f}",
+            f"{a0:5.1f} {a:5.1f}",
+            f"{c0:6d} {c:6d}",
+            f"{d0:6d} {d:6d}",
+        )
+        for ((b, t, a, c, d), (_, t0, a0, c0, d0)) in zip(results, results_main)
+    ]
+    print("\n\n" + tabulate(combined_results, headers, stralign="right") + "\n")
 
     # Checkout back to branch
     mybranch.checkout()
@@ -137,17 +193,25 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
         how="outer",
     )
     if df.isna().values.any():
-        print("ERROR: number of benchmarks changed")
+        print(f"ERROR: number of benchmarks changed:\n{df}")
         sys.exit(1)
     accu_regressions = df[df["Correct Rows"] < df["M Correct Rows"]]["Benchmark"]
     addi_regressions = df[df["Additional Rows"] > df["M Additional Rows"]]["Benchmark"]
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
 
+    runtime_change = df["Time (s)"].sum() - df["M Time (s)"].sum()
+    print(f"Change in runtime: {runtime_change:+.2f}")
+    correct_change = df["Correct Rows"].sum() - df["M Correct Rows"].sum()
+    print(f"Change in correct rows: {correct_change:+d}")
+    additional_change = df["Additional Rows"].sum() - df["M Additional Rows"].sum()
+    print(f"Change in additional rows: {additional_change:+d}")
+
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
+        print()
         if not accu_regressions.empty:
             print(f"ERROR: correct rows regressed on: {', '.join(accu_regressions)}")
         if not addi_regressions.empty:
-            print(f"ERROR: additional rows regressed on: {', '.join(accu_regressions)}")
+            print(f"ERROR: additional rows regressed on: {', '.join(addi_regressions)}")
         if not time_regressions.empty:
             print(f"ERROR: runtime regressed on: {', '.join(time_regressions)}")
         sys.exit(1)
@@ -159,10 +223,9 @@ def run_all_benchmarks(benchmarks_folder, skip_csv=False):
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
-        "benchmarks_folder",
+        "benchmarks_yaml",
         type=str,
-        help="Benchmarks directory. Assumes subdirectories `xlsx` and `dd` containing one"
-        " folder per benchmark of inputs and outputs (respectively)",
+        help="Benchmarks specification file",
     )
     args_parser.add_argument(
         "--run",
@@ -176,12 +239,45 @@ if __name__ == "__main__":
         default=False,
         help="Skip generating csv versions of ground truth DD files",
     )
+    args_parser.add_argument(
+        "--skip_main",
+        action="store_true",
+        default=False,
+        help="Skip running tool on main and reuse existing result files",
+    )
+    args_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Print output of run on each benchmark",
+    )
     args = args_parser.parse_args()
 
+    spec = yaml.safe_load(open(args.benchmarks_yaml))
+    benchmarks_folder = spec["benchmarks_folder"]
+    benchmark_names = [b["name"] for b in spec["benchmarks"]]
+    if len(set(benchmark_names)) != len(benchmark_names):
+        print("ERROR: Found duplicate name in benchmarks YAML file")
+        sys.exit(1)
+
     if args.run is not None:
+        benchmark = next((b for b in spec["benchmarks"] if b["name"] == args.run), None)
+        if benchmark is None:
+            print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
+            sys.exit(1)
+
         runtime, _, _, _ = run_benchmark(
-            args.benchmarks_folder, args.run, args.skip_csv
+            benchmarks_folder,
+            benchmark,
+            skip_csv=args.skip_csv,
+            verbose=args.verbose,
         )
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
-        run_all_benchmarks(args.benchmarks_folder, args.skip_csv)
+        run_all_benchmarks(
+            benchmarks_folder,
+            spec["benchmarks"],
+            args.skip_csv,
+            args.skip_main,
+            args.verbose,
+        )

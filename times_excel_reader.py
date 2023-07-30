@@ -1,11 +1,15 @@
 from pathlib import Path
 import argparse
+import os.path
+import sys
 import times_reader
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
-        "input_dir", type=str, help="Input directory containing xlsx files"
+        "input",
+        nargs="*",
+        help="Either an input directory, or a list of input xlsx files to process",
     )
     args_parser.add_argument(
         "--output_dir", type=str, default="output", help="Output directory"
@@ -13,7 +17,6 @@ if __name__ == "__main__":
     args_parser.add_argument(
         "--ground_truth_dir",
         type=str,
-        default="ground_truth",
         help="Ground truth directory to compare with output",
     )
     args_parser.add_argument("--use_pkl", action="store_true")
@@ -21,12 +24,19 @@ if __name__ == "__main__":
 
     mappings = times_reader.read_mappings("times_mapping.txt")
 
-    input_files = [
-        str(path)
-        for path in Path(args.input_dir).rglob("*.xlsx")
-        if not path.name.startswith("~")
-    ]
-    print(f"Loading {len(input_files)} files from {args.input_dir}")
+    if not isinstance(args.input, list) or len(args.input) < 1:
+        print(f"ERROR: expected at least 1 input. Got {args.input}")
+        sys.exit(1)
+    elif len(args.input) == 1:
+        assert os.path.isdir(args.input[0])
+        input_files = [
+            str(path)
+            for path in Path(args.input[0]).rglob("*.xlsx")
+            if not path.name.startswith("~")
+        ]
+        print(f"Loading {len(input_files)} files from {args.input[0]}")
+    else:
+        input_files = args.input
 
     tables = times_reader.convert_xl_to_times(
         input_files, args.output_dir, mappings, args.use_pkl

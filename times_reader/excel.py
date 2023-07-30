@@ -180,6 +180,6 @@ def cell_is_empty(value) -> bool:
     """
     return (
         value is None
-        or (isinstance(value, numpy.float64) and numpy.isnan(value))
+        or (isinstance(value, numpy.floating) and numpy.isnan(value))
         or (isinstance(value, str) and len(value.strip()) == 0)
     )
