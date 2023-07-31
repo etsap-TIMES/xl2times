@@ -1475,8 +1475,8 @@ def process_commodities(
                 df.insert(1, "region", [regions] * nrows)
             if "limtype" not in table.dataframe.columns.values:
                 df["limtype"] = [None] * nrows
-            if "CSet" in table.dataframe.columns.values:
-                df = df.rename(columns={"CSet": "csets"})
+            if "cset" in table.dataframe.columns.values:
+                df = df.rename(columns={"cset": "csets"})
             result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_comm))
 
     return result
