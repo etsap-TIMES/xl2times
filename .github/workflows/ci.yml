@@ -94,7 +94,13 @@ jobs:
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
           python utils/run_benchmarks.py benchmarks.yml --dd --times_dir $GITHUB_WORKSPACE/TIMES_model
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: dd-outputs
+          path: times-excel-reader/benchmarks/out/
+
       # # ---------- Run tool, check for regressions
+      # TODO re-enable after merging --dd run above with csv comparison below
 
       # - name: Run tool on all benchmarks
       #   working-directory: times-excel-reader

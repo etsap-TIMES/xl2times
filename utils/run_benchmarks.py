@@ -73,7 +73,7 @@ def run_benchmark_dd(
         path.dirname(path.realpath(__file__)), "..", "gams_scaffold"
     )
     shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
-    # Create link to TIMES source TODO get path as arg
+    # Create link to TIMES source
     if not path.exists(path.join(out_folder, "source")):
         symlink(times_folder, path.join(out_folder, "source"), True)
 
@@ -107,7 +107,7 @@ def run_benchmark_dd(
                 continue
             f.write(line)
     # TODO also get milestone years from benchmarks.yml
-    # Create link to TIMES source TODO get path as arg
+    # Create link to TIMES source
     if not path.exists(path.join(dd_folder, "source")):
         symlink(times_folder, path.join(dd_folder, "source"), True)
     res = subprocess.run(
