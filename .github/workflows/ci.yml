@@ -11,35 +11,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # CI:
-  #   runs-on: macos-latest
-  #   steps:
-  #     - name: Install GAMS
-  #       run: |
-  #         curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/macosx/osx_x64_64_sfx.exe -o osx_x64_64_sfx.exe
-  #         chmod +x osx_x64_64_sfx.exe
-  #         mkdir GAMS
-  #         pushd  GAMS
-  #         ../osx_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
-  #         export PATH=$PATH:$(pwd)/gams44.1_osx_x64_64
-  #         popd
-  #         echo Creating license file at $HOME/Library/Application\ Support/GAMS
-  #         mkdir -p $HOME/Library/Application\ Support/GAMS
-  #         echo "$GAMS_LICENSE" > $HOME/Library/Application\ Support/GAMS/gamslice.txt
-  #         ls -l $HOME/Library/Application\ Support/GAMS/
-  #       env:
-  #         GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
-  #     - name: Test GAMS on demo 1
-  #       run: |
-  #         export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_osx_x64_64
-  #         echo $PATH
-  #         wget https://github.com/etsap-TIMES/times-excel-reader/files/12169097/DemoS_001-all.zip
-  #         unzip DemoS_001-all.zip
-  #         rm DemoS_001-all/source
-  #         ln -s $GITHUB_WORKSPACE/times-model $GITHUB_WORKSPACE/DemoS_001-all/source
-  #         cd DemoS_001-all
-  #         gams runmodel
-
   CI:
     runs-on: ubuntu-latest
 
@@ -66,6 +37,11 @@ jobs:
           #          version: 1.1.304
 
       # ---------- Prepare ETSAP Demo models
+
+      - uses: actions/checkout@v3
+        with:
+          repository: etsap-TIMES/TIMES_model
+          path: TIMES_model
 
       - uses: actions/checkout@v3
         with:
@@ -110,11 +86,13 @@ jobs:
         env:
           GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
 
+      # ---------- Run tool, compare GDX outputs
+
       - name: Run tool on benchmarks, compare GDX outputs
         working-directory: times-excel-reader
         run: |
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
-          python utils/run_benchmarks.py benchmarks.yml --dd
+          python utils/run_benchmarks.py benchmarks.yml --dd --times_dir $GITHUB_WORKSPACE/TIMES_model
 
       # # ---------- Run tool, check for regressions
 

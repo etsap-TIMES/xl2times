@@ -28,7 +28,7 @@ def parse_result(lastline):
 def run_benchmark_dd(
     benchmarks_folder: str,
     benchmark: Any,
-    skip_csv: bool = False,
+    times_folder: str,
     out_folder: str = "out",
     verbose: bool = False,
 ) -> Tuple[float, float, int, int]:
@@ -75,7 +75,7 @@ def run_benchmark_dd(
     shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
     # Create link to TIMES source TODO get path as arg
     if not path.exists(path.join(out_folder, "source")):
-        symlink("/home/sid/TIMES_model", path.join(out_folder, "source"), True)
+        symlink(times_folder, path.join(out_folder, "source"), True)
 
     # Run GAMS
     res = subprocess.run(
@@ -109,7 +109,7 @@ def run_benchmark_dd(
     # TODO also get milestone years from benchmarks.yml
     # Create link to TIMES source TODO get path as arg
     if not path.exists(path.join(dd_folder, "source")):
-        symlink("/home/sid/TIMES_model", path.join(dd_folder, "source"), True)
+        symlink(times_folder, path.join(dd_folder, "source"), True)
     res = subprocess.run(
         ["gams", "runmodel"],
         cwd=dd_folder,
@@ -362,6 +362,12 @@ if __name__ == "__main__":
         help="Generate DD files, and use GAMS to compare with ground truth",
     )
     args_parser.add_argument(
+        "--times_dir",
+        type=str,
+        default=None,
+        help="Absolute path to TIMES_model. Required if using --dd",
+    )
+    args_parser.add_argument(
         "--skip_csv",
         action="store_true",
         default=False,
@@ -388,6 +394,10 @@ if __name__ == "__main__":
         print("ERROR: Found duplicate name in benchmarks YAML file")
         sys.exit(1)
 
+    if args.dd and args.times_dir is None:
+        print("ERROR: --times_model is required when using --dd")
+        sys.exit(1)
+
     if args.run is not None:
         benchmark = next((b for b in spec["benchmarks"] if b["name"] == args.run), None)
         if benchmark is None:
@@ -398,7 +408,7 @@ if __name__ == "__main__":
             runtime, _, _, _ = run_benchmark_dd(
                 benchmarks_folder,
                 benchmark,
-                skip_csv=args.skip_csv,
+                args.times_dir,
                 verbose=args.verbose,
             )
         else:
@@ -418,7 +428,7 @@ if __name__ == "__main__":
                 result = run_benchmark_dd(
                     benchmarks_folder,
                     benchmark,
-                    skip_csv=args.skip_csv,
+                    args.times_dir,
                     verbose=args.verbose,
                 )
                 results.append((benchmark["name"], *result))
