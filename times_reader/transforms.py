@@ -420,7 +420,7 @@ def merge_tables(tables: List[datatypes.EmbeddedXlTable]) -> Dict[str, DataFrame
         if not all(
             set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group
         ):
-            cols = [(",".join(g.dataframe.columns.values), g) for g in group]
+            cols = [(",".join(g.dataframe.columns), g) for g in group]
             cols_groups = [
                 (key, list(group))
                 for key, group in groupby(
@@ -496,6 +496,9 @@ def process_flexible_import_tables(
         if "techdesc" in df.columns:
             df.drop("techdesc", axis=1, inplace=True)
 
+        if "timeslices" in df.columns:
+            df = df.rename(columns={"timeslices": "timeslice"})
+
         # TODO: Review this. CommGrp is an alias for Other_Indexes
         if "commgrp" in df.columns:
             print(
@@ -523,7 +526,7 @@ def process_flexible_import_tables(
             "sow",
             "commgrp",
         ]
-        data_columns = [x for x in df.columns.values if x not in known_columns]
+        data_columns = [x for x in df.columns if x not in known_columns]
 
         # Populate index columns
         index_columns = [
@@ -724,7 +727,7 @@ def process_user_constraint_tables(
             "commname",
             "techname",
         ]
-        data_columns = [x for x in df.columns.values if x not in known_columns]
+        data_columns = [x for x in df.columns if x not in known_columns]
 
         # Populate columns
         nrows = df.shape[0]
@@ -893,7 +896,7 @@ def expand_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
     c = df.applymap(has_comma)
     columns_with_commas = [
         colname
-        for colname in c.columns.values
+        for colname in c.columns
         if colname not in query_columns and c[colname].any()
     ]
     if len(columns_with_commas) > 0:
@@ -1439,13 +1442,13 @@ def process_commodity_emissions(
             df = table.dataframe.copy()
             index_columns = ["region", "year", "commname"]
             data_columns = [
-                colname for colname in df.columns.values if colname not in index_columns
+                colname for colname in df.columns if colname not in index_columns
             ]
             df, names = utils.explode(df, data_columns)
             df.rename(columns={"value": "EMCB"}, inplace=True)
             df["other_indexes"] = names
 
-            if "region" in df.columns.values:
+            if "region" in df.columns:
                 df = df.astype({"region": "string"})
                 df["region"] = df["region"].map(lambda s: s.split(","))
                 df = df.explode("region", ignore_index=True)
@@ -1475,11 +1478,11 @@ def process_commodities(
         else:
             df = table.dataframe.copy()
             nrows = df.shape[0]
-            if "region" not in table.dataframe.columns.values:
+            if "region" not in table.dataframe.columns:
                 df.insert(1, "region", [regions] * nrows)
-            if "limtype" not in table.dataframe.columns.values:
+            if "limtype" not in table.dataframe.columns:
                 df["limtype"] = [None] * nrows
-            if "cset" in table.dataframe.columns.values:
+            if "cset" in table.dataframe.columns:
                 df = df.rename(columns={"cset": "csets"})
             result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_comm))
 
@@ -1534,11 +1537,11 @@ def process_processes(
             )
             df["sets"].replace(veda_sets_to_times, inplace=True)
             nrows = df.shape[0]
-            if "vintage" not in table.dataframe.columns.values:
+            if "vintage" not in table.dataframe.columns:
                 df["vintage"] = [None] * nrows
-            if "region" not in table.dataframe.columns.values:
+            if "region" not in table.dataframe.columns:
                 df.insert(1, "region", [None] * nrows)
-            if "tslvl" not in table.dataframe.columns.values:
+            if "tslvl" not in table.dataframe.columns:
                 df.insert(6, "tslvl", ["ANNUAL"] * nrows)
             result.append(replace(table, dataframe=df))
 
@@ -1765,7 +1768,7 @@ def process_transform_insert(
                     # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
                     data_columns = [
                         colname
-                        for colname in df.columns.values
+                        for colname in df.columns
                         if colname not in known_columns | {"region", "ts_filter"}
                     ]
                     df, years = utils.explode(df, data_columns)
@@ -1792,12 +1795,12 @@ def process_transform_insert(
             # Transpose region columns to new DEMAND column and add corresponding regions in new Region column
             region_cols = [
                 col_name
-                for col_name in df.columns.values
+                for col_name in df.columns
                 if col_name in [x.lower() for x in regions]
             ]
             other_columns = [
                 col_name
-                for col_name in df.columns.values
+                for col_name in df.columns
                 if col_name not in [x.lower() for x in regions]
             ]
             data = df[region_cols].values.tolist()
@@ -2174,7 +2177,7 @@ def process_time_slices(
             ts_maps.drop_duplicates(keep="first", inplace=True)
             ts_maps.sort_values(by=list(ts_maps.columns), inplace=True)
 
-        result.append(replace(table, tag="timeslicemap", dataframe=DataFrame(ts_maps)))
+        result.append(replace(table, tag="TimeSliceMap", dataframe=DataFrame(ts_maps)))
 
         result.append(
             replace(table, tag="TimeSlicesGroup", dataframe=DataFrame(ts_groups))
