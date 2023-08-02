@@ -695,9 +695,6 @@ def process_user_constraint_tables(
         # Fill in UC_N blank cells with value from above
         df["uc_n"] = df["uc_n"].ffill()
 
-        if "cset_cn" in table.dataframe.columns.values:
-            df.rename(columns={"cset_cn": "cset_cn"}, inplace=True)
-
         known_columns = [
             "uc_n",
             "region",
@@ -1687,38 +1684,26 @@ def process_transform_insert(
                 "year",
                 "timeslice",
                 "limtype",
-                "commgrp",
                 "curr",
                 "stage",
                 "sow",
                 "other_indexes",
-                "allregions",
             } | query_columns
-            lowercase_cols = df.columns.map(lambda x: x.casefold())
-            colmap = {}
-            for standard_col in known_columns:
-                lowercase_col = standard_col.casefold()
-                if lowercase_col in lowercase_cols:
-                    i = lowercase_cols.get_loc(lowercase_col)
-                    colmap[df.columns[i]] = standard_col
-            df.rename(columns=colmap, inplace=True)
 
             if table.tag == datatypes.Tag.tfm_ins_ts:
                 # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
-                if "region" not in df.columns.values:
+                if "region" not in df.columns:
                     df["region"] = [regions] * len(df)
                     df = df.explode(["region"], ignore_index=True)
             else:
                 # Transpose region columns to new VALUE column and add corresponding regions in new Region column
                 region_cols = [
                     col_name
-                    for col_name in df.columns.values
-                    if col_name in set(regions) | {"allregions"}
+                    for col_name in df.columns
+                    if col_name in set([x.lower() for x in regions]) | {"allregions"}
                 ]
                 other_columns = [
-                    col_name
-                    for col_name in df.columns.values
-                    if col_name not in region_cols
+                    col_name for col_name in df.columns if col_name not in region_cols
                 ]
                 df = pd.melt(
                     df,
@@ -1733,9 +1718,10 @@ def process_transform_insert(
                     lambda x: regions if x == "allregions" else x
                 )
                 df = df.explode(["region"])
+                df["region"] = df["region"].str.upper()
                 unknown_columns = [
                     col_name
-                    for col_name in df.columns.values
+                    for col_name in df.columns
                     if col_name not in known_columns | {"region", "value"}
                 ]
                 df.drop(columns=unknown_columns, inplace=True)
@@ -1773,7 +1759,7 @@ def process_transform_insert(
                     data_columns = [
                         colname
                         for colname in df.columns.values
-                        if colname not in known_columns | {"region", "TS_Filter"}
+                        if colname not in known_columns | {"region", "ts_filter"}
                     ]
                     df, years = utils.explode(df, data_columns)
                     df["year"] = years
@@ -1798,10 +1784,14 @@ def process_transform_insert(
 
             # Transpose region columns to new DEMAND column and add corresponding regions in new Region column
             region_cols = [
-                col_name for col_name in df.columns.values if col_name in regions
+                col_name
+                for col_name in df.columns.values
+                if col_name in [x.lower() for x in regions]
             ]
             other_columns = [
-                col_name for col_name in df.columns.values if col_name not in regions
+                col_name
+                for col_name in df.columns.values
+                if col_name not in [x.lower() for x in regions]
             ]
             data = df[region_cols].values.tolist()
             df = df[other_columns]
