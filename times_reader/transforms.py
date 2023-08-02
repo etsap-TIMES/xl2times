@@ -717,7 +717,7 @@ def process_user_constraint_tables(
             "cset_cd",
             "side",
             "attribute",
-            "UC_ATTR",
+            "uc_attr",
             "year",
             "limtype",
             "top_check",
@@ -750,6 +750,10 @@ def process_user_constraint_tables(
             df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
             i = df["attribute"].isna()
             df.loc[i, "attribute"] = attribute_suffix[i]
+
+        # Capitalise all attributes, unless column type float
+        if df["attribute"].dtype != float:
+            df["attribute"] = df["attribute"].str.upper()
 
         # Handle Attribute containing tilde, such as 'STOCK~2030'
         for attr in df["attribute"].unique():
