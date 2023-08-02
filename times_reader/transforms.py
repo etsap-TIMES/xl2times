@@ -1449,8 +1449,9 @@ def process_commodity_emissions(
                 colname for colname in df.columns if colname not in index_columns
             ]
             df, names = utils.explode(df, data_columns)
-            df.rename(columns={"value": "EMCB"}, inplace=True)
+            df.rename(columns={"value": "emcb"}, inplace=True)
             df["other_indexes"] = names
+            df["other_indexes"] = df["other_indexes"].str.upper()
 
             if "region" in df.columns:
                 df = df.astype({"region": "string"})
