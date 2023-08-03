@@ -5,7 +5,6 @@
     "times_excel_reader.py"
   ],
   "exclude": [
-    "utils/get_times_order.py",
     "**/node_modules",
     "**/__pycache__"
   ],

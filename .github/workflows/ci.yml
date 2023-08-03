@@ -106,9 +106,3 @@ jobs:
         run: |
           sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
           exit $(cat retcode.txt)
-
-      - name: Upload output folder as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: dd-outputs
-          path: times-excel-reader/benchmarks/out/
