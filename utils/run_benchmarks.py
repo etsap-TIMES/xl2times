@@ -25,48 +25,15 @@ def parse_result(lastline):
     return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
 
 
-def run_benchmark_dd(
-    benchmarks_folder: str,
+def run_gams_gdxdiff(
     benchmark: Any,
     times_folder: str,
-    out_folder: str = "out",
+    dd_folder: str,
+    out_folder: str,
     verbose: bool = False,
-) -> Tuple[float, float, int, int]:
-    xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
-    dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
-    csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])
-    out_folder = path.join(benchmarks_folder, out_folder, benchmark["name"])
-
-    # First run the tool and generate DD output
-    args = [
-        "--output_dir",
-        out_folder,
-        "--dd",
-    ]
-    if "inputs" in benchmark:
-        args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
-    else:
-        args.append(xl_folder)
-    start = time.time()
-    res = subprocess.run(
-        ["python", "times_excel_reader.py"] + args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    runtime = time.time() - start
-
-    with open(path.join(out_folder, "stdout"), "w") as f:
-        f.write(res.stdout)
-    if verbose:
-        line = "-" * 80
-        print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
-        print(res.stderr if res.stderr is not None else "")
-
-    if res.returncode != 0:
-        print(res.stdout)
-        print(f"ERROR: tool failed on {benchmark['name']}")
-        sys.exit(1)
+) -> str:
+    if "dd_files" not in benchmark:
+        return "Error: dd_files not in benchmark"
 
     # Copy GAMS scaffolding
     scaffolding_folder = path.join(
@@ -93,7 +60,7 @@ def run_benchmark_dd(
     if "error" in res.stdout.lower():
         print(res.stdout)
         print(f"ERROR: GAMS errored on {benchmark['name']}")
-        return (runtime, "Error running GAMS")
+        return "Error running GAMS"
 
     # Run GAMS on ground truth:
     shutil.copytree(scaffolding_folder, dd_folder, dirs_exist_ok=True)
@@ -125,7 +92,7 @@ def run_benchmark_dd(
     if "error" in res.stdout.lower():
         print(res.stdout)
         print(f"ERROR: GAMS errored on {benchmark['name']}")
-        return (runtime, "Error running GAMS on ground truth")
+        return "Error running GAMS on ground truth"
 
     # Run gdxdiff to compare
     res = subprocess.run(
@@ -139,18 +106,20 @@ def run_benchmark_dd(
         stderr=subprocess.STDOUT,
         text=True,
     )
-    if res.returncode != 0:
+    if verbose:
         print(res.stdout)
         print(res.stderr if res.stderr is not None else "")
-        print(f"ERROR: gdxdiff failed on {benchmark['name']}")
-        return (runtime, "Different")
+    if res.returncode != 0:
+        return f"Diff ({len(res.stdout.splitlines())})"
 
-    return (runtime, "OK")
+    return "OK"
 
 
 def run_benchmark(
     benchmarks_folder: str,
     benchmark: Any,
+    times_folder: str,
+    run_gams: bool = False,
     skip_csv: bool = False,
     out_folder: str = "out",
     verbose: bool = False,
@@ -190,6 +159,7 @@ def run_benchmark(
         out_folder,
         "--ground_truth_dir",
         csv_folder,
+        "--dd",
     ]
     if "inputs" in benchmark:
         args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
@@ -211,30 +181,41 @@ def run_benchmark(
         print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
         print(res.stderr if res.stderr is not None else "")
 
-    if res.returncode == 0:
-        (accuracy, num_correct, num_additional) = parse_result(
-            res.stdout.splitlines()[-1]
-        )
-        return (runtime, accuracy, num_correct, num_additional)
-    else:
+    if res.returncode != 0:
         print(res.stdout)
         print(f"ERROR: tool failed on {benchmark['name']}")
         sys.exit(1)
+
+    (accuracy, num_correct, num_additional) = parse_result(res.stdout.splitlines()[-1])
+
+    if run_gams:
+        dd_res = run_gams_gdxdiff(benchmark, times_folder, dd_folder, out_folder)
+    else:
+        dd_res = "--"
+
+    return (runtime, dd_res, accuracy, num_correct, num_additional)
 
 
 def run_all_benchmarks(
     benchmarks_folder: str,
     benchmarks: list,
+    times_folder: str,
+    run_gams=False,
     skip_csv=False,
     skip_main=False,
     verbose=False,
 ):
     print("Running benchmarks", end="", flush=True)
     results = []
-    headers = ["Benchmark", "Time (s)", "Accuracy", "Correct Rows", "Additional Rows"]
+    headers = ["Benchmark", "Time (s)", "DD Diff", "Accuracy", "Correct", "Additional"]
     for benchmark in benchmarks:
         result = run_benchmark(
-            benchmarks_folder, benchmark, skip_csv=skip_csv, verbose=verbose
+            benchmarks_folder,
+            benchmark,
+            times_folder=times_folder,
+            skip_csv=skip_csv,
+            run_gams=run_gams,
+            verbose=verbose,
         )
         results.append((benchmark["name"], *result))
         print(".", end="", flush=True)
@@ -272,7 +253,7 @@ def run_all_benchmarks(
 
     else:
         if repo.is_dirty():
-            print("ERROR: your working directory is not clean. Aborting.")
+            print("Your working directory is not clean. Skipping regression tests.")
             sys.exit(1)
 
         # Re-run benchmarks on main
@@ -283,7 +264,9 @@ def run_all_benchmarks(
             result = run_benchmark(
                 benchmarks_folder,
                 benchmark,
+                times_folder=times_folder,
                 skip_csv=True,
+                run_gams=run_gams,
                 out_folder="out-main",
                 verbose=verbose,
             )
@@ -317,15 +300,15 @@ def run_all_benchmarks(
     if df.isna().values.any():
         print(f"ERROR: number of benchmarks changed:\n{df}")
         sys.exit(1)
-    accu_regressions = df[df["Correct Rows"] < df["M Correct Rows"]]["Benchmark"]
-    addi_regressions = df[df["Additional Rows"] > df["M Additional Rows"]]["Benchmark"]
+    accu_regressions = df[df["Correct"] < df["M Correct"]]["Benchmark"]
+    addi_regressions = df[df["Additional"] > df["M Additional"]]["Benchmark"]
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
 
     runtime_change = df["Time (s)"].sum() - df["M Time (s)"].sum()
     print(f"Change in runtime: {runtime_change:+.2f}")
-    correct_change = df["Correct Rows"].sum() - df["M Correct Rows"].sum()
+    correct_change = df["Correct"].sum() - df["M Correct"].sum()
     print(f"Change in correct rows: {correct_change:+d}")
-    additional_change = df["Additional Rows"].sum() - df["M Additional Rows"].sum()
+    additional_change = df["Additional"].sum() - df["M Additional"].sum()
     print(f"Change in additional rows: {additional_change:+d}")
 
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
@@ -395,7 +378,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if args.dd and args.times_dir is None:
-        print("ERROR: --times_model is required when using --dd")
+        print("ERROR: --times_dir is required when using --dd")
         sys.exit(1)
 
     if args.run is not None:
@@ -404,41 +387,22 @@ if __name__ == "__main__":
             print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
             sys.exit(1)
 
-        if args.dd:
-            runtime, _, _, _ = run_benchmark_dd(
-                benchmarks_folder,
-                benchmark,
-                args.times_dir,
-                verbose=args.verbose,
-            )
-        else:
-            runtime, _, _, _ = run_benchmark(
-                benchmarks_folder,
-                benchmark,
-                skip_csv=args.skip_csv,
-                verbose=args.verbose,
-            )
+        runtime, _, _, _, _ = run_benchmark(
+            benchmarks_folder,
+            benchmark,
+            times_folder=args.times_dir,
+            run_gams=args.dd,
+            skip_csv=args.skip_csv,
+            verbose=args.verbose,
+        )
         print(f"Ran {args.run} in {runtime:.2f}s")
     else:
-        if args.dd:
-            print("Running benchmarks", end="", flush=True)
-            results = []
-            headers = ["Benchmark", "Time (s)", "Result"]
-            for benchmark in [b for b in spec["benchmarks"] if "dd_files" in b]:
-                result = run_benchmark_dd(
-                    benchmarks_folder,
-                    benchmark,
-                    args.times_dir,
-                    verbose=args.verbose,
-                )
-                results.append((benchmark["name"], *result))
-                print(".", end="", flush=True)
-            print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
-        else:
-            run_all_benchmarks(
-                benchmarks_folder,
-                spec["benchmarks"],
-                args.skip_csv,
-                args.skip_main,
-                args.verbose,
-            )
+        run_all_benchmarks(
+            benchmarks_folder,
+            benchmarks=spec["benchmarks"],
+            times_folder=args.times_dir,
+            run_gams=args.dd,
+            skip_csv=args.skip_csv,
+            skip_main=args.skip_main,
+            verbose=args.verbose,
+        )
