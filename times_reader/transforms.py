@@ -576,11 +576,7 @@ def process_flexible_import_tables(
         # Handle Other_Indexes
         other = "other_indexes"
         for attr in df[attribute].unique():
-            if attr == "OUTPUT":
-                i = df[attribute] == attr
-                df.loc[i, "comm-in"] = df.loc[i, "comm-out-a"]
-                df.loc[i, attribute] = "CEFF"
-            elif attr == "END":
+            if attr == "END":
                 i = df[attribute] == attr
                 df.loc[i, "year"] = df.loc[i, "value"].astype("int") + 1
                 df.loc[i, other] = "EOH"
