@@ -123,7 +123,7 @@ def run_benchmark(
     skip_csv: bool = False,
     out_folder: str = "out",
     verbose: bool = False,
-) -> Tuple[float, float, int, int]:
+) -> Tuple[float, str, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
     dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
     csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])

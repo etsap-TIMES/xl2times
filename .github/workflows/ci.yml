@@ -31,10 +31,9 @@ jobs:
           pre-commit install
           pre-commit run --all-files
 
-          # TODO re-enable
-          #      - uses: jakebailey/pyright-action@v1 # Type checking
-          #        with:
-          #          version: 1.1.304
+      - uses: jakebailey/pyright-action@v1 # Type checking
+        with:
+          version: 1.1.304
 
       # ---------- Prepare ETSAP Demo models
 
