@@ -39,6 +39,11 @@ jobs:
 
       - uses: actions/checkout@v3
         with:
+          repository: etsap-TIMES/TIMES_model
+          path: TIMES_model
+
+      - uses: actions/checkout@v3
+        with:
           repository: olejandro/demos-dd
           path: times-excel-reader/benchmarks/dd
 
@@ -62,6 +67,24 @@ jobs:
           repository: olejandro/times-ireland-model_gams
           path: times-excel-reader/benchmarks/dd/Ireland
 
+      # ---------- Install GAMS
+
+      - name: Install GAMS
+        run: |
+          curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
+          chmod +x linux_x64_64_sfx.exe
+          mkdir GAMS
+          pushd  GAMS
+          ../linux_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
+          export PATH=$PATH:$(pwd)/gams44.1_linux_x64_64_sfx
+          popd
+          echo Creating license file at $HOME/.local/share/GAMS
+          mkdir -p $HOME/.local/share/GAMS
+          echo "$GAMS_LICENSE" > $HOME/.local/share/GAMS/gamslice.txt
+          ls -l $HOME/.local/share/GAMS/
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+
       # ---------- Run tool, check for regressions
 
       - name: Run tool on all benchmarks
@@ -71,7 +94,11 @@ jobs:
         # Save the return code to retcode.txt so that the next step can fail the action
         # if run_benchmarks.py failed.
         run: |
-          (python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt; \
+          export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
+          (python utils/run_benchmarks.py benchmarks.yml \
+              --dd --times_dir $GITHUB_WORKSPACE/TIMES_model \
+              --verbose \
+              | tee out.txt; \
             echo ${PIPESTATUS[0]} > retcode.txt)
 
       - name: Print summary

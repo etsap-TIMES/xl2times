@@ -1,0 +1,5 @@
+InputDir1   source
+InputDir2   model
+InputDir3   scenarios
+PageSize    0
+sysOut      on
