@@ -13,7 +13,6 @@ from functools import reduce
 from . import datatypes
 from . import utils
 
-
 query_columns = {
     "pset_set",
     "pset_pn",
@@ -67,8 +66,8 @@ aliases_by_attr = {
 
 attr_prop = {
     "COM_LIM": "limtype",
-    "COM_TSL": "CTSLvl",
-    "COM_TYPE": "Ctype",
+    "COM_TSL": "ctslvl",
+    "COM_TYPE": "ctype",
     "PRC_PCG": "primarycg",
     "PRC_TSL": "tslvl",
     "PRC_VINT": "vintage",
@@ -454,7 +453,7 @@ def process_flexible_import_tables(
         "comm-out": set(utils.merge_columns(tables, datatypes.Tag.fi_comm, "commname")),
         "region": utils.single_column(tables, datatypes.Tag.book_regions_map, "region"),
         "curr": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
-        "other_indexes": {"Input", "Output"},
+        "other_indexes": {"INPUT", "OUTPUT"},
     }
 
     def get_colname(value):
@@ -463,7 +462,7 @@ def process_flexible_import_tables(
         if value.isdigit():
             return "year", int(value)
         for name, values in legal_values.items():
-            if value in values:
+            if value.upper() in values:
                 return name, value
         return None, value
 
@@ -653,7 +652,6 @@ def process_user_constraint_tables(
             "UC_COMPRD",
             "UC_FLO",
             "UC_NCAP",
-            "uc_n",
             "UC_RHSRT",
             "UC_RHSRTS",
             "UC_RHSTS",
@@ -661,16 +659,9 @@ def process_user_constraint_tables(
             "UC_R_SUM",
         },
         "region": utils.single_column(tables, datatypes.Tag.book_regions_map, "region"),
-        "limtype": {"LO", "UP"},
+        "limtype": {"FX", "LO", "UP"},
         "side": {"LHS", "RHS"},
     }
-
-    commodity_names = set(
-        utils.merge_columns(tables, datatypes.Tag.fi_comm, "commname")
-    )
-    process_names = set(
-        utils.merge_columns(tables, datatypes.Tag.fi_process, "techname")
-    )
 
     def get_colname(value):
         # TODO make sure to do case-insensitive comparisons when parsing composite column names
@@ -705,6 +696,7 @@ def process_user_constraint_tables(
             "pset_co",
             "cset_cn",
             "cset_cd",
+            "cset_set",
             "side",
             "attribute",
             "uc_attr",
@@ -756,16 +748,6 @@ def process_user_constraint_tables(
                         df.loc[i, "attribute"] = typed_value
                     else:
                         df.loc[i, colname] = typed_value
-
-        utils.apply_wildcards(df, commodity_names, "cset_cn", "commname")
-        df.drop("cset_cn", axis=1, inplace=True)
-        df = df.explode(["commname"], ignore_index=True)
-
-        utils.apply_wildcards(df, process_names, "pset_pn", "techname")
-        df.drop("pset_pn", axis=1, inplace=True)
-        df = df.explode(["techname"], ignore_index=True)
-
-        # TODO: handle other wildcard columns
 
         # TODO: should we have a global list of column name -> type?
         df["year"] = df["year"].astype("Int64")
@@ -1856,9 +1838,76 @@ def process_transform_availability(
     return result
 
 
-def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def filter_by_pattern(df, pattern):
+    # Duplicates can be created when a process has multiple commodities that match the pattern
+    df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
+    exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
+    return df.drop(exclude)
+
+
+def intersect(acc, df):
+    if acc is None:
+        return df
+    return acc.merge(df)
+
+
+def get_matching_processes(row, dictionary):
+    matching_processes = None
+    if row.pset_pn is not None:
+        matching_processes = intersect(
+            matching_processes,
+            filter_by_pattern(dictionary["processes_by_name"], row.pset_pn),
+        )
+    if row.pset_pd is not None:
+        matching_processes = intersect(
+            matching_processes,
+            filter_by_pattern(dictionary["processes_by_desc"], row.pset_pd),
+        )
+    if row.pset_set is not None:
+        matching_processes = intersect(
+            matching_processes,
+            filter_by_pattern(dictionary["processes_by_sets"], row.pset_set),
+        )
+    if row.pset_ci is not None:
+        matching_processes = intersect(
+            matching_processes,
+            filter_by_pattern(dictionary["processes_by_comm_in"], row.pset_ci),
+        )
+    if row.pset_co is not None:
+        matching_processes = intersect(
+            matching_processes,
+            filter_by_pattern(dictionary["processes_by_comm_out"], row.pset_co),
+        )
+    if matching_processes is not None and any(matching_processes.duplicated()):
+        raise ValueError("duplicated")
+    return matching_processes
+
+
+def get_matching_commodities(row, dictionary):
+    matching_commodities = None
+    if row.cset_cn is not None:
+        matching_commodities = intersect(
+            matching_commodities,
+            filter_by_pattern(dictionary["commodities_by_name"], row.cset_cn),
+        )
+        if row.cset_cd is not None:
+            matching_commodities = intersect(
+                matching_commodities,
+                filter_by_pattern(dictionary["commodities_by_desc"], row.cset_cd),
+            )
+        if row.cset_set is not None:
+            matching_commodities = intersect(
+                matching_commodities,
+                filter_by_pattern(dictionary["commodities_by_sets"], row.cset_set),
+            )
+    return matching_commodities
+
+
+def generate_topology_dictionary(tables: Dict[str, DataFrame]):
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
+
+    dictionary = {}
     processes = tables[datatypes.Tag.fi_process]
     duplicated_processes = processes[["techname"]].duplicated()
     if any(duplicated_processes):
@@ -1867,101 +1916,92 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
             f"WARNING: {len(duplicated_process_names)} duplicated processes: {duplicated_process_names.values[1:3]}"
         )
         processes.drop_duplicates(subset="techname", inplace=True)
-    processes_by_name = (
+    dictionary["processes_by_name"] = (
         processes[["techname"]]
         .dropna()
         .set_index("techname", drop=False)
         .rename_axis("index")
     )
-    processes_by_desc = (
+    dictionary["processes_by_desc"] = (
         processes[["techname", "techdesc"]].dropna().set_index("techdesc")
     )
-    processes_by_sets = processes[["techname", "sets"]].dropna().set_index("sets")
+    dictionary["processes_by_sets"] = (
+        processes[["techname", "sets"]].dropna().set_index("sets")
+    )
     processes_and_commodities = tables[datatypes.Tag.fi_t]
-    processes_by_comm_in = (
+    dictionary["processes_by_comm_in"] = (
         processes_and_commodities[["techname", "comm-in"]]
         .dropna()
         .drop_duplicates()
         .set_index("comm-in")
     )
-    processes_by_comm_out = (
+    dictionary["processes_by_comm_out"] = (
         processes_and_commodities[["techname", "comm-out"]]
         .dropna()
         .drop_duplicates()
         .set_index("comm-out")
     )
     commodities = tables[datatypes.Tag.fi_comm]
-    commodities_by_name = (
+    dictionary["commodities_by_name"] = (
         commodities[["commname"]]
         .dropna()
         .set_index("commname", drop=False)
         .rename_axis("index")
     )
-    commodities_by_desc = (
+    dictionary["commodities_by_desc"] = (
         commodities[["commname", "commdesc"]].dropna().set_index("commdesc")
     )
-    commodities_by_sets = commodities[["commname", "csets"]].dropna().set_index("csets")
+    dictionary["commodities_by_sets"] = (
+        commodities[["commname", "csets"]].dropna().set_index("csets")
+    )
 
-    def filter_by_pattern(df, pattern):
-        # Duplicates can be created when a process has multiple commodities that match the pattern
-        df = df.filter(
-            regex=utils.create_regexp(pattern), axis="index"
-        ).drop_duplicates()
-        exclude = df.filter(
-            regex=utils.create_negative_regexp(pattern), axis="index"
-        ).index
-        return df.drop(exclude)
+    return dictionary
 
-    def intersect(acc, df):
-        if acc is None:
-            return df
-        return acc.merge(df)
 
-    def get_matching_processes(row):
-        matching_processes = None
-        if row.pset_pn is not None:
-            matching_processes = intersect(
-                matching_processes, filter_by_pattern(processes_by_name, row.pset_pn)
-            )
-        if row.pset_pd is not None:
-            matching_processes = intersect(
-                matching_processes, filter_by_pattern(processes_by_desc, row.pset_pd)
-            )
-        if row.pset_set is not None:
-            matching_processes = intersect(
-                matching_processes, filter_by_pattern(processes_by_sets, row.pset_set)
-            )
-        if row.pset_ci is not None:
-            matching_processes = intersect(
-                matching_processes, filter_by_pattern(processes_by_comm_in, row.pset_ci)
-            )
-        if row.pset_co is not None:
-            matching_processes = intersect(
-                matching_processes,
-                filter_by_pattern(processes_by_comm_out, row.pset_co),
-            )
-        if matching_processes is not None and any(matching_processes.duplicated()):
-            raise ValueError("duplicated")
-        return matching_processes
+def process_uc_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    tag = datatypes.Tag.uc_t
 
-    def get_matching_commodities(row):
-        matching_commodities = None
-        if row.cset_cn is not None:
-            matching_commodities = intersect(
-                matching_commodities,
-                filter_by_pattern(commodities_by_name, row.cset_cn),
+    def make_str(df):
+        if df is not None and len(df) != 0:
+            list_from_df = df.iloc[:, 0].unique()
+            return ",".join(list_from_df)
+        else:
+            return None
+
+    if tag in tables:
+        start_time = time.time()
+        df = tables[tag]
+        dictionary = generate_topology_dictionary(tables)
+
+        df["techname"] = df.apply(
+            lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
+        )
+        df["commname"] = df.apply(
+            lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
+        )
+
+        df = expand_rows(
+            datatypes.EmbeddedXlTable(
+                tag="",
+                uc_sets={},
+                sheetname="",
+                range="",
+                filename="",
+                dataframe=df,
             )
-        if row.cset_cd is not None:
-            matching_commodities = intersect(
-                matching_commodities,
-                filter_by_pattern(commodities_by_desc, row.cset_cd),
-            )
-        if row.cset_set is not None:
-            matching_commodities = intersect(
-                matching_commodities,
-                filter_by_pattern(commodities_by_sets, row.cset_set),
-            )
-        return matching_commodities
+        ).dataframe
+
+        tables[tag] = df
+
+        print(
+            f"  process_uc_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
+        )
+
+    return tables
+
+
+def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    dictionary = generate_topology_dictionary(tables)
 
     for tag in [
         datatypes.Tag.tfm_upd,
@@ -1983,11 +2023,11 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                 debug = False
                 if debug:
                     print(row)
-                matching_processes = get_matching_processes(row)
+                matching_processes = get_matching_processes(row, dictionary)
                 if matching_processes is not None and len(matching_processes) == 0:
                     print(f"WARNING: {tag} row matched no processes")
                     continue
-                matching_commodities = get_matching_commodities(row)
+                matching_commodities = get_matching_commodities(row, dictionary)
                 if matching_commodities is not None and len(matching_commodities) == 0:
                     print(f"WARNING: {tag} row matched no commodities")
                     continue
@@ -2062,7 +2102,7 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
                 tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
 
             print(
-                f"  process_wildcards: {tag} took {time.time()-start_time:.2f} seconds for {len(upd)} rows"
+                f"  process_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(upd)} rows"
             )
 
     return tables
