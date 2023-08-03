@@ -455,13 +455,12 @@ def write_dd_files(
             os.remove(os.path.join(output_dir, item))
 
     def convert_set(df: DataFrame):
-        try:
-            descriptions = df.pop("TEXT")
-        except KeyError:
-            descriptions = [None] * len(df)
-        for row, desc in zip(df.itertuples(index=False), descriptions):
-            row_str = "'.'".join((str(x) for x in row))
-            desc = f" '{desc}'" if desc is not None else ""
+        has_description = "TEXT" in df.columns
+        for row in df.itertuples(index=False):
+            row_str = "'.'".join(
+                (str(x) for k, x in row._asdict().items() if k != "TEXT")
+            )
+            desc = f" '{row.TEXT}'" if has_description else ""
             yield f"'{row_str}'{desc}\n"
 
     def convert_parameter(tablename: str, df: DataFrame):
