@@ -1897,25 +1897,28 @@ def get_matching_commodities(row, dictionary):
             matching_commodities,
             filter_by_pattern(dictionary["commodities_by_name"], row.cset_cn),
         )
-        if row.cset_cd is not None:
-            matching_commodities = intersect(
-                matching_commodities,
-                filter_by_pattern(dictionary["commodities_by_desc"], row.cset_cd),
-            )
-        if row.cset_set is not None:
-            matching_commodities = intersect(
-                matching_commodities,
-                filter_by_pattern(dictionary["commodities_by_sets"], row.cset_set),
-            )
+    if row.cset_cd is not None:
+        matching_commodities = intersect(
+            matching_commodities,
+            filter_by_pattern(dictionary["commodities_by_desc"], row.cset_cd),
+        )
+    if row.cset_set is not None:
+        matching_commodities = intersect(
+            matching_commodities,
+            filter_by_pattern(dictionary["commodities_by_sets"], row.cset_set),
+        )
     return matching_commodities
 
 
-def generate_topology_dictionary(tables: Dict[str, DataFrame]):
+def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
 
     dictionary = {}
+
     processes = tables[datatypes.Tag.fi_process]
+    commodities = tables[datatypes.Tag.fi_comm]
+
     duplicated_processes = processes[["techname"]].duplicated()
     if any(duplicated_processes):
         duplicated_process_names = processes["techname"][duplicated_processes]
@@ -1923,6 +1926,7 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]):
             f"WARNING: {len(duplicated_process_names)} duplicated processes: {duplicated_process_names.values[1:3]}"
         )
         processes.drop_duplicates(subset="techname", inplace=True)
+
     dictionary["processes_by_name"] = (
         processes[["techname"]]
         .dropna()
@@ -1930,10 +1934,13 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]):
         .rename_axis("index")
     )
     dictionary["processes_by_desc"] = (
-        processes[["techname", "techdesc"]].dropna().set_index("techdesc")
+        processes[["techname", "techdesc"]]
+        .dropna()
+        .drop_duplicates()
+        .set_index("techdesc")
     )
     dictionary["processes_by_sets"] = (
-        processes[["techname", "sets"]].dropna().set_index("sets")
+        processes[["techname", "sets"]].dropna().drop_duplicates().set_index("sets")
     )
     processes_and_commodities = tables[datatypes.Tag.fi_t]
     dictionary["processes_by_comm_in"] = (
@@ -1948,18 +1955,21 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]):
         .drop_duplicates()
         .set_index("comm-out")
     )
-    commodities = tables[datatypes.Tag.fi_comm]
     dictionary["commodities_by_name"] = (
         commodities[["commname"]]
         .dropna()
+        .drop_duplicates()
         .set_index("commname", drop=False)
         .rename_axis("index")
     )
     dictionary["commodities_by_desc"] = (
-        commodities[["commname", "commdesc"]].dropna().set_index("commdesc")
+        commodities[["commname", "commdesc"]]
+        .dropna()
+        .drop_duplicates()
+        .set_index("commdesc")
     )
     dictionary["commodities_by_sets"] = (
-        commodities[["commname", "csets"]].dropna().set_index("csets")
+        commodities[["commname", "csets"]].dropna().drop_duplicates().set_index("csets")
     )
 
     return dictionary
