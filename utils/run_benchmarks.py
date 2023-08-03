@@ -159,8 +159,8 @@ def run_benchmark(
         out_folder,
         "--ground_truth_dir",
         csv_folder,
-        "--dd",
     ]
+    args += ["--dd"] if run_gams else []
     if "inputs" in benchmark:
         args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
     else:
@@ -174,8 +174,6 @@ def run_benchmark(
     )
     runtime = time.time() - start
 
-    with open(path.join(out_folder, "stdout"), "w") as f:
-        f.write(res.stdout)
     if verbose:
         line = "-" * 80
         print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
@@ -185,6 +183,8 @@ def run_benchmark(
         print(res.stdout)
         print(f"ERROR: tool failed on {benchmark['name']}")
         sys.exit(1)
+    with open(path.join(out_folder, "stdout"), "w") as f:
+        f.write(res.stdout)
 
     (accuracy, num_correct, num_additional) = parse_result(res.stdout.splitlines()[-1])
 
@@ -266,7 +266,7 @@ def run_all_benchmarks(
                 benchmark,
                 times_folder=times_folder,
                 skip_csv=True,
-                run_gams=run_gams,
+                run_gams=False,
                 out_folder="out-main",
                 verbose=verbose,
             )
@@ -278,11 +278,12 @@ def run_all_benchmarks(
         (
             f"{b:<20}",
             f"{t0:5.1f} {t:5.1f}",
+            f"{f:<10}",
             f"{a0:5.1f} {a:5.1f}",
             f"{c0:6d} {c:6d}",
             f"{d0:6d} {d:6d}",
         )
-        for ((b, t, a, c, d), (_, t0, a0, c0, d0)) in zip(results, results_main)
+        for ((b, t, f, a, c, d), (_, t0, _, a0, c0, d0)) in zip(results, results_main)
     ]
     print("\n\n" + tabulate(combined_results, headers, stralign="right") + "\n")
 
