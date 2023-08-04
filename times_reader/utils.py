@@ -11,6 +11,7 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import reduce
 from math import log10, floor
 from . import datatypes
+from .datatypes import Col
 
 
 def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
@@ -33,7 +34,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         (newtag, varname) = table.tag.split(":")
         varname = varname.strip()
         df = table.dataframe.copy()
-        df["Attribute"].fillna(varname, inplace=True)
+        df[Col("Attribute")].fillna(varname, inplace=True)
         return replace(table, tag=newtag, dataframe=df)
     else:
         return table
@@ -50,12 +51,10 @@ def explode(df, data_columns):
                             column name for each value in each new row.
     """
     data = df[data_columns].values.tolist()
-    other_columns = [
-        colname for colname in df.columns.values if colname not in data_columns
-    ]
+    value_column = Col("VALUE")
+    df[value_column] = data
+    other_columns = [colname for colname in df.columns if colname not in data_columns]
     df = df[other_columns]
-    value_column = "VALUE"
-    df = df.assign(VALUE=data)
     nrows = df.shape[0]
     df = df.explode(value_column, ignore_index=True)
 
@@ -106,7 +105,7 @@ def single_column(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: st
     :param colname:         Column name to return the values of.
     :return:                Table with the given tag in EmbeddedXlTable format.
     """
-    return single_table(tables, tag).dataframe[colname].values
+    return single_table(tables, tag).dataframe[Col(colname)].values
 
 
 def merge_columns(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: str):
@@ -119,6 +118,7 @@ def merge_columns(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: st
     :param colname:         Column name to select values.
     :return:                List of values for the given column name and tag.
     """
+    colname = Col(colname) if not isinstance(colname, Col) else colname
     columns = [table.dataframe[colname].values for table in tables if table.tag == tag]
     return numpy.concatenate(columns)
 
@@ -173,6 +173,7 @@ def missing_value_inherit(df: DataFrame, colname: str):
     :return:            None. The dataframe is filled in in place.
     """
     last = None
+    colname = Col(colname) if not isinstance(colname, Col) else colname
     for index, value in df[colname].items():
         if value == None:
             df.loc[index, colname] = last
@@ -184,7 +185,7 @@ def get_scalar(table_tag: str, tables: List[datatypes.EmbeddedXlTable]):
     table = next(filter(lambda t: t.tag == table_tag, tables))
     if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
         raise ValueError("Not scalar table")
-    return table.dataframe["VALUE"].values[0]
+    return table.dataframe[Col("VALUE")].values[0]
 
 
 def has_negative_patterns(pattern):
