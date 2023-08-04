@@ -354,14 +354,15 @@ def normalize_tags_columns_attrs(
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Normalize (uppercase) tags, (lowercase) column names, and values in attribute columns.
+    Normalize (uppercase) tags, (lowercase) column names, and (uppercase) values in
+    attribute columns.
 
 
     :param tables:      List of tables in EmbeddedXlTable format.
     :return:            List of tables in EmbeddedXlTable format with normalzed values.
     """
 
-    # TODO Uppercase column names and attribute values in mapping.txt when reading it
+    # TODO Normalize column names and attribute values in mapping.txt when reading it
     # TODO Check all string literals left in file
     def normalize(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
         # Only uppercase upto ':', the rest can be non-uppercase values like regions
@@ -374,7 +375,6 @@ def normalize_tags_columns_attrs(
         # Strip leading and trailing whitespaces from column names
         df.columns = df.columns.str.strip()
 
-        # TODO continue:
         col_name_map = {x: x.lower() for x in df.columns}
         df = df.rename(columns=col_name_map)
 
@@ -1853,31 +1853,17 @@ def intersect(acc, df):
 
 def get_matching_processes(row, dictionary):
     matching_processes = None
-    if row.pset_pn is not None:
-        matching_processes = intersect(
-            matching_processes,
-            filter_by_pattern(dictionary["processes_by_name"], row.pset_pn),
-        )
-    if row.pset_pd is not None:
-        matching_processes = intersect(
-            matching_processes,
-            filter_by_pattern(dictionary["processes_by_desc"], row.pset_pd),
-        )
-    if row.pset_set is not None:
-        matching_processes = intersect(
-            matching_processes,
-            filter_by_pattern(dictionary["processes_by_sets"], row.pset_set),
-        )
-    if row.pset_ci is not None:
-        matching_processes = intersect(
-            matching_processes,
-            filter_by_pattern(dictionary["processes_by_comm_in"], row.pset_ci),
-        )
-    if row.pset_co is not None:
-        matching_processes = intersect(
-            matching_processes,
-            filter_by_pattern(dictionary["processes_by_comm_out"], row.pset_co),
-        )
+    for col, key in [
+        ("pset_pn", "processes_by_name"),
+        ("pset_pd", "processes_by_desc"),
+        ("pset_set", "processes_by_sets"),
+        ("pset_ci", "processes_by_comm_in"),
+        ("pset_co", "processes_by_comm_out"),
+    ]:
+        if row[col] is not None:
+            matching_processes = intersect(
+                matching_processes, filter_by_pattern(dictionary[key], row[col])
+            )
     if matching_processes is not None and any(matching_processes.duplicated()):
         raise ValueError("duplicated")
     return matching_processes
@@ -1885,21 +1871,15 @@ def get_matching_processes(row, dictionary):
 
 def get_matching_commodities(row, dictionary):
     matching_commodities = None
-    if row.cset_cn is not None:
-        matching_commodities = intersect(
-            matching_commodities,
-            filter_by_pattern(dictionary["commodities_by_name"], row.cset_cn),
-        )
-    if row.cset_cd is not None:
-        matching_commodities = intersect(
-            matching_commodities,
-            filter_by_pattern(dictionary["commodities_by_desc"], row.cset_cd),
-        )
-    if row.cset_set is not None:
-        matching_commodities = intersect(
-            matching_commodities,
-            filter_by_pattern(dictionary["commodities_by_sets"], row.cset_set),
-        )
+    for col, key in [
+        ("cset_cn", "commodities_by_name"),
+        ("cset_cd", "commodities_by_desc"),
+        ("cset_set", "commodities_by_sets"),
+    ]:
+        if row[col] is not None:
+            matching_commodities = intersect(
+                matching_commodities, filter_by_pattern(dictionary[key], row[col])
+            )
     return matching_commodities
 
 
