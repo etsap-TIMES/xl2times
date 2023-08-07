@@ -1,0 +1,59 @@
+$TITLE  TIMES -- VERSION 4.6.0
+OPTION RESLIM=50000, PROFILE=1, SOLVEOPT=REPLACE;
+OPTION ITERLIM=999999, LIMROW=0, LIMCOL=0, SOLPRINT=OFF;
+OPTION THREADS=-1;
+
+$OFFLISTING
+
+* activate validation to force VAR_CAP/COMPRD
+$SET VALIDATE 'NO'
+* reduction of equation system
+$SET REDUCE   'YES'
+*--------------------------------------------------------------*
+* BATINCLUDE calls should all be with lower case file names!!! *
+*--------------------------------------------------------------*
+
+* initialize the environment variables
+$ SET DSCAUTO YES
+$   SET VDA YES
+$   SET DEBUG                          'NO'
+$   SET DUMPSOL                        'NO'
+$   SET SOLVE_NOW                      'YES'
+$   SET MODEL_NAME                     'TIMES'
+$   IF DECLARED REG      $SET STARTRUN 'RESTART'
+$   IF NOT DECLARED REG  $SET STARTRUN 'SCRATCH'
+$SET XTQA YES
+* VAR_UC being set so that non-binding constraints appear in results
+$SET VAR_UC YES
+ OPTION BRATIO=1;
+$ SET OBJ AUTO
+$ SET MID_YEAR YES
+$ SET OBLONG YES
+$SET DAMAGE NO
+$ SET STAGES NO
+$SET SOLVEDA 'YES'
+$SET VARCOST LIN
+$SET DATAGDX YES
+
+* merge declarations & data
+$   ONMULTI
+
+* the times-slices MUST come 1st to ensure ordering OK
+$BATINCLUDE ts.dd
+
+
+* perform fixed declarations
+$SET BOTIME 1929
+$BATINCLUDE initsys.mod
+
+* declare the (system/user) empties
+$   BATINCLUDE initmty.mod
+$IF NOT DECLARED REG_BNDCST $Abort "You need to use TIMES v2.3.1 or higher"
+
+$BATINCLUDE output.dd
+SET MILESTONYR /2005,2006/;
+
+$ SET VEDAVDD 'YES'
+
+* do the rest
+$ BATINCLUDE maindrv.mod mod
