@@ -1,13 +1,10 @@
 from pandas.core.frame import DataFrame
 import pandas as pd
-from dataclasses import replace
 from typing import Dict, List
-from itertools import groupby
 import re
 import os
 from concurrent.futures import ProcessPoolExecutor
 import time
-from functools import reduce
 import pickle
 from . import datatypes
 from . import excel
@@ -84,6 +81,7 @@ def convert_xl_to_times(
     output_dir: str,
     mappings: List[datatypes.TimesXlMap],
     use_pkl: bool,
+    stop_after_read: bool = False,
 ) -> Dict[str, DataFrame]:
     pickle_file = "raw_tables.pkl"
     if use_pkl and os.path.isfile(pickle_file):
@@ -102,14 +100,22 @@ def convert_xl_to_times(
                 result = excel.extract_tables(f)
                 raw_tables.extend(result)
         pickle.dump(raw_tables, open(pickle_file, "wb"))
-
     print(
         f"Extracted {len(raw_tables)} tables,"
         f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
     )
 
+    if stop_after_read:
+        # Convert absolute paths to relative paths to enable comparing raw_tables.txt across machines
+        raw_tables.sort(key=lambda x: (x.filename, x.sheetname, x.range))
+        input_dir = os.path.commonpath((t.filename for t in raw_tables))
+        raw_tables = [strip_filename_prefix(t, input_dir) for t in raw_tables]
+
+    dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
+    if stop_after_read:
+        return {}
+
     transform_list = [
-        lambda tables: dump_tables(tables, os.path.join(output_dir, "raw_tables.txt")),
         transforms.generate_dummy_processes,
         transforms.normalize_tags_columns_attrs,
         transforms.remove_fill_tables,
@@ -494,6 +500,13 @@ def write_dd_files(
                 fout.writelines(sorted(lines))
                 fout.write("\n/;\n")
     pass
+
+
+def strip_filename_prefix(table, prefix):
+    if isinstance(table, datatypes.EmbeddedXlTable):
+        if table.filename.startswith(prefix):
+            table.filename = table.filename[len(prefix) + 1 :]
+    return table
 
 
 def dump_tables(tables: List, filename: str) -> List:
