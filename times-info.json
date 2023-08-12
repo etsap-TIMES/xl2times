@@ -796,6 +796,10 @@
     "gams-cat": "parameter"
   },
   {
+    "name": "REG",
+    "gams-cat": "subset"
+  },
+  {
     "name": "REG_BDNCAP",
     "gams-cat": "parameter"
   },
