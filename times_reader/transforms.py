@@ -1755,41 +1755,6 @@ def process_transform_insert(
                         df[standard_col] = [None] * len(df)
                 result.append(replace(table, dataframe=df))
 
-        elif table.tag == datatypes.Tag.tfm_dins:
-            df = table.dataframe.copy()
-            nrows = df.shape[0]
-
-            # Find all columns with -, first part is region and sum over second part
-            pairs = [(col.split("-")[0], col) for col in df.columns if "-" in col]
-            for region, tup in groupby(
-                sorted(pairs, key=lambda p: p[0]), lambda p: p[0]
-            ):
-                cols = [t[1] for t in tup]
-                df[region] = df.loc[:, cols].sum(axis=1)
-                df[region] = df[region].apply(lambda x: utils.round_sig(x, 15))
-                df.drop(columns=cols, inplace=True)
-
-            # Transpose region columns to new DEMAND column and add corresponding regions in new Region column
-            region_cols = [
-                col_name
-                for col_name in df.columns
-                if col_name in [x.lower() for x in regions]
-            ]
-            other_columns = [
-                col_name
-                for col_name in df.columns
-                if col_name not in [x.lower() for x in regions]
-            ]
-            data = df[region_cols].values.tolist()
-            df = df[other_columns]
-            df["region"] = [region_cols] * nrows
-            df["DEMAND"] = data
-            df = df.explode(["region", "DEMAND"], ignore_index=True)
-
-            df.rename(columns={"cset_cn": "commname"}, inplace=True)
-
-            result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-
         else:
             dropped.append(table)
 
