@@ -264,12 +264,32 @@
     "gams-cat": "parameter"
   },
   {
+    "name": "COM_DESC",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_GMAP",
+    "gams-cat": "md-set"
+  },
+  {
     "name": "COM_GRP",
     "gams-cat": "set"
   },
   {
+    "name": "COM_LIM",
+    "gams-cat": "md-set"
+  },
+  {
     "name": "COM_MSHGV",
     "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_OFF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_PEAK",
+    "gams-cat": "md-set"
   },
   {
     "name": "COM_PKFLX",
@@ -278,6 +298,10 @@
   {
     "name": "COM_PKRSV",
     "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_PKTS",
+    "gams-cat": "md-set"
   },
   {
     "name": "COM_PROJ",
@@ -302,6 +326,18 @@
   {
     "name": "COM_TAXPRD",
     "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_TMAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_TSL",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_UNIT",
+    "gams-cat": "md-set"
   },
   {
     "name": "COM_VOC",
@@ -430,6 +466,10 @@
   {
     "name": "G_DYEAR",
     "gams-cat": "parameter"
+  },
+  {
+    "name": "DATAYEAR",
+    "gams-cat": "md-set"
   },
   {
     "name": "G_ILEDNO",
@@ -740,8 +780,16 @@
     "gams-cat": "parameter"
   },
   {
+    "name": "NRG_TMAP",
+    "gams-cat": "md-set"
+  },
+  {
     "name": "OPR",
     "gams-cat": "subsubset"
+  },
+  {
+    "name": "PASTYEAR",
+    "gams-cat": "md-set"
   },
   {
     "name": "PEAKDA_BL",
@@ -756,8 +804,32 @@
     "gams-cat": "parameter"
   },
   {
+    "name": "PRC_ACTUNT",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_AOFF",
+    "gams-cat": "md-set"
+  },
+  {
     "name": "PRC_CAPACT",
     "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_CAPUNT",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_DESC",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_DSCNCAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_FOFF",
+    "gams-cat": "md-set"
   },
   {
     "name": "PRC_GMAP",
@@ -766,6 +838,26 @@
   {
     "name": "PRC_MARK",
     "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_MAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_NOFF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_NSTTS",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_PKAF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_PKNO",
+    "gams-cat": "md-set"
   },
   {
     "name": "PRC_REACT",
@@ -778,6 +870,26 @@
   {
     "name": "PRC_RESID",
     "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_RCAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_STGIPS",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_STGTSS",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_TSL",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_VINT",
+    "gams-cat": "md-set"
   },
   {
     "name": "R_CUREX",
@@ -1080,6 +1192,26 @@
     "gams-cat": "parameter"
   },
   {
+    "name": "TOP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "TOP_IRE",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "TS_GROUP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "TS_MAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "TS_OFF",
+    "gams-cat": "md-set"
+  },
+  {
     "name": "UC_ACT",
     "gams-cat": "parameter"
   },
@@ -1144,6 +1276,14 @@
     "gams-cat": "parameter"
   },
   {
+    "name": "UC_R_EACH",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_R_SUM",
+    "gams-cat": "md-set"
+  },
+  {
     "name": "UC_RHS",
     "gams-cat": "parameter"
   },
@@ -1168,8 +1308,32 @@
     "gams-cat": "parameter"
   },
   {
+    "name": "UC_T_EACH",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_T_SUCC",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_T_SUM",
+    "gams-cat": "md-set"
+  },
+  {
     "name": "UC_TIME",
     "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_TS_EACH",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_TS_SUM",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_TSL",
+    "gams-cat": "md-set"
   },
   {
     "name": "UC_UCN",
