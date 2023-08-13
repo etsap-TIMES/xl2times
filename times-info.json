@@ -469,7 +469,7 @@
   },
   {
     "name": "DATAYEAR",
-    "gams-cat": "md-set"
+    "gams-cat": "subset"
   },
   {
     "name": "G_ILEDNO",
@@ -558,6 +558,10 @@
   {
     "name": "MILESTONYR",
     "gams-cat": "subset"
+  },
+  {
+    "name": "MODLYEAR",
+    "gams-cat": "subsubset"
   },
   {
     "name": "MULTI",
@@ -789,7 +793,7 @@
   },
   {
     "name": "PASTYEAR",
-    "gams-cat": "md-set"
+    "gams-cat": "subset"
   },
   {
     "name": "PEAKDA_BL",
@@ -1353,6 +1357,10 @@
   },
   {
     "name": "UNITS_COM",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "UNITS_MONY",
     "gams-cat": "subset"
   },
   {
