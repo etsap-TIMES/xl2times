@@ -1,0 +1,1378 @@
+[
+  {
+    "name": "ACT_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_COST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_CSTPL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_CSTRMP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_CSTSD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_CSTUP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_CUM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_EFF",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_FLO",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_LOSPL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_LOSSD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_MAXNON",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_MINLD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_SDTIME",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_TIME",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ACT_UPS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ALL_TS",
+    "gams-cat": "set"
+  },
+  {
+    "name": "ALL_REG",
+    "gams-cat": "set"
+  },
+  {
+    "name": "B",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BL_COM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BL_DELIVC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BL_INP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BL_SPEC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BL_START",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BL_TYPE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BL_UNIT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BL_VAROMC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BLE",
+    "gams-cat": "subsubset"
+  },
+  {
+    "name": "BS_BNDPRS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_CAPACT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_DELTA",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_DEMDET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_DETWT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_LAMBDA",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_MAINT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_OMEGA",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_RMAX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_RTYPE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_SHARE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_SIGMA",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "BS_STIME",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CAP_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_CO2GTC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_CONST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_EXOFORC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_GHGMAP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_HISTORY",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_LINFOR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_MAXC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_MAXCO2C",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CM_PPM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "COM_AGG",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_BNDNET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_BNDPRD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_BPRICE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_BQTY",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_CSTBAL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_CSTNET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_CSTPRD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_CUMNET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_CUMPRD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_ELAST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_ELASTX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_FR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_IE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_DESC",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_GMAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_GRP",
+    "gams-cat": "set"
+  },
+  {
+    "name": "COM_LIM",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_MSHGV",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_OFF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_PEAK",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_PKFLX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_PKRSV",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_PKTS",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_PROJ",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_STEP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_SUBNET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_SUBPRD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_TAXNET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_TAXPRD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "COM_TMAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_TSL",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_UNIT",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "COM_VOC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CONVERT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "CUR",
+    "gams-cat": "set"
+  },
+  {
+    "name": "DAM_BQTY",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "DAM_COST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "DAM_ELAST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "DAM_STEP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "DAM_TQTY",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "DAM_TVOC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "DAM_VOC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "E",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "ENV_BL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_COST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_CUM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_DELIV",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_EFF",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_EMIS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_FEQ",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_FR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_FUNC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_FUNCX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_MARK",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_PKCOI",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_SHAR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_SUB",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_SUM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "FLO_TAX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_CUREX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_CYCLE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_DRATE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_DYEAR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "DATAYEAR",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "G_ILEDNO",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_OFFTHD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_OVERLAP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_RFRIR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_TLIFE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "G_YRFR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "GR_DEMFR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "GR_ENDFR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "GR_GENFR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "GR_GENLEV",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "GR_GENMAP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "GR_THMIN",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "GR_VARGEN",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "GR_XBND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "IRE_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "IRE_CCVT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "IRE_FLO",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "IRE_FLOSUM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "IRE_PRICE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "IRE_TSCVT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "IRE_XBND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "MILESTONYR",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "MODLYEAR",
+    "gams-cat": "subsubset"
+  },
+  {
+    "name": "MULTI",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AF",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AFA",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AFAC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AFC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AFCS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AFM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AFS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AFSX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_AFX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_BPME",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_CDME",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_CEH",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_CHPR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_CLAG",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_CLED",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_COM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_COST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_CPX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_DCOST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_DELIF",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_DISC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_DLAG",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_DLAGC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_DLIFE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_DRATE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_ELIFE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FDR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FOM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FOMM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FOMX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FSUB",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FSUBM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FSUBX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FTAX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FTAXM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_FTAXX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_ICOM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_ILED",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_ISPCT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_ISUB",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_ITAX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_LCOST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_LFOM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_MSPRF",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_OCOM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_OLIFE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_PASTI",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_PASTY",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_PKCNT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_SEMI",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_START",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_TLIFE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NCAP_VALU",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "NRG_TMAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "OPR",
+    "gams-cat": "subsubset"
+  },
+  {
+    "name": "PASTYEAR",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "PEAKDA_BL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC",
+    "gams-cat": "set"
+  },
+  {
+    "name": "PRC_ACTFLO",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_ACTUNT",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_AOFF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_CAPACT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_CAPUNT",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_DESC",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_DSCNCAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_FOFF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_GMAP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_MARK",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_MAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_NOFF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_NSTTS",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_PKAF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_PKNO",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_REACT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_REFIT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_RESID",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "PRC_RCAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_STGIPS",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_STGTSS",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_TSL",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "PRC_VINT",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "R_CUREX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "RCAP_BLK",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "RCAP_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "REFUNIT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "REG",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "REG_BDNCAP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "REG_BNDCST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "REG_CUMCST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "REG_FIXT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "RPT_OPT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_CAP_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_CM_CONST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_CM_MAXC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_CM_MAXCO2C",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_COM_CUMNET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_COM_CUMPRD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_COM_FR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_COM_PROJ",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_COM_TAX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_DAM_COST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_FLO_CUM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_FLO_FUNC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_NCAP_AFS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_NCAP_COST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_UC_RHS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_UC_RHSR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_UC_RHSRT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_UC_RHSRTS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_UC_RHST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_UC_RHSTS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "S_UCOBJ",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "SHAPE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "SPE",
+    "gams-cat": "set"
+  },
+  {
+    "name": "STG_CHRG",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "STG_EFF",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "STG_LOSS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "STG_MAXCYC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "STG_SIFT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "STGIN_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "STGOUT_BND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "SW_LAMBDA",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "SW_PROB",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "SW_SPROB",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "SW_START",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "SW_SUBS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TL_CCAP0",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TL_CCAPM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TL_CLUSTER",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TL_MRCLUST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TL_PRAT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TL_SC0",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TL_SEG",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_ARBM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_DEFVAL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_DEPR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_DESUB",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_DMTOL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_ESUB",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_EXPBND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_EXPF",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_GDP0",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_GR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_HSX",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_IVETOL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_KGDP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_KPVS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_MDTL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_MDTQ",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_QFAC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_SCALE_CST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_SCALE_NRG",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_SCALE_UTIL",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_STEP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TM_VOC",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TS_CYCLE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "TOP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "TOP_IRE",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "TS_GROUP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "TS_MAP",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "TS_OFF",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_ACT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_ATTR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_CAP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_CLI",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_COMCON",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_COMNET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_COMPRD",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_CUMACT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_CUMCOM",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_CUMFLO",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_DYNBND",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_FLO",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_FLOBET",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_IRE",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_N",
+    "gams-cat": "set"
+  },
+  {
+    "name": "UC_NCAP",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_R_EACH",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_R_SUM",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_RHS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_RHSR",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_RHSRT",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_RHSRTS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_RHST",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_RHSTS",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_T_EACH",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_T_SUCC",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_T_SUM",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_TIME",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UC_TS_EACH",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_TS_SUM",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_TSL",
+    "gams-cat": "md-set"
+  },
+  {
+    "name": "UC_UCN",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "UNITS",
+    "gams-cat": "set"
+  },
+  {
+    "name": "UNITS_ACT",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "UNITS_CAP",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "UNITS_COM",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "UNITS_MONY",
+    "gams-cat": "subset"
+  },
+  {
+    "name": "VDA_CEH",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "VDA_EMCB",
+    "gams-cat": "parameter"
+  },
+  {
+    "name": "VDA_FLOP",
+    "gams-cat": "parameter"
+  }
+]
