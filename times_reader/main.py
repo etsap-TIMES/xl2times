@@ -108,7 +108,7 @@ def convert_xl_to_times(
     if stop_after_read:
         # Convert absolute paths to relative paths to enable comparing raw_tables.txt across machines
         raw_tables.sort(key=lambda x: (x.filename, x.sheetname, x.range))
-        input_dir = os.path.commonpath((t.filename for t in raw_tables))
+        input_dir = os.path.commonpath([t.filename for t in raw_tables])
         raw_tables = [strip_filename_prefix(t, input_dir) for t in raw_tables]
 
     dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
