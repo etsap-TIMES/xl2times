@@ -20,6 +20,11 @@ if __name__ == "__main__":
         help="Ground truth directory to compare with output",
     )
     args_parser.add_argument("--dd", action="store_true", help="Output DD files")
+    args_parser.add_argument(
+        "--only_read",
+        action="store_true",
+        help="Read xlsx files and stop after outputting raw_tables.txt",
+    )
     args_parser.add_argument("--use_pkl", action="store_true")
     args = args_parser.parse_args()
 
@@ -38,6 +43,12 @@ if __name__ == "__main__":
         print(f"Loading {len(input_files)} files from {args.input[0]}")
     else:
         input_files = args.input
+
+    if args.only_read:
+        tables = times_reader.convert_xl_to_times(
+            input_files, args.output_dir, mappings, args.use_pkl, stop_after_read=True
+        )
+        sys.exit(0)
 
     tables = times_reader.convert_xl_to_times(
         input_files, args.output_dir, mappings, args.use_pkl
