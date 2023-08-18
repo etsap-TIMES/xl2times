@@ -207,7 +207,7 @@ def run_all_benchmarks(
 ):
     print("Running benchmarks", end="", flush=True)
     results = []
-    headers = ["Benchmark", "Time (s)", "DD Diff", "Accuracy", "Correct", "Additional"]
+    headers = ["Benchmark", "Time (s)", "GDX Diff", "Accuracy", "Correct", "Additional"]
     for benchmark in benchmarks:
         result = run_benchmark(
             benchmarks_folder,
