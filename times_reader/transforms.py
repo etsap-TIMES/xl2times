@@ -484,23 +484,17 @@ def process_flexible_import_tables(
 
         nrows = df.shape[0]
 
-        # TODO: this should only be removed if it is a comment column
-        # Remove any TechDesc column
-        if "techdesc" in df.columns:
-            df.drop("techdesc", axis=1, inplace=True)
-
+        # TODO: Rename together with other aliases
         if "timeslices" in df.columns:
             df = df.rename(columns={"timeslices": "timeslice"})
 
-        # TODO: Review this. CommGrp is an alias for Other_Indexes
+        # TODO: Rename together with other aliases
         if "commgrp" in df.columns:
-            print(
-                f"WARNING: Dropping CommGrp rather than processing it: {table.filename} {table.sheetname} {table.range}"
-            )
-            df.drop("commgrp", axis=1, inplace=True)
+            df = df.rename(columns={"commgrp": "other_indexes"})
 
         # datatypes.Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
+        # TODO: Include other valid column headers
         known_columns = [
             "region",
             "techname",
@@ -517,7 +511,6 @@ def process_flexible_import_tables(
             "other_indexes",
             "stage",
             "sow",
-            "commgrp",
         ]
         data_columns = [x for x in df.columns if x not in known_columns]
 
@@ -643,7 +636,7 @@ def process_user_constraint_tables(
     :return:            List of tables in EmbeddedXlTable format with all FI_T processed.
     """
     legal_values = {
-        # TODO: load these from mapping file?
+        # TODO: load these from times-info.json
         "attribute": {
             "UC_ACT",
             "UC_ATTR",
@@ -686,6 +679,7 @@ def process_user_constraint_tables(
         # Fill in UC_N blank cells with value from above
         df["uc_n"] = df["uc_n"].ffill()
 
+        # TODO: Include other valid column headers
         known_columns = [
             "uc_n",
             "region",
@@ -699,7 +693,6 @@ def process_user_constraint_tables(
             "cset_set",
             "side",
             "attribute",
-            "uc_attr",
             "year",
             "limtype",
             "top_check",
@@ -894,6 +887,7 @@ def remove_invalid_values(
     :param tables:      List of tables in EmbeddedXlTable format.
     :return:            List of tables in EmbeddedXlTable format with disallowed entries removed.
     """
+    # TODO: This should be table type specific
     # TODO pull this out
     regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
     # TODO pull this out
@@ -1063,6 +1057,7 @@ def capitalise_attributes(
     Ensure that all attributes are uppercase
     """
 
+    # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
     def capitalise_attributes_table(table: datatypes.EmbeddedXlTable):
         df = table.dataframe.copy()
@@ -1235,7 +1230,7 @@ def extract_commodity_groups(
             inplace=True,
         )
 
-    # TODO apply renamings from ~TFM_TOPINS e.g. RSDAHT to RSDAHT2
+    # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
     tables.append(
         datatypes.EmbeddedXlTable(
@@ -1395,7 +1390,7 @@ def remove_fill_tables(
 ) -> List[datatypes.EmbeddedXlTable]:
     # These tables collect data from elsewhere and update the table itself or a region below
     # The collected data is then presumably consumed via Excel references or vlookups
-    # TODO for the moment, assume VEDA has updated these tables but we will need a tool to do this
+    # TODO: For the moment, assume that these tables are up-to-date. We will need a tool to do this.
     result = []
     for table in tables:
         if table.tag != datatypes.Tag.tfm_fill and not table.tag.startswith(
@@ -1665,7 +1660,7 @@ def process_transform_insert(
             nrows = df.shape[0]
 
             # Standardize column names
-            # TODO: CommGrp is an alias of Other_Indexes. What happens if both are present?
+            # TODO: Include other valid column names
             known_columns = {
                 "attribute",
                 "year",
@@ -1754,41 +1749,6 @@ def process_transform_insert(
                     if standard_col not in df.columns:
                         df[standard_col] = [None] * len(df)
                 result.append(replace(table, dataframe=df))
-
-        elif table.tag == datatypes.Tag.tfm_dins:
-            df = table.dataframe.copy()
-            nrows = df.shape[0]
-
-            # Find all columns with -, first part is region and sum over second part
-            pairs = [(col.split("-")[0], col) for col in df.columns if "-" in col]
-            for region, tup in groupby(
-                sorted(pairs, key=lambda p: p[0]), lambda p: p[0]
-            ):
-                cols = [t[1] for t in tup]
-                df[region] = df.loc[:, cols].sum(axis=1)
-                df[region] = df[region].apply(lambda x: utils.round_sig(x, 15))
-                df.drop(columns=cols, inplace=True)
-
-            # Transpose region columns to new DEMAND column and add corresponding regions in new Region column
-            region_cols = [
-                col_name
-                for col_name in df.columns
-                if col_name in [x.lower() for x in regions]
-            ]
-            other_columns = [
-                col_name
-                for col_name in df.columns
-                if col_name not in [x.lower() for x in regions]
-            ]
-            data = df[region_cols].values.tolist()
-            df = df[other_columns]
-            df["region"] = [region_cols] * nrows
-            df["DEMAND"] = data
-            df = df.explode(["region", "DEMAND"], ignore_index=True)
-
-            df.rename(columns={"cset_cn": "commname"}, inplace=True)
-
-            result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
 
         else:
             dropped.append(table)

@@ -1,8 +1,11 @@
+from collections import defaultdict
 from pandas.core.frame import DataFrame
 import pandas as pd
 from typing import Dict, List
+from itertools import chain
 import re
 import os
+import json
 from concurrent.futures import ProcessPoolExecutor
 import time
 import pickle
@@ -336,123 +339,6 @@ def produce_times_tables(
     return result
 
 
-# TODO should this be a part of the restructured mapping file?
-table_order = [
-    "ALL_TS",
-    "ALL_REG",
-    "REG",
-    "COM_GRP",
-    "COM",
-    "PRC",
-    "CUR",
-    "UNITS",
-    "UNITS_COM",
-    "UNITS_CAP",
-    "UNITS_ACT",
-    "UNITS_MONY",
-    "G_DYEAR",
-    "COM_DESC",
-    "COM_GMAP",
-    "COM_LIM",
-    "COM_TMAP",
-    "COM_TSL",
-    "COM_UNIT",
-    "NRG_TMAP",
-    "PRC_ACTUNT",
-    "PRC_DESC",
-    "PRC_MAP",
-    "PRC_NOFF",
-    "PRC_TSL",
-    "PRC_VINT",
-    "PRC_DSCNCAP",
-    "TS_GROUP",
-    "TS_MAP",
-    "DATAYEAR",
-    "PASTYEAR",
-    "MODLYEAR",
-    "TOP",
-    "TOP_IRE",
-    "COM_PEAK",
-    "COM_PKTS",
-    "UC_N",
-    "UC_R_SUM",
-    "UC_R_EACH",
-    "UC_ATTR",
-    "B",
-    "E",
-    "ACT_BND",
-    "ACT_COST",
-    "ACT_CUM",
-    "NCAP_AF",
-    "NCAP_AFA",
-    "NCAP_BND",
-    "NCAP_CHPR",
-    "NCAP_COST",
-    "NCAP_CPX",
-    "NCAP_DRATE",
-    "NCAP_ELIFE",
-    "NCAP_FOM",
-    "NCAP_ILED",
-    "NCAP_PASTI",
-    "NCAP_TLIFE",
-    "NCAP_START",
-    "CAP_BND",
-    "COM_BNDNET",
-    "COM_CSTNET",
-    "COM_FR",
-    "COM_IE",
-    "COM_TAXNET",
-    "COM_AGG",
-    "COM_ELAST",
-    "COM_PROJ",
-    "COM_STEP",
-    "COM_VOC",
-    "FLO_COST",
-    "FLO_DELIV",
-    "FLO_FR",
-    "FLO_FUNC",
-    "FLO_FUNCX",
-    "FLO_SHAR",
-    "FLO_SUB",
-    "FLO_TAX",
-    "FLO_MARK",
-    "PRC_RESID",
-    "NCAP_PKCNT",
-    "COM_PKRSV",
-    "COM_PKFLX",
-    "STG_EFF",
-    "STG_LOSS",
-    "STGIN_BND",
-    "PRC_ACTFLO",
-    "PRC_CAPACT",
-    "G_DRATE",
-    "G_YRFR",
-    "G_CUREX",
-    "IRE_FLO",
-    "IRE_FLOSUM",
-    "IRE_PRICE",
-    "SHAPE",
-    "UC_RHSRT",
-    "UC_RHSRTS",
-    "UC_RHSTS",
-    "UC_FLO",
-    "UC_ACT",
-    "UC_CAP",
-    "UC_NCAP",
-    "UC_COMPRD",
-    "UC_COMNET",
-    "UC_IRE",
-    "NCAP_DISC",
-    "VDA_FLOP",
-    "VDA_EMCB",
-    "VDA_CEH",
-    "FLO_EMIS",
-    "NCAP_AFC",
-    "NCAP_AFCS",
-    "ACT_EFF",
-]
-
-
 def write_dd_files(
     tables: Dict[str, DataFrame], mappings: List[datatypes.TimesXlMap], output_dir: str
 ):
@@ -481,6 +367,19 @@ def write_dd_files(
             yield f"'{row_str}' {val}\n" if row_str else f"{val}\n"
 
     sets = {m.times_name for m in mappings if "VALUE" not in m.col_map}
+    # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
+    # Category info is in `times-info.json` file TODO merge with times_mapping.txt
+    with open("times-info.json", "r") as f:
+        table_info = json.load(f)
+    categories = ["set", "subset", "subsubset", "md-set", "parameter"]
+    cat_to_tables = defaultdict(list)
+    for item in table_info:
+        cat_to_tables[item["gams-cat"]].append(item["name"])
+    table_order = chain.from_iterable((sorted(cat_to_tables[c]) for c in categories))
+    unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
+    if unknown_cats:
+        print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
+
     # Compute map fname -> tables: right now ALL_TS -> ts.dd, rest -> output.dd
     tables_in_file = {
         "ts.dd": ["ALL_TS"],
