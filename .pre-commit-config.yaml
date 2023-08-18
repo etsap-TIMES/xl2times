@@ -13,3 +13,8 @@ repos:
     rev: v1.1.304
     hooks:
       - id: pyright
+        # A bit annoying, but we need to specify dependencies here because I can't get it
+        # to read requirements.txt, and the pyright pre-commit hook uses its own virtualenv
+        # https://github.com/RobertCraigie/pyright-python#pre-commit
+        # https://github.com/pre-commit/pre-commit/issues/730
+        additional_dependencies: [pandas>=1.5]
