@@ -22,18 +22,17 @@ jobs:
       - name: Install packages
         working-directory: times-excel-reader
         run: |
+          python -m venv .venv
+          source .venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Check code formatting
         working-directory: times-excel-reader
         run: |
+          source .venv/bin/activate
           pre-commit install
           pre-commit run --all-files
-
-      - uses: jakebailey/pyright-action@v1 # Type checking
-        with:
-          version: 1.1.304
 
       # ---------- Prepare ETSAP Demo models
 
@@ -94,6 +93,7 @@ jobs:
         # Save the return code to retcode.txt so that the next step can fail the action
         # if run_benchmarks.py failed.
         run: |
+          source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
           (python utils/run_benchmarks.py benchmarks.yml \
               --dd --times_dir $GITHUB_WORKSPACE/TIMES_model \
