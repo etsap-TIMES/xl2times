@@ -207,7 +207,7 @@ def run_all_benchmarks(
 ):
     print("Running benchmarks", end="", flush=True)
     results = []
-    headers = ["Benchmark", "Time (s)", "DD Diff", "Accuracy", "Correct", "Additional"]
+    headers = ["Benchmark", "Time (s)", "GDX Diff", "Accuracy", "Correct", "Additional"]
     for benchmark in benchmarks:
         result = run_benchmark(
             benchmarks_folder,
@@ -266,7 +266,7 @@ def run_all_benchmarks(
                 benchmark,
                 times_folder=times_folder,
                 skip_csv=True,
-                run_gams=False,
+                run_gams=True,
                 out_folder="out-main",
                 verbose=verbose,
             )
@@ -274,16 +274,17 @@ def run_all_benchmarks(
             print(".", end="", flush=True)
 
     # Print table with combined results to make comparison easier
+    trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s
     combined_results = [
         (
             f"{b:<20}",
             f"{t0:5.1f} {t:5.1f}",
-            f"{f:<10}",
+            f"{trunc(f0):<10} {trunc(f):<10}",
             f"{a0:5.1f} {a:5.1f}",
             f"{c0:6d} {c:6d}",
             f"{d0:6d} {d:6d}",
         )
-        for ((b, t, f, a, c, d), (_, t0, _, a0, c0, d0)) in zip(results, results_main)
+        for ((b, t, f, a, c, d), (_, t0, f0, a0, c0, d0)) in zip(results, results_main)
     ]
     print("\n\n" + tabulate(combined_results, headers, stralign="right") + "\n")
 
