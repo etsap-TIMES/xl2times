@@ -1,13 +1,13 @@
+from collections import defaultdict
 from pandas.core.frame import DataFrame
 import pandas as pd
-from dataclasses import replace
 from typing import Dict, List
-from itertools import groupby
+from itertools import chain
 import re
 import os
+import json
 from concurrent.futures import ProcessPoolExecutor
 import time
-from functools import reduce
 import pickle
 from . import datatypes
 from . import excel
@@ -50,8 +50,8 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
             for i, s in enumerate(xl_cols):
                 if ":" in s:
                     [col_name, col_val] = s.split(":")
-                    filter_rows[col_name.strip()] = col_val.strip()
-            xl_cols = [s for s in xl_cols if ":" not in s]
+                    filter_rows[col_name.strip().lower()] = col_val.strip()
+            xl_cols = [s.lower() for s in xl_cols if ":" not in s]
 
             # TODO remove: Filter out mappings that are not yet finished
             if xl_name != "~TODO" and not any(c.startswith("TODO") for c in xl_cols):
@@ -84,6 +84,7 @@ def convert_xl_to_times(
     output_dir: str,
     mappings: List[datatypes.TimesXlMap],
     use_pkl: bool,
+    stop_after_read: bool = False,
 ) -> Dict[str, DataFrame]:
     pickle_file = "raw_tables.pkl"
     if use_pkl and os.path.isfile(pickle_file):
@@ -102,14 +103,22 @@ def convert_xl_to_times(
                 result = excel.extract_tables(f)
                 raw_tables.extend(result)
         pickle.dump(raw_tables, open(pickle_file, "wb"))
-
     print(
         f"Extracted {len(raw_tables)} tables,"
         f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
     )
 
+    if stop_after_read:
+        # Convert absolute paths to relative paths to enable comparing raw_tables.txt across machines
+        raw_tables.sort(key=lambda x: (x.filename, x.sheetname, x.range))
+        input_dir = os.path.commonpath([t.filename for t in raw_tables])
+        raw_tables = [strip_filename_prefix(t, input_dir) for t in raw_tables]
+
+    dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
+    if stop_after_read:
+        return {}
+
     transform_list = [
-        lambda tables: dump_tables(tables, os.path.join(output_dir, "raw_tables.txt")),
         transforms.generate_dummy_processes,
         transforms.normalize_tags_columns_attrs,
         transforms.remove_fill_tables,
@@ -140,6 +149,7 @@ def convert_xl_to_times(
         transforms.merge_tables,
         transforms.apply_more_fixups,
         transforms.process_years,
+        transforms.process_uc_wildcards,
         transforms.process_wildcards,
         transforms.convert_aliases,
         transforms.rename_cgs,
@@ -291,8 +301,8 @@ def produce_times_tables(
                 i = df[filter_col].str.lower().isin(filter)
                 df = df.loc[i, :]
             # TODO find the correct tech group
-            if "TechGroup" in mapping.xl_cols:
-                df["TechGroup"] = df["TechName"]
+            if "techgroup" in mapping.xl_cols:
+                df["techgroup"] = df["techname"]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols) - set(df.columns)
                 print(
@@ -327,6 +337,75 @@ def produce_times_tables(
         )
 
     return result
+
+
+def write_dd_files(
+    tables: Dict[str, DataFrame], mappings: List[datatypes.TimesXlMap], output_dir: str
+):
+    os.makedirs(output_dir, exist_ok=True)
+    for item in os.listdir(output_dir):
+        if item.endswith(".dd"):
+            os.remove(os.path.join(output_dir, item))
+
+    def convert_set(df: DataFrame):
+        has_description = "TEXT" in df.columns
+        for row in df.itertuples(index=False):
+            row_str = "'.'".join(
+                (str(x) for k, x in row._asdict().items() if k != "TEXT")
+            )
+            desc = f" '{row.TEXT}'" if has_description else ""
+            yield f"'{row_str}'{desc}\n"
+
+    def convert_parameter(tablename: str, df: DataFrame):
+        if "VALUE" not in df.columns:
+            raise KeyError(f"Unable to find VALUE column in parameter {tablename}")
+        for row in df.itertuples(index=False):
+            val = row.VALUE
+            row_str = "'.'".join(
+                (str(x) for k, x in row._asdict().items() if k != "VALUE")
+            )
+            yield f"'{row_str}' {val}\n" if row_str else f"{val}\n"
+
+    sets = {m.times_name for m in mappings if "VALUE" not in m.col_map}
+    # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
+    # Category info is in `times-info.json` file TODO merge with times_mapping.txt
+    with open("times-info.json", "r") as f:
+        table_info = json.load(f)
+    categories = ["set", "subset", "subsubset", "md-set", "parameter"]
+    cat_to_tables = defaultdict(list)
+    for item in table_info:
+        cat_to_tables[item["gams-cat"]].append(item["name"])
+    table_order = chain.from_iterable((sorted(cat_to_tables[c]) for c in categories))
+    unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
+    if unknown_cats:
+        print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
+
+    # Compute map fname -> tables: right now ALL_TS -> ts.dd, rest -> output.dd
+    tables_in_file = {
+        "ts.dd": ["ALL_TS"],
+        "output.dd": [t for t in table_order if t != "ALL_TS"],
+    }
+
+    for fname, tablenames in tables_in_file.items():
+        with open(os.path.join(output_dir, fname), "w") as fout:
+            for tablename in [t for t in tablenames if t in tables]:
+                df = tables[tablename]
+                if tablename in sets:
+                    fout.write(f"SET {tablename}\n/\n")
+                    lines = convert_set(df)
+                else:
+                    fout.write(f"PARAMETER\n{tablename} ' '/\n")
+                    lines = convert_parameter(tablename, df)
+                fout.writelines(sorted(lines))
+                fout.write("\n/;\n")
+    pass
+
+
+def strip_filename_prefix(table, prefix):
+    if isinstance(table, datatypes.EmbeddedXlTable):
+        if table.filename.startswith(prefix):
+            table.filename = table.filename[len(prefix) + 1 :]
+    return table
 
 
 def dump_tables(tables: List, filename: str) -> List:

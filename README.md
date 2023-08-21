@@ -9,6 +9,13 @@ It is fully explained in the [TIMES Model Documentation](https://iea-etsap.org/i
 
 The Excel input format accepted by this tool is documented in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf).  Additional table types are documented in the [VEDA support forum](https://forum.kanors-emr.org/printthread.php?tid=140).  Example inputs are available at https://github.com/kanors-emr/Model_Demo_Adv_Veda
 
+## Basic Usage
+
+After installing the required dependencies (see below), run the following command to see the basic usage and available options:
+```bash
+python times_excel_reader.py --help
+```
+
 ## Development Setup
 
 We recommend using a Python virtual environment:
@@ -18,7 +25,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-We use the [black](https://pypi.org/project/black/) code formatter. The `pip` command above will install it along with other requirements. Additionally, you can install a git pre-commit that will ensure that your changes are formatted before creating new commits:
+We use the [black](https://pypi.org/project/black/) code formatter. The `pip` command above will install it along with other requirements.
+
+We also use the [pyright](https://github.com/microsoft/pyright/) type checker -- our GitHub Actions check will fail if pyright detects any type errors in your code. You can install pyright in your virtual environment and check your code by running these commands in the root of the repository:
+```bash
+pip install pyright==1.1.304
+pyright
+```
+Additionally, you can install a git pre-commit that will ensure that your changes are formatted and pyright detects no issues before creating new commits:
 ```bash
 pre-commit install
 ```

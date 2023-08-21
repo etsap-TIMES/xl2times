@@ -11,5 +11,7 @@
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
   "pythonVersion": "3.10",
-  "pythonPlatform": "All"
+  "pythonPlatform": "All",
+  "venv": ".venv",
+  "venvPath": "."
 }

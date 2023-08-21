@@ -19,6 +19,12 @@ if __name__ == "__main__":
         type=str,
         help="Ground truth directory to compare with output",
     )
+    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
+    args_parser.add_argument(
+        "--only_read",
+        action="store_true",
+        help="Read xlsx files and stop after outputting raw_tables.txt",
+    )
     args_parser.add_argument("--use_pkl", action="store_true")
     args = args_parser.parse_args()
 
@@ -38,11 +44,20 @@ if __name__ == "__main__":
     else:
         input_files = args.input
 
+    if args.only_read:
+        tables = times_reader.convert_xl_to_times(
+            input_files, args.output_dir, mappings, args.use_pkl, stop_after_read=True
+        )
+        sys.exit(0)
+
     tables = times_reader.convert_xl_to_times(
         input_files, args.output_dir, mappings, args.use_pkl
     )
 
-    times_reader.write_csv_tables(tables, args.output_dir)
+    if args.dd:
+        times_reader.write_dd_files(tables, mappings, args.output_dir)
+    else:
+        times_reader.write_csv_tables(tables, args.output_dir)
 
     if args.ground_truth_dir:
         ground_truth = times_reader.read_csv_tables(args.ground_truth_dir)
