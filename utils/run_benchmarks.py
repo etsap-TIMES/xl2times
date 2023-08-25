@@ -37,7 +37,7 @@ def run_gams_gdxdiff(
 
     # Copy GAMS scaffolding
     scaffolding_folder = path.join(
-        path.dirname(path.realpath(__file__)), "..", "gams_scaffold"
+        path.dirname(path.realpath(__file__)), "..", "times_reader", "gams_scaffold"
     )
     shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
     # Create link to TIMES source

@@ -1,1 +1,2 @@
 include times_reader/config/*
+include times_reader/gams_scaffold/*
