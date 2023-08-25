@@ -167,7 +167,7 @@ def run_benchmark(
         args.append(xl_folder)
     start = time.time()
     res = subprocess.run(
-        ["python", "times_excel_reader.py"] + args,
+        ["times-excel-reader"] + args,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
