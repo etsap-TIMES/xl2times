@@ -1,2 +1,1 @@
-include times-info.json
-include times_mapping.txt
+include times_reader/config/*

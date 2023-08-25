@@ -1,6 +1,7 @@
 import argparse
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
+from importlib import resources
 from itertools import chain
 from pandas.core.frame import DataFrame
 import pandas as pd
@@ -39,7 +40,7 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
     """
     mappings = []
     dropped = []
-    with open(filename) as file:
+    with resources.open_text("times_reader.config", filename) as file:
         while True:
             line = file.readline().rstrip()
             if line == "":
@@ -372,7 +373,7 @@ def write_dd_files(
     sets = {m.times_name for m in mappings if "VALUE" not in m.col_map}
     # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
     # Category info is in `times-info.json` file TODO merge with times_mapping.txt
-    with open("times-info.json", "r") as f:
+    with resources.open_text("times_reader.config", "times-info.json") as f:
         table_info = json.load(f)
     categories = ["set", "subset", "subsubset", "md-set", "parameter"]
     cat_to_tables = defaultdict(list)
