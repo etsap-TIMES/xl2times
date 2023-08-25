@@ -36,4 +36,4 @@ Issues = "https://github.com/unknown/times-excel-reader/issues"
 Source = "https://github.com/unknown/times-excel-reader"
 
 [project.scripts]
-realpython = "times_reader.__main__:main"
+times-excel-reader = "times_reader.__main__:main"
