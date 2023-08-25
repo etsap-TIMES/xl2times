@@ -203,6 +203,7 @@ def run_all_benchmarks(
     run_gams=False,
     skip_csv=False,
     skip_main=False,
+    skip_regression=False,
     verbose=False,
 ):
     print("Running benchmarks", end="", flush=True)
@@ -220,6 +221,10 @@ def run_all_benchmarks(
         results.append((benchmark["name"], *result))
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
+
+    if skip_regression:
+        print("Skipping regression tests.")
+        sys.exit(0)
 
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
@@ -365,6 +370,12 @@ if __name__ == "__main__":
         help="Skip running tool on main and reuse existing result files",
     )
     args_parser.add_argument(
+        "--skip_regression",
+        action="store_true",
+        default=False,
+        help="Skip regression testing against main branch",
+    )
+    args_parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
@@ -406,5 +417,6 @@ if __name__ == "__main__":
             run_gams=args.dd,
             skip_csv=args.skip_csv,
             skip_main=args.skip_main,
+            skip_regression=args.skip_regression,
             verbose=args.verbose,
         )
