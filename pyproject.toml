@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "times-excel-reader"
+version = "0.1.0"
+description = 'An open source tool to convert TIMES model Excel input files to DD format ready for processing by GAMS'
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = []
+# TODO check with other authors about including this:
+# authors = [
+#   { name = "Siddharth Krishna", email = "siddharth-krishna@users.noreply.github.com" },
+# ]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+]
+dependencies = [
+  "GitPython >= 3.1.31, < 3.2",
+  "more-itertools",
+  "openpyxl >= 3.0, < 3.1",
+  "pandas >= 1.5",
+]
+
+[project.optional-dependencies]
+dev = ["black", "pre-commit", "tabulate"]
+
+[project.urls]
+Documentation = "https://github.com/unknown/times-excel-reader#readme"
+Issues = "https://github.com/unknown/times-excel-reader/issues"
+Source = "https://github.com/unknown/times-excel-reader"
+
+[project.scripts]
+realpython = "times_reader.__main__:main"
