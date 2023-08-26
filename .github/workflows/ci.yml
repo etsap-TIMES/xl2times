@@ -98,7 +98,6 @@ jobs:
           (python utils/run_benchmarks.py benchmarks.yml \
               --dd --times_dir $GITHUB_WORKSPACE/TIMES_model \
               --verbose \
-              --skip_regression \
               | tee out.txt; \
             echo ${PIPESTATUS[0]} > retcode.txt)
 
