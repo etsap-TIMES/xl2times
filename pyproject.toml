@@ -10,10 +10,6 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = { file = "LICENSE" }
 keywords = []
-# TODO check with other authors about including this:
-# authors = [
-#   { name = "Siddharth Krishna", email = "siddharth-krishna@users.noreply.github.com" },
-# ]
 classifiers = [
   "Development Status :: 4 - Beta",
   "License :: OSI Approved :: MIT License",
@@ -31,9 +27,9 @@ dependencies = [
 dev = ["black", "pre-commit", "tabulate"]
 
 [project.urls]
-Documentation = "https://github.com/unknown/times-excel-reader#readme"
-Issues = "https://github.com/unknown/times-excel-reader/issues"
-Source = "https://github.com/unknown/times-excel-reader"
+Documentation = "https://github.com/etsap-TIMES/times-excel-reader#readme"
+Issues = "https://github.com/etsap-TIMES/times-excel-reader/issues"
+Source = "https://github.com/etsap-TIMES/times-excel-reader"
 
 [project.scripts]
 times-excel-reader = "times_reader.__main__:main"
