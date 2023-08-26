@@ -1,14 +1,18 @@
+import argparse
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from importlib import resources
+from itertools import chain
 from pandas.core.frame import DataFrame
 import pandas as pd
-from typing import Dict, List
-from itertools import chain
+import pickle
+from pathlib import Path
+import json
 import re
 import os
-import json
-from concurrent.futures import ProcessPoolExecutor
+import sys
 import time
-import pickle
+from typing import Dict, List
 from . import datatypes
 from . import excel
 from . import transforms
@@ -36,7 +40,7 @@ def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
     """
     mappings = []
     dropped = []
-    with open(filename) as file:
+    with resources.open_text("times_reader.config", filename) as file:
         while True:
             line = file.readline().rstrip()
             if line == "":
@@ -369,7 +373,7 @@ def write_dd_files(
     sets = {m.times_name for m in mappings if "VALUE" not in m.col_map}
     # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
     # Category info is in `times-info.json` file TODO merge with times_mapping.txt
-    with open("times-info.json", "r") as f:
+    with resources.open_text("times_reader.config", "times-info.json") as f:
         table_info = json.load(f)
     categories = ["set", "subset", "subsubset", "md-set", "parameter"]
     cat_to_tables = defaultdict(list)
@@ -430,3 +434,65 @@ def dump_tables(tables: List, filename: str) -> List:
             text_file.write("\n" * 2)
 
     return tables
+
+
+def main():
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "input",
+        nargs="*",
+        help="Either an input directory, or a list of input xlsx files to process",
+    )
+    args_parser.add_argument(
+        "--output_dir", type=str, default="output", help="Output directory"
+    )
+    args_parser.add_argument(
+        "--ground_truth_dir",
+        type=str,
+        help="Ground truth directory to compare with output",
+    )
+    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
+    args_parser.add_argument(
+        "--only_read",
+        action="store_true",
+        help="Read xlsx files and stop after outputting raw_tables.txt",
+    )
+    args_parser.add_argument("--use_pkl", action="store_true")
+    args = args_parser.parse_args()
+
+    mappings = read_mappings("times_mapping.txt")
+
+    if not isinstance(args.input, list) or len(args.input) < 1:
+        print(f"ERROR: expected at least 1 input. Got {args.input}")
+        sys.exit(1)
+    elif len(args.input) == 1:
+        assert os.path.isdir(args.input[0])
+        input_files = [
+            str(path)
+            for path in Path(args.input[0]).rglob("*.xlsx")
+            if not path.name.startswith("~")
+        ]
+        print(f"Loading {len(input_files)} files from {args.input[0]}")
+    else:
+        input_files = args.input
+
+    if args.only_read:
+        tables = convert_xl_to_times(
+            input_files, args.output_dir, mappings, args.use_pkl, stop_after_read=True
+        )
+        sys.exit(0)
+
+    tables = convert_xl_to_times(input_files, args.output_dir, mappings, args.use_pkl)
+
+    if args.dd:
+        write_dd_files(tables, mappings, args.output_dir)
+    else:
+        write_csv_tables(tables, args.output_dir)
+
+    if args.ground_truth_dir:
+        ground_truth = read_csv_tables(args.ground_truth_dir)
+        compare(tables, ground_truth, args.output_dir)
+
+
+if __name__ == "__main__":
+    main()

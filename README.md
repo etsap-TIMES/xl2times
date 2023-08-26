@@ -9,20 +9,26 @@ It is fully explained in the [TIMES Model Documentation](https://iea-etsap.org/i
 
 The Excel input format accepted by this tool is documented in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf).  Additional table types are documented in the [VEDA support forum](https://forum.kanors-emr.org/printthread.php?tid=140).  Example inputs are available at https://github.com/kanors-emr/Model_Demo_Adv_Veda
 
-## Basic Usage
+## Installation and Basic Usage
 
-After installing the required dependencies (see below), run the following command to see the basic usage and available options:
+The tool is not (yet) on PyPI, but you can still install it using pip (preferably in a virtual environment) by cloning the repository and running the following command in the root directory:
 ```bash
-python times_excel_reader.py --help
+pip install .
+```
+
+After installation, run the following command to see the basic usage and available options:
+```bash
+times-excel-reader --help
 ```
 
 ## Development Setup
 
-We recommend using a Python virtual environment:
+We recommend installing the tool in editable mode (`-e`) in a Python virtual environment:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .[dev]
 ```
 
 We use the [black](https://pypi.org/project/black/) code formatter. The `pip` command above will install it along with other requirements.
@@ -36,6 +42,10 @@ Additionally, you can install a git pre-commit that will ensure that your change
 ```bash
 pre-commit install
 ```
+
+## Running Benchmarks
+
+See our GitHub Actions CI `.github/workflows/ci.yml` and the utility script `utils/run_benchmarks.py` to see how to run the tool on the DemoS models.
 
 ## Contributing
 

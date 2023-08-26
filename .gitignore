@@ -1,4 +1,6 @@
 *.pyc
+build/
+*.egg-info/
 input/*
 output/*
 ground_truth/*
