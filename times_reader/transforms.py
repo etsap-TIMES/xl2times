@@ -12,7 +12,6 @@ import time
 from functools import reduce
 from . import datatypes
 from . import utils
-import json
 
 query_columns = {
     "pset_set",
@@ -24,12 +23,6 @@ query_columns = {
     "cset_cn",
     "cset_cd",
 }
-
-with open("./veda_tags.json", mode="r") as f:
-    veda_tags = json.load(f)
-
-# for ignore_symbols in veda_tags[6]["tag_fields"]["row_ignore_symbol"]:
-#    print("yes") if "\\I:" in ignore_symbols else print("no")
 
 csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
 default_pcg_suffixes = [
