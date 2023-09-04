@@ -335,6 +335,7 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
 
 
 def remove_tables_with_formulas(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -358,6 +359,7 @@ def remove_tables_with_formulas(
 
 
 def normalize_tags_columns_attrs(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -391,6 +393,7 @@ def normalize_tags_columns_attrs(
 
 
 def include_tables_source(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -405,7 +408,9 @@ def include_tables_source(
     return [include_table_source(table) for table in tables]
 
 
-def merge_tables(tables: List[datatypes.EmbeddedXlTable]) -> Dict[str, DataFrame]:
+def merge_tables(
+    config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
+) -> Dict[str, DataFrame]:
     """
     Merge all tables in 'tables' with the same table tag, as long as they share the same
     column field values. Print a warning for those that don't share the same column values.
@@ -439,6 +444,7 @@ def merge_tables(tables: List[datatypes.EmbeddedXlTable]) -> Dict[str, DataFrame
 
 
 def process_flexible_import_tables(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -491,23 +497,17 @@ def process_flexible_import_tables(
 
         nrows = df.shape[0]
 
-        # TODO: this should only be removed if it is a comment column
-        # Remove any TechDesc column
-        if "techdesc" in df.columns:
-            df.drop("techdesc", axis=1, inplace=True)
-
+        # TODO: Rename together with other aliases
         if "timeslices" in df.columns:
             df = df.rename(columns={"timeslices": "timeslice"})
 
-        # TODO: Review this. CommGrp is an alias for Other_Indexes
+        # TODO: Rename together with other aliases
         if "commgrp" in df.columns:
-            print(
-                f"WARNING: Dropping CommGrp rather than processing it: {table.filename} {table.sheetname} {table.range}"
-            )
-            df.drop("commgrp", axis=1, inplace=True)
+            df = df.rename(columns={"commgrp": "other_indexes"})
 
         # datatypes.Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
+        # TODO: Include other valid column headers
         known_columns = [
             "region",
             "techname",
@@ -524,7 +524,6 @@ def process_flexible_import_tables(
             "other_indexes",
             "stage",
             "sow",
-            "commgrp",
         ]
         data_columns = [x for x in df.columns if x not in known_columns]
 
@@ -636,6 +635,7 @@ def process_flexible_import_tables(
 
 
 def process_user_constraint_tables(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -650,7 +650,7 @@ def process_user_constraint_tables(
     :return:            List of tables in EmbeddedXlTable format with all FI_T processed.
     """
     legal_values = {
-        # TODO: load these from mapping file?
+        # TODO: load these from times-info.json
         "attribute": {
             "UC_ACT",
             "UC_ATTR",
@@ -693,6 +693,7 @@ def process_user_constraint_tables(
         # Fill in UC_N blank cells with value from above
         df["uc_n"] = df["uc_n"].ffill()
 
+        # TODO: Include other valid column headers
         known_columns = [
             "uc_n",
             "region",
@@ -706,7 +707,6 @@ def process_user_constraint_tables(
             "cset_set",
             "side",
             "attribute",
-            "uc_attr",
             "year",
             "limtype",
             "top_check",
@@ -765,6 +765,7 @@ def process_user_constraint_tables(
 
 
 def fill_in_missing_values(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -892,6 +893,7 @@ def expand_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
 
 
 def remove_invalid_values(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -901,6 +903,7 @@ def remove_invalid_values(
     :param tables:      List of tables in EmbeddedXlTable format.
     :return:            List of tables in EmbeddedXlTable format with disallowed entries removed.
     """
+    # TODO: This should be table type specific
     # TODO pull this out
     regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
     # TODO pull this out
@@ -928,6 +931,7 @@ def remove_invalid_values(
 
 
 def process_units(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     commodity_units = set()
@@ -1008,6 +1012,7 @@ def process_units(
 
 
 def process_time_periods(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     start_year = utils.get_scalar(datatypes.Tag.start_year, tables)
@@ -1035,6 +1040,7 @@ def process_time_periods(
 
 
 def generate_all_regions(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -1064,12 +1070,14 @@ def generate_all_regions(
 
 
 def capitalise_attributes(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
     Ensure that all attributes are uppercase
     """
 
+    # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
     def capitalise_attributes_table(table: datatypes.EmbeddedXlTable):
         df = table.dataframe.copy()
@@ -1083,6 +1091,7 @@ def capitalise_attributes(
 
 
 def apply_fixups(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     reg_com_flows = utils.single_table(tables, "ProcessTopology").dataframe.copy()
@@ -1143,6 +1152,7 @@ def apply_fixups(
 
 
 def extract_commodity_groups(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
@@ -1242,7 +1252,7 @@ def extract_commodity_groups(
             inplace=True,
         )
 
-    # TODO apply renamings from ~TFM_TOPINS e.g. RSDAHT to RSDAHT2
+    # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
     tables.append(
         datatypes.EmbeddedXlTable(
@@ -1272,6 +1282,7 @@ def extract_commodity_groups(
 
 
 def generate_top_ire(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -1340,6 +1351,7 @@ def generate_top_ire(
 
 
 def fill_in_missing_pcgs(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -1398,11 +1410,12 @@ def fill_in_missing_pcgs(
 
 
 def remove_fill_tables(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     # These tables collect data from elsewhere and update the table itself or a region below
     # The collected data is then presumably consumed via Excel references or vlookups
-    # TODO for the moment, assume VEDA has updated these tables but we will need a tool to do this
+    # TODO: For the moment, assume that these tables are up-to-date. We will need a tool to do this.
     result = []
     for table in tables:
         if table.tag != datatypes.Tag.tfm_fill and not table.tag.startswith(
@@ -1413,6 +1426,7 @@ def remove_fill_tables(
 
 
 def process_commodity_emissions(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
@@ -1449,6 +1463,7 @@ def process_commodity_emissions(
 
 
 def process_commodities(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     regions = ",".join(
@@ -1473,7 +1488,9 @@ def process_commodities(
     return result
 
 
-def process_years(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def process_years(
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
     # Datayears is the set of all years in ~FI_T's Year column
     # We ignore values < 1000 because those signify interpolation/extrapolation rules
     # (see Table 8 of Part IV of the Times Documentation)
@@ -1504,6 +1521,7 @@ def process_years(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
 
 def process_processes(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     result = []
@@ -1546,6 +1564,7 @@ def process_processes(
 
 
 def process_topology(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
@@ -1589,7 +1608,9 @@ def process_topology(
 
 
 def generate_dummy_processes(
-    tables: List[datatypes.EmbeddedXlTable], include_dummy_processes=True
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    include_dummy_processes=True,
 ) -> List[datatypes.EmbeddedXlTable]:
     """
     Define dummy processes and specify default cost data for them to ensure that a TIMES model
@@ -1643,6 +1664,7 @@ def generate_dummy_processes(
 
 # TODO: should we rename this to something more general, since it takes care of more than tfm_ins?
 def process_transform_insert(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
@@ -1672,7 +1694,7 @@ def process_transform_insert(
             nrows = df.shape[0]
 
             # Standardize column names
-            # TODO: CommGrp is an alias of Other_Indexes. What happens if both are present?
+            # TODO: Include other valid column names
             known_columns = {
                 "attribute",
                 "year",
@@ -1762,41 +1784,6 @@ def process_transform_insert(
                         df[standard_col] = [None] * len(df)
                 result.append(replace(table, dataframe=df))
 
-        elif table.tag == datatypes.Tag.tfm_dins:
-            df = table.dataframe.copy()
-            nrows = df.shape[0]
-
-            # Find all columns with -, first part is region and sum over second part
-            pairs = [(col.split("-")[0], col) for col in df.columns if "-" in col]
-            for region, tup in groupby(
-                sorted(pairs, key=lambda p: p[0]), lambda p: p[0]
-            ):
-                cols = [t[1] for t in tup]
-                df[region] = df.loc[:, cols].sum(axis=1)
-                df[region] = df[region].apply(lambda x: utils.round_sig(x, 15))
-                df.drop(columns=cols, inplace=True)
-
-            # Transpose region columns to new DEMAND column and add corresponding regions in new Region column
-            region_cols = [
-                col_name
-                for col_name in df.columns
-                if col_name in [x.lower() for x in regions]
-            ]
-            other_columns = [
-                col_name
-                for col_name in df.columns
-                if col_name not in [x.lower() for x in regions]
-            ]
-            data = df[region_cols].values.tolist()
-            df = df[other_columns]
-            df["region"] = [region_cols] * nrows
-            df["DEMAND"] = data
-            df = df.explode(["region", "DEMAND"], ignore_index=True)
-
-            df.rename(columns={"cset_cn": "commname"}, inplace=True)
-
-            result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-
         else:
             dropped.append(table)
 
@@ -1818,6 +1805,7 @@ def process_transform_insert(
 
 
 def process_transform_availability(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     result = []
@@ -1955,7 +1943,9 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, Data
     return dictionary
 
 
-def process_uc_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def process_uc_wildcards(
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
     tag = datatypes.Tag.uc_t
 
     def make_str(df):
@@ -1997,7 +1987,9 @@ def process_uc_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return tables
 
 
-def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def process_wildcards(
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
     dictionary = generate_topology_dictionary(tables)
 
     for tag in [
@@ -2106,6 +2098,7 @@ def process_wildcards(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
 
 def process_time_slices(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     def timeslices_table(
@@ -2231,7 +2224,9 @@ def process_time_slices(
     return result
 
 
-def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def convert_to_string(
+    config: datatypes.Config, input: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
     output = {}
     for key, value in input.items():
         output[key] = value.applymap(
@@ -2240,7 +2235,9 @@ def convert_to_string(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return output
 
 
-def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def convert_aliases(
+    config: datatypes.Config, input: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
     output = {}
 
     # Ensure TIMES names for all attributes
@@ -2257,7 +2254,9 @@ def convert_aliases(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return output
 
 
-def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def rename_cgs(
+    config: datatypes.Config, input: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
     output = {}
 
     for table_type, df in input.items():
@@ -2271,7 +2270,9 @@ def rename_cgs(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return output
 
 
-def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def apply_more_fixups(
+    config: datatypes.Config, input: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
     output = {}
     # TODO: This should only be applied to processes introduced in BASE
     for table_type, df in input.items():
@@ -2325,6 +2326,7 @@ def apply_more_fixups(input: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
 
 
 def expand_rows_parallel(
+    config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     with ProcessPoolExecutor() as executor:

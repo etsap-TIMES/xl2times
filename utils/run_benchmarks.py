@@ -37,7 +37,7 @@ def run_gams_gdxdiff(
 
     # Copy GAMS scaffolding
     scaffolding_folder = path.join(
-        path.dirname(path.realpath(__file__)), "..", "gams_scaffold"
+        path.dirname(path.realpath(__file__)), "..", "times_reader", "gams_scaffold"
     )
     shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
     # Create link to TIMES source
@@ -167,7 +167,7 @@ def run_benchmark(
         args.append(xl_folder)
     start = time.time()
     res = subprocess.run(
-        ["python", "times_excel_reader.py"] + args,
+        ["times-excel-reader"] + args,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -203,11 +203,12 @@ def run_all_benchmarks(
     run_gams=False,
     skip_csv=False,
     skip_main=False,
+    skip_regression=False,
     verbose=False,
 ):
     print("Running benchmarks", end="", flush=True)
     results = []
-    headers = ["Benchmark", "Time (s)", "DD Diff", "Accuracy", "Correct", "Additional"]
+    headers = ["Benchmark", "Time (s)", "GDX Diff", "Accuracy", "Correct", "Additional"]
     for benchmark in benchmarks:
         result = run_benchmark(
             benchmarks_folder,
@@ -220,6 +221,10 @@ def run_all_benchmarks(
         results.append((benchmark["name"], *result))
         print(".", end="", flush=True)
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
+
+    if skip_regression:
+        print("Skipping regression tests.")
+        sys.exit(0)
 
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
@@ -266,7 +271,7 @@ def run_all_benchmarks(
                 benchmark,
                 times_folder=times_folder,
                 skip_csv=True,
-                run_gams=False,
+                run_gams=True,
                 out_folder="out-main",
                 verbose=verbose,
             )
@@ -274,16 +279,17 @@ def run_all_benchmarks(
             print(".", end="", flush=True)
 
     # Print table with combined results to make comparison easier
+    trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s
     combined_results = [
         (
             f"{b:<20}",
             f"{t0:5.1f} {t:5.1f}",
-            f"{f:<10}",
+            f"{trunc(f0):<10} {trunc(f):<10}",
             f"{a0:5.1f} {a:5.1f}",
             f"{c0:6d} {c:6d}",
             f"{d0:6d} {d:6d}",
         )
-        for ((b, t, f, a, c, d), (_, t0, _, a0, c0, d0)) in zip(results, results_main)
+        for ((b, t, f, a, c, d), (_, t0, f0, a0, c0, d0)) in zip(results, results_main)
     ]
     print("\n\n" + tabulate(combined_results, headers, stralign="right") + "\n")
 
@@ -364,6 +370,12 @@ if __name__ == "__main__":
         help="Skip running tool on main and reuse existing result files",
     )
     args_parser.add_argument(
+        "--skip_regression",
+        action="store_true",
+        default=False,
+        help="Skip regression testing against main branch",
+    )
+    args_parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
@@ -405,5 +417,6 @@ if __name__ == "__main__":
             run_gams=args.dd,
             skip_csv=args.skip_csv,
             skip_main=args.skip_main,
+            skip_regression=args.skip_regression,
             verbose=args.verbose,
         )
