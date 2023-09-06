@@ -379,7 +379,7 @@ def main():
     args_parser.add_argument("--use_pkl", action="store_true")
     args = args_parser.parse_args()
 
-    config = datatypes.Config("times_mapping.txt", "times-info.json")
+    config = datatypes.Config("times_mapping.txt", "times-info.json", "veda-tags.json")
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         print(f"ERROR: expected at least 1 input. Got {args.input}")

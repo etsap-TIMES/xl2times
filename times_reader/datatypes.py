@@ -87,9 +87,10 @@ class Config:
     times_xl_maps: List[TimesXlMap]
     dd_table_order: Iterable[str]
 
-    def __init__(self, mapping_file: str, times_info_file: str):
+    def __init__(self, mapping_file: str, times_info_file: str, veda_tags_file: str):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         self.dd_table_order = Config._compute_dd_table_order(times_info_file)
+        self.veda_tags_info = Config._read_veda_tags_info(veda_tags_file)
 
     @staticmethod
     def _compute_dd_table_order(times_info_file: str) -> Iterable[str]:
@@ -176,6 +177,13 @@ class Config:
                 f"WARNING: Dropping {len(dropped)} mappings that are not yet complete"
             )
         return mappings
+
+    @staticmethod
+    def _read_veda_tags_info(veda_tags_file: str) -> List[Dict]:
+        # Read veda_tags_file
+        with resources.open_text("times_reader.config", veda_tags_file) as f:
+            veda_tags_info = json.load(f)
+        return veda_tags_info
 
 
 class Tag(str, Enum):
