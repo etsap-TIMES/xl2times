@@ -1,5 +1,10 @@
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, List
+from importlib import resources
+from itertools import chain
+import json
+import re
+from typing import Dict, Iterable, List
 from enum import Enum
 from pandas.core.frame import DataFrame
 
@@ -72,6 +77,113 @@ class TimesXlMap:
     xl_cols: List[str]
     col_map: Dict[str, str]
     filter_rows: Dict[str, str]
+
+
+class Config:
+    """Encapsulates all configuration options for a run of the tool, including
+    the mapping betwen excel tables and output tables, categories of tables, etc.
+    """
+
+    times_xl_maps: List[TimesXlMap]
+    dd_table_order: Iterable[str]
+
+    def __init__(self, mapping_file: str, times_info_file: str, veda_tags_file: str):
+        self.times_xl_maps = Config._read_mappings(mapping_file)
+        self.dd_table_order = Config._compute_dd_table_order(times_info_file)
+        self.veda_tags_info = Config._read_veda_tags_info(veda_tags_file)
+
+    @staticmethod
+    def _compute_dd_table_order(times_info_file: str) -> Iterable[str]:
+        # Read times_info_file and compute dd_table_order:
+        # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
+        with resources.open_text("times_reader.config", times_info_file) as f:
+            table_info = json.load(f)
+        categories = ["set", "subset", "subsubset", "md-set", "parameter"]
+        cat_to_tables = defaultdict(list)
+        for item in table_info:
+            cat_to_tables[item["gams-cat"]].append(item["name"])
+        unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
+        if unknown_cats:
+            print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
+        return chain.from_iterable((sorted(cat_to_tables[c]) for c in categories))
+
+    @staticmethod
+    def _read_mappings(filename: str) -> List[TimesXlMap]:
+        """
+        Function to load mappings from a text file between the excel sheets we use as input and
+        the tables we give as output. The mappings have the following structure:
+
+        OUTPUT_TABLE[DATAYEAR,VALUE] = ~TimePeriods(Year,B)
+
+        where OUTPUT_TABLE is the name of the table we output and it includes a list of the
+        different fields or column names it includes. On the other side, TimePeriods is the type
+        of table that we will use as input to produce that table, and the arguments are the
+        columns of that table to use to produce the output. The last argument can be of the
+        form `Attribute:ATTRNAME` which means the output will be filtered to only the rows of
+        the input table that have `ATTRNAME` in the Attribute column.
+
+        The mappings are loaded into TimesXlMap objects. See the description of that class for more
+        information of the different fields they contain.
+
+        :param filename:        Name of the text file containing the mappings.
+        :return:                List of mappings in TimesXlMap format.
+        """
+        mappings = []
+        dropped = []
+        with resources.open_text("times_reader.config", filename) as file:
+            while True:
+                line = file.readline().rstrip()
+                if line == "":
+                    break
+                (times, xl) = line.split(" = ")
+                (times_name, times_cols_str) = list(
+                    filter(None, re.split("\[|\]", times))
+                )
+                (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
+                times_cols = times_cols_str.split(",")
+                xl_cols = xl_cols_str.split(",")
+                filter_rows = {}
+                for i, s in enumerate(xl_cols):
+                    if ":" in s:
+                        [col_name, col_val] = s.split(":")
+                        filter_rows[col_name.strip().lower()] = col_val.strip()
+                xl_cols = [s.lower() for s in xl_cols if ":" not in s]
+
+                # TODO remove: Filter out mappings that are not yet finished
+                if xl_name != "~TODO" and not any(
+                    c.startswith("TODO") for c in xl_cols
+                ):
+                    col_map = {}
+                    assert len(times_cols) <= len(xl_cols)
+                    for index, value in enumerate(times_cols):
+                        col_map[value] = xl_cols[index]
+                    # Uppercase and validate tags:
+                    if xl_name.startswith("~"):
+                        xl_name = xl_name.upper()
+                    entry = TimesXlMap(
+                        times_name=times_name,
+                        times_cols=times_cols,
+                        xl_name=xl_name,
+                        xl_cols=xl_cols,
+                        col_map=col_map,
+                        filter_rows=filter_rows,
+                    )
+                    mappings.append(entry)
+                else:
+                    dropped.append(line)
+
+        if len(dropped) > 0:
+            print(
+                f"WARNING: Dropping {len(dropped)} mappings that are not yet complete"
+            )
+        return mappings
+
+    @staticmethod
+    def _read_veda_tags_info(veda_tags_file: str) -> List[Dict]:
+        # Read veda_tags_file
+        with resources.open_text("times_reader.config", veda_tags_file) as f:
+            veda_tags_info = json.load(f)
+        return veda_tags_info
 
 
 class Tag(str, Enum):

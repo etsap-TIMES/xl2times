@@ -1,88 +1,23 @@
+import argparse
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
 from pandas.core.frame import DataFrame
 import pandas as pd
-from typing import Dict, List
-from itertools import chain
-import re
-import os
-import json
-from concurrent.futures import ProcessPoolExecutor
-import time
 import pickle
+from pathlib import Path
+import os
+import sys
+import time
+from typing import Dict, List
 from . import datatypes
 from . import excel
 from . import transforms
 
 
-def read_mappings(filename: str) -> List[datatypes.TimesXlMap]:
-    """
-    Function to load mappings from a text file between the excel sheets we use as input and
-    the tables we give as output. The mappings have the following structure:
-
-    OUTPUT_TABLE[DATAYEAR,VALUE] = ~TimePeriods(Year,B)
-
-    where OUTPUT_TABLE is the name of the table we output and it includes a list of the
-    different fields or column names it includes. On the other side, TimePeriods is the type
-    of table that we will use as input to produce that table, and the arguments are the
-    columns of that table to use to produce the output. The last argument can be of the
-    form `Attribute:ATTRNAME` which means the output will be filtered to only the rows of
-    the input table that have `ATTRNAME` in the Attribute column.
-
-    The mappings are loaded into TimesXlMap objects. See the description of that class for more
-    information of the different fields they contain.
-
-    :param filename:        Name of the text file containing the mappings.
-    :return:                List of mappings in TimesXlMap format.
-    """
-    mappings = []
-    dropped = []
-    with open(filename) as file:
-        while True:
-            line = file.readline().rstrip()
-            if line == "":
-                break
-            (times, xl) = line.split(" = ")
-            (times_name, times_cols_str) = list(filter(None, re.split("\[|\]", times)))
-            (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
-            times_cols = times_cols_str.split(",")
-            xl_cols = xl_cols_str.split(",")
-            filter_rows = {}
-            for i, s in enumerate(xl_cols):
-                if ":" in s:
-                    [col_name, col_val] = s.split(":")
-                    filter_rows[col_name.strip().lower()] = col_val.strip()
-            xl_cols = [s.lower() for s in xl_cols if ":" not in s]
-
-            # TODO remove: Filter out mappings that are not yet finished
-            if xl_name != "~TODO" and not any(c.startswith("TODO") for c in xl_cols):
-                col_map = {}
-                assert len(times_cols) <= len(xl_cols)
-                for index, value in enumerate(times_cols):
-                    col_map[value] = xl_cols[index]
-                # Uppercase and validate tags:
-                if xl_name.startswith("~"):
-                    xl_name = xl_name.upper()
-                entry = datatypes.TimesXlMap(
-                    times_name=times_name,
-                    times_cols=times_cols,
-                    xl_name=xl_name,
-                    xl_cols=xl_cols,
-                    col_map=col_map,
-                    filter_rows=filter_rows,
-                )
-                mappings.append(entry)
-            else:
-                dropped.append(line)
-
-    if len(dropped) > 0:
-        print(f"WARNING: Dropping {len(dropped)} mappings that are not yet complete")
-    return mappings
-
-
 def convert_xl_to_times(
     input_files: List[str],
     output_dir: str,
-    mappings: List[datatypes.TimesXlMap],
+    config: datatypes.Config,
     use_pkl: bool,
     stop_after_read: bool = False,
 ) -> Dict[str, DataFrame]:
@@ -122,8 +57,8 @@ def convert_xl_to_times(
         transforms.generate_dummy_processes,
         transforms.normalize_tags_columns_attrs,
         transforms.remove_fill_tables,
-        lambda tables: [transforms.remove_comment_rows(t) for t in tables],
-        lambda tables: [transforms.remove_comment_cols(t) for t in tables],
+        lambda config, tables: [transforms.remove_comment_rows(t) for t in tables],
+        lambda config, tables: [transforms.remove_comment_cols(t) for t in tables],
         transforms.remove_tables_with_formulas,  # slow
         transforms.process_transform_insert,
         transforms.process_processes,
@@ -154,17 +89,17 @@ def convert_xl_to_times(
         transforms.convert_aliases,
         transforms.rename_cgs,
         transforms.convert_to_string,
-        lambda tables: dump_tables(
+        lambda config, tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
-        lambda tables: produce_times_tables(tables, mappings),
+        lambda config, tables: produce_times_tables(config, tables),
     ]
 
     input = raw_tables
     output = {}
     for transform in transform_list:
         start_time = time.time()
-        output = transform(input)
+        output = transform(config, input)
         end_time = time.time()
         print(
             f"transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
@@ -272,7 +207,7 @@ def compare(
 
 
 def produce_times_tables(
-    input: Dict[str, DataFrame], mappings: List[datatypes.TimesXlMap]
+    config: datatypes.Config, input: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
     print(
         f"produce_times_tables: {len(input)} tables incoming,"
@@ -280,7 +215,7 @@ def produce_times_tables(
     )
     result = {}
     used_tables = set()
-    for mapping in mappings:
+    for mapping in config.times_xl_maps:
         if not mapping.xl_name in input:
             print(
                 f"WARNING: Cannot produce table {mapping.times_name} because input table"
@@ -340,7 +275,7 @@ def produce_times_tables(
 
 
 def write_dd_files(
-    tables: Dict[str, DataFrame], mappings: List[datatypes.TimesXlMap], output_dir: str
+    tables: Dict[str, DataFrame], config: datatypes.Config, output_dir: str
 ):
     os.makedirs(output_dir, exist_ok=True)
     for item in os.listdir(output_dir):
@@ -366,24 +301,12 @@ def write_dd_files(
             )
             yield f"'{row_str}' {val}\n" if row_str else f"{val}\n"
 
-    sets = {m.times_name for m in mappings if "VALUE" not in m.col_map}
-    # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
-    # Category info is in `times-info.json` file TODO merge with times_mapping.txt
-    with open("times-info.json", "r") as f:
-        table_info = json.load(f)
-    categories = ["set", "subset", "subsubset", "md-set", "parameter"]
-    cat_to_tables = defaultdict(list)
-    for item in table_info:
-        cat_to_tables[item["gams-cat"]].append(item["name"])
-    table_order = chain.from_iterable((sorted(cat_to_tables[c]) for c in categories))
-    unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
-    if unknown_cats:
-        print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
+    sets = {m.times_name for m in config.times_xl_maps if "VALUE" not in m.col_map}
 
     # Compute map fname -> tables: right now ALL_TS -> ts.dd, rest -> output.dd
     tables_in_file = {
         "ts.dd": ["ALL_TS"],
-        "output.dd": [t for t in table_order if t != "ALL_TS"],
+        "output.dd": [t for t in config.dd_table_order if t != "ALL_TS"],
     }
 
     for fname, tablenames in tables_in_file.items():
@@ -430,3 +353,65 @@ def dump_tables(tables: List, filename: str) -> List:
             text_file.write("\n" * 2)
 
     return tables
+
+
+def main():
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "input",
+        nargs="*",
+        help="Either an input directory, or a list of input xlsx files to process",
+    )
+    args_parser.add_argument(
+        "--output_dir", type=str, default="output", help="Output directory"
+    )
+    args_parser.add_argument(
+        "--ground_truth_dir",
+        type=str,
+        help="Ground truth directory to compare with output",
+    )
+    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
+    args_parser.add_argument(
+        "--only_read",
+        action="store_true",
+        help="Read xlsx files and stop after outputting raw_tables.txt",
+    )
+    args_parser.add_argument("--use_pkl", action="store_true")
+    args = args_parser.parse_args()
+
+    config = datatypes.Config("times_mapping.txt", "times-info.json", "veda-tags.json")
+
+    if not isinstance(args.input, list) or len(args.input) < 1:
+        print(f"ERROR: expected at least 1 input. Got {args.input}")
+        sys.exit(1)
+    elif len(args.input) == 1:
+        assert os.path.isdir(args.input[0])
+        input_files = [
+            str(path)
+            for path in Path(args.input[0]).rglob("*.xlsx")
+            if not path.name.startswith("~")
+        ]
+        print(f"Loading {len(input_files)} files from {args.input[0]}")
+    else:
+        input_files = args.input
+
+    if args.only_read:
+        tables = convert_xl_to_times(
+            input_files, args.output_dir, config, args.use_pkl, stop_after_read=True
+        )
+        sys.exit(0)
+
+    tables = convert_xl_to_times(input_files, args.output_dir, config, args.use_pkl)
+
+    if args.dd:
+        write_dd_files(tables, config, args.output_dir)
+    else:
+        write_csv_tables(tables, args.output_dir)
+
+    if args.ground_truth_dir:
+        ground_truth = read_csv_tables(args.ground_truth_dir)
+        compare(tables, ground_truth, args.output_dir)
+
+
+if __name__ == "__main__":
+    main()

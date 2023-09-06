@@ -19,13 +19,13 @@ jobs:
         with:
           path: times-excel-reader
 
-      - name: Install packages
+      - name: Install tool and dependencies
         working-directory: times-excel-reader
         run: |
           python -m venv .venv
           source .venv/bin/activate
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -m pip install .[dev]
 
       - name: Check code formatting
         working-directory: times-excel-reader
