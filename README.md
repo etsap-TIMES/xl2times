@@ -27,6 +27,7 @@ We recommend installing the tool in editable mode (`-e`) in a Python virtual env
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -U pip
 pip install -r requirements.txt
 pip install -e .[dev]
 ```
