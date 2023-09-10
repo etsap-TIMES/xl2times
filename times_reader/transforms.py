@@ -2281,11 +2281,11 @@ def rename_cgs(
 
 
 def apply_more_fixups(
-    config: datatypes.Config, input: Dict[str, DataFrame]
+    config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
     output = {}
     # TODO: This should only be applied to processes introduced in BASE
-    for table_type, df in input.items():
+    for table_type, df in tables.items():
         if table_type == datatypes.Tag.fi_t:
             index = df["attribute"] == "STOCK"
             # Temporary solution to include only processes defined in BASE
@@ -2298,6 +2298,7 @@ def apply_more_fixups(
                         i_reg_prc = i_reg & (df["techname"] == process)
                         if any(i_reg_prc):
                             extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
+                        # TODO: TIMES already handles this. Drop?
                         if len(df[i_reg_prc]["year"].unique()) == 1:
                             year = df[i_reg_prc]["year"].unique()[0]
                             i_attr = (
@@ -2329,6 +2330,14 @@ def apply_more_fixups(
                             ),
                         ]
                     )
+        # TODO: Handle defaults in a general way.
+        # Use uc_n value if uc_desc is missing
+        if table_type == datatypes.Tag.uc_t:
+            for uc_n in df["uc_n"].unique():
+                index = df["uc_n"] == uc_n
+                if all(df["uc_desc"][index].isna()):
+                    # Populate the first row only
+                    df.at[list(index).index(True), "uc_desc"] = uc_n
 
         output[table_type] = df
 
