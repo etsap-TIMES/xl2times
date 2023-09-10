@@ -2332,12 +2332,13 @@ def apply_more_fixups(
                     )
         # TODO: Handle defaults in a general way.
         # Use uc_n value if uc_desc is missing
-        if table_type == datatypes.Tag.uc_t:
+        elif table_type == datatypes.Tag.uc_t:
             for uc_n in df["uc_n"].unique():
                 index = df["uc_n"] == uc_n
                 if all(df["uc_desc"][index].isna()):
                     # Populate the first row only
-                    df.at[list(index).index(True), "uc_desc"] = uc_n
+                    if any(index):
+                        df.at[list(index).index(True), "uc_desc"] = uc_n
 
         output[table_type] = df
 
