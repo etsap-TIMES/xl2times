@@ -303,9 +303,10 @@ def write_dd_files(
 
     sets = {m.times_name for m in config.times_xl_maps if "VALUE" not in m.col_map}
 
-    # Compute map fname -> tables: right now ALL_TS -> ts.dd, rest -> output.dd
+    # Compute map fname -> tables: put ALL_TS and MILESTONYR in separate files
     tables_in_file = {
         "ts.dd": ["ALL_TS"],
+        "milestonyr.dd": ["MILESTONYR"],
         "output.dd": [t for t in config.dd_table_order if t != "ALL_TS"],
     }
 

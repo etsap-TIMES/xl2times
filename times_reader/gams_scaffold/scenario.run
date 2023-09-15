@@ -51,7 +51,7 @@ $   BATINCLUDE initmty.mod
 $IF NOT DECLARED REG_BNDCST $Abort "You need to use TIMES v2.3.1 or higher"
 
 $BATINCLUDE output.dd
-SET MILESTONYR /2005,2006/;
+$BATINCLUDE milestonyr.dd
 
 $ SET VEDAVDD 'YES'
 
