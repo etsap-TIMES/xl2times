@@ -4,6 +4,8 @@ build/
 input/*
 output/*
 ground_truth/*
+/.obsidian
+/.spyproject
 /.vs
 /.vscode
 /env*

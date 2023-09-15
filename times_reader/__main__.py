@@ -77,13 +77,14 @@ def convert_xl_to_times(
         transforms.generate_all_regions,
         transforms.capitalise_attributes,
         transforms.apply_fixups,
-        transforms.extract_commodity_groups,
+        transforms.generate_commodity_groups,
         transforms.fill_in_missing_pcgs,
         transforms.generate_top_ire,
         transforms.include_tables_source,
         transforms.merge_tables,
         transforms.apply_more_fixups,
         transforms.process_years,
+        transforms.complete_commodity_groups,
         transforms.process_uc_wildcards,
         transforms.process_wildcards,
         transforms.convert_aliases,
@@ -380,7 +381,7 @@ def main():
     args_parser.add_argument("--use_pkl", action="store_true")
     args = args_parser.parse_args()
 
-    config = datatypes.Config("times_mapping.txt", "times-info.json")
+    config = datatypes.Config("times_mapping.txt", "times-info.json", "veda-tags.json")
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         print(f"ERROR: expected at least 1 input. Got {args.input}")

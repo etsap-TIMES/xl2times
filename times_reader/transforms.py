@@ -1144,7 +1144,7 @@ def apply_fixups(
     return [apply_fixups_table(table) for table in tables]
 
 
-def extract_commodity_groups(
+def generate_commodity_groups(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
@@ -1253,7 +1253,7 @@ def extract_commodity_groups(
             range="",
             filename="",
             uc_sets={},
-            tag="COMM_GROUPS",
+            tag="TOPOLOGY",
             dataframe=comm_groups,
         )
     )
@@ -1274,6 +1274,23 @@ def extract_commodity_groups(
     return tables
 
 
+def complete_commodity_groups(
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
+    """
+    Complete the list of commodity groups
+    """
+
+    commodities = generate_topology_dictionary(tables)["commodities_by_name"].rename(
+        columns={"commname": "commoditygroup"}
+    )
+    cgs_in_top = tables["TOPOLOGY"]["commoditygroup"].to_frame()
+    commodity_groups = pd.concat([commodities, cgs_in_top])
+    tables["COMM_GROUPS"] = commodity_groups.drop_duplicates(keep="first").reset_index()
+
+    return tables
+
+
 def generate_top_ire(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -1285,7 +1302,7 @@ def generate_top_ire(
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
     dummy_process_cset = [["NRG", "IMPNRGZ"], ["MAT", "IMPMATZ"], ["DEM", "IMPDEMZ"]]
     veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
-    com_map = utils.single_table(tables, "COMM_GROUPS").dataframe
+    com_map = utils.single_table(tables, "TOPOLOGY").dataframe
 
     ire_prc = pd.DataFrame(columns=["region", "techname"])
     for table in tables:
@@ -1370,7 +1387,7 @@ def fill_in_missing_pcgs(
         else:
             df = table.dataframe.copy()
             df["primarycg"] = df.apply(expand_pcg_from_suffix, axis=1)
-            default_pcgs = utils.single_table(tables, "COMM_GROUPS").dataframe.copy()
+            default_pcgs = utils.single_table(tables, "TOPOLOGY").dataframe.copy()
             default_pcgs = default_pcgs.loc[
                 default_pcgs["DefaultVedaPCG"] == 1,
                 ["region", "techname", "commoditygroup"],
@@ -2264,11 +2281,11 @@ def rename_cgs(
 
 
 def apply_more_fixups(
-    config: datatypes.Config, input: Dict[str, DataFrame]
+    config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
     output = {}
     # TODO: This should only be applied to processes introduced in BASE
-    for table_type, df in input.items():
+    for table_type, df in tables.items():
         if table_type == datatypes.Tag.fi_t:
             index = df["attribute"] == "STOCK"
             # Temporary solution to include only processes defined in BASE
@@ -2281,6 +2298,7 @@ def apply_more_fixups(
                         i_reg_prc = i_reg & (df["techname"] == process)
                         if any(i_reg_prc):
                             extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
+                        # TODO: TIMES already handles this. Drop?
                         if len(df[i_reg_prc]["year"].unique()) == 1:
                             year = df[i_reg_prc]["year"].unique()[0]
                             i_attr = (
@@ -2312,6 +2330,15 @@ def apply_more_fixups(
                             ),
                         ]
                     )
+        # TODO: Handle defaults in a general way.
+        # Use uc_n value if uc_desc is missing
+        elif table_type == datatypes.Tag.uc_t:
+            for uc_n in df["uc_n"].unique():
+                index = df["uc_n"] == uc_n
+                if all(df["uc_desc"][index].isna()):
+                    # Populate the first row only
+                    if any(index):
+                        df.at[list(index).index(True), "uc_desc"] = uc_n
 
         output[table_type] = df
 
