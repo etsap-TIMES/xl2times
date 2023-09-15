@@ -73,7 +73,6 @@ def run_gams_gdxdiff(
                     f.write(f"$BATINCLUDE {file}.dd\n")
                 continue
             f.write(line)
-    # TODO also get milestone years from benchmarks.yml
     # Create link to TIMES source
     if not path.exists(path.join(dd_folder, "source")):
         symlink(times_folder, path.join(dd_folder, "source"), True)
@@ -400,7 +399,7 @@ if __name__ == "__main__":
             print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
             sys.exit(1)
 
-        runtime, _, _, _, _ = run_benchmark(
+        runtime, gms, acc, cor, add = run_benchmark(
             benchmarks_folder,
             benchmark,
             times_folder=args.times_dir,
@@ -408,7 +407,10 @@ if __name__ == "__main__":
             skip_csv=args.skip_csv,
             verbose=args.verbose,
         )
-        print(f"Ran {args.run} in {runtime:.2f}s")
+        print(
+            f"Ran {args.run} in {runtime:.2f}s. {acc}% ({cor} correct, {add} additional).\n"
+            f"GAMS: {gms}"
+        )
     else:
         run_all_benchmarks(
             benchmarks_folder,
