@@ -271,7 +271,7 @@ def run_all_benchmarks(
                 benchmark,
                 times_folder=times_folder,
                 skip_csv=True,
-                run_gams=True,
+                run_gams=run_gams,
                 out_folder="out-main",
                 verbose=verbose,
             )
