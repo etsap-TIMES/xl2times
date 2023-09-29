@@ -1672,6 +1672,67 @@ def generate_dummy_processes(
     return tables
 
 
+def process_transform_insert_variants(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """Handles variants of TFM_INS like TFM_INS-TS."""
+    regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
+
+    def is_year(col_name):
+        """A column name is a year if it is an int between 1001 and 4000"""
+        if col_name.isdigit():
+            x = int(col_name)
+            return 1000 < x and x <= 4000
+        return False
+
+    result = []
+    for table in tables:
+        if table.tag == datatypes.Tag.tfm_ins_ts:
+            # TODO this processing is already done below in process_transform_insert. Should we move it here?
+            # # Find all columns labelled by years, and melt them into a single Year column:
+            # df = table.dataframe.copy()
+            # other_columns = [
+            #     col_name for col_name in df.columns if not is_year(col_name)
+            # ]
+            # df = pd.melt(
+            #     df,
+            #     id_vars=other_columns,
+            #     var_name="year",
+            #     value_name="value",
+            #     ignore_index=False,
+            # )
+            # # Convert the year column to integer
+            # df["year"] = df["year"].astype("int")
+            # result.append(replace(table, dataframe=df))
+            # # result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
+            result.append(table)
+        elif table.tag == datatypes.Tag.tfm_ins_at:
+            # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribue" column
+            df = table.dataframe
+            if "attribute" in df.columns:
+                raise ValueError(
+                    f"TFM_INS-AT table already has Attribute column: {table}"
+                )
+            other_columns = [
+                col_name
+                for col_name in df.columns
+                if col_name not in config.all_attributes
+            ]
+            df = pd.melt(
+                df,
+                id_vars=other_columns,
+                var_name="attribute",
+                value_name="value",
+                ignore_index=False,
+            )
+            result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
+        else:
+            result.append(table)
+
+    return result
+
+
 # TODO: should we rename this to something more general, since it takes care of more than tfm_ins?
 def process_transform_insert(
     config: datatypes.Config,
@@ -1680,7 +1741,6 @@ def process_transform_insert(
     regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
     tfm_tags = [
         datatypes.Tag.tfm_ins,
-        datatypes.Tag.tfm_ins_at,
         datatypes.Tag.tfm_ins_txt,
         datatypes.Tag.tfm_dins,
         datatypes.Tag.tfm_topins,
@@ -1696,7 +1756,6 @@ def process_transform_insert(
 
         elif table.tag in [
             datatypes.Tag.tfm_ins,
-            datatypes.Tag.tfm_ins_at,
             datatypes.Tag.tfm_ins_txt,
             datatypes.Tag.tfm_ins_ts,
             datatypes.Tag.tfm_upd,
@@ -1719,14 +1778,15 @@ def process_transform_insert(
             } | query_columns
 
             # Handle Regions:
-            if table.tag in [datatypes.Tag.tfm_ins_ts, datatypes.Tag.tfm_ins_at]:
-                # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
-                # ~TFM_INS-AT: Regions are specified in "Region" column. Column names in data area are attributes
-                if "region" not in df.columns:
-                    df["region"] = [regions] * len(df)
-                    df = df.explode(["region"], ignore_index=True)
-            else:
-                # Transpose region columns to new VALUE column and add corresponding regions in new Region column
+            if set(df.columns).isdisjoint(
+                {x.lower() for x in regions} | {"allregions", "region"}
+            ):
+                # If there's no region information at all, this table is for all regions:
+                # TODO share with code handling allregions below?
+                df["region"] = [regions] * len(df)
+                df = df.explode(["region"], ignore_index=True)
+            elif "region" not in df.columns:
+                # We have columns whose names are regions, so gather them into a Region column:
                 region_cols = [
                     col_name
                     for col_name in df.columns
@@ -1755,6 +1815,7 @@ def process_transform_insert(
                     if col_name not in known_columns | {"region", "value"}
                 ]
                 df.drop(columns=unknown_columns, inplace=True)
+            # TODO handle case where we have a "region" column and columns with region names
 
             def has_no_wildcards(list):
                 return all(
@@ -1793,25 +1854,6 @@ def process_transform_insert(
                     ]
                     df, years = utils.explode(df, data_columns)
                     df["year"] = years
-                elif table.tag == datatypes.Tag.tfm_ins_at:
-                    # ~TFM_INS-AT: Column names in data area are attributes
-                    if "attribute" in df.columns:
-                        raise ValueError(
-                            f"TFM_INS-AT table already has Attribute column: {table}"
-                        )
-                    other_columns = [
-                        col_name
-                        for col_name in df.columns
-                        if col_name not in config.all_attributes
-                    ]
-                    df = pd.melt(
-                        df,
-                        id_vars=other_columns,
-                        var_name="attribute",
-                        value_name="value",
-                        ignore_index=False,
-                    )
-
                 for standard_col in known_columns:
                     if standard_col not in df.columns:
                         df[standard_col] = [None] * len(df)
@@ -2028,7 +2070,6 @@ def process_wildcards(
     for tag in [
         datatypes.Tag.tfm_upd,
         datatypes.Tag.tfm_ins,
-        datatypes.Tag.tfm_ins_at,
         datatypes.Tag.tfm_ins_ts,
         datatypes.Tag.tfm_ins_txt,
     ]:
