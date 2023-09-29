@@ -4,7 +4,7 @@ from importlib import resources
 from itertools import chain
 import json
 import re
-from typing import Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Set
 from enum import Enum
 from pandas.core.frame import DataFrame
 
@@ -86,14 +86,19 @@ class Config:
 
     times_xl_maps: List[TimesXlMap]
     dd_table_order: Iterable[str]
+    all_attributes: Set[str]
+    # TODO perhaps have a datatype to represent these tag_infos?
+    veda_tags_info: List[Any]
 
     def __init__(self, mapping_file: str, times_info_file: str, veda_tags_file: str):
         self.times_xl_maps = Config._read_mappings(mapping_file)
-        self.dd_table_order = Config._compute_dd_table_order(times_info_file)
+        self.dd_table_order, self.all_attributes = Config._process_times_info(
+            times_info_file
+        )
         self.veda_tags_info = Config._read_veda_tags_info(veda_tags_file)
 
     @staticmethod
-    def _compute_dd_table_order(times_info_file: str) -> Iterable[str]:
+    def _process_times_info(times_info_file: str) -> Iterable[str]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
         with resources.open_text("times_reader.config", times_info_file) as f:
@@ -105,7 +110,17 @@ class Config:
         unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
         if unknown_cats:
             print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
-        return chain.from_iterable((sorted(cat_to_tables[c]) for c in categories))
+        dd_table_order = chain.from_iterable(
+            (sorted(cat_to_tables[c]) for c in categories)
+        )
+
+        # Compute the set of all attributes, i.e. all entities with category = parameter
+        attributes = {
+            item["name"].lower()
+            for item in table_info
+            if item["gams-cat"] == "parameter"
+        }
+        return dd_table_order, attributes
 
     @staticmethod
     def _read_mappings(filename: str) -> List[TimesXlMap]:
