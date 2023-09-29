@@ -4,7 +4,7 @@ from importlib import resources
 from itertools import chain
 import json
 import re
-from typing import Any, Dict, Iterable, List, Set
+from typing import Any, Dict, Iterable, List, Set, Tuple
 from enum import Enum
 from pandas.core.frame import DataFrame
 
@@ -98,7 +98,7 @@ class Config:
         self.veda_tags_info = Config._read_veda_tags_info(veda_tags_file)
 
     @staticmethod
-    def _process_times_info(times_info_file: str) -> Iterable[str]:
+    def _process_times_info(times_info_file: str) -> Tuple[Iterable[str], Set[str]]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
         with resources.open_text("times_reader.config", times_info_file) as f:
