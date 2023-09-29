@@ -1672,46 +1672,6 @@ def generate_dummy_processes(
     return tables
 
 
-def process_transform_insert_variants(
-    config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
-) -> List[datatypes.EmbeddedXlTable]:
-    """Handles variants of TFM_INS like TFM_INS-TS."""
-
-    def is_year(col_name):
-        """A column name is a year if it is an int between 1001 and 4000"""
-        if col_name.isdigit():
-            x = int(col_name)
-            return 1000 < x and x <= 4000
-        return False
-
-    result = []
-    for table in tables:
-        if table.tag == datatypes.Tag.tfm_ins_ts:
-            # TODO this processing is already done below in process_transform_insert. Should we move it here?
-            # # Find all columns labelled by years, and melt them into a single Year column:
-            # df = table.dataframe.copy()
-            # other_columns = [
-            #     col_name for col_name in df.columns if not is_year(col_name)
-            # ]
-            # df = pd.melt(
-            #     df,
-            #     id_vars=other_columns,
-            #     var_name="year",
-            #     value_name="value",
-            #     ignore_index=False,
-            # )
-            # # Convert the year column to integer
-            # df["year"] = df["year"].astype("int")
-            # result.append(replace(table, dataframe=df))
-            # # result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
-            result.append(table)
-        else:
-            result.append(table)
-
-    return result
-
-
 # TODO: should we rename this to something more general, since it takes care of more than tfm_ins?
 def process_transform_insert(
     config: datatypes.Config,
