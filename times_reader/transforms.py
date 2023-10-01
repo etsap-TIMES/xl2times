@@ -584,7 +584,7 @@ def process_flexible_import_tables(
 
         # Fill other_indexes for COST
         cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-        i = df[attribute] == "COST"
+        i = (df[attribute] == "COST") & df["techname"]
         for process in df[i]["techname"].unique():
             veda_process_set = (
                 veda_process_sets["sets"]
