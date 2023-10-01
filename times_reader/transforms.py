@@ -677,7 +677,8 @@ def process_user_constraint_tables(
     ) -> datatypes.EmbeddedXlTable:
         # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
 
-        if not table.tag.startswith(datatypes.Tag.uc_t):
+        # TODO: remove multi-column tables without any rows
+        if not table.tag.startswith(datatypes.Tag.uc_t) or not table.dataframe.shape[0]:
             return table
         df = table.dataframe
 
