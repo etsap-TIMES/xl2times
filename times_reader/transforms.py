@@ -351,6 +351,55 @@ def remove_tables_with_formulas(
     return [table for table in tables if not has_formulas(table)]
 
 
+def remove_empty_tables(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Return a modified copy of 'tables' where empty tables have been deleted from the list.
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of non-empty tables in EmbeddedXlTable format.
+    """
+
+    check_list = [
+        datatypes.Tag.comagg,
+        datatypes.Tag.comemi,
+        datatypes.Tag.currencies,
+        datatypes.Tag.fi_comm,
+        datatypes.Tag.fi_process,
+        datatypes.Tag.fi_t,
+        datatypes.Tag.tfm_ava,
+        datatypes.Tag.tfm_comgrp,
+        datatypes.Tag.tfm_csets,
+        datatypes.Tag.tfm_dins,
+        datatypes.Tag.tfm_dins_at,
+        datatypes.Tag.tfm_dins_ts,
+        datatypes.Tag.tfm_dins_tsl,
+        datatypes.Tag.tfm_ins,
+        datatypes.Tag.tfm_ins_at,
+        datatypes.Tag.tfm_ins_ts,
+        datatypes.Tag.tfm_ins_tsl,
+        datatypes.Tag.tfm_ins_txt,
+        datatypes.Tag.tfm_mig,
+        datatypes.Tag.tfm_psets,
+        datatypes.Tag.tfm_topdins,
+        datatypes.Tag.tfm_topins,
+        datatypes.Tag.tfm_upd,
+        datatypes.Tag.tfm_upd_at,
+        datatypes.Tag.tfm_upd_ts,
+        datatypes.Tag.uc_t,
+    ]
+
+    def discard(table):
+        if table.tag in check_list:
+            return not table.dataframe.shape[0]
+        else:
+            return False
+
+    return [table for table in tables if not discard(table)]
+
+
 def normalize_tags_columns_attrs(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -677,9 +726,9 @@ def process_user_constraint_tables(
     ) -> datatypes.EmbeddedXlTable:
         # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
 
-        # TODO: remove multi-column tables without any rows
-        if not table.tag.startswith(datatypes.Tag.uc_t) or not table.dataframe.shape[0]:
+        if not table.tag.startswith(datatypes.Tag.uc_t):
             return table
+
         df = table.dataframe
 
         # TODO: apply table.uc_sets

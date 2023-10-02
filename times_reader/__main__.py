@@ -57,6 +57,7 @@ def convert_xl_to_times(
         transforms.generate_dummy_processes,
         transforms.normalize_tags_columns_attrs,
         transforms.remove_fill_tables,
+        transforms.remove_empty_tables,
         lambda config, tables: [transforms.remove_comment_rows(t) for t in tables],
         lambda config, tables: [transforms.remove_comment_cols(t) for t in tables],
         transforms.remove_tables_with_formulas,  # slow
