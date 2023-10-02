@@ -73,7 +73,6 @@ def convert_xl_to_times(
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
         transforms.process_time_periods,
-        transforms.process_units,
         transforms.generate_all_regions,
         transforms.capitalise_attributes,
         transforms.apply_fixups,
@@ -83,6 +82,7 @@ def convert_xl_to_times(
         transforms.include_tables_source,
         transforms.merge_tables,
         transforms.apply_more_fixups,
+        transforms.process_units,
         transforms.process_years,
         transforms.complete_commodity_groups,
         transforms.process_uc_wildcards,

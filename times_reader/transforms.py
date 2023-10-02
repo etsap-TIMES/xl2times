@@ -925,82 +925,28 @@ def remove_invalid_values(
 
 
 def process_units(
-    config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
-) -> List[datatypes.EmbeddedXlTable]:
-    commodity_units = set()
-    process_act_units = set()
-    process_cap_units = set()
-    currencies = set()
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
 
-    for table in tables:
-        if table.tag == datatypes.Tag.fi_comm:
-            commodity_units.update(table.dataframe["unit"].unique())
+    all_units = set()
 
-        if table.tag == datatypes.Tag.fi_process:
-            process_act_units.update(table.dataframe["tact"].unique())
-            process_cap_units.update(
-                [
-                    s.upper()
-                    for s in table.dataframe["tcap"].unique()
-                    if s != None and s != ""
-                ]
-            )
+    tags = {
+        datatypes.Tag.fi_comm: ["unit"],
+        datatypes.Tag.fi_process: ["tact", "tcap"],
+        datatypes.Tag.currencies: ["currency"],
+    }
 
-        if table.tag == datatypes.Tag.currencies:
-            currencies.update(table.dataframe["currency"].unique())
+    invalid_values = ["", None]
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_ACT",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(process_act_units)}),
-        )
-    )
+    for tag, columns in tags.items():
+        for column in columns:
+            all_units.update(tables[tag][column].unique())
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_CAP",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(process_cap_units)}),
-        )
-    )
+    for invalid_value in invalid_values:
+        if invalid_value in all_units:
+            all_units.remove(invalid_value)
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_COM",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(commodity_units)}),
-        )
-    )
-
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~ALL_UNITS",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame(
-                {
-                    "units": sorted(
-                        commodity_units.union(process_act_units).union(
-                            process_cap_units.union(currencies)
-                        )
-                    )
-                }
-            ),
-        )
-    )
+    tables["ALL_UNITS"] = DataFrame({"units": sorted(all_units)})
 
     return tables
 
