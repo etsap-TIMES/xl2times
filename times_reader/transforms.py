@@ -351,6 +351,55 @@ def remove_tables_with_formulas(
     return [table for table in tables if not has_formulas(table)]
 
 
+def remove_empty_tables(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Return a modified copy of 'tables' where empty tables have been deleted from the list.
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of non-empty tables in EmbeddedXlTable format.
+    """
+
+    check_list = [
+        datatypes.Tag.comagg,
+        datatypes.Tag.comemi,
+        datatypes.Tag.currencies,
+        datatypes.Tag.fi_comm,
+        datatypes.Tag.fi_process,
+        datatypes.Tag.fi_t,
+        datatypes.Tag.tfm_ava,
+        datatypes.Tag.tfm_comgrp,
+        datatypes.Tag.tfm_csets,
+        datatypes.Tag.tfm_dins,
+        datatypes.Tag.tfm_dins_at,
+        datatypes.Tag.tfm_dins_ts,
+        datatypes.Tag.tfm_dins_tsl,
+        datatypes.Tag.tfm_ins,
+        datatypes.Tag.tfm_ins_at,
+        datatypes.Tag.tfm_ins_ts,
+        datatypes.Tag.tfm_ins_tsl,
+        datatypes.Tag.tfm_ins_txt,
+        datatypes.Tag.tfm_mig,
+        datatypes.Tag.tfm_psets,
+        datatypes.Tag.tfm_topdins,
+        datatypes.Tag.tfm_topins,
+        datatypes.Tag.tfm_upd,
+        datatypes.Tag.tfm_upd_at,
+        datatypes.Tag.tfm_upd_ts,
+        datatypes.Tag.uc_t,
+    ]
+
+    def discard(table):
+        if table.tag in check_list:
+            return not table.dataframe.shape[0]
+        else:
+            return False
+
+    return [table for table in tables if not discard(table)]
+
+
 def normalize_tags_columns_attrs(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -584,7 +633,7 @@ def process_flexible_import_tables(
 
         # Fill other_indexes for COST
         cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-        i = df[attribute] == "COST"
+        i = (df[attribute] == "COST") & df["techname"]
         for process in df[i]["techname"].unique():
             veda_process_set = (
                 veda_process_sets["sets"]
@@ -679,6 +728,7 @@ def process_user_constraint_tables(
 
         if not table.tag.startswith(datatypes.Tag.uc_t):
             return table
+
         df = table.dataframe
 
         # TODO: apply table.uc_sets
@@ -924,82 +974,26 @@ def remove_invalid_values(
 
 
 def process_units(
-    config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
-) -> List[datatypes.EmbeddedXlTable]:
-    commodity_units = set()
-    process_act_units = set()
-    process_cap_units = set()
-    currencies = set()
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
 
-    for table in tables:
-        if table.tag == datatypes.Tag.fi_comm:
-            commodity_units.update(table.dataframe["unit"].unique())
+    all_units = set()
 
-        if table.tag == datatypes.Tag.fi_process:
-            process_act_units.update(table.dataframe["tact"].unique())
-            process_cap_units.update(
-                [
-                    s.upper()
-                    for s in table.dataframe["tcap"].unique()
-                    if s != None and s != ""
-                ]
-            )
+    tags = {
+        datatypes.Tag.fi_comm: ["unit"],
+        datatypes.Tag.fi_process: ["tact", "tcap"],
+        datatypes.Tag.currencies: ["currency"],
+    }
 
-        if table.tag == datatypes.Tag.currencies:
-            currencies.update(table.dataframe["currency"].unique())
+    invalid_values = ["", None]
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_ACT",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(process_act_units)}),
-        )
-    )
+    for tag, columns in tags.items():
+        for column in columns:
+            all_units.update(tables[tag][column].unique())
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_CAP",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(process_cap_units)}),
-        )
-    )
+    all_units -= set(invalid_values)
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_COM",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(commodity_units)}),
-        )
-    )
-
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~ALL_UNITS",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame(
-                {
-                    "units": sorted(
-                        commodity_units.union(process_act_units).union(
-                            process_cap_units.union(currencies)
-                        )
-                    )
-                }
-            ),
-        )
-    )
+    tables["ALL_UNITS"] = DataFrame({"units": sorted(all_units)})
 
     return tables
 
