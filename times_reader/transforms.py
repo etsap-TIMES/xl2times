@@ -991,9 +991,7 @@ def process_units(
         for column in columns:
             all_units.update(tables[tag][column].unique())
 
-    for invalid_value in invalid_values:
-        if invalid_value in all_units:
-            all_units.remove(invalid_value)
+    all_units -= set(invalid_value)
 
     tables["ALL_UNITS"] = DataFrame({"units": sorted(all_units)})
 
