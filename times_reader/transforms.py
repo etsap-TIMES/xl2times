@@ -1592,7 +1592,7 @@ def process_topology(
         value_name="commname",
     )
 
-    topology["techname"].fillna(method="ffill", inplace=True)
+    topology["techname"].ffill(inplace=True)
     topology["io"].replace({"comm-in": "IN", "comm-out": "OUT"}, inplace=True)
     topology.dropna(how="any", subset=["techname", "commname"], inplace=True)
     topology.drop_duplicates(keep="first", inplace=True)
