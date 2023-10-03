@@ -343,7 +343,7 @@ def remove_tables_with_formulas(
         return isinstance(s, str) and len(s) > 0 and s[0] == "="
 
     def has_formulas(table):
-        has = table.dataframe.applymap(is_formula).any(axis=None)
+        has = table.dataframe.map(is_formula).any(axis=None)
         if has:
             print(f"WARNING: Excluding table {table.tag} because it has formulas")
         return has
@@ -920,7 +920,7 @@ def expand_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
             return s
 
     df = table.dataframe.copy()
-    c = df.applymap(has_comma)
+    c = df.map(has_comma)
     columns_with_commas = [
         colname
         for colname in c.columns
@@ -928,7 +928,7 @@ def expand_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
     ]
     if len(columns_with_commas) > 0:
         # Transform comma-separated strings into lists
-        df[columns_with_commas] = df[columns_with_commas].applymap(split_by_commas)
+        df[columns_with_commas] = df[columns_with_commas].map(split_by_commas)
         for colname in columns_with_commas:
             # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.explode.html#pandas.DataFrame.explode
             df = df.explode(colname, ignore_index=True)
@@ -1592,7 +1592,7 @@ def process_topology(
         value_name="commname",
     )
 
-    topology["techname"].fillna(method="ffill", inplace=True)
+    topology["techname"].ffill(inplace=True)
     topology["io"].replace({"comm-in": "IN", "comm-out": "OUT"}, inplace=True)
     topology.dropna(how="any", subset=["techname", "commname"], inplace=True)
     topology.drop_duplicates(keep="first", inplace=True)
@@ -2233,7 +2233,7 @@ def convert_to_string(
 ) -> Dict[str, DataFrame]:
     output = {}
     for key, value in input.items():
-        output[key] = value.applymap(
+        output[key] = value.map(
             lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
         )
     return output
