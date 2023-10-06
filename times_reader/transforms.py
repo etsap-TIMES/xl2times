@@ -1798,9 +1798,7 @@ def process_transform_insert(
                 {x.lower() for x in regions} | {"allregions", "region"}
             ):
                 # If there's no region information at all, this table is for all regions:
-                # TODO share with code handling allregions below?
-                df["region"] = [regions] * len(df)
-                df = df.explode(["region"], ignore_index=True)
+                df["region"] = ["allregions"] * len(df)
             elif "region" not in df.columns:
                 # We have columns whose names are regions, so gather them into a Region column:
                 region_cols = [
@@ -1835,12 +1833,11 @@ def process_transform_insert(
                 if col_name not in known_columns | {"region", "value"}
             ]
             df.drop(columns=unknown_columns, inplace=True)
-
             for standard_col in known_columns:
                 if standard_col not in df.columns:
                     df[standard_col] = [None] * len(df)
-            result.append(replace(table, dataframe=df))
 
+            result.append(replace(table, dataframe=df))
         else:
             dropped.append(table)
 
