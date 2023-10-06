@@ -976,7 +976,6 @@ def remove_invalid_values(
 def process_units(
     config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-
     all_units = set()
 
     tags = {
@@ -1670,18 +1669,7 @@ def process_transform_insert_variants(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
-    """Handles variants of TFM_INS like TFM_INS-TS."""
-    # TODO to avoid repeating this, should this go in datatypes.Config?
-    known_columns = {
-        "attribute",
-        "year",
-        "timeslice",
-        "limtype",
-        "curr",
-        "stage",
-        "sow",
-        "other_indexes",
-    } | query_columns
+    """Reduces variants of TFM_INS like TFM_INS-TS to TFM_INS."""
 
     def has_no_wildcards(list):
         return all(
@@ -1695,17 +1683,17 @@ def process_transform_insert_variants(
         )
 
     def is_year(col_name):
-        """A column name is a year if it is an int in {0, 1000, 1001, ..., 4000}"""
-        if col_name.isdigit():
-            x = int(col_name)
-            return x == 0 or 1000 <= x and x <= 4000
-        return False
+        """A column name is a year if it is an int >= 0"""
+        return col_name.isdigit() and int(col_name) >= 0
 
     result = []
     for table in tables:
         if table.tag == datatypes.Tag.tfm_ins_ts:
+            # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
             df = table.dataframe
-            # TODO these can be removed apparently
+            if "year" in df.columns:
+                raise ValueError(f"TFM_INS-AT table already has Year column: {table}")
+            # TODO can we remove this hacky shortcut?
             if (
                 table.tag == datatypes.Tag.tfm_ins_ts
                 and set(df.columns) & query_columns == {"cset_cn"}
@@ -1713,6 +1701,7 @@ def process_transform_insert_variants(
             ):
                 df.rename(columns={"cset_cn": "commname"}, inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
+                continue
             elif (
                 table.tag == datatypes.Tag.tfm_ins_ts
                 and set(df.columns) & query_columns == {"pset_pn"}
@@ -1720,18 +1709,8 @@ def process_transform_insert_variants(
             ):
                 df.rename(columns={"pset_pn": "techname"}, inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-            # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
-            # TODO commenting this out because at this point there might still be columns with region names
-            # data_columns = [
-            #     colname
-            #     for colname in df.columns
-            #     if colname not in known_columns | {"region", "ts_filter"}
-            # ]
-            # df, years = utils.explode(df, data_columns)
-            # df["year"] = years
-            # TODO this processing is already done below in process_transform_insert. Should we move it here?
-            # # Find all columns labelled by years, and melt them into a single Year column:
-            # df = table.dataframe.copy()
+                continue
+
             other_columns = [
                 col_name for col_name in df.columns if not is_year(col_name)
             ]
@@ -1745,8 +1724,6 @@ def process_transform_insert_variants(
             # Convert the year column to integer
             df["year"] = df["year"].astype("int")
             result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
-            # result.append(replace(table, dataframe=df))
-            # result.append(table)
         elif table.tag == datatypes.Tag.tfm_ins_at:
             # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribue" column
             df = table.dataframe
@@ -1804,6 +1781,7 @@ def process_transform_insert(
 
             # Standardize column names
             # TODO: Include other valid column names
+            # TODO should this go in datatypes.Config?
             known_columns = {
                 "attribute",
                 "year",
