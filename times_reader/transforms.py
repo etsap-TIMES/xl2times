@@ -2278,114 +2278,111 @@ def process_time_slices(
 
 
 def convert_to_string(
-    config: datatypes.Config, input: Dict[str, DataFrame]
+    config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
-    for key, value in input.items():
-        output[key] = value.map(
+    for key, value in tables.items():
+        tables[key] = value.map(
             lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
         )
-    return output
+    return tables
 
 
 def convert_aliases(
-    config: datatypes.Config, input: Dict[str, DataFrame]
+    config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
-
     # Ensure TIMES names for all attributes
     replacement_dict = {}
     for k, v in aliases_by_attr.items():
         for alias in v:
             replacement_dict[alias] = k
 
-    for table_type, df in input.items():
+    for table_type, df in tables.items():
         if "attribute" in df.columns:
             df.replace({"attribute": replacement_dict}, inplace=True)
-        output[table_type] = df
+        tables[table_type] = df
 
-    return output
+    return tables
 
 
 def rename_cgs(
-    config: datatypes.Config, input: Dict[str, DataFrame]
+    config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
+    df = tables.get(datatypes.Tag.fi_t)
+    if df is not None:
+        i = df["other_indexes"].isin(default_pcg_suffixes)
+        df.loc[i, "other_indexes"] = (
+            df["techname"].astype(str) + "_" + df["other_indexes"].astype(str)
+        )
+        tables[datatypes.Tag.fi_t] = df
 
-    for table_type, df in input.items():
-        if table_type == datatypes.Tag.fi_t:
-            i = df["other_indexes"].isin(default_pcg_suffixes)
-            df.loc[i, "other_indexes"] = (
-                df["techname"].astype(str) + "_" + df["other_indexes"].astype(str)
-            )
-        output[table_type] = df
-
-    return output
+    return tables
 
 
 def apply_more_fixups(
     config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
     # TODO: This should only be applied to processes introduced in BASE
-    for table_type, df in tables.items():
-        if table_type == datatypes.Tag.fi_t:
-            index = df["attribute"] == "STOCK"
-            # Temporary solution to include only processes defined in BASE
-            i_vt = index & (df["source_filename"].str.contains("VT_", case=False))
-            if any(index):
-                extra_rows = []
-                for region in df[index]["region"].unique():
-                    i_reg = index & (df["region"] == region)
-                    for process in df[(i_reg & i_vt)]["techname"].unique():
-                        i_reg_prc = i_reg & (df["techname"] == process)
-                        if any(i_reg_prc):
-                            extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
-                        # TODO: TIMES already handles this. Drop?
-                        if len(df[i_reg_prc]["year"].unique()) == 1:
-                            year = df[i_reg_prc]["year"].unique()[0]
-                            i_attr = (
-                                df["attribute"].isin(["NCAP_TLIFE", "LIFE"])
-                                & (df["region"] == region)
-                                & (df["techname"] == process)
-                            )
-                            if any(i_attr):
-                                lifetime = df[i_attr]["value"].unique()[-1]
-                            else:
-                                lifetime = 30
-                            extra_rows.append(
-                                ["STOCK", region, process, "", year + lifetime, 0]
-                            )
-                if len(extra_rows) > 0:
-                    df = pd.concat(
-                        [
-                            df,
-                            pd.DataFrame(
-                                extra_rows,
-                                columns=[
-                                    "attribute",
-                                    "region",
-                                    "techname",
-                                    "limtype",
-                                    "year",
-                                    "value",
-                                ],
-                            ),
-                        ]
-                    )
+    df = tables.get(datatypes.Tag.fi_t)
+    if df is not None:
+        index = df["attribute"] == "STOCK"
+        # Temporary solution to include only processes defined in BASE
+        i_vt = index & (df["source_filename"].str.contains("VT_", case=False))
+        if any(index):
+            extra_rows = []
+            for region in df[index]["region"].unique():
+                i_reg = index & (df["region"] == region)
+                for process in df[(i_reg & i_vt)]["techname"].unique():
+                    i_reg_prc = i_reg & (df["techname"] == process)
+                    if any(i_reg_prc):
+                        extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
+                    # TODO: TIMES already handles this. Drop?
+                    if len(df[i_reg_prc]["year"].unique()) == 1:
+                        year = df[i_reg_prc]["year"].unique()[0]
+                        i_attr = (
+                            df["attribute"].isin(["NCAP_TLIFE", "LIFE"])
+                            & (df["region"] == region)
+                            & (df["techname"] == process)
+                        )
+                        if any(i_attr):
+                            lifetime = df[i_attr]["value"].unique()[-1]
+                        else:
+                            lifetime = 30
+                        extra_rows.append(
+                            ["STOCK", region, process, "", year + lifetime, 0]
+                        )
+            if len(extra_rows) > 0:
+                df = pd.concat(
+                    [
+                        df,
+                        pd.DataFrame(
+                            extra_rows,
+                            columns=[
+                                "attribute",
+                                "region",
+                                "techname",
+                                "limtype",
+                                "year",
+                                "value",
+                            ],
+                        ),
+                    ]
+                )
+        tables[datatypes.Tag.fi_t] = df
+
+    df = tables.get(datatypes.Tag.uc_t)
+    if df is not None:
         # TODO: Handle defaults in a general way.
         # Use uc_n value if uc_desc is missing
-        elif table_type == datatypes.Tag.uc_t:
-            for uc_n in df["uc_n"].unique():
-                index = df["uc_n"] == uc_n
-                if all(df["uc_desc"][index].isna()):
-                    # Populate the first row only
-                    if any(index):
-                        df.at[list(index).index(True), "uc_desc"] = uc_n
+        for uc_n in df["uc_n"].unique():
+            index = df["uc_n"] == uc_n
+            if all(df["uc_desc"][index].isna()):
+                # Populate the first row only
+                if any(index):
+                    df.at[list(index).index(True), "uc_desc"] = uc_n
 
-        output[table_type] = df
+        tables[datatypes.Tag.uc_t] = df
 
-    return output
+    return tables
 
 
 def expand_rows_parallel(
