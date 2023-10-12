@@ -42,6 +42,8 @@ def parse_parameter_values_from_file(
         if data[index].startswith("PARAMETER"):
             # We expect the parameter name on the next line.
             index += 1
+            while data[index].strip() == "":
+                index += 1
 
             param_name = data[index].replace(
                 " ' '/", ""
@@ -75,9 +77,13 @@ def parse_parameter_values_from_file(
             # See https://www.gams.com/latest/docs/UG_SetDefinition.html
             # This can only parse a subset of the allowed representations
             _, name = data[index].split(" ")
-            assert data[index + 1].startswith("/")
+            index += 1
+            while data[index].strip() == "":
+                index += 1
 
-            index += 2
+            assert data[index].startswith("/")
+            index += 1
+
             set_data = set()
             while not data[index].startswith("/") and data[index] != "":
                 parts = [[]]
@@ -129,7 +135,12 @@ def save_data_with_headers(
     Note that the header and data dictionaries are assumed to be parallel dictionaries
     """
     for param_name, param_data in param_data_dict.items():
-        columns = headers_data[param_name]
+        try:
+            columns = headers_data[param_name]
+        except KeyError:
+            raise ValueError(
+                f"Could not find mapping for {param_name} in mapping file."
+            )
         for row in param_data:
             if len(row) != len(columns):
                 raise ValueError(
