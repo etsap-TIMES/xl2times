@@ -1,4 +1,6 @@
 import argparse
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 import git
 from os import path, symlink
 import pandas as pd
@@ -115,14 +117,14 @@ def run_gams_gdxdiff(
 
 
 def run_benchmark(
-    benchmarks_folder: str,
     benchmark: Any,
+    benchmarks_folder: str,
     times_folder: str,
     run_gams: bool = False,
     skip_csv: bool = False,
     out_folder: str = "out",
     verbose: bool = False,
-) -> Tuple[float, str, float, int, int]:
+) -> Tuple[str, float, str, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
     dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
     csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])
@@ -177,6 +179,8 @@ def run_benchmark(
         line = "-" * 80
         print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
         print(res.stderr if res.stderr is not None else "")
+    else:
+        print(".", end="", flush=True)
 
     if res.returncode != 0:
         print(res.stdout)
@@ -192,7 +196,7 @@ def run_benchmark(
     else:
         dd_res = "--"
 
-    return (runtime, dd_res, accuracy, num_correct, num_additional)
+    return (benchmark["name"], runtime, dd_res, accuracy, num_correct, num_additional)
 
 
 def run_all_benchmarks(
@@ -206,19 +210,18 @@ def run_all_benchmarks(
     verbose=False,
 ):
     print("Running benchmarks", end="", flush=True)
-    results = []
     headers = ["Benchmark", "Time (s)", "GDX Diff", "Accuracy", "Correct", "Additional"]
-    for benchmark in benchmarks:
-        result = run_benchmark(
-            benchmarks_folder,
-            benchmark,
-            times_folder=times_folder,
-            skip_csv=skip_csv,
-            run_gams=run_gams,
-            verbose=verbose,
-        )
-        results.append((benchmark["name"], *result))
-        print(".", end="", flush=True)
+    run_a_benchmark = partial(
+        run_benchmark,
+        benchmarks_folder=benchmarks_folder,
+        times_folder=times_folder,
+        skip_csv=skip_csv,
+        run_gams=run_gams,
+        verbose=verbose,
+    )
+
+    with ProcessPoolExecutor() as executor:
+        results = list(executor.map(run_a_benchmark, benchmarks))
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
 
     if skip_regression:
@@ -249,8 +252,8 @@ def run_all_benchmarks(
                 "r",
             ) as f:
                 result = parse_result(f.readlines()[-1])
-            # Use a fake runtime
-            results_main.append((benchmark["name"], 999, *result))
+            # Use a fake runtime and GAMS result
+            results_main.append((benchmark["name"], 999, "--", *result))
         print(
             f"Skipped running on main. Using results from {path.join(benchmarks_folder, 'out-main')}"
         )
@@ -263,19 +266,18 @@ def run_all_benchmarks(
         # Re-run benchmarks on main
         repo.heads.main.checkout()
         print("Running benchmarks on main", end="", flush=True)
-        results_main = []
-        for benchmark in benchmarks:
-            result = run_benchmark(
-                benchmarks_folder,
-                benchmark,
-                times_folder=times_folder,
-                skip_csv=True,
-                run_gams=run_gams,
-                out_folder="out-main",
-                verbose=verbose,
-            )
-            results_main.append((benchmark["name"], *result))
-            print(".", end="", flush=True)
+        run_a_benchmark = partial(
+            run_benchmark,
+            benchmarks_folder=benchmarks_folder,
+            times_folder=times_folder,
+            skip_csv=True,
+            run_gams=run_gams,
+            out_folder="out-main",
+            verbose=verbose,
+        )
+
+        with ProcessPoolExecutor() as executor:
+            results_main = list(executor.map(run_a_benchmark, benchmarks))
 
     # Print table with combined results to make comparison easier
     trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s
@@ -399,9 +401,9 @@ if __name__ == "__main__":
             print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
             sys.exit(1)
 
-        runtime, gms, acc, cor, add = run_benchmark(
-            benchmarks_folder,
+        _, runtime, gms, acc, cor, add = run_benchmark(
             benchmark,
+            benchmarks_folder,
             times_folder=args.times_dir,
             run_gams=args.dd,
             skip_csv=args.skip_csv,
