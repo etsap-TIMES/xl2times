@@ -124,7 +124,7 @@ def run_benchmark(
     skip_csv: bool = False,
     out_folder: str = "out",
     verbose: bool = False,
-) -> Tuple[float, str, float, int, int]:
+) -> Tuple[str, float, str, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
     dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
     csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])
@@ -401,7 +401,7 @@ if __name__ == "__main__":
             print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
             sys.exit(1)
 
-        runtime, gms, acc, cor, add = run_benchmark(
+        _, runtime, gms, acc, cor, add = run_benchmark(
             benchmark,
             benchmarks_folder,
             times_folder=args.times_dir,
