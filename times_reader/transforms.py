@@ -420,12 +420,61 @@ def remove_tables_with_formulas(
         return isinstance(s, str) and len(s) > 0 and s[0] == "="
 
     def has_formulas(table):
-        has = table.dataframe.applymap(is_formula).any(axis=None)
+        has = table.dataframe.map(is_formula).any(axis=None)
         if has:
             print(f"WARNING: Excluding table {table.tag} because it has formulas")
         return has
 
     return [table for table in tables if not has_formulas(table)]
+
+
+def remove_empty_tables(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Return a modified copy of 'tables' where empty tables have been deleted from the list.
+
+    :param tables:      List of tables in EmbeddedXlTable format.
+    :return:            List of non-empty tables in EmbeddedXlTable format.
+    """
+
+    check_list = [
+        datatypes.Tag.comagg,
+        datatypes.Tag.comemi,
+        datatypes.Tag.currencies,
+        datatypes.Tag.fi_comm,
+        datatypes.Tag.fi_process,
+        datatypes.Tag.fi_t,
+        datatypes.Tag.tfm_ava,
+        datatypes.Tag.tfm_comgrp,
+        datatypes.Tag.tfm_csets,
+        datatypes.Tag.tfm_dins,
+        datatypes.Tag.tfm_dins_at,
+        datatypes.Tag.tfm_dins_ts,
+        datatypes.Tag.tfm_dins_tsl,
+        datatypes.Tag.tfm_ins,
+        datatypes.Tag.tfm_ins_at,
+        datatypes.Tag.tfm_ins_ts,
+        datatypes.Tag.tfm_ins_tsl,
+        datatypes.Tag.tfm_ins_txt,
+        datatypes.Tag.tfm_mig,
+        datatypes.Tag.tfm_psets,
+        datatypes.Tag.tfm_topdins,
+        datatypes.Tag.tfm_topins,
+        datatypes.Tag.tfm_upd,
+        datatypes.Tag.tfm_upd_at,
+        datatypes.Tag.tfm_upd_ts,
+        datatypes.Tag.uc_t,
+    ]
+
+    def discard(table):
+        if table.tag in check_list:
+            return not table.dataframe.shape[0]
+        else:
+            return False
+
+    return [table for table in tables if not discard(table)]
 
 
 def normalize_tags_columns_attrs(
@@ -661,7 +710,7 @@ def process_flexible_import_tables(
 
         # Fill other_indexes for COST
         cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-        i = df[attribute] == "COST"
+        i = (df[attribute] == "COST") & df["techname"]
         for process in df[i]["techname"].unique():
             veda_process_set = (
                 veda_process_sets["sets"]
@@ -756,6 +805,7 @@ def process_user_constraint_tables(
 
         if not table.tag.startswith(datatypes.Tag.uc_t):
             return table
+
         df = table.dataframe
 
         # TODO: apply table.uc_sets
@@ -947,7 +997,7 @@ def expand_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
             return s
 
     df = table.dataframe.copy()
-    c = df.applymap(has_comma)
+    c = df.map(has_comma)
     columns_with_commas = [
         colname
         for colname in c.columns
@@ -955,7 +1005,7 @@ def expand_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
     ]
     if len(columns_with_commas) > 0:
         # Transform comma-separated strings into lists
-        df[columns_with_commas] = df[columns_with_commas].applymap(split_by_commas)
+        df[columns_with_commas] = df[columns_with_commas].map(split_by_commas)
         for colname in columns_with_commas:
             # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.explode.html#pandas.DataFrame.explode
             df = df.explode(colname, ignore_index=True)
@@ -1001,82 +1051,25 @@ def remove_invalid_values(
 
 
 def process_units(
-    config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
-) -> List[datatypes.EmbeddedXlTable]:
-    commodity_units = set()
-    process_act_units = set()
-    process_cap_units = set()
-    currencies = set()
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
+    all_units = set()
 
-    for table in tables:
-        if table.tag == datatypes.Tag.fi_comm:
-            commodity_units.update(table.dataframe["unit"].unique())
+    tags = {
+        datatypes.Tag.fi_comm: ["unit"],
+        datatypes.Tag.fi_process: ["tact", "tcap"],
+        datatypes.Tag.currencies: ["currency"],
+    }
 
-        if table.tag == datatypes.Tag.fi_process:
-            process_act_units.update(table.dataframe["tact"].unique())
-            process_cap_units.update(
-                [
-                    s.upper()
-                    for s in table.dataframe["tcap"].unique()
-                    if s != None and s != ""
-                ]
-            )
+    invalid_values = ["", None]
 
-        if table.tag == datatypes.Tag.currencies:
-            currencies.update(table.dataframe["currency"].unique())
+    for tag, columns in tags.items():
+        for column in columns:
+            all_units.update(tables[tag][column].unique())
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_ACT",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(process_act_units)}),
-        )
-    )
+    all_units -= set(invalid_values)
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_CAP",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(process_cap_units)}),
-        )
-    )
-
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~UNITS_COM",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame({"units": sorted(commodity_units)}),
-        )
-    )
-
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="~ALL_UNITS",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=DataFrame(
-                {
-                    "units": sorted(
-                        commodity_units.union(process_act_units).union(
-                            process_cap_units.union(currencies)
-                        )
-                    )
-                }
-            ),
-        )
-    )
+    tables["ALL_UNITS"] = DataFrame({"units": sorted(all_units)})
 
     return tables
 
@@ -1675,7 +1668,7 @@ def process_topology(
         value_name="commname",
     )
 
-    topology["techname"].fillna(method="ffill", inplace=True)
+    topology["techname"].ffill(inplace=True)
     topology["io"].replace(
         {
             "comm-in": "IN",
@@ -1757,6 +1750,91 @@ def generate_dummy_processes(
     return tables
 
 
+def process_transform_insert_variants(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+) -> List[datatypes.EmbeddedXlTable]:
+    """Reduces variants of TFM_INS like TFM_INS-TS to TFM_INS."""
+
+    def has_no_wildcards(list):
+        return all(
+            list.apply(
+                lambda x: x is not None
+                and x[0] != "-"
+                and "*" not in x
+                and "," not in x
+                and "?" not in x
+            )
+        )
+
+    def is_year(col_name):
+        """A column name is a year if it is an int >= 0"""
+        return col_name.isdigit() and int(col_name) >= 0
+
+    result = []
+    for table in tables:
+        if table.tag == datatypes.Tag.tfm_ins_ts:
+            # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
+            df = table.dataframe
+            if "year" in df.columns:
+                raise ValueError(f"TFM_INS-AT table already has Year column: {table}")
+            # TODO can we remove this hacky shortcut?
+            if (
+                table.tag == datatypes.Tag.tfm_ins_ts
+                and set(df.columns) & query_columns == {"cset_cn"}
+                and has_no_wildcards(df["cset_cn"])
+            ):
+                df.rename(columns={"cset_cn": "commname"}, inplace=True)
+                result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
+                continue
+            elif (
+                table.tag == datatypes.Tag.tfm_ins_ts
+                and set(df.columns) & query_columns == {"pset_pn"}
+                and has_no_wildcards(df["pset_pn"])
+            ):
+                df.rename(columns={"pset_pn": "techname"}, inplace=True)
+                result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
+                continue
+
+            other_columns = [
+                col_name for col_name in df.columns if not is_year(col_name)
+            ]
+            df = pd.melt(
+                df,
+                id_vars=other_columns,
+                var_name="year",
+                value_name="value",
+                ignore_index=False,
+            )
+            # Convert the year column to integer
+            df["year"] = df["year"].astype("int")
+            result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
+        elif table.tag == datatypes.Tag.tfm_ins_at:
+            # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribue" column
+            df = table.dataframe
+            if "attribute" in df.columns:
+                raise ValueError(
+                    f"TFM_INS-AT table already has Attribute column: {table}"
+                )
+            other_columns = [
+                col_name
+                for col_name in df.columns
+                if col_name not in config.all_attributes
+            ]
+            df = pd.melt(
+                df,
+                id_vars=other_columns,
+                var_name="attribute",
+                value_name="value",
+                ignore_index=False,
+            )
+            result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
+        else:
+            result.append(table)
+
+    return result
+
+
 # TODO: should we rename this to something more general, since it takes care of more than tfm_ins?
 def process_transform_insert(
     config: datatypes.Config,
@@ -1781,15 +1859,14 @@ def process_transform_insert(
         elif table.tag in [
             datatypes.Tag.tfm_ins,
             datatypes.Tag.tfm_ins_txt,
-            datatypes.Tag.tfm_ins_ts,
             datatypes.Tag.tfm_upd,
             datatypes.Tag.tfm_comgrp,
         ]:
             df = table.dataframe.copy()
-            nrows = df.shape[0]
 
             # Standardize column names
             # TODO: Include other valid column names
+            # TODO should this go in datatypes.Config?
             known_columns = {
                 "attribute",
                 "year",
@@ -1801,13 +1878,14 @@ def process_transform_insert(
                 "other_indexes",
             } | query_columns
 
-            if table.tag == datatypes.Tag.tfm_ins_ts:
-                # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
-                if "region" not in df.columns:
-                    df["region"] = [regions] * len(df)
-                    df = df.explode(["region"], ignore_index=True)
-            else:
-                # Transpose region columns to new VALUE column and add corresponding regions in new Region column
+            # Handle Regions:
+            if set(df.columns).isdisjoint(
+                {x.lower() for x in regions} | {"allregions", "region"}
+            ):
+                # If there's no region information at all, this table is for all regions:
+                df["region"] = ["allregions"] * len(df)
+            elif "region" not in df.columns:
+                # We have columns whose names are regions, so gather them into a Region column:
                 region_cols = [
                     col_name
                     for col_name in df.columns
@@ -1824,61 +1902,27 @@ def process_transform_insert(
                     ignore_index=False,
                 )
                 df = df.sort_index().reset_index(drop=True)  # retain original row order
-                # This expands "allregions" into one row for each region:
-                df["region"] = df["region"].map(
-                    lambda x: regions if x == "allregions" else x
-                )
-                df = df.explode(["region"])
-                df["region"] = df["region"].str.upper()
-                unknown_columns = [
-                    col_name
-                    for col_name in df.columns
-                    if col_name not in known_columns | {"region", "value"}
-                ]
-                df.drop(columns=unknown_columns, inplace=True)
+            # TODO handle case where we have a "region" column and columns with region names
 
-            def has_no_wildcards(list):
-                return all(
-                    list.apply(
-                        lambda x: x is not None
-                        and x[0] != "-"
-                        and "*" not in x
-                        and "," not in x
-                        and "?" not in x
-                    )
-                )
+            # This expands "allregions" into one row for each region:
+            df["region"] = df["region"].map(
+                lambda x: regions if x == "allregions" else x
+            )
+            df = df.explode(["region"])
+            df["region"] = df["region"].str.upper()
 
-            if (
-                table.tag == datatypes.Tag.tfm_ins_ts
-                and set(df.columns) & query_columns == {"cset_cn"}
-                and has_no_wildcards(df["cset_cn"])
-            ):
-                df["commname"] = df["cset_cn"]
-                df.drop(columns=["cset_cn"], inplace=True)
-                result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-            elif (
-                table.tag == datatypes.Tag.tfm_ins_ts
-                and set(df.columns) & query_columns == {"pset_pn"}
-                and has_no_wildcards(df["pset_pn"])
-            ):
-                df.rename(columns={"pset_pn": "techname"}, inplace=True)
-                result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-            else:
-                # wildcard expansion will happen later
-                if table.tag == datatypes.Tag.tfm_ins_ts:
-                    # ~TFM_INS-TS: Regions should be specified in a column with header=Region and columns in data area are YEARS
-                    data_columns = [
-                        colname
-                        for colname in df.columns
-                        if colname not in known_columns | {"region", "ts_filter"}
-                    ]
-                    df, years = utils.explode(df, data_columns)
-                    df["year"] = years
-                for standard_col in known_columns:
-                    if standard_col not in df.columns:
-                        df[standard_col] = [None] * len(df)
-                result.append(replace(table, dataframe=df))
+            # Remove unknown columns and add missing known columns:
+            unknown_columns = [
+                col_name
+                for col_name in df.columns
+                if col_name not in known_columns | {"region", "value"}
+            ]
+            df.drop(columns=unknown_columns, inplace=True)
+            for standard_col in known_columns:
+                if standard_col not in df.columns:
+                    df[standard_col] = [None] * len(df)
 
+            result.append(replace(table, dataframe=df))
         else:
             dropped.append(table)
 
@@ -2090,7 +2134,6 @@ def process_wildcards(
     for tag in [
         datatypes.Tag.tfm_upd,
         datatypes.Tag.tfm_ins,
-        datatypes.Tag.tfm_ins_ts,
         datatypes.Tag.tfm_ins_txt,
     ]:
         if tag in tables:
@@ -2324,7 +2367,7 @@ def convert_to_string(
 ) -> Dict[str, DataFrame]:
     output = {}
     for key, value in input.items():
-        output[key] = value.applymap(
+        output[key] = value.map(
             lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
         )
     return output

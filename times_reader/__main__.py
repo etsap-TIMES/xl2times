@@ -57,9 +57,11 @@ def convert_xl_to_times(
         transforms.generate_dummy_processes,
         transforms.normalize_tags_columns_attrs,
         transforms.remove_fill_tables,
+        transforms.remove_empty_tables,
         lambda config, tables: [transforms.remove_comment_rows(t) for t in tables],
         lambda config, tables: [transforms.remove_comment_cols(t) for t in tables],
         transforms.remove_tables_with_formulas,  # slow
+        transforms.process_transform_insert_variants,
         transforms.process_transform_insert,
         transforms.process_processes,
         transforms.process_topology,
@@ -73,7 +75,6 @@ def convert_xl_to_times(
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
         transforms.process_time_periods,
-        transforms.process_units,
         transforms.generate_all_regions,
         transforms.capitalise_attributes,
         transforms.apply_fixups,
@@ -83,6 +84,7 @@ def convert_xl_to_times(
         transforms.include_tables_source,
         transforms.merge_tables,
         transforms.apply_more_fixups,
+        transforms.process_units,
         transforms.process_years,
         transforms.complete_commodity_groups,
         transforms.process_uc_wildcards,
@@ -304,9 +306,10 @@ def write_dd_files(
 
     sets = {m.times_name for m in config.times_xl_maps if "VALUE" not in m.col_map}
 
-    # Compute map fname -> tables: right now ALL_TS -> ts.dd, rest -> output.dd
+    # Compute map fname -> tables: put ALL_TS and MILESTONYR in separate files
     tables_in_file = {
         "ts.dd": ["ALL_TS"],
+        "milestonyr.dd": ["MILESTONYR"],
         "output.dd": [t for t in config.dd_table_order if t != "ALL_TS"],
     }
 
