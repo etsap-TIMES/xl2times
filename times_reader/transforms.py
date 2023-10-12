@@ -2411,16 +2411,12 @@ def rename_cgs(
 def fix_topology(
     config: datatypes.Config, input: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
-
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
-    for table_type, df in input.items():
-        if table_type == "TOPOLOGY":
-            df["io"].replace(mapping, inplace=True)
-        output[table_type] = df
+    if "TOPOLOGY" in input:
+        input["TOPOLOGY"]["io"].replace(mapping, inplace=True)
 
-    return output
+    return input
 
 
 def apply_more_fixups(
