@@ -2278,55 +2278,49 @@ def process_time_slices(
 
 
 def convert_to_string(
-    config: datatypes.Config, input: Dict[str, DataFrame]
+    config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
-    for key, value in input.items():
-        output[key] = value.map(
+    for key, value in tables.items():
+        tables[key] = value.map(
             lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
         )
-    return output
+    return tables
 
 
 def convert_aliases(
-    config: datatypes.Config, input: Dict[str, DataFrame]
+    config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
-
     # Ensure TIMES names for all attributes
     replacement_dict = {}
     for k, v in aliases_by_attr.items():
         for alias in v:
             replacement_dict[alias] = k
 
-    for table_type, df in input.items():
+    for table_type, df in tables.items():
         if "attribute" in df.columns:
             df.replace({"attribute": replacement_dict}, inplace=True)
-        output[table_type] = df
+        tables[table_type] = df
 
-    return output
+    return tables
 
 
 def rename_cgs(
-    config: datatypes.Config, input: Dict[str, DataFrame]
+    config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
-
-    for table_type, df in input.items():
+    for table_type, df in tables.items():
         if table_type == datatypes.Tag.fi_t:
             i = df["other_indexes"].isin(default_pcg_suffixes)
             df.loc[i, "other_indexes"] = (
                 df["techname"].astype(str) + "_" + df["other_indexes"].astype(str)
             )
-        output[table_type] = df
+        tables[table_type] = df
 
-    return output
+    return tables
 
 
 def apply_more_fixups(
     config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    output = {}
     # TODO: This should only be applied to processes introduced in BASE
     for table_type, df in tables.items():
         if table_type == datatypes.Tag.fi_t:
@@ -2383,9 +2377,9 @@ def apply_more_fixups(
                     if any(index):
                         df.at[list(index).index(True), "uc_desc"] = uc_n
 
-        output[table_type] = df
+        tables[table_type] = df
 
-    return output
+    return tables
 
 
 def expand_rows_parallel(
