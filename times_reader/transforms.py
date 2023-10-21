@@ -1247,7 +1247,7 @@ def generate_commodity_groups(
 
     # Commodity groups by process, region and commodity
     comm_groups = pd.merge(prc_top, comm_set, on=["region", "commname"])
-    comm_groups["commoditygroup"] = None
+    comm_groups["commoditygroup"] = 0
     # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
     for region in comm_groups["region"].unique():
         i_reg = comm_groups["region"] == region
@@ -1255,7 +1255,7 @@ def generate_commodity_groups(
             i_reg_prc = i_reg & (comm_groups["techname"] == process)
             for cset in comm_groups[i_reg_prc]["csets"].unique():
                 i_reg_prc_cset = i_reg_prc & (comm_groups["csets"] == cset)
-                for io in comm_groups[i_reg_prc_cset]["io"].unique():
+                for io in ["IN", "OUT"]:
                     i_reg_prc_cset_io = i_reg_prc_cset & (comm_groups["io"] == io)
                     comm_groups.loc[i_reg_prc_cset_io, "commoditygroup"] = sum(
                         i_reg_prc_cset_io
@@ -1268,8 +1268,10 @@ def generate_commodity_groups(
 
         if df["commoditygroup"] > 1:
             return df["techname"] + "_" + df["csets"] + df["io"][:1]
-        else:
+        elif df["commoditygroup"] == 1:
             return df["commname"]
+        else:
+            return None
 
     # Replace commodity group member count with the name
     comm_groups["commoditygroup"] = comm_groups.apply(name_comm_group, axis=1)
