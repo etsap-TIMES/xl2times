@@ -34,31 +34,108 @@ aliases_by_attr = {
     "ACT_BND": ["ACTBND", "BNDACT"],
     "ACT_COST": ["ACTCOST", "VAROM"],
     "ACT_CUM": ["CUM"],
-    "ACT_EFF": ["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O", "EFF", "EFFICIENCY"],
+    "ACT_EFF": [
+        "CEFF",
+        "CEFFICIENCY",
+        "CEFF-I",
+        "CEFF-O",
+        "EFF",
+        "EFFICIENCY",
+        "VDA_EFF",
+    ],
+    "CAP_BND": ["BNDCAP"],
     "COM_AGG": ["CAGG"],
+    "COM_BNDNET": ["ENVBND", "CBNDNET"],
+    "COM_BNDPRD": ["CBNDPRD"],
+    "COM_BPRICE": ["CBPRICE"],
+    "COM_CSTNET": ["ENV_COST", "ENVCOST", "CCSTNET"],
+    "COM_CSTPRD": ["CCSTPRD"],
+    "COM_CUMNET": ["ENV_CUMMAX", "ENVCUM"],
+    "COM_ELAST": ["CELAST"],
+    "COM_ELASTX": ["ELASTX"],
+    "COM_IE": ["FRACTION"],
+    "COM_PKFLX": ["PKFLX"],
+    "COM_PKRSV": ["HRESERV"],
     "COM_PROJ": ["DEMAND"],
-    "FLO_EMIS": ["FEMIS", "FLO_EFF", "ENV_ACT", "ENVACT"],
+    "COM_STEP": ["CSTEP"],
+    "COM_SUBNET": ["CSUBNET"],
+    "COM_SUBPRD": ["CSUBPRD"],
+    "COM_TAXNET": ["CTAXNET"],
+    "COM_TAXPRD": ["CTAXPRD"],
+    "COM_VOC": ["CVOC"],
+    "DAM_BQTY": ["DBQTY"],
+    "DAM_COST": ["DAMCOST"],
+    "DAM_ELAST": ["DELAST"],
+    "DAM_STEP": ["DSTEP"],
+    "DAM_VOC": ["DVOC"],
+    "FLO_COST": ["FCOST"],
     "FLO_DELIV": ["DELIV"],
+    "FLO_EMIS": ["ENV_ACT", "ENVACT", "FEMIS"],
+    "FLO_MARK": ["FMSHARE"],
+    "FLO_PKCOI": ["PKCOI"],
     "FLO_SHAR": ["FLOSHAR", "SHARE", "SHARE-I", "SHARE-O"],
+    "G_CHNGMONY": ["CURREX"],
     "G_DRATE": ["DISCOUNT"],
+    "G_RFRIR": ["RFRIR"],
     "G_YRFR": ["YRFR"],
+    "IRE_FLOSUM": ["IFLOSUM"],
     "IRE_PRICE": ["COST"],
-    "NCAP_AF": ["AF"],
-    "NCAP_AFA": ["AFA"],
+    "IRE_TSCVT": ["TSCVT"],
+    "IRE_XBND": ["IRE_XXBND"],
+    "NCAP_AF": ["AF", "AVAILABILITY", "CF", "UTILIZATION"],
+    "NCAP_AFA": ["AFA", "ARAF"],
+    "NCAP_AFAC": ["AFAC"],
     "NCAP_AFC": ["AFC"],
+    "NCAP_AFCS": ["AFCS"],
+    "NCAP_AFM": ["AFM"],
+    "NCAP_AFS": ["AFS", "SRAF"],
+    "NCAP_AFSX": ["AFSX"],
+    "NCAP_AFX": ["AFX"],
     "NCAP_BND": ["IBOND", "BNDINV"],
     "NCAP_CHPR": ["CHPR"],
+    "NCAP_CLAG": ["CLAG"],
+    "NCAP_CLED": ["CLED"],
+    "NCAP_COM": ["ENV_CAP", "ENVCAP"],
     "NCAP_COST": ["INVCOST"],
     "NCAP_CPX": ["CPX"],
+    "NCAP_DCOST": ["DCOST"],
+    "NCAP_DELIF": ["DELIF"],
+    "NCAP_DLAG": ["DLAG"],
+    "NCAP_DLAGC": ["DLAGC"],
+    "NCAP_DLIFE": ["DLIFE"],
+    "NCAP_DRATE": ["DISCRATE", "DRATE"],
+    "NCAP_ELIFE": ["ELIFE"],
     "NCAP_FOM": ["FIXOM"],
+    "NCAP_FOMM": ["FOMM"],
+    "NCAP_FOMX": ["FOMX"],
+    "NCAP_FSUB": ["FSUB"],
+    "NCAP_FSUBM": ["FSUBM"],
+    "NCAP_FSUBX": ["FSUBX"],
+    "NCAP_FTAX": ["TFTAX"],
+    "NCAP_FTAXM": ["FTAXM"],
+    "NCAP_FTAXX": ["FTAXX"],
+    "NCAP_ILED": ["ILED"],
+    "NCAP_ISPCT": ["ISPCT"],
+    "NCAP_ISUB": ["TISUB"],
+    "NCAP_ITAX": ["ITAX"],
+    "NCAP_OCOM": ["OCOM"],
+    "NCAP_OLIFE": ["OLIFE"],
     "NCAP_PASTI": ["PASTI"],
-    "NCAP_PKCNT": ["PEAK"],
+    "NCAP_PASTY": ["PASTY"],
+    "NCAP_PKCNT": ["PEAK", "PKCNT"],
     "NCAP_START": ["START"],
     "NCAP_TLIFE": ["LIFE"],
-    "PRC_ACTFLO": ["ACTFLO"],
-    "PRC_CAPACT": ["CAP2ACT"],
+    "PRC_ACTFLO": ["ACTFLO", "ACT2FLO"],
+    "PRC_CAPACT": ["CAPUNIT", "CAP2ACT"],
     "PRC_RESID": ["RESID", "STOCK"],
+    "REG_BNDCST": ["BNDCST"],
+    "REG_CUMCST": ["CUMCST"],
+    "S_DAM_COST": ["S_DCOST", "SDAMCOST"],
+    "STG_CHRG": ["S_CHRG"],
     "STG_EFF": ["S_EFF"],
+    "STG_LOSS": ["S_LOSS"],
+    "STGIN_BND": ["S_INBND"],
+    "STGOUT_BND": ["S_OUTBND"],
     "VDA_CEH": ["CEH"],
     "VDA_EMCB": ["EMCB"],
     "VDA_FLOP": ["FLOP"],
@@ -1170,7 +1247,7 @@ def generate_commodity_groups(
 
     # Commodity groups by process, region and commodity
     comm_groups = pd.merge(prc_top, comm_set, on=["region", "commname"])
-    comm_groups["commoditygroup"] = None
+    comm_groups["commoditygroup"] = 0
     # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
     for region in comm_groups["region"].unique():
         i_reg = comm_groups["region"] == region
@@ -1178,7 +1255,7 @@ def generate_commodity_groups(
             i_reg_prc = i_reg & (comm_groups["techname"] == process)
             for cset in comm_groups[i_reg_prc]["csets"].unique():
                 i_reg_prc_cset = i_reg_prc & (comm_groups["csets"] == cset)
-                for io in comm_groups[i_reg_prc_cset]["io"].unique():
+                for io in ["IN", "OUT"]:
                     i_reg_prc_cset_io = i_reg_prc_cset & (comm_groups["io"] == io)
                     comm_groups.loc[i_reg_prc_cset_io, "commoditygroup"] = sum(
                         i_reg_prc_cset_io
@@ -1191,8 +1268,10 @@ def generate_commodity_groups(
 
         if df["commoditygroup"] > 1:
             return df["techname"] + "_" + df["csets"] + df["io"][:1]
-        else:
+        elif df["commoditygroup"] == 1:
             return df["commname"]
+        else:
+            return None
 
     # Replace commodity group member count with the name
     comm_groups["commoditygroup"] = comm_groups.apply(name_comm_group, axis=1)
@@ -1576,7 +1655,7 @@ def process_topology(
 
     fit_tables = [t for t in tables if t.tag.startswith(datatypes.Tag.fi_t)]
 
-    columns = ["region", "techname", "comm-in", "comm-out"]
+    columns = ["region", "techname", "comm-in", "comm-in-a", "comm-out", "comm-out-a"]
     topology = pd.DataFrame(columns=columns)
 
     for fit_table in fit_tables:
@@ -1592,7 +1671,15 @@ def process_topology(
     )
 
     topology["techname"].ffill(inplace=True)
-    topology["io"].replace({"comm-in": "IN", "comm-out": "OUT"}, inplace=True)
+    topology["io"].replace(
+        {
+            "comm-in": "IN",
+            "comm-in-a": "IN-A",
+            "comm-out": "OUT",
+            "comm-out-a": "OUT-A",
+        },
+        inplace=True,
+    )
     topology.dropna(how="any", subset=["techname", "commname"], inplace=True)
     topology.drop_duplicates(keep="first", inplace=True)
 
@@ -2314,6 +2401,17 @@ def rename_cgs(
             df["techname"].astype(str) + "_" + df["other_indexes"].astype(str)
         )
         tables[datatypes.Tag.fi_t] = df
+
+    return tables
+
+
+def fix_topology(
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
+    mapping = {"IN-A": "IN", "OUT-A": "OUT"}
+
+    if "TOPOLOGY" in tables:
+        tables["TOPOLOGY"]["io"].replace(mapping, inplace=True)
 
     return tables
 
