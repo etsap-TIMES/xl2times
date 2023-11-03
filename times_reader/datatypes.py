@@ -13,6 +13,61 @@ from pandas.core.frame import DataFrame
 # ============================================================================
 
 
+class Tag(str, Enum):
+    """
+    Enum class to enumerate all the accepted table tags by this program.
+    You can see a list of all the possible tags in section 2.4 of
+    https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+    """
+
+    active_p_def = "~ACTIVEPDEF"
+    book_regions_map = "~BOOKREGIONS_MAP"
+    comagg = "~COMAGG"
+    comemi = "~COMEMI"
+    currencies = "~CURRENCIES"
+    defaultyear = "~DEFAULTYEAR"
+    def_units = "~DEFUNITS"
+    endyear = "~ENDYEAR"
+    fi_comm = "~FI_COMM"
+    fi_process = "~FI_PROCESS"
+    fi_t = "~FI_T"
+    milestoneyears = "~MILESTONEYEARS"
+    start_year = "~STARTYEAR"
+    tfm_ava = "~TFM_AVA"
+    tfm_comgrp = "~TFM_COMGRP"
+    tfm_csets = "~TFM_CSETS"
+    tfm_dins = "~TFM_DINS"
+    tfm_dins_at = "~TFM_DINS-AT"
+    tfm_dins_ts = "~TFM_DINS-TS"
+    tfm_dins_tsl = "~TFM_DINS-TSL"
+    tfm_fill = "~TFM_FILL"
+    tfm_fill_r = "~TFM_FILL-R"
+    tfm_ins = "~TFM_INS"
+    tfm_ins_at = "~TFM_INS-AT"
+    tfm_ins_ts = "~TFM_INS-TS"
+    tfm_ins_tsl = "~TFM_INS-TSL"
+    tfm_ins_txt = "~TFM_INS-TXT"
+    tfm_mig = "~TFM_MIG"
+    tfm_psets = "~TFM_PSETS"
+    tfm_topdins = "~TFM_TOPDINS"
+    tfm_topins = "~TFM_TOPINS"
+    tfm_upd = "~TFM_UPD"
+    tfm_upd_at = "~TFM_UPD-AT"
+    tfm_upd_ts = "~TFM_UPD-TS"
+    time_periods = "~TIMEPERIODS"
+    time_slices = "~TIMESLICES"
+    tradelinks = "~TRADELINKS"
+    tradelinks_dins = "~TRADELINKS_DINS"
+    uc_sets = "~UC_SETS"
+    uc_t = "~UC_T"
+    # This is used by Veda for unit conversion when displaying results
+    # unitconversion = "~UNITCONVERSION"
+
+    @classmethod
+    def has_tag(cls, tag):
+        return tag in cls._value2member_map_
+
+
 @dataclass
 class EmbeddedXlTable:
     """This class defines a table object as a pandas dataframe wrapped with some metadata.
@@ -87,15 +142,15 @@ class Config:
     times_xl_maps: List[TimesXlMap]
     dd_table_order: Iterable[str]
     all_attributes: Set[str]
-    # TODO perhaps have a datatype to represent these tag_infos?
-    veda_tags_info: List[Any]
+    # For each tag, this dictionary maps each column alias to the normalized name
+    column_aliases: Dict[Tag, Dict[str, str]]
 
     def __init__(self, mapping_file: str, times_info_file: str, veda_tags_file: str):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         self.dd_table_order, self.all_attributes = Config._process_times_info(
             times_info_file
         )
-        self.veda_tags_info = Config._read_veda_tags_info(veda_tags_file)
+        self.column_aliases = Config._read_veda_tags_info(veda_tags_file)
 
     @staticmethod
     def _process_times_info(times_info_file: str) -> Tuple[Iterable[str], Set[str]]:
@@ -194,63 +249,20 @@ class Config:
         return mappings
 
     @staticmethod
-    def _read_veda_tags_info(veda_tags_file: str) -> List[Dict]:
+    def _read_veda_tags_info(veda_tags_file: str) -> Dict[Tag, Dict[str, str]]:
         # Read veda_tags_file
         with resources.open_text("times_reader.config", veda_tags_file) as f:
             veda_tags_info = json.load(f)
-        return veda_tags_info
-
-
-class Tag(str, Enum):
-    """
-    Enum class to enumerate all the accepted table tags by this program.
-    You can see a list of all the possible tags in section 2.4 of
-    https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-    """
-
-    active_p_def = "~ACTIVEPDEF"
-    book_regions_map = "~BOOKREGIONS_MAP"
-    comagg = "~COMAGG"
-    comemi = "~COMEMI"
-    currencies = "~CURRENCIES"
-    defaultyear = "~DEFAULTYEAR"
-    def_units = "~DEFUNITS"
-    endyear = "~ENDYEAR"
-    fi_comm = "~FI_COMM"
-    fi_process = "~FI_PROCESS"
-    fi_t = "~FI_T"
-    milestoneyears = "~MILESTONEYEARS"
-    start_year = "~STARTYEAR"
-    tfm_ava = "~TFM_AVA"
-    tfm_comgrp = "~TFM_COMGRP"
-    tfm_csets = "~TFM_CSETS"
-    tfm_dins = "~TFM_DINS"
-    tfm_dins_at = "~TFM_DINS-AT"
-    tfm_dins_ts = "~TFM_DINS-TS"
-    tfm_dins_tsl = "~TFM_DINS-TSL"
-    tfm_fill = "~TFM_FILL"
-    tfm_fill_r = "~TFM_FILL-R"
-    tfm_ins = "~TFM_INS"
-    tfm_ins_at = "~TFM_INS-AT"
-    tfm_ins_ts = "~TFM_INS-TS"
-    tfm_ins_tsl = "~TFM_INS-TSL"
-    tfm_ins_txt = "~TFM_INS-TXT"
-    tfm_mig = "~TFM_MIG"
-    tfm_psets = "~TFM_PSETS"
-    tfm_topdins = "~TFM_TOPDINS"
-    tfm_topins = "~TFM_TOPINS"
-    tfm_upd = "~TFM_UPD"
-    tfm_upd_at = "~TFM_UPD-AT"
-    tfm_upd_ts = "~TFM_UPD-TS"
-    time_periods = "~TIMEPERIODS"
-    time_slices = "~TIMESLICES"
-    tradelinks = "~TRADELINKS"
-    tradelinks_dins = "~TRADELINKS_DINS"
-    uc_sets = "~UC_SETS"
-    uc_t = "~UC_T"
-    # This is used by Veda for unit conversion when displaying results
-    # unitconversion = "~UNITCONVERSION"
-
-    @classmethod
-    def has_tag(cls, tag):
-        return tag in cls._value2member_map_
+        column_aliases = {}
+        for tag_info in veda_tags_info:
+            if "tag_fields" in tag_info:
+                # The file stores the tag name in lowercase, and without the ~
+                tag_name = "~" + tag_info["tag_name"].upper()
+                column_aliases[tag_name] = {}
+                names = tag_info["tag_fields"]["fields_names"]
+                aliases = tag_info["tag_fields"]["fields_aliases"]
+                assert len(names) == len(aliases)
+                for name, aliases in zip(names, aliases):
+                    for alias in aliases:
+                        column_aliases[tag_name][alias] = name
+        return column_aliases

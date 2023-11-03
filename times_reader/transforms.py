@@ -511,9 +511,21 @@ def normalize_tags_columns_attrs(
     return [normalize(table) for table in tables]
 
 
+def normalize_column_aliases(
+    config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
+) -> List[datatypes.EmbeddedXlTable]:
+    for table in tables:
+        if table.tag in config.column_aliases:
+            table.dataframe = table.dataframe.rename(
+                columns=config.column_aliases[table.tag], errors="ignore"
+            )
+        else:
+            print(f"WARNING: could not find {table.tag} in config.column_aliases")
+    return tables
+
+
 def include_tables_source(
-    config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
 ) -> List[datatypes.EmbeddedXlTable]:
     """
     Add a column specifying source filename to every table
@@ -615,14 +627,6 @@ def process_flexible_import_tables(
         df = table.dataframe
 
         nrows = df.shape[0]
-
-        # TODO: Rename together with other aliases
-        if "timeslices" in df.columns:
-            df = df.rename(columns={"timeslices": "timeslice"})
-
-        # TODO: Rename together with other aliases
-        if "commgrp" in df.columns:
-            df = df.rename(columns={"commgrp": "other_indexes"})
 
         # datatypes.Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
