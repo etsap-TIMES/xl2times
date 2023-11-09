@@ -1,1378 +1,3224 @@
 [
   {
     "name": "ACT_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS",
+      "BD"
+    ]
   },
   {
     "name": "ACT_COST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "ACT_CSTPL",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "ACT_CSTRMP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM",
+      "CUR"
+    ]
   },
   {
     "name": "ACT_CSTSD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UPT",
+      "BD",
+      "CUR"
+    ]
   },
   {
     "name": "ACT_CSTUP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TSLVL",
+      "CUR"
+    ]
   },
   {
     "name": "ACT_CUM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "BOHYEAR",
+      "EOHYEAR",
+      "LIM"
+    ]
   },
   {
     "name": "ACT_EFF",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS"
+    ]
   },
   {
     "name": "ACT_FLO",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS"
+    ]
   },
   {
     "name": "ACT_LOSPL",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM"
+    ]
   },
   {
     "name": "ACT_LOSSD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UPT",
+      "BD"
+    ]
   },
   {
     "name": "ACT_MAXNON",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UPT"
+    ]
   },
   {
     "name": "ACT_MINLD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "ACT_SDTIME",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UPT",
+      "BD"
+    ]
   },
   {
     "name": "ACT_TIME",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM"
+    ]
   },
   {
     "name": "ACT_UPS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS",
+      "LIM"
+    ]
   },
   {
     "name": "ALL_TS",
-    "gams-cat": "set"
+    "gams-cat": "set",
+    "indexes": [
+      "*"
+    ]
   },
   {
     "name": "ALL_REG",
-    "gams-cat": "set"
+    "gams-cat": "set",
+    "indexes": [
+      "*"
+    ]
   },
   {
     "name": "B",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR"
+    ]
   },
   {
     "name": "BL_COM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "OPR",
+      "SPE"
+    ]
   },
   {
     "name": "BL_DELIVC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "COM",
+      "CUR"
+    ]
   },
   {
     "name": "BL_INP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "COM"
+    ]
   },
   {
     "name": "BL_SPEC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "SPE"
+    ]
   },
   {
     "name": "BL_START",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "SPE"
+    ]
   },
   {
     "name": "BL_TYPE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "SPE"
+    ]
   },
   {
     "name": "BL_UNIT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "SPE"
+    ]
   },
   {
     "name": "BL_VAROMC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "CUR"
+    ]
   },
   {
     "name": "BLE",
-    "gams-cat": "subsubset"
+    "gams-cat": "subsubset",
+    "indexes": [
+      "COM"
+    ]
   },
   {
     "name": "BS_BNDPRS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "P",
+      "C",
+      "S",
+      "L"
+    ]
   },
   {
     "name": "BS_CAPACT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R"
+    ]
   },
   {
     "name": "BS_DELTA",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C",
+      "S"
+    ]
   },
   {
     "name": "BS_DEMDET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "RSP",
+      "C",
+      "S"
+    ]
   },
   {
     "name": "BS_DETWT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C"
+    ]
   },
   {
     "name": "BS_LAMBDA",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C"
+    ]
   },
   {
     "name": "BS_MAINT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "P",
+      "S"
+    ]
   },
   {
     "name": "BS_OMEGA",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "BS_RMAX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "P",
+      "C",
+      "S"
+    ]
   },
   {
     "name": "BS_RTYPE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "C"
+    ]
   },
   {
     "name": "BS_SHARE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C",
+      "ITEM",
+      "L"
+    ]
   },
   {
     "name": "BS_SIGMA",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C",
+      "ITEM",
+      "S"
+    ]
   },
   {
     "name": "BS_STIME",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "P",
+      "COM",
+      "BD"
+    ]
   },
   {
     "name": "CAP_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "BD"
+    ]
   },
   {
     "name": "CM_CO2GTC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM"
+    ]
   },
   {
     "name": "CM_CONST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ITEM"
+    ]
   },
   {
     "name": "CM_EXOFORC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR"
+    ]
   },
   {
     "name": "CM_GHGMAP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "CG"
+    ]
   },
   {
     "name": "CM_HISTORY",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR",
+      "CM_VAR"
+    ]
   },
   {
     "name": "CM_LINFOR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR",
+      "CM_VAR",
+      "LIM"
+    ]
   },
   {
     "name": "CM_MAXC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR",
+      "CM_VAR"
+    ]
   },
   {
     "name": "CM_MAXCO2C",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR"
+    ]
   },
   {
     "name": "CM_PPM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "CM_VAR"
+    ]
   },
   {
     "name": "COM",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": [
+      "COM_GRP"
+    ]
   },
   {
     "name": "COM_AGG",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "COM"
+    ]
   },
   {
     "name": "COM_BNDNET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "LIM"
+    ]
   },
   {
     "name": "COM_BNDPRD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "LIM"
+    ]
   },
   {
     "name": "COM_BPRICE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "COM_BQTY",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "COM_CSTBAL",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "ITEM",
+      "CUR"
+    ]
   },
   {
     "name": "COM_CSTNET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "COM_CSTPRD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "COM_CUMNET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "BOHYEAR",
+      "EOHYEAR",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "COM_CUMPRD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "BOHYEAR",
+      "EOHYEAR",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "COM_ELAST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "LIM"
+    ]
   },
   {
     "name": "COM_ELASTX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "BD"
+    ]
   },
   {
     "name": "COM_FR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "COM_IE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "COM_DESC",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM"
+    ]
   },
   {
     "name": "COM_GMAP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM_GRP",
+      "COM"
+    ]
   },
   {
     "name": "COM_GRP",
-    "gams-cat": "set"
+    "gams-cat": "set",
+    "indexes": [
+      "*"
+    ]
   },
   {
     "name": "COM_LIM",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "COM_MSHGV",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C"
+    ]
   },
   {
-    "name": "COM_OFF",
-    "gams-cat": "md-set"
+    "name": "Com_OFF",
+    "gams-cat": "md-set",
+    "indexes": NaN
   },
   {
     "name": "COM_PEAK",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM_GRP"
+    ]
   },
   {
     "name": "COM_PKFLX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "COM_PKRSV",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM"
+    ]
   },
   {
-    "name": "COM_PKTS",
-    "gams-cat": "md-set"
+    "name": "Com_PKTS",
+    "gams-cat": "md-set",
+    "indexes": NaN
   },
   {
     "name": "COM_PROJ",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM"
+    ]
   },
   {
     "name": "COM_STEP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "COM_SUBNET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "COM_SUBPRD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "COM_TAXNET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "COM_TAXPRD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "COM_TMAP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM_TYPE",
+      "COM"
+    ]
   },
   {
     "name": "COM_TSL",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM",
+      "TSLVL"
+    ]
   },
   {
     "name": "COM_UNIT",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM",
+      "UNITS_COM"
+    ]
   },
   {
     "name": "COM_VOC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "BD"
+    ]
   },
   {
     "name": "CONVERT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "OPR",
+      "CVT"
+    ]
   },
   {
     "name": "CUR",
-    "gams-cat": "set"
+    "gams-cat": "set",
+    "indexes": [
+      "*"
+    ]
   },
   {
     "name": "DAM_BQTY",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM"
+    ]
   },
   {
     "name": "DAM_COST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "CUR"
+    ]
   },
   {
     "name": "DAM_ELAST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "DAM_STEP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "DAM_TQTY",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM"
+    ]
   },
   {
     "name": "DAM_TVOC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "DAM_VOC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "E",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR"
+    ]
   },
   {
     "name": "ENV_BL",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "COM",
+      "OPR",
+      "YEAR"
+    ]
   },
   {
     "name": "FLO_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS",
+      "BD"
+    ]
   },
   {
     "name": "FLO_COST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "FLO_CUM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM",
+      "BOHYEAR",
+      "EOHYEAR",
+      "LIM"
+    ]
   },
   {
     "name": "FLO_DELIV",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "FLO_EFF",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "FLO_EMIS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "FLO_FEQ",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM"
+    ]
   },
   {
     "name": "FLO_FR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "LIM"
+    ]
   },
   {
     "name": "FLO_FUNC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "CG",
+      "TS"
+    ]
   },
   {
     "name": "FLO_FUNCX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "CG"
+    ]
   },
   {
     "name": "FLO_MARK",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "BD"
+    ]
   },
   {
     "name": "FLO_PKCOI",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "FLO_SHAR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "CG",
+      "TS",
+      "BD"
+    ]
   },
   {
     "name": "FLO_SUB",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "FLO_SUM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "COM",
+      "CG",
+      "TS"
+    ]
   },
   {
     "name": "FLO_TAX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "CUR"
+    ]
   },
   {
     "name": "G_CUREX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "CUR",
+      "CUR"
+    ]
   },
   {
     "name": "G_CYCLE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "TSLVL"
+    ]
   },
   {
     "name": "G_DRATE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "CUR"
+    ]
   },
   {
     "name": "G_DYEAR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "DATAYEAR",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": [
+      "ALLYEAR"
+    ]
   },
   {
     "name": "G_ILEDNO",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "G_OFFTHD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALLYEAR"
+    ]
   },
   {
     "name": "G_OVERLAP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "G_RFRIR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "ALLYEAR"
+    ]
   },
   {
     "name": "G_TLIFE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "G_YRFR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "TS"
+    ]
   },
   {
     "name": "GR_DEMFR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "GR_ENDFR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "CG"
+    ]
   },
   {
     "name": "GR_GENFR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "ITEM"
+    ]
   },
   {
     "name": "GR_GENLEV",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM"
+    ]
   },
   {
     "name": "GR_GENMAP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "ITEM"
+    ]
   },
   {
     "name": "GR_THMIN",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "GR_VARGEN",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "TS",
+      "ITEM",
+      "BD"
+    ]
   },
   {
     "name": "GR_XBND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR"
+    ]
   },
   {
     "name": "IRE_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS",
+      "ALL_R",
+      "IE",
+      "BD"
+    ]
   },
   {
     "name": "IRE_CCVT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "COM",
+      "ALL_R",
+      "COM"
+    ]
   },
   {
     "name": "IRE_FLO",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "COM",
+      "ALL_R",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "IRE_FLOSUM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "IE",
+      "COM",
+      "IO"
+    ]
   },
   {
     "name": "IRE_PRICE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "ALL_R",
+      "IE",
+      "CUR"
+    ]
   },
   {
     "name": "IRE_TSCVT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "TS",
+      "ALL_R",
+      "TS"
+    ]
   },
   {
     "name": "IRE_XBND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS",
+      "IE",
+      "BD"
+    ]
   },
   {
     "name": "MILESTONYR",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": [
+      "ALLYEAR"
+    ]
   },
   {
     "name": "MODLYEAR",
-    "gams-cat": "subsubset"
+    "gams-cat": "subsubset",
+    "indexes": NaN
   },
   {
     "name": "MULTI",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "J",
+      "YEAR"
+    ]
   },
   {
     "name": "NCAP_AF",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS",
+      "BD"
+    ]
   },
   {
     "name": "NCAP_AFA",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "BD"
+    ]
   },
   {
     "name": "NCAP_AFAC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG"
+    ]
   },
   {
     "name": "NCAP_AFC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "STL"
+    ]
   },
   {
     "name": "NCAP_AFCS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS"
+    ]
   },
   {
     "name": "NCAP_AFM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_AFS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS",
+      "BD"
+    ]
   },
   {
     "name": "NCAP_AFSX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P",
+      "BD"
+    ]
   },
   {
     "name": "NCAP_AFX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM"
+    ]
   },
   {
     "name": "NCAP_BPME",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_CDME",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_CEH",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_CHPR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "BD"
+    ]
   },
   {
     "name": "NCAP_CLAG",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "IO"
+    ]
   },
   {
     "name": "NCAP_CLED",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM"
+    ]
   },
   {
     "name": "NCAP_COM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "IO"
+    ]
   },
   {
     "name": "NCAP_COST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "NCAP_CPX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_DCOST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "NCAP_DELIF",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_DISC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UNIT"
+    ]
   },
   {
     "name": "NCAP_DLAG",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_DLAGC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "NCAP_DLIFE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_DRATE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_ELIFE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_FDR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_FOM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "NCAP_FOMM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_FOMX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_FSUB",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "NCAP_FSUBM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_FSUBX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_FTAX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "NCAP_FTAXM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_FTAXX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_ICOM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM"
+    ]
   },
   {
     "name": "NCAP_ILED",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_ISPCT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "ALLYEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_ISUB",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "NCAP_ITAX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ]
   },
   {
     "name": "NCAP_LCOST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_LFOM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_MSPRF",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C",
+      "P",
+      "LIM"
+    ]
   },
   {
     "name": "NCAP_OCOM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM"
+    ]
   },
   {
     "name": "NCAP_OLIFE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_PASTI",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_PASTY",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_PKCNT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS"
+    ]
   },
   {
     "name": "NCAP_SEMI",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_START",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_TLIFE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "NCAP_VALU",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "CUR"
+    ]
   },
   {
     "name": "NRG_TMAP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "NRG_TYPE",
+      "COM"
+    ]
   },
   {
     "name": "OPR",
-    "gams-cat": "subsubset"
+    "gams-cat": "subsubset",
+    "indexes": [
+      "COM"
+    ]
   },
   {
     "name": "PASTYEAR",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": [
+      "ALLYEAR"
+    ]
   },
   {
     "name": "PEAKDA_BL",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "YEAR"
+    ]
   },
   {
     "name": "PRC",
-    "gams-cat": "set"
+    "gams-cat": "set",
+    "indexes": [
+      "*"
+    ]
   },
   {
     "name": "PRC_ACTFLO",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG"
+    ]
   },
   {
     "name": "PRC_ACTUNT",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "CG",
+      "UNITS_ACT"
+    ]
   },
   {
     "name": "PRC_AOFF",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "*",
+      "*"
+    ]
   },
   {
     "name": "PRC_CAPACT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "PRC_CAPUNT",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "CG",
+      "UNITS_CAP"
+    ]
   },
   {
     "name": "PRC_DESC",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "R",
+      "P"
+    ]
   },
   {
     "name": "PRC_DSCNCAP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "R",
+      "P"
+    ]
+  },
+  {
+    "name": "PRC_DSCNCAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "R",
+      "P"
+    ]
   },
   {
     "name": "PRC_FOFF",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM",
+      "ALL_TS",
+      "*",
+      "*"
+    ]
   },
   {
     "name": "PRC_GMAP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "ITEM"
+    ]
   },
   {
     "name": "PRC_MARK",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "ITEM",
+      "COM",
+      "LIM"
+    ]
   },
   {
     "name": "PRC_MAP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC_GRP",
+      "PRC"
+    ]
   },
   {
     "name": "PRC_NOFF",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "*",
+      "*"
+    ]
   },
   {
     "name": "PRC_NSTTS",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "ALL_TS"
+    ]
   },
   {
     "name": "PRC_PKAF",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "PRC"
+    ]
   },
   {
     "name": "PRC_PKNO",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "PRC"
+    ]
   },
   {
     "name": "PRC_REACT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "PRC_REFIT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "PRC"
+    ]
   },
   {
     "name": "PRC_RESID",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "PRC_RCAP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "PRC_STGIPS",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM"
+    ]
   },
   {
     "name": "PRC_STGTSS",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM"
+    ]
   },
   {
     "name": "PRC_TSL",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "TSLVL"
+    ]
   },
   {
     "name": "PRC_VINT",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "R_CUREX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "CUR",
+      "CUR"
+    ]
   },
   {
     "name": "RCAP_BLK",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "RCAP_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM"
+    ]
   },
   {
     "name": "REFUNIT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ]
   },
   {
     "name": "REG",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": [
+      "ALL_REG"
+    ]
   },
   {
     "name": "REG_BDNCAP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "L"
+    ]
   },
   {
     "name": "REG_BNDCST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COSTAGG",
+      "CUR",
+      "BD"
+    ]
   },
   {
     "name": "REG_CUMCST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "YEAR",
+      "COSTAGG",
+      "CUR",
+      "BD"
+    ]
   },
   {
     "name": "REG_FIXT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R"
+    ]
   },
   {
     "name": "RPT_OPT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ITEM",
+      "J"
+    ]
   },
   {
     "name": "S_CAP_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "ALLYEAR",
+      "PRC",
+      "BD",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_CM_CONST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ITEM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_CM_MAXC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALLYEAR",
+      "ITEM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_CM_MAXCO2C",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALLYEAR",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_COM_CUMNET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "BOHYEAR",
+      "EOHYEAR",
+      "C",
+      "BD",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_COM_CUMPRD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "BOHYEAR",
+      "EOHYEAR",
+      "C",
+      "BD",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_COM_FR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "C",
+      "S",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_COM_PROJ",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "ALLYEAR",
+      "COM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_COM_TAX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "C",
+      "S",
+      "COM_VAR",
+      "CUR",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_DAM_COST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "C",
+      "CUR",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_FLO_CUM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "P",
+      "C",
+      "ITEM",
+      "ITEM",
+      "BD",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_FLO_FUNC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P",
+      "CG",
+      "CG",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_NCAP_AFS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P",
+      "S",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_NCAP_COST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_UC_RHS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_UC_RHSR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_REG",
+      "UC_N",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_UC_RHSRT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_REG",
+      "UC_N",
+      "ALLYEAR",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_UC_RHSRTS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_REG",
+      "UC_N",
+      "ALLYEAR",
+      "TS",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_UC_RHST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALLYEAR",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_UC_RHSTS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALLYEAR",
+      "TS",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "S_UCOBJ",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALLSOW"
+    ]
   },
   {
     "name": "SHAPE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "J",
+      "AGE"
+    ]
   },
   {
     "name": "SPE",
-    "gams-cat": "set"
+    "gams-cat": "set",
+    "indexes": [
+      "*"
+    ]
   },
   {
     "name": "STG_CHRG",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS"
+    ]
   },
   {
     "name": "STG_EFF",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "STG_LOSS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS"
+    ]
   },
   {
     "name": "STG_MAXCYC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "P"
+    ]
   },
   {
     "name": "STG_SIFT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "STGIN_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "BD"
+    ]
   },
   {
     "name": "STGOUT_BND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "BD"
+    ]
   },
   {
     "name": "SW_LAMBDA",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "SW_PROB",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALLSOW"
+    ]
   },
   {
     "name": "SW_SPROB",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "SW_START",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "J"
+    ]
   },
   {
     "name": "SW_SUBS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "J",
+      "ALLSOW"
+    ]
   },
   {
     "name": "TL_CCAP0",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "TL_CCAPM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "TL_CLUSTER",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "PRC"
+    ]
   },
   {
     "name": "TL_MRCLUST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "TL_PRAT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "TL_SC0",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "TL_SEG",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ]
   },
   {
     "name": "TM_ARBM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "TM_DEFVAL",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "*"
+    ]
   },
   {
-    "name": "TM_DEPR",
-    "gams-cat": "parameter"
+    "name": "tm_depr",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "TM_DESUB",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R"
+    ]
   },
   {
-    "name": "TM_DMTOL",
-    "gams-cat": "parameter"
+    "name": "tm_dmtol",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_ESUB",
-    "gams-cat": "parameter"
+    "name": "tm_esub",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_EXPBND",
-    "gams-cat": "parameter"
+    "name": "tm_expbnd",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_EXPF",
-    "gams-cat": "parameter"
+    "name": "tm_expf",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_GDP0",
-    "gams-cat": "parameter"
+    "name": "tm_gdp0",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_GR",
-    "gams-cat": "parameter"
+    "name": "tm_gr",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "TM_HSX",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR"
+    ]
   },
   {
-    "name": "TM_IVETOL",
-    "gams-cat": "parameter"
+    "name": "tm_ivetol",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_KGDP",
-    "gams-cat": "parameter"
+    "name": "tm_kgdp",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_KPVS",
-    "gams-cat": "parameter"
+    "name": "tm_kpvs",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "TM_MDTL",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ]
   },
   {
     "name": "TM_MDTQ",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ]
   },
   {
-    "name": "TM_QFAC",
-    "gams-cat": "parameter"
+    "name": "tm_qfac",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_SCALE_CST",
-    "gams-cat": "parameter"
+    "name": "tm_scale_cst",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_SCALE_NRG",
-    "gams-cat": "parameter"
+    "name": "tm_scale_nrg",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
-    "name": "TM_SCALE_UTIL",
-    "gams-cat": "parameter"
+    "name": "tm_scale_util",
+    "gams-cat": "parameter",
+    "indexes": NaN
   },
   {
     "name": "TM_STEP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "CG",
+      "LIM"
+    ]
   },
   {
     "name": "TM_VOC",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "CG",
+      "BD"
+    ]
   },
   {
     "name": "TS_CYCLE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "TS"
+    ]
   },
   {
     "name": "TOP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM",
+      "IO"
+    ]
   },
   {
     "name": "TOP_IRE",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "COM",
+      "ALL_REG",
+      "COM",
+      "PRC"
+    ]
   },
   {
     "name": "TS_GROUP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "TSLVL",
+      "TS"
+    ]
   },
   {
     "name": "TS_MAP",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "ALL_TS",
+      "ALL_TS"
+    ]
   },
   {
     "name": "TS_OFF",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "TS",
+      "BOHYEAR",
+      "EOHYEAR"
+    ]
   },
   {
     "name": "UC_ACT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "TS"
+    ]
   },
   {
     "name": "UC_ATTR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "SIDE",
+      "UC_GRPTYPE",
+      "UC_NAME"
+    ]
   },
   {
     "name": "UC_CAP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "UC_CLI",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "REG",
+      "YEAR",
+      "CM_VAR"
+    ]
   },
   {
     "name": "UC_COMCON",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "UC_COMNET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "UC_COMPRD",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "UC_CUMACT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "PRC",
+      "BOHYEAR",
+      "EOHYEAR"
+    ]
   },
   {
     "name": "UC_CUMCOM",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "COM_VAR",
+      "COM",
+      "BOHYEAR",
+      "EOHYEAR"
+    ]
   },
   {
     "name": "UC_CUMFLO",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "PRC",
+      "COM",
+      "BOHYEAR",
+      "EOHYEAR"
+    ]
   },
   {
     "name": "UC_DYNBND",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "LIM"
+    ]
   },
   {
     "name": "UC_FLO",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS"
+    ]
   },
   {
     "name": "UC_FLOBET",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "CG"
+    ]
   },
   {
     "name": "UC_IRE",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "IE"
+    ]
   },
   {
     "name": "UC_N",
-    "gams-cat": "set"
+    "gams-cat": "set",
+    "indexes": [
+      "*"
+    ]
   },
   {
     "name": "UC_NCAP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "UC_R_EACH",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N"
+    ]
   },
   {
     "name": "UC_R_SUM",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N"
+    ]
   },
   {
     "name": "UC_RHS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "LIM"
+    ]
   },
   {
     "name": "UC_RHSR",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "LIM"
+    ]
   },
   {
     "name": "UC_RHSRT",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "YEAR",
+      "LIM"
+    ]
   },
   {
     "name": "UC_RHSRTS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "YEAR",
+      "TS",
+      "LIM"
+    ]
   },
   {
     "name": "UC_RHST",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "YEAR",
+      "LIM"
+    ]
   },
   {
     "name": "UC_RHSTS",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "YEAR",
+      "TS",
+      "LIM"
+    ]
   },
   {
     "name": "UC_T_EACH",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALLYEAR"
+    ]
   },
   {
     "name": "UC_T_SUCC",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALLYEAR"
+    ]
   },
   {
     "name": "UC_T_SUM",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALLYEAR"
+    ]
   },
   {
     "name": "UC_TIME",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "YEAR"
+    ]
   },
   {
     "name": "UC_TS_EACH",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALL_TS"
+    ]
   },
   {
     "name": "UC_TS_SUM",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALL_TS"
+    ]
   },
   {
     "name": "UC_TSL",
-    "gams-cat": "md-set"
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "SIDE",
+      "TSLVL"
+    ]
   },
   {
     "name": "UC_UCN",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "UC_N"
+    ]
   },
   {
     "name": "UNITS",
-    "gams-cat": "set"
+    "gams-cat": "set",
+    "indexes": [
+      "*"
+    ]
   },
   {
     "name": "UNITS_ACT",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": [
+      "UNITS"
+    ]
   },
   {
     "name": "UNITS_CAP",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": [
+      "UNITS"
+    ]
   },
   {
     "name": "UNITS_COM",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": [
+      "UNITS"
+    ]
   },
   {
     "name": "UNITS_MONY",
-    "gams-cat": "subset"
+    "gams-cat": "subset",
+    "indexes": NaN
   },
   {
     "name": "VDA_CEH",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ]
   },
   {
     "name": "VDA_EMCB",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "COM"
+    ]
   },
   {
     "name": "VDA_FLOP",
-    "gams-cat": "parameter"
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS"
+    ]
   }
 ]
