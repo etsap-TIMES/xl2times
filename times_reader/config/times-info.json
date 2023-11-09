@@ -679,9 +679,14 @@
     ]
   },
   {
-    "name": "Com_OFF",
+    "name": "COM_OFF",
     "gams-cat": "md-set",
-    "indexes": NaN
+    "indexes": [
+      "REG",
+      "COM",
+      "*",
+      "*"
+    ]
   },
   {
     "name": "COM_PEAK",
@@ -711,9 +716,13 @@
     ]
   },
   {
-    "name": "Com_PKTS",
+    "name": "COM_PKTS",
     "gams-cat": "md-set",
-    "indexes": NaN
+    "indexes": [
+      "REG",
+      "COM_GRP",
+      "TS"
+    ]
   },
   {
     "name": "COM_PROJ",
@@ -1127,7 +1136,7 @@
   {
     "name": "G_DYEAR",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "DATAYEAR",
@@ -1139,7 +1148,7 @@
   {
     "name": "G_ILEDNO",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "G_OFFTHD",
@@ -1151,7 +1160,7 @@
   {
     "name": "G_OVERLAP",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "G_RFRIR",
@@ -1164,7 +1173,7 @@
   {
     "name": "G_TLIFE",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "G_YRFR",
@@ -1344,7 +1353,7 @@
   {
     "name": "MODLYEAR",
     "gams-cat": "subsubset",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "MULTI",
@@ -2552,7 +2561,7 @@
   {
     "name": "SW_LAMBDA",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "SW_PROB",
@@ -2646,7 +2655,7 @@
   {
     "name": "TM_ARBM",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "TM_DEFVAL",
@@ -2656,9 +2665,11 @@
     ]
   },
   {
-    "name": "tm_depr",
+    "name": "TM_DEPR",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "REG"
+    ]
   },
   {
     "name": "TM_DESUB",
@@ -2668,34 +2679,50 @@
     ]
   },
   {
-    "name": "tm_dmtol",
+    "name": "TM_DMTOL",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "REG"
+    ]
   },
   {
-    "name": "tm_esub",
+    "name": "TM_ESUB",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "REG"
+    ]
   },
   {
-    "name": "tm_expbnd",
+    "name": "TM_EXPBND",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P"
+    ]
   },
   {
-    "name": "tm_expf",
+    "name": "TM_EXPF",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "R",
+      "ALLYEAR"
+    ]
   },
   {
-    "name": "tm_gdp0",
+    "name": "TM_GDP0",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "REG"
+    ]
   },
   {
-    "name": "tm_gr",
+    "name": "TM_GR",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "REG",
+      "YEAR"
+    ]
   },
   {
     "name": "TM_HSX",
@@ -2706,19 +2733,25 @@
     ]
   },
   {
-    "name": "tm_ivetol",
+    "name": "TM_IVETOL",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "REG"
+    ]
   },
   {
-    "name": "tm_kgdp",
+    "name": "TM_KGDP",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "REG"
+    ]
   },
   {
-    "name": "tm_kpvs",
+    "name": "TM_KPVS",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "REG"
+    ]
   },
   {
     "name": "TM_MDTL",
@@ -2735,24 +2768,26 @@
     ]
   },
   {
-    "name": "tm_qfac",
+    "name": "TM_QFAC",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": [
+      "R"
+    ]
   },
   {
-    "name": "tm_scale_cst",
+    "name": "TM_SCALE_CST",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
-    "name": "tm_scale_nrg",
+    "name": "TM_SCALE_NRG",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
-    "name": "tm_scale_util",
+    "name": "TM_SCALE_UTIL",
     "gams-cat": "parameter",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "TM_STEP",
@@ -3189,7 +3224,7 @@
   {
     "name": "UNITS_MONY",
     "gams-cat": "subset",
-    "indexes": NaN
+    "indexes": []
   },
   {
     "name": "VDA_CEH",
