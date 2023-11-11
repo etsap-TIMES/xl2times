@@ -527,6 +527,38 @@ def normalize_column_aliases(
     return tables
 
 
+def apply_postnormalisation_fixes(
+    config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
+) -> List[datatypes.EmbeddedXlTable]:
+
+    rename_cols_dict = {
+        datatypes.Tag.fi_comm: {"commname": "commodity"},
+        datatypes.Tag.fi_process: {"techname": "process"},
+        datatypes.Tag.tfm_dins: {"curr": "currency"},
+        datatypes.Tag.tfm_dins_at: {"curr": "currency"},
+        datatypes.Tag.tfm_dins_ts: {"curr": "currency"},
+        datatypes.Tag.tfm_dins_tsl: {"curr": "currency"},
+        datatypes.Tag.tfm_ins: {"curr": "currency"},
+        datatypes.Tag.tfm_ins_at: {"curr": "currency"},
+        datatypes.Tag.tfm_ins_ts: {"curr": "currency"},
+        datatypes.Tag.tfm_ins_tsl: {"curr": "currency"},
+        datatypes.Tag.tfm_ins_txt: {"curr": "currency"},
+        datatypes.Tag.tfm_mig: {"curr": "currency"},
+        datatypes.Tag.tfm_topdins: {"curr": "currency"},
+        datatypes.Tag.tfm_upd: {"curr": "currency"},
+        datatypes.Tag.tfm_upd_at: {"curr": "currency"},
+        datatypes.Tag.tfm_upd_ts: {"curr": "currency"},
+    }
+
+    for table in tables:
+        if table.tag in rename_cols_dict.keys():
+            table.dataframe = table.dataframe.rename(
+                columns=rename_cols_dict[table.tag]
+            )
+
+    return tables
+
+
 def include_tables_source(
     config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
 ) -> List[datatypes.EmbeddedXlTable]:
@@ -598,7 +630,7 @@ def process_flexible_import_tables(
         "limtype": {"LO", "UP", "FX"},
         "timeslice": utils.timeslices(tables),
         "commodity-out": set(
-            utils.merge_columns(tables, datatypes.Tag.fi_comm, "commname")
+            utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
         "region": utils.single_column(tables, datatypes.Tag.book_regions_map, "region"),
         "currency": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
@@ -723,7 +755,7 @@ def process_flexible_import_tables(
         for process in df[i]["process"].unique():
             veda_process_set = (
                 veda_process_sets["sets"]
-                .loc[veda_process_sets["techname"] == process]
+                .loc[veda_process_sets["process"] == process]
                 .unique()
             )
             df.loc[i & (df["process"] == process), other] = cost_mapping[
@@ -842,8 +874,8 @@ def process_user_constraint_tables(
             "uc_desc",  # Why is this in the index columns?
             # TODO remove these?
             "timeslice",
-            "cset_cn",
-            "pset_pn",
+            "commodity",
+            "process",
         ]
         data_columns = [x for x in df.columns if x not in known_columns]
 
@@ -974,7 +1006,7 @@ def fill_in_missing_values(
                     df[colname].fillna(",".join(all_regions), inplace=True)
             elif colname == "year":
                 df[colname].fillna(start_year, inplace=True)
-            elif colname in ["curr", "currency"]:
+            elif colname == "currency":
                 df[colname].fillna(currency, inplace=True)
         return replace(table, dataframe=df)
 
@@ -1232,7 +1264,7 @@ def generate_commodity_groups(
 
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
 
-    columns = ["region", "techname", "primarycg"]
+    columns = ["region", "process", "primarycg"]
     reg_prc_pcg = pd.DataFrame(columns=columns)
     for process_table in process_tables:
         df = process_table.dataframe[columns]
@@ -1245,7 +1277,7 @@ def generate_commodity_groups(
     ]
 
     # Extract commodities and their sets by region
-    columns = ["region", "csets", "commname"]
+    columns = ["region", "csets", "commodity"]
     comm_set = pd.DataFrame(columns=columns)
     for commodity_table in commodity_tables:
         df = commodity_table.dataframe[columns]
@@ -1255,7 +1287,7 @@ def generate_commodity_groups(
     prc_top = utils.single_table(tables, "ProcessTopology").dataframe
 
     # Commodity groups by process, region and commodity
-    comm_groups = pd.merge(prc_top, comm_set, on=["region", "commname"])
+    comm_groups = pd.merge(prc_top, comm_set, on=["region", "commodity"])
     comm_groups["commoditygroup"] = 0
     # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
     for region in comm_groups["region"].unique():
@@ -1278,7 +1310,7 @@ def generate_commodity_groups(
         if df["commoditygroup"] > 1:
             return df["process"] + "_" + df["csets"] + df["io"][:1]
         elif df["commoditygroup"] == 1:
-            return df["commname"]
+            return df["commodity"]
         else:
             return None
 
@@ -1316,12 +1348,12 @@ def generate_commodity_groups(
         columns = ["region", "process", "io", "csets"]
         df = pd.merge(
             df[columns + ["commoditygroup"]],
-            comm_groups[columns + ["commname"]],
+            comm_groups[columns + ["commodity"]],
             on=columns,
         )
         comm_groups = pd.concat([comm_groups, df])
         comm_groups.drop_duplicates(
-            subset=["region", "process", "io", "commname", "csets", "commoditygroup"],
+            subset=["region", "process", "io", "commodity", "csets", "commoditygroup"],
             keep="first",
             inplace=True,
         )
@@ -1339,7 +1371,7 @@ def generate_commodity_groups(
         )
     )
 
-    i = comm_groups["commoditygroup"] != comm_groups["commname"]
+    i = comm_groups["commoditygroup"] != comm_groups["commodity"]
 
     tables.append(
         datatypes.EmbeddedXlTable(
@@ -1348,7 +1380,7 @@ def generate_commodity_groups(
             filename="",
             uc_sets={},
             tag="COM_GMAP",
-            dataframe=comm_groups.loc[i, ["region", "commoditygroup", "commname"]],
+            dataframe=comm_groups.loc[i, ["region", "commoditygroup", "commodity"]],
         )
     )
 
@@ -1363,7 +1395,7 @@ def complete_commodity_groups(
     """
 
     commodities = generate_topology_dictionary(tables)["commodities_by_name"].rename(
-        columns={"commname": "commoditygroup"}
+        columns={"commodity": "commoditygroup"}
     )
     cgs_in_top = tables["TOPOLOGY"]["commoditygroup"].to_frame()
     commodity_groups = pd.concat([commodities, cgs_in_top])
@@ -1385,12 +1417,12 @@ def generate_top_ire(
     veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
     com_map = utils.single_table(tables, "TOPOLOGY").dataframe
 
-    ire_prc = pd.DataFrame(columns=["region", "techname"])
+    ire_prc = pd.DataFrame(columns=["region", "process"])
     for table in tables:
         if table.tag == datatypes.Tag.fi_process:
             df = table.dataframe
             ire_prc = pd.concat(
-                [ire_prc, df.loc[df["sets"] == "IRE", ["region", "techname"]]]
+                [ire_prc, df.loc[df["sets"] == "IRE", ["region", "process"]]]
             )
     ire_prc.drop_duplicates(keep="first", inplace=True)
 
@@ -1404,17 +1436,17 @@ def generate_top_ire(
     # Generate inter-regional exchange topology
     top_ire = pd.DataFrame(dummy_process_cset, columns=["csets", "process"])
     top_ire = pd.merge(top_ire, internal_regions, how="cross")
-    top_ire = pd.merge(top_ire, com_map[["region", "csets", "commname"]])
+    top_ire = pd.merge(top_ire, com_map[["region", "csets", "commodity"]])
     top_ire.drop(columns=["csets"], inplace=True)
     top_ire["io"] = "OUT"
-    top_ire = pd.concat([top_ire, com_map[["region", "process", "commname", "io"]]])
+    top_ire = pd.concat([top_ire, com_map[["region", "process", "commodity", "io"]]])
     top_ire = pd.merge(top_ire, ire_prc)
     top_ire = pd.merge(top_ire, veda_process_sets)
     top_ire["region2"] = top_ire["sets"].replace(veda_set_ext_reg_mapping)
     top_ire[["origin", "destination", "in", "out"]] = None
     for io in ["IN", "OUT"]:
         index = top_ire["io"] == io
-        top_ire.loc[index, [io.lower()]] = top_ire["commname"].loc[index]
+        top_ire.loc[index, [io.lower()]] = top_ire["commodity"].loc[index]
     na_out = top_ire["out"].isna()
     top_ire.loc[na_out, ["out"]] = top_ire["in"].loc[na_out]
     na_in = top_ire["in"].isna()
@@ -1456,7 +1488,7 @@ def fill_in_missing_pcgs(
         """
 
         if df["primarycg"] in default_pcg_suffixes:
-            return df["techname"] + "_" + df["primarycg"]
+            return df["process"] + "_" + df["primarycg"]
         else:
             return df["primarycg"]
 
@@ -1469,10 +1501,9 @@ def fill_in_missing_pcgs(
             df = table.dataframe.copy()
             df["primarycg"] = df.apply(expand_pcg_from_suffix, axis=1)
             default_pcgs = utils.single_table(tables, "TOPOLOGY").dataframe.copy()
-            default_pcgs = default_pcgs.rename(columns={"process": "techname"})
             default_pcgs = default_pcgs.loc[
                 default_pcgs["DefaultVedaPCG"] == 1,
-                ["region", "techname", "commoditygroup"],
+                ["region", "process", "commoditygroup"],
             ]
             default_pcgs.rename(columns={"commoditygroup": "primarycg"}, inplace=True)
             default_pcgs = pd.merge(
@@ -1485,7 +1516,7 @@ def fill_in_missing_pcgs(
                 subset=[
                     "sets",
                     "region",
-                    "techname",
+                    "process",
                     "techdesc",
                     "tact",
                     "tcap",
@@ -1529,7 +1560,7 @@ def process_commodity_emissions(
             result.append(table)
         else:
             df = table.dataframe.copy()
-            index_columns = ["region", "year", "commname"]
+            index_columns = ["region", "year", "commodity"]
             data_columns = [
                 colname for colname in df.columns if colname not in index_columns
             ]
@@ -1617,7 +1648,7 @@ def process_processes(
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
 
-    processes_and_sets = pd.DataFrame({"sets": [], "techname": []})
+    processes_and_sets = pd.DataFrame({"sets": [], "process": []})
 
     for table in tables:
         if table.tag != datatypes.Tag.fi_process:
@@ -1625,7 +1656,7 @@ def process_processes(
         else:
             df = table.dataframe.copy()
             processes_and_sets = pd.concat(
-                [processes_and_sets, df[["sets", "techname"]].ffill()]
+                [processes_and_sets, df[["sets", "process"]].ffill()]
             )
             df["sets"].replace(veda_sets_to_times, inplace=True)
             nrows = df.shape[0]
@@ -1682,7 +1713,7 @@ def process_topology(
         topology,
         id_vars=["region", "process"],
         var_name="io",
-        value_name="commname",
+        value_name="commodity",
     )
 
     topology["process"].ffill(inplace=True)
@@ -1695,7 +1726,7 @@ def process_topology(
         },
         inplace=True,
     )
-    topology.dropna(how="any", subset=["process", "commname"], inplace=True)
+    topology.dropna(how="any", subset=["process", "commodity"], inplace=True)
     topology.drop_duplicates(keep="first", inplace=True)
 
     topology_table = datatypes.EmbeddedXlTable(
@@ -1734,7 +1765,7 @@ def generate_dummy_processes(
 
         process_declarations = pd.DataFrame(
             dummy_processes,
-            columns=["sets", "techname", "techdesc", "tact", "tcap", "primarycg"],
+            columns=["sets", "process", "techdesc", "tact", "tcap", "primarycg"],
         )
 
         tables.append(
@@ -1748,7 +1779,7 @@ def generate_dummy_processes(
             )
         )
 
-        process_data_specs = process_declarations[["techname", "techdesc"]].copy()
+        process_data_specs = process_declarations[["process", "techdesc"]].copy()
         # Use this as default activity cost for dummy processes
         # TODO: Should this be included in settings instead?
         process_data_specs["ACTCOST"] = 1111
@@ -1801,7 +1832,7 @@ def process_transform_insert_variants(
                 and set(df.columns) & query_columns == {"cset_cn"}
                 and has_no_wildcards(df["cset_cn"])
             ):
-                df.rename(columns={"cset_cn": "commname"}, inplace=True)
+                df.rename(columns={"cset_cn": "commodity"}, inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
                 continue
             elif (
@@ -1809,7 +1840,7 @@ def process_transform_insert_variants(
                 and set(df.columns) & query_columns == {"pset_pn"}
                 and has_no_wildcards(df["pset_pn"])
             ):
-                df.rename(columns={"pset_pn": "techname"}, inplace=True)
+                df.rename(columns={"pset_pn": "process"}, inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
                 continue
 
@@ -1889,7 +1920,7 @@ def process_transform_insert(
                 "year",
                 "timeslice",
                 "limtype",
-                "curr",
+                "currency",
                 "stage",
                 "sow",
                 "other_indexes",
@@ -2044,28 +2075,28 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, Data
     processes = tables[datatypes.Tag.fi_process]
     commodities = tables[datatypes.Tag.fi_comm]
 
-    duplicated_processes = processes[["techname"]].duplicated()
+    duplicated_processes = processes[["process"]].duplicated()
     if any(duplicated_processes):
-        duplicated_process_names = processes["techname"][duplicated_processes]
+        duplicated_process_names = processes["process"][duplicated_processes]
         print(
             f"WARNING: {len(duplicated_process_names)} duplicated processes: {duplicated_process_names.values[1:3]}"
         )
-        processes.drop_duplicates(subset="techname", inplace=True)
+        processes.drop_duplicates(subset="process", inplace=True)
 
     dictionary["processes_by_name"] = (
-        processes[["techname"]]
+        processes[["process"]]
         .dropna()
-        .set_index("techname", drop=False)
+        .set_index("process", drop=False)
         .rename_axis("index")
     )
     dictionary["processes_by_desc"] = (
-        processes[["techname", "techdesc"]]
+        processes[["process", "techdesc"]]
         .dropna()
         .drop_duplicates()
         .set_index("techdesc")
     )
     dictionary["processes_by_sets"] = (
-        processes[["techname", "sets"]].dropna().drop_duplicates().set_index("sets")
+        processes[["process", "sets"]].dropna().drop_duplicates().set_index("sets")
     )
     processes_and_commodities = tables[datatypes.Tag.fi_t]
     dictionary["processes_by_comm_in"] = (
@@ -2081,20 +2112,23 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, Data
         .set_index("commodity-out")
     )
     dictionary["commodities_by_name"] = (
-        commodities[["commname"]]
+        commodities[["commodity"]]
         .dropna()
         .drop_duplicates()
-        .set_index("commname", drop=False)
+        .set_index("commodity", drop=False)
         .rename_axis("index")
     )
     dictionary["commodities_by_desc"] = (
-        commodities[["commname", "commdesc"]]
+        commodities[["commodity", "commdesc"]]
         .dropna()
         .drop_duplicates()
         .set_index("commdesc")
     )
     dictionary["commodities_by_sets"] = (
-        commodities[["commname", "csets"]].dropna().drop_duplicates().set_index("csets")
+        commodities[["commodity", "csets"]]
+        .dropna()
+        .drop_duplicates()
+        .set_index("csets")
     )
 
     return dictionary
@@ -2117,10 +2151,10 @@ def process_uc_wildcards(
         df = tables[tag]
         dictionary = generate_topology_dictionary(tables)
 
-        df["pset_pn"] = df.apply(
+        df["process"] = df.apply(
             lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
         )
-        df["cset_cn"] = df.apply(
+        df["commodity"] = df.apply(
             lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
         )
 
@@ -2182,10 +2216,7 @@ def process_wildcards(
                 if tag == datatypes.Tag.tfm_upd:
                     # construct query into ~FI_T to get indices of matching rows
                     if matching_processes is not None:
-                        df = df.merge(
-                            matching_processes.rename(columns={"techname": "process"}),
-                            on="process",
-                        )
+                        df = df.merge(matching_processes, on="process")
                     if debug:
                         print(f"{len(df)} rows after processes")
                         if any(df["index"].duplicated()):
