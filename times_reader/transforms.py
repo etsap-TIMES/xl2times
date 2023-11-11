@@ -553,7 +553,7 @@ def apply_postnormalisation_fixes(
     }
 
     for table in tables:
-        if table.tag in rename_cols_dict.keys():
+        if table.tag in rename_cols_dict:
             table.dataframe = table.dataframe.rename(
                 columns=rename_cols_dict[table.tag]
             )
