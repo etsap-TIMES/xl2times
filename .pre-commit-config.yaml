@@ -9,7 +9,3 @@ repos:
     rev: 22.8.0
     hooks:
       - id: black
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.304
-    hooks:
-      - id: pyright

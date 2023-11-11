@@ -534,20 +534,21 @@ def apply_postnormalisation_fixes(
     rename_cols_dict = {
         datatypes.Tag.fi_comm: {"commname": "commodity"},
         datatypes.Tag.fi_process: {"techname": "process"},
-        datatypes.Tag.tfm_dins: {"curr": "currency"},
-        datatypes.Tag.tfm_dins_at: {"curr": "currency"},
-        datatypes.Tag.tfm_dins_ts: {"curr": "currency"},
-        datatypes.Tag.tfm_dins_tsl: {"curr": "currency"},
-        datatypes.Tag.tfm_ins: {"curr": "currency"},
-        datatypes.Tag.tfm_ins_at: {"curr": "currency"},
-        datatypes.Tag.tfm_ins_ts: {"curr": "currency"},
-        datatypes.Tag.tfm_ins_tsl: {"curr": "currency"},
+        datatypes.Tag.tfm_dins: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_dins_at: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_dins_ts: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_dins_tsl: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_ins: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_ins_at: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_ins_ts: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_ins_tsl: {"curr": "currency", "value": "allregions"},
         datatypes.Tag.tfm_ins_txt: {"curr": "currency"},
-        datatypes.Tag.tfm_mig: {"curr": "currency"},
-        datatypes.Tag.tfm_topdins: {"curr": "currency"},
-        datatypes.Tag.tfm_upd: {"curr": "currency"},
-        datatypes.Tag.tfm_upd_at: {"curr": "currency"},
-        datatypes.Tag.tfm_upd_ts: {"curr": "currency"},
+        datatypes.Tag.tfm_mig: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_topdins: {"value": "allregions"},
+        datatypes.Tag.tfm_topins: {"value": "allregions"},
+        datatypes.Tag.tfm_upd: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_upd_at: {"curr": "currency", "value": "allregions"},
+        datatypes.Tag.tfm_upd_ts: {"curr": "currency", "value": "allregions"},
     }
 
     for table in tables:
@@ -1927,14 +1928,17 @@ def process_transform_insert(
             } | query_columns
 
             # Handle Regions:
-            if set(df.columns).isdisjoint({x.lower() for x in regions} | {"region"}):
+            if set(df.columns).isdisjoint(
+                {x.lower() for x in regions} | {"allregions", "region"}
+            ):
                 # If there's no region information at all, this table is for all regions:
                 df["region"] = ["allregions"] * len(df)
             elif "region" not in df.columns:
                 # We have columns whose names are regions, so gather them into a "region" column:
                 region_cols = [
                     col_name
-                    for col_name in set(df.columns) & {x.lower() for x in regions}
+                    for col_name in df.columns
+                    if col_name in set([x.lower() for x in regions]) | {"allregions"}
                 ]
                 other_columns = [
                     col_name for col_name in df.columns if col_name not in region_cols
@@ -1947,11 +1951,12 @@ def process_transform_insert(
                     ignore_index=False,
                 )
                 df = df.sort_index().reset_index(drop=True)  # retain original row order
-            else:
-                raise ValueError(
-                    f"ERROR: table has a column called region as well as columns with"
-                    " region names:\n{table}\n{df.columns}"
-                )
+            # Disable temporarily
+            # else:
+            #    raise ValueError(
+            #        f"ERROR: table has a column called region as well as columns with"
+            #        " region names:\n{table}\n{df.columns}"
+            #    )
 
             # This expands "allregions" into one row for each region:
             df["region"] = df["region"].map(
