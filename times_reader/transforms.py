@@ -534,6 +534,7 @@ def apply_postnormalisation_fixes(
     rename_cols_dict = {
         datatypes.Tag.fi_comm: {"commname": "commodity"},
         datatypes.Tag.fi_process: {"techname": "process"},
+        datatypes.Tag.tfm_comgrp: {"value": "allregions"},
         datatypes.Tag.tfm_dins: {"curr": "currency", "value": "allregions"},
         datatypes.Tag.tfm_dins_at: {"curr": "currency", "value": "allregions"},
         datatypes.Tag.tfm_dins_ts: {"curr": "currency", "value": "allregions"},
@@ -1721,9 +1722,9 @@ def process_topology(
     topology["io"].replace(
         {
             "commodity-in": "IN",
-            "commodity-in-a": "IN-A",
+            "commodity-in-aux": "IN-A",
             "commodity-out": "OUT",
-            "commodity-out-a": "OUT-A",
+            "commodity-out-aux": "OUT-A",
         },
         inplace=True,
     )
