@@ -530,7 +530,6 @@ def normalize_column_aliases(
 def apply_postnormalisation_fixes(
     config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
 ) -> List[datatypes.EmbeddedXlTable]:
-
     rename_cols_dict = {
         datatypes.Tag.fi_comm: {"commname": "commodity"},
         datatypes.Tag.fi_process: {"techname": "process"},
@@ -1562,6 +1561,8 @@ def process_commodity_emissions(
             result.append(table)
         else:
             df = table.dataframe.copy()
+            # TODO either add ~COMEMI to veda-tags.json or do this somewhere less hacky:
+            df.rename(columns={"commname": "commodity"}, inplace=True)
             index_columns = ["region", "year", "commodity"]
             data_columns = [
                 colname for colname in df.columns if colname not in index_columns
