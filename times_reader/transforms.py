@@ -518,9 +518,10 @@ def normalize_column_aliases(
     config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
 ) -> List[datatypes.EmbeddedXlTable]:
     for table in tables:
-        if table.tag in config.column_aliases:
+        tag = table.tag.split(":")[0]
+        if tag in config.column_aliases:
             table.dataframe = table.dataframe.rename(
-                columns=config.column_aliases[table.tag], errors="ignore"
+                columns=config.column_aliases[tag], errors="ignore"
             )
         else:
             print(f"WARNING: could not find {table.tag} in config.column_aliases")
