@@ -1932,11 +1932,18 @@ def process_transform_insert(
 
             # Handle Regions:
             if set(df.columns).isdisjoint(
-                {x.lower() for x in regions} | {"allregions", "region"}
+                {x.lower() for x in regions} | {"allregions"}
             ):
-                # If there's no region information at all, this table is for all regions:
-                df["region"] = ["allregions"] * len(df)
-            elif "region" not in df.columns:
+                if "region" not in df.columns:
+                    # If there's no region information at all, this table is for all regions:
+                    df["region"] = ["allregions"] * len(df)
+                # Else, we only have a "region" column so handle it below
+            else:
+                if "region" in df.columns:
+                    raise ValueError(
+                        "ERROR: table has a column called region as well as columns with"
+                        f" region names:\n{table}\n{df.columns}"
+                    )
                 # We have columns whose names are regions, so gather them into a "region" column:
                 region_cols = [
                     col_name
@@ -1954,12 +1961,6 @@ def process_transform_insert(
                     ignore_index=False,
                 )
                 df = df.sort_index().reset_index(drop=True)  # retain original row order
-            # Disable temporarily
-            # else:
-            #    raise ValueError(
-            #        f"ERROR: table has a column called region as well as columns with"
-            #        " region names:\n{table}\n{df.columns}"
-            #    )
 
             # This expands "allregions" into one row for each region:
             df["region"] = df["region"].map(
