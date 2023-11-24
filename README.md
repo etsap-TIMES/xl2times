@@ -43,6 +43,24 @@ Additionally, you can install a git pre-commit that will ensure that your change
 ```bash
 pre-commit install
 ```
+If you want to skip these pre-commit steps for a particular commit, if for instance pyright has issues but you still want to commit your changes to your branch, you can run:
+```bash
+git commit --no-verify
+```
+
+## Debugging Regressions
+
+If your change is causing regressions on one of the benchmarks, a useful way to debug and find the difference is to run the tool in verbose mode and compare the intermediate tables. For example, if your branch has regressions on Demo 1:
+```bash
+# First, on the `main` branch:
+times-excel-reader benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > before 2>&1
+# Then, on your branch:
+git checkout my-branch-name
+times-excel-reader benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > after 2>&1
+# And then compare the files `before` and `after`
+code -d before after
+```
+VS Code will highlight the changes in the two files, which should correspond to any differences in the intermediate tables.
 
 ## Running Benchmarks
 
