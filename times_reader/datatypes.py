@@ -4,7 +4,7 @@ from importlib import resources
 from itertools import chain
 import json
 import re
-from typing import Any, Dict, Iterable, List, Set, Tuple
+from typing import Dict, Iterable, List, Set, Tuple
 from enum import Enum
 from pandas.core.frame import DataFrame
 
@@ -106,6 +106,10 @@ class EmbeddedXlTable:
                 )
             )
         )
+
+    def __str__(self) -> str:
+        df_str = self.dataframe.to_csv(index=False, lineterminator="\n")
+        return f"EmbeddedXlTable(tag={self.tag}, uc_sets={self.uc_sets}, sheetname={self.sheetname}, range={self.range}, filename={self.filename}, dataframe=\n{df_str}{self.dataframe.shape})"
 
 
 @dataclass
