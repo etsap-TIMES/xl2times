@@ -8,6 +8,13 @@
       "PRC",
       "TS",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -18,6 +25,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -28,6 +41,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -39,6 +58,13 @@
       "PRC",
       "LIM",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype",
+      "currency"
     ]
   },
   {
@@ -51,6 +77,14 @@
       "UPT",
       "BD",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "limtype",
+      "currency"
     ]
   },
   {
@@ -62,6 +96,13 @@
       "PRC",
       "TSLVL",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -73,6 +114,13 @@
       "BOHYEAR",
       "EOHYEAR",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "year",
+      "year2",
+      "limtype"
     ]
   },
   {
@@ -84,6 +132,13 @@
       "PRC",
       "CG",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "timeslice"
     ]
   },
   {
@@ -95,6 +150,13 @@
       "PRC",
       "CG",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "timeslice"
     ]
   },
   {
@@ -105,6 +167,12 @@
       "YEAR",
       "PRC",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -116,6 +184,13 @@
       "PRC",
       "UPT",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "limtype"
     ]
   },
   {
@@ -126,6 +201,12 @@
       "YEAR",
       "PRC",
       "UPT"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes"
     ]
   },
   {
@@ -135,6 +216,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -146,6 +232,13 @@
       "PRC",
       "UPT",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "limtype"
     ]
   },
   {
@@ -156,6 +249,12 @@
       "YEAR",
       "PRC",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -167,6 +266,13 @@
       "PRC",
       "TS",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -174,6 +280,9 @@
     "gams-cat": "set",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -181,6 +290,9 @@
     "gams-cat": "set",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -188,6 +300,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "YEAR"
+    ],
+    "mapping": [
+      "year"
     ]
   },
   {
@@ -198,6 +313,12 @@
       "COM",
       "OPR",
       "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes",
+      "other_indexes"
     ]
   },
   {
@@ -208,6 +329,12 @@
       "COM",
       "COM",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "commodity",
+      "currency"
     ]
   },
   {
@@ -217,6 +344,11 @@
       "REG",
       "COM",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "commodity"
     ]
   },
   {
@@ -226,6 +358,11 @@
       "REG",
       "COM",
       "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -235,6 +372,11 @@
       "REG",
       "COM",
       "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -244,6 +386,11 @@
       "REG",
       "COM",
       "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -253,6 +400,11 @@
       "REG",
       "COM",
       "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -262,6 +414,11 @@
       "REG",
       "COM",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "currency"
     ]
   },
   {
@@ -269,6 +426,9 @@
     "gams-cat": "subsubset",
     "indexes": [
       "COM"
+    ],
+    "mapping": [
+      "commodity"
     ]
   },
   {
@@ -281,6 +441,14 @@
       "C",
       "S",
       "L"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -288,6 +456,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "R"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -298,6 +469,12 @@
       "YEAR",
       "C",
       "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -309,6 +486,13 @@
       "RSP",
       "C",
       "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "other_indexes",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -318,6 +502,11 @@
       "R",
       "YEAR",
       "C"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
     ]
   },
   {
@@ -327,6 +516,11 @@
       "R",
       "YEAR",
       "C"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
     ]
   },
   {
@@ -337,6 +531,12 @@
       "YEAR",
       "P",
       "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice"
     ]
   },
   {
@@ -347,6 +547,12 @@
       "YEAR",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -358,6 +564,13 @@
       "P",
       "C",
       "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -366,6 +579,10 @@
     "indexes": [
       "R",
       "C"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
     ]
   },
   {
@@ -377,6 +594,13 @@
       "C",
       "ITEM",
       "L"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "other_indexes",
+      "limtype"
     ]
   },
   {
@@ -388,6 +612,13 @@
       "C",
       "ITEM",
       "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "other_indexes",
+      "timeslice"
     ]
   },
   {
@@ -398,6 +629,12 @@
       "P",
       "COM",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -408,6 +645,12 @@
       "YEAR",
       "PRC",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -416,6 +659,10 @@
     "indexes": [
       "REG",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
     ]
   },
   {
@@ -423,6 +670,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "ITEM"
+    ],
+    "mapping": [
+      "other_indexes"
     ]
   },
   {
@@ -430,6 +680,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "YEAR"
+    ],
+    "mapping": [
+      "year"
     ]
   },
   {
@@ -439,6 +692,11 @@
       "REG",
       "COM",
       "CG"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "commodity_group"
     ]
   },
   {
@@ -447,6 +705,10 @@
     "indexes": [
       "YEAR",
       "CM_VAR"
+    ],
+    "mapping": [
+      "year",
+      "other_indexes"
     ]
   },
   {
@@ -456,6 +718,11 @@
       "YEAR",
       "CM_VAR",
       "LIM"
+    ],
+    "mapping": [
+      "year",
+      "other_indexes",
+      "limtype"
     ]
   },
   {
@@ -464,6 +731,10 @@
     "indexes": [
       "YEAR",
       "CM_VAR"
+    ],
+    "mapping": [
+      "year",
+      "other_indexes"
     ]
   },
   {
@@ -471,6 +742,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "YEAR"
+    ],
+    "mapping": [
+      "year"
     ]
   },
   {
@@ -478,6 +752,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "CM_VAR"
+    ],
+    "mapping": [
+      "other_indexes"
     ]
   },
   {
@@ -485,6 +762,9 @@
     "gams-cat": "subset",
     "indexes": [
       "COM_GRP"
+    ],
+    "mapping": [
+      "commodity_group"
     ]
   },
   {
@@ -495,6 +775,12 @@
       "YEAR",
       "COM",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "commodity"
     ]
   },
   {
@@ -506,6 +792,13 @@
       "COM",
       "TS",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -517,6 +810,13 @@
       "COM",
       "TS",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -528,6 +828,13 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -537,6 +844,11 @@
       "REG",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -549,6 +861,14 @@
       "TS",
       "ITEM",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "other_indexes",
+      "currency"
     ]
   },
   {
@@ -560,6 +880,13 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -571,6 +898,13 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -582,6 +916,13 @@
       "EOHYEAR",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year2",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -593,6 +934,13 @@
       "EOHYEAR",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year2",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -604,6 +952,13 @@
       "COM",
       "TS",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -614,6 +969,12 @@
       "YEAR",
       "COM",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -624,6 +985,12 @@
       "YEAR",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -634,6 +1001,12 @@
       "YEAR",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -642,6 +1015,10 @@
     "indexes": [
       "REG",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
     ]
   },
   {
@@ -651,6 +1028,11 @@
       "REG",
       "COM_GRP",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity_group",
+      "commodity"
     ]
   },
   {
@@ -658,6 +1040,9 @@
     "gams-cat": "set",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -667,6 +1052,11 @@
       "REG",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -676,6 +1066,11 @@
       "R",
       "YEAR",
       "C"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
     ]
   },
   {
@@ -684,8 +1079,14 @@
     "indexes": [
       "REG",
       "COM",
-      "*",
-      "*"
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "year",
+      "year2"
     ]
   },
   {
@@ -694,6 +1095,10 @@
     "indexes": [
       "REG",
       "COM_GRP"
+    ],
+    "mapping": [
+      "region",
+      "commodity_group"
     ]
   },
   {
@@ -704,6 +1109,12 @@
       "YEAR",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -713,6 +1124,11 @@
       "REG",
       "YEAR",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
     ]
   },
   {
@@ -722,6 +1138,11 @@
       "REG",
       "COM_GRP",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "commodity_group",
+      "timeslice"
     ]
   },
   {
@@ -731,6 +1152,11 @@
       "REG",
       "YEAR",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
     ]
   },
   {
@@ -740,6 +1166,11 @@
       "REG",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -751,6 +1182,13 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -762,6 +1200,13 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -773,6 +1218,13 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -784,6 +1236,13 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -793,6 +1252,11 @@
       "REG",
       "COM_TYPE",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "tbd",
+      "commodity"
     ]
   },
   {
@@ -802,6 +1266,11 @@
       "REG",
       "COM",
       "TSLVL"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -811,6 +1280,11 @@
       "REG",
       "COM",
       "UNITS_COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "tbd"
     ]
   },
   {
@@ -821,6 +1295,12 @@
       "YEAR",
       "COM",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -829,6 +1309,10 @@
     "indexes": [
       "OPR",
       "CVT"
+    ],
+    "mapping": [
+      "other_indexes",
+      "other_indexes"
     ]
   },
   {
@@ -836,6 +1320,9 @@
     "gams-cat": "set",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -844,6 +1331,10 @@
     "indexes": [
       "REG",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
     ]
   },
   {
@@ -854,6 +1345,12 @@
       "YEAR",
       "COM",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "currency"
     ]
   },
   {
@@ -863,6 +1360,11 @@
       "REG",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -872,6 +1374,11 @@
       "REG",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -881,6 +1388,11 @@
       "REG",
       "YEAR",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
     ]
   },
   {
@@ -891,6 +1403,12 @@
       "YEAR",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -900,6 +1418,11 @@
       "REG",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -907,6 +1430,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "YEAR"
+    ],
+    "mapping": [
+      "year"
     ]
   },
   {
@@ -918,6 +1444,13 @@
       "COM",
       "OPR",
       "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "commodity",
+      "other_indexes",
+      "year"
     ]
   },
   {
@@ -930,6 +1463,14 @@
       "CG",
       "TS",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -942,6 +1483,14 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -954,6 +1503,14 @@
       "BOHYEAR",
       "EOHYEAR",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "year",
+      "year2",
+      "limtype"
     ]
   },
   {
@@ -966,6 +1523,14 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -978,6 +1543,14 @@
       "CG",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -990,6 +1563,14 @@
       "CG",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -1000,6 +1581,12 @@
       "YEAR",
       "PRC",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity"
     ]
   },
   {
@@ -1012,6 +1599,14 @@
       "COM",
       "TS",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -1024,6 +1619,14 @@
       "CG",
       "CG",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "commodity_group",
+      "timeslice"
     ]
   },
   {
@@ -1035,6 +1638,13 @@
       "PRC",
       "CG",
       "CG"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "commodity_group"
     ]
   },
   {
@@ -1046,6 +1656,13 @@
       "PRC",
       "COM",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -1057,6 +1674,13 @@
       "PRC",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -1070,6 +1694,15 @@
       "CG",
       "TS",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "commodity_group",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -1082,6 +1715,14 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -1095,6 +1736,15 @@
       "COM",
       "CG",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "commodity",
+      "commodity_group",
+      "timeslice"
     ]
   },
   {
@@ -1107,6 +1757,14 @@
       "COM",
       "TS",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "currency"
     ]
   },
   {
@@ -1115,6 +1773,10 @@
     "indexes": [
       "CUR",
       "CUR"
+    ],
+    "mapping": [
+      "currency",
+      "currency"
     ]
   },
   {
@@ -1122,6 +1784,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "TSLVL"
+    ],
+    "mapping": [
+      "timeslice"
     ]
   },
   {
@@ -1131,36 +1796,50 @@
       "REG",
       "YEAR",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "currency"
     ]
   },
   {
     "name": "G_DYEAR",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "DATAYEAR",
     "gams-cat": "subset",
     "indexes": [
       "ALLYEAR"
+    ],
+    "mapping": [
+      "year"
     ]
   },
   {
     "name": "G_ILEDNO",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "G_OFFTHD",
     "gams-cat": "parameter",
     "indexes": [
       "ALLYEAR"
+    ],
+    "mapping": [
+      "year"
     ]
   },
   {
     "name": "G_OVERLAP",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "G_RFRIR",
@@ -1168,12 +1847,17 @@
     "indexes": [
       "REG",
       "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
     ]
   },
   {
     "name": "G_TLIFE",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "G_YRFR",
@@ -1181,6 +1865,10 @@
     "indexes": [
       "ALL_R",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice"
     ]
   },
   {
@@ -1191,6 +1879,12 @@
       "YEAR",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -1201,6 +1895,12 @@
       "YEAR",
       "COM",
       "CG"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "commodity_group"
     ]
   },
   {
@@ -1211,6 +1911,12 @@
       "YEAR",
       "COM",
       "ITEM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -1219,6 +1925,10 @@
     "indexes": [
       "REG",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
     ]
   },
   {
@@ -1228,6 +1938,11 @@
       "REG",
       "PRC",
       "ITEM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "other_indexes"
     ]
   },
   {
@@ -1237,6 +1952,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1247,6 +1967,12 @@
       "TS",
       "ITEM",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "other_indexes",
+      "limtype"
     ]
   },
   {
@@ -1255,6 +1981,10 @@
     "indexes": [
       "REG",
       "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
     ]
   },
   {
@@ -1268,6 +1998,15 @@
       "ALL_R",
       "IE",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "region",
+      "other_indexes",
+      "limtype"
     ]
   },
   {
@@ -1278,6 +2017,12 @@
       "COM",
       "ALL_R",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "region",
+      "commodity"
     ]
   },
   {
@@ -1291,6 +2036,15 @@
       "ALL_R",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "region",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -1305,6 +2059,16 @@
       "IE",
       "COM",
       "IO"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "other_indexes",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -1319,6 +2083,16 @@
       "ALL_R",
       "IE",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "region",
+      "other_indexes",
+      "currency"
     ]
   },
   {
@@ -1329,6 +2103,12 @@
       "TS",
       "ALL_R",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "region",
+      "timeslice"
     ]
   },
   {
@@ -1341,6 +2121,14 @@
       "TS",
       "IE",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "other_indexes",
+      "limtype"
     ]
   },
   {
@@ -1348,12 +2136,16 @@
     "gams-cat": "subset",
     "indexes": [
       "ALLYEAR"
+    ],
+    "mapping": [
+      "year"
     ]
   },
   {
     "name": "MODLYEAR",
     "gams-cat": "subsubset",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "MULTI",
@@ -1361,6 +2153,10 @@
     "indexes": [
       "J",
       "YEAR"
+    ],
+    "mapping": [
+      "stage",
+      "year"
     ]
   },
   {
@@ -1372,6 +2168,13 @@
       "PRC",
       "TS",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -1382,6 +2185,12 @@
       "YEAR",
       "PRC",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -1392,6 +2201,12 @@
       "YEAR",
       "PRC",
       "CG"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group"
     ]
   },
   {
@@ -1402,7 +2217,14 @@
       "YEAR",
       "PRC",
       "CG",
-      "STL"
+      "TSL"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "timeslice"
     ]
   },
   {
@@ -1414,6 +2236,13 @@
       "PRC",
       "CG",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "timeslice"
     ]
   },
   {
@@ -1423,6 +2252,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1434,6 +2268,13 @@
       "PRC",
       "TS",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -1444,6 +2285,12 @@
       "ALLYEAR",
       "P",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -1453,6 +2300,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1463,6 +2315,12 @@
       "YEAR",
       "PRC",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -1472,6 +2330,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1481,6 +2344,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1490,6 +2358,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1500,6 +2373,12 @@
       "YEAR",
       "PRC",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -1511,6 +2390,13 @@
       "PRC",
       "COM",
       "IO"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -1521,6 +2407,12 @@
       "YEAR",
       "PRC",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity"
     ]
   },
   {
@@ -1532,6 +2424,13 @@
       "PRC",
       "COM",
       "IO"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -1542,6 +2441,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -1551,6 +2456,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1561,6 +2471,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -1570,6 +2486,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1580,6 +2501,12 @@
       "YEAR",
       "PRC",
       "UNIT"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "tbd"
     ]
   },
   {
@@ -1589,6 +2516,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1599,6 +2531,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -1608,6 +2546,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1617,6 +2560,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1626,6 +2574,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1635,6 +2588,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1645,6 +2603,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -1654,6 +2618,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1663,6 +2632,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1673,6 +2647,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -1682,6 +2662,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1691,6 +2676,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1701,6 +2691,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -1710,6 +2706,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1719,6 +2720,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1729,6 +2735,12 @@
       "YEAR",
       "PRC",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity"
     ]
   },
   {
@@ -1738,6 +2750,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1747,6 +2764,11 @@
       "REG",
       "ALLYEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1757,6 +2779,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -1767,6 +2795,12 @@
       "YEAR",
       "PRC",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
     ]
   },
   {
@@ -1776,6 +2810,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1785,6 +2824,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1796,6 +2840,13 @@
       "C",
       "P",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -1806,6 +2857,12 @@
       "YEAR",
       "PRC",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity"
     ]
   },
   {
@@ -1815,6 +2872,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1824,6 +2886,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1833,6 +2900,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1843,6 +2915,12 @@
       "YEAR",
       "PRC",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice"
     ]
   },
   {
@@ -1852,6 +2930,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1860,6 +2943,10 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -1869,6 +2956,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -1880,6 +2972,13 @@
       "PRC",
       "COM",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "currency"
     ]
   },
   {
@@ -1889,6 +2988,11 @@
       "REG",
       "NRG_TYPE",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "tbd",
+      "commodity"
     ]
   },
   {
@@ -1896,6 +3000,9 @@
     "gams-cat": "subsubset",
     "indexes": [
       "COM"
+    ],
+    "mapping": [
+      "commodity"
     ]
   },
   {
@@ -1903,6 +3010,9 @@
     "gams-cat": "subset",
     "indexes": [
       "ALLYEAR"
+    ],
+    "mapping": [
+      "year"
     ]
   },
   {
@@ -1912,6 +3022,11 @@
       "REG",
       "COM",
       "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "year"
     ]
   },
   {
@@ -1919,6 +3034,9 @@
     "gams-cat": "set",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -1929,6 +3047,12 @@
       "YEAR",
       "PRC",
       "CG"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group"
     ]
   },
   {
@@ -1939,6 +3063,12 @@
       "PRC",
       "CG",
       "UNITS_ACT"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity_group",
+      "tbd"
     ]
   },
   {
@@ -1947,8 +3077,14 @@
     "indexes": [
       "REG",
       "PRC",
-      "*",
-      "*"
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "year",
+      "year2"
     ]
   },
   {
@@ -1957,6 +3093,10 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -1967,6 +3107,12 @@
       "PRC",
       "CG",
       "UNITS_CAP"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity_group",
+      "tbd"
     ]
   },
   {
@@ -1975,6 +3121,10 @@
     "indexes": [
       "R",
       "P"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -1983,6 +3133,10 @@
     "indexes": [
       "R",
       "P"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -1991,6 +3145,10 @@
     "indexes": [
       "R",
       "P"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2001,8 +3159,16 @@
       "PRC",
       "COM",
       "ALL_TS",
-      "*",
-      "*"
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "timeslice",
+      "year",
+      "year2"
     ]
   },
   {
@@ -2012,6 +3178,11 @@
       "REG",
       "PRC",
       "ITEM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "other_indexes"
     ]
   },
   {
@@ -2024,6 +3195,14 @@
       "ITEM",
       "COM",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "commodity",
+      "limtype"
     ]
   },
   {
@@ -2033,6 +3212,11 @@
       "REG",
       "PRC_GRP",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "tbd",
+      "process"
     ]
   },
   {
@@ -2041,8 +3225,14 @@
     "indexes": [
       "REG",
       "PRC",
-      "*",
-      "*"
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "year",
+      "year2"
     ]
   },
   {
@@ -2052,6 +3242,11 @@
       "REG",
       "PRC",
       "ALL_TS"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "timeslice"
     ]
   },
   {
@@ -2060,6 +3255,10 @@
     "indexes": [
       "ALL_REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2068,6 +3267,10 @@
     "indexes": [
       "ALL_REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2077,6 +3280,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -2086,6 +3294,11 @@
       "REG",
       "PRC",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "process"
     ]
   },
   {
@@ -2095,6 +3308,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -2103,6 +3321,10 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2112,6 +3334,11 @@
       "REG",
       "PRC",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity"
     ]
   },
   {
@@ -2121,6 +3348,11 @@
       "REG",
       "PRC",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity"
     ]
   },
   {
@@ -2130,6 +3362,11 @@
       "REG",
       "PRC",
       "TSLVL"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "timeslice"
     ]
   },
   {
@@ -2138,6 +3375,10 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2147,6 +3388,11 @@
       "ALL_R",
       "CUR",
       "CUR"
+    ],
+    "mapping": [
+      "region",
+      "currency",
+      "currency"
     ]
   },
   {
@@ -2156,6 +3402,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -2166,6 +3417,12 @@
       "YEAR",
       "PRC",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
     ]
   },
   {
@@ -2173,6 +3430,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2180,6 +3440,9 @@
     "gams-cat": "subset",
     "indexes": [
       "ALL_REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2188,6 +3451,10 @@
     "indexes": [
       "ALL_R",
       "L"
+    ],
+    "mapping": [
+      "region",
+      "limtype"
     ]
   },
   {
@@ -2199,6 +3466,13 @@
       "COSTAGG",
       "CUR",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "other_indexes",
+      "currency",
+      "limtype"
     ]
   },
   {
@@ -2211,6 +3485,14 @@
       "COSTAGG",
       "CUR",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year",
+      "other_indexes",
+      "currency",
+      "limtype"
     ]
   },
   {
@@ -2218,6 +3500,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "ALL_R"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2226,6 +3511,10 @@
     "indexes": [
       "ITEM",
       "J"
+    ],
+    "mapping": [
+      "other_indexes",
+      "stage"
     ]
   },
   {
@@ -2238,6 +3527,14 @@
       "BD",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2247,6 +3544,11 @@
       "ITEM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "other_indexes",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2257,6 +3559,12 @@
       "ITEM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "year",
+      "other_indexes",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2266,6 +3574,11 @@
       "ALLYEAR",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "year",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2279,6 +3592,15 @@
       "BD",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year2",
+      "commodity",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2292,6 +3614,15 @@
       "BD",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year2",
+      "commodity",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2304,6 +3635,14 @@
       "S",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2315,6 +3654,13 @@
       "COM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2329,6 +3675,16 @@
       "CUR",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "other_indexes",
+      "currency",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2341,6 +3697,14 @@
       "CUR",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "currency",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2355,6 +3719,16 @@
       "BD",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "other_indexes",
+      "other_indexes",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2368,6 +3742,15 @@
       "CG",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "commodity_group",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2380,6 +3763,14 @@
       "S",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2391,6 +3782,13 @@
       "P",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2401,6 +3799,12 @@
       "LIM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "uc_n",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2412,6 +3816,13 @@
       "LIM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2424,6 +3835,14 @@
       "LIM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2437,6 +3856,15 @@
       "LIM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year",
+      "timeslice",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2448,6 +3876,13 @@
       "LIM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "uc_n",
+      "year",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2460,6 +3895,14 @@
       "LIM",
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "uc_n",
+      "year",
+      "timeslice",
+      "limtype",
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2468,6 +3911,10 @@
     "indexes": [
       "UC_N",
       "ALLSOW"
+    ],
+    "mapping": [
+      "uc_n",
+      "sow"
     ]
   },
   {
@@ -2476,6 +3923,10 @@
     "indexes": [
       "J",
       "AGE"
+    ],
+    "mapping": [
+      "stage",
+      "year"
     ]
   },
   {
@@ -2483,6 +3934,9 @@
     "gams-cat": "set",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -2493,6 +3947,12 @@
       "YEAR",
       "PRC",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice"
     ]
   },
   {
@@ -2502,6 +3962,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -2512,6 +3977,12 @@
       "YEAR",
       "PRC",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice"
     ]
   },
   {
@@ -2521,6 +3992,11 @@
       "R",
       "YEAR",
       "P"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -2532,6 +4008,13 @@
       "PRC",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -2544,6 +4027,14 @@
       "COM",
       "TS",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -2556,18 +4047,30 @@
       "COM",
       "TS",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "limtype"
     ]
   },
   {
     "name": "SW_LAMBDA",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "SW_PROB",
     "gams-cat": "parameter",
     "indexes": [
       "ALLSOW"
+    ],
+    "mapping": [
+      "sow"
     ]
   },
   {
@@ -2576,6 +4079,10 @@
     "indexes": [
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2583,6 +4090,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "J"
+    ],
+    "mapping": [
+      "stage"
     ]
   },
   {
@@ -2591,6 +4101,10 @@
     "indexes": [
       "J",
       "ALLSOW"
+    ],
+    "mapping": [
+      "stage",
+      "sow"
     ]
   },
   {
@@ -2599,6 +4113,10 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2607,6 +4125,10 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2616,6 +4138,11 @@
       "REG",
       "PRC",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "process"
     ]
   },
   {
@@ -2626,6 +4153,12 @@
       "PRC",
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "region",
+      "process"
     ]
   },
   {
@@ -2634,6 +4167,10 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2642,6 +4179,10 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
@@ -2650,18 +4191,26 @@
     "indexes": [
       "REG",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
     ]
   },
   {
     "name": "TM_ARBM",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "TM_DEFVAL",
     "gams-cat": "parameter",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -2669,6 +4218,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2676,6 +4228,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "R"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2683,6 +4238,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2690,6 +4248,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2699,6 +4260,11 @@
       "R",
       "ALLYEAR",
       "P"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -2707,6 +4273,10 @@
     "indexes": [
       "R",
       "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
     ]
   },
   {
@@ -2714,6 +4284,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2722,6 +4295,10 @@
     "indexes": [
       "REG",
       "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
     ]
   },
   {
@@ -2730,6 +4307,10 @@
     "indexes": [
       "REG",
       "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
     ]
   },
   {
@@ -2737,6 +4318,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2744,6 +4328,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2751,6 +4338,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2758,6 +4348,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2765,6 +4358,9 @@
     "gams-cat": "parameter",
     "indexes": [
       "REG"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
@@ -2772,22 +4368,28 @@
     "gams-cat": "parameter",
     "indexes": [
       "R"
+    ],
+    "mapping": [
+      "region"
     ]
   },
   {
     "name": "TM_SCALE_CST",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "TM_SCALE_NRG",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "TM_SCALE_UTIL",
     "gams-cat": "parameter",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "TM_STEP",
@@ -2796,6 +4398,11 @@
       "R",
       "CG",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity_group",
+      "limtype"
     ]
   },
   {
@@ -2806,6 +4413,12 @@
       "YEAR",
       "CG",
       "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity_group",
+      "limtype"
     ]
   },
   {
@@ -2814,6 +4427,10 @@
     "indexes": [
       "REG",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice"
     ]
   },
   {
@@ -2824,6 +4441,12 @@
       "PRC",
       "COM",
       "IO"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "other_indexes"
     ]
   },
   {
@@ -2835,6 +4458,13 @@
       "ALL_REG",
       "COM",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "region",
+      "commodity",
+      "process"
     ]
   },
   {
@@ -2844,6 +4474,11 @@
       "ALL_REG",
       "TSLVL",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "timeslice"
     ]
   },
   {
@@ -2853,6 +4488,11 @@
       "ALL_REG",
       "ALL_TS",
       "ALL_TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "timeslice"
     ]
   },
   {
@@ -2863,6 +4503,12 @@
       "TS",
       "BOHYEAR",
       "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "year",
+      "year2"
     ]
   },
   {
@@ -2875,6 +4521,14 @@
       "YEAR",
       "PRC",
       "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process",
+      "timeslice"
     ]
   },
   {
@@ -2886,6 +4540,13 @@
       "SIDE",
       "UC_GRPTYPE",
       "UC_NAME"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "side",
+      "type",
+      "uc_n"
     ]
   },
   {
@@ -2897,6 +4558,13 @@
       "ALL_R",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -2908,6 +4576,13 @@
       "REG",
       "YEAR",
       "CM_VAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "other_indexes"
     ]
   },
   {
@@ -2920,6 +4595,14 @@
       "YEAR",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -2932,6 +4615,14 @@
       "YEAR",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -2944,6 +4635,14 @@
       "YEAR",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -2955,6 +4654,13 @@
       "PRC",
       "BOHYEAR",
       "EOHYEAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "process",
+      "year",
+      "year2"
     ]
   },
   {
@@ -2967,6 +4673,14 @@
       "COM",
       "BOHYEAR",
       "EOHYEAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "other_indexes",
+      "commodity",
+      "year",
+      "year2"
     ]
   },
   {
@@ -2979,6 +4693,14 @@
       "COM",
       "BOHYEAR",
       "EOHYEAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "process",
+      "commodity",
+      "year",
+      "year2"
     ]
   },
   {
@@ -2987,6 +4709,10 @@
     "indexes": [
       "UC_N",
       "LIM"
+    ],
+    "mapping": [
+      "uc_n",
+      "limtype"
     ]
   },
   {
@@ -3000,6 +4726,15 @@
       "PRC",
       "COM",
       "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice"
     ]
   },
   {
@@ -3011,6 +4746,13 @@
       "YEAR",
       "PRC",
       "CG"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "year",
+      "process",
+      "commodity_group"
     ]
   },
   {
@@ -3025,6 +4767,16 @@
       "COM",
       "TS",
       "IE"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "other_indexes"
     ]
   },
   {
@@ -3032,6 +4784,9 @@
     "gams-cat": "set",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -3043,6 +4798,13 @@
       "ALL_R",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -3051,6 +4813,10 @@
     "indexes": [
       "ALL_R",
       "UC_N"
+    ],
+    "mapping": [
+      "region",
+      "uc_n"
     ]
   },
   {
@@ -3059,6 +4825,10 @@
     "indexes": [
       "ALL_R",
       "UC_N"
+    ],
+    "mapping": [
+      "region",
+      "uc_n"
     ]
   },
   {
@@ -3067,6 +4837,10 @@
     "indexes": [
       "UC_N",
       "LIM"
+    ],
+    "mapping": [
+      "uc_n",
+      "limtype"
     ]
   },
   {
@@ -3076,6 +4850,11 @@
       "ALL_R",
       "UC_N",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "limtype"
     ]
   },
   {
@@ -3086,6 +4865,12 @@
       "UC_N",
       "YEAR",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year",
+      "limtype"
     ]
   },
   {
@@ -3097,6 +4882,13 @@
       "YEAR",
       "TS",
       "LIM"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -3106,6 +4898,11 @@
       "UC_N",
       "YEAR",
       "LIM"
+    ],
+    "mapping": [
+      "uc_n",
+      "year",
+      "limtype"
     ]
   },
   {
@@ -3116,6 +4913,12 @@
       "YEAR",
       "TS",
       "LIM"
+    ],
+    "mapping": [
+      "uc_n",
+      "year",
+      "timeslice",
+      "limtype"
     ]
   },
   {
@@ -3125,6 +4928,11 @@
       "ALL_R",
       "UC_N",
       "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year"
     ]
   },
   {
@@ -3134,6 +4942,11 @@
       "ALL_R",
       "UC_N",
       "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year"
     ]
   },
   {
@@ -3143,6 +4956,11 @@
       "ALL_R",
       "UC_N",
       "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year"
     ]
   },
   {
@@ -3152,6 +4970,11 @@
       "UC_N",
       "ALL_R",
       "YEAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "year"
     ]
   },
   {
@@ -3161,6 +4984,11 @@
       "ALL_R",
       "UC_N",
       "ALL_TS"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "timeslice"
     ]
   },
   {
@@ -3170,6 +4998,11 @@
       "ALL_R",
       "UC_N",
       "ALL_TS"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "timeslice"
     ]
   },
   {
@@ -3180,6 +5013,12 @@
       "UC_N",
       "SIDE",
       "TSLVL"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "side",
+      "timeslice"
     ]
   },
   {
@@ -3191,6 +5030,13 @@
       "ALL_R",
       "YEAR",
       "UC_N"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "uc_n"
     ]
   },
   {
@@ -3198,6 +5044,9 @@
     "gams-cat": "set",
     "indexes": [
       "*"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -3205,6 +5054,9 @@
     "gams-cat": "subset",
     "indexes": [
       "UNITS"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -3212,6 +5064,9 @@
     "gams-cat": "subset",
     "indexes": [
       "UNITS"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
@@ -3219,12 +5074,16 @@
     "gams-cat": "subset",
     "indexes": [
       "UNITS"
+    ],
+    "mapping": [
+      "tbd"
     ]
   },
   {
     "name": "UNITS_MONY",
     "gams-cat": "subset",
-    "indexes": []
+    "indexes": [],
+    "mapping": []
   },
   {
     "name": "VDA_CEH",
@@ -3233,6 +5092,11 @@
       "REG",
       "YEAR",
       "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
     ]
   },
   {
@@ -3243,6 +5107,12 @@
       "YEAR",
       "COM",
       "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "commodity"
     ]
   },
   {
@@ -3254,6 +5124,13 @@
       "PRC",
       "CG",
       "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity_group",
+      "timeslice"
     ]
   }
 ]
