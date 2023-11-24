@@ -61,7 +61,7 @@ class Tag(str, Enum):
     uc_sets = "~UC_SETS"
     uc_t = "~UC_T"
     # This is used by Veda for unit conversion when displaying results
-    # unitconversion = "~UNITCONVERSION"
+    unitconversion = "~UNITCONVERSION"
 
     @classmethod
     def has_tag(cls, tag):
@@ -258,6 +258,8 @@ class Config:
             if "tag_fields" in tag_info:
                 # The file stores the tag name in lowercase, and without the ~
                 tag_name = "~" + tag_info["tag_name"].upper()
+                if not Tag.has_tag(tag_name):
+                    raise ValueError(f"{veda_tags_file} has an unknown Tag {tag_name}")
                 column_aliases[tag_name] = {}
                 names = tag_info["tag_fields"]["fields_names"]
                 aliases = tag_info["tag_fields"]["fields_aliases"]

@@ -525,6 +525,10 @@ def normalize_column_aliases(
             )
         else:
             print(f"WARNING: could not find {table.tag} in config.column_aliases")
+        if len(set(table.dataframe.columns)) > len(table.dataframe.columns):
+            raise ValueError(
+                f"Table has duplicate column names (after normalization): {table}"
+            )
     return tables
 
 
