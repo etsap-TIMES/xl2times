@@ -338,13 +338,9 @@ attr_timeslice_def = {
 
 def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
     """
-    Return a modified copy of 'table' where rows with cells containig '*'
-    or '\I:' in their first or third columns have been deleted. These characters
-    are defined in https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-    as comment identifiers (pag 15).
-    TODO: we believe the deletion of the third column is a bug. We tried deleting that part
-    of the code but we failed to parse a row as a consequence. We need to investigate why,
-    fix that parsing and remove the deletion of the third column.
+    Return a modified copy of 'table' where rows with cells starting with symbols
+    indicating a comment row in their first column have been deleted. These symbols (i.e.
+    '*' or '\I:') depend on the column name and are specified in in the config.
 
     :param table:       Table object in EmbeddedXlTable format.
     :return:            Table object in EmbeddedXlTable format without comment rows.
@@ -363,18 +359,6 @@ def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     df.drop(index=comment_rows, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # TODO: the deletion of this third column is a bug. Removing it causes the
-    # program to fail parse all rows. We need to fix the parsing so it can read
-    # all rows and remove this code block.
-    if df.shape[1] > 1:
-        comment_rows = list(
-            locate(
-                df.iloc[:, 1],
-                lambda cell: isinstance(cell, str) and cell.startswith("*"),
-            )
-        )
-        df.drop(index=comment_rows, inplace=True)
-        df.reset_index(drop=True, inplace=True)
     return replace(table, dataframe=df)
 
 
@@ -396,7 +380,7 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         if isinstance(colname, str) and colname.startswith("*")
     ]
 
-    df = table.dataframe.drop(table.dataframe.columns[comment_cols], axis=1)
+    df = table.dataframe.drop(comment_cols, axis=1)
     df.reset_index(drop=True, inplace=True)
 
     # TODO: should we move the code below to a separate transform?
@@ -666,6 +650,7 @@ def process_flexible_import_tables(
 
         # Rename, add and remove specific columns if the circumstances are right
         # TODO: We should do a full scale normalisation here, incl. renaming of aliases
+        print([table.filename, table.sheetname, table.range])
         df = table.dataframe
 
         nrows = df.shape[0]
