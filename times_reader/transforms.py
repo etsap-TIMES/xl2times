@@ -748,9 +748,14 @@ def process_flexible_import_tables(
                 .loc[veda_process_sets["process"] == process]
                 .unique()
             )
-            df.loc[i & (df["process"] == process), other] = cost_mapping[
-                veda_process_set[0]
-            ]
+            if veda_process_set.shape[0]:
+                df.loc[i & (df["process"] == process), other] = cost_mapping[
+                    veda_process_set[0]
+                ]
+            else:
+                print(
+                    f"WARNING: COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
+                )
 
         # Use CommName to store the active commodity for EXP / IMP
         i = df[attribute].isin(["COST", "IRE_PRICE"])
