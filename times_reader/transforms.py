@@ -1567,7 +1567,9 @@ def process_commodity_emissions(
 
             if "region" in df.columns:
                 df = df.astype({"region": "string"})
-                df["region"] = df["region"].map(lambda s: s.split(","))
+                df["region"] = df["region"].map(
+                    lambda s: s.split(",") if isinstance(s, str) else s
+                )
                 df = df.explode("region", ignore_index=True)
                 df = df[df["region"].isin(regions)]
 
