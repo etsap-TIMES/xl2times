@@ -381,7 +381,8 @@ def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
 def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
     """
     Return a modified copy of 'table' where columns with labels starting with '*'
-    have been deleted.
+    have been deleted. Assumes that any leading spaces in the original input table
+    have been removed.
 
     :param table:       Table object in EmbeddedXlTable format.
     :return:            Table object in EmbeddedXlTable format without comment columns.
@@ -389,14 +390,16 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     if table.dataframe.size == 0:
         return table
 
-    comment_cols = list(
-        locate(
-            table.dataframe.columns,
-            lambda cell: isinstance(cell, str) and cell.startswith("*"),
-        )
-    )
+    comment_cols = [
+        colname
+        for colname in table.dataframe.columns
+        if isinstance(colname, str) and colname.startswith("*")
+    ]
+
     df = table.dataframe.drop(table.dataframe.columns[comment_cols], axis=1)
     df.reset_index(drop=True, inplace=True)
+
+    # TODO: should we move the code below to a separate transform?
     seen = set()
     dupes = [x for x in df.columns if x in seen or seen.add(x)]
     if len(dupes) > 0:
