@@ -1,5 +1,4 @@
 import argparse
-from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from pandas.core.frame import DataFrame
 import pandas as pd
@@ -19,6 +18,7 @@ def convert_xl_to_times(
     output_dir: str,
     config: datatypes.Config,
     use_pkl: bool,
+    verbose: bool = False,
     stop_after_read: bool = False,
 ) -> Dict[str, DataFrame]:
     pickle_file = "raw_tables.pkl"
@@ -107,14 +107,26 @@ def convert_xl_to_times(
         start_time = time.time()
         output = transform(config, input)
         end_time = time.time()
+        sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
         print(
-            f"transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
+            f"{sep}transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
         )
+        if verbose:
+            if isinstance(output, list):
+                for table in sorted(
+                    output, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
+                ):
+                    print(table)
+            elif isinstance(output, dict):
+                for tag, df in output.items():
+                    df_str = df.to_csv(index=False, lineterminator="\n")
+                    print(f"{tag}\n{df_str}{df.shape}\n")
         input = output
+    assert isinstance(output, dict)
 
     print(
         f"Conversion complete, {len(output)} tables produced,"
-        f" {sum(df.shape[0] for tablename, df in output.items())} rows"
+        f" {sum(df.shape[0] for df in output.values())} rows"
     )
 
     return output
@@ -384,6 +396,12 @@ def main():
         help="Read xlsx files and stop after outputting raw_tables.txt",
     )
     args_parser.add_argument("--use_pkl", action="store_true")
+    args_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose mode: print tables after every transform",
+    )
     args = args_parser.parse_args()
 
     config = datatypes.Config("times_mapping.txt", "times-info.json", "veda-tags.json")
@@ -404,11 +422,18 @@ def main():
 
     if args.only_read:
         tables = convert_xl_to_times(
-            input_files, args.output_dir, config, args.use_pkl, stop_after_read=True
+            input_files,
+            args.output_dir,
+            config,
+            args.use_pkl,
+            verbose=args.verbose,
+            stop_after_read=True,
         )
         sys.exit(0)
 
-    tables = convert_xl_to_times(input_files, args.output_dir, config, args.use_pkl)
+    tables = convert_xl_to_times(
+        input_files, args.output_dir, config, args.use_pkl, verbose=args.verbose
+    )
 
     if args.dd:
         write_dd_files(tables, config, args.output_dir)
