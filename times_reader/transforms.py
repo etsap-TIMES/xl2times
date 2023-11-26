@@ -650,7 +650,6 @@ def process_flexible_import_tables(
 
         # Rename, add and remove specific columns if the circumstances are right
         # TODO: We should do a full scale normalisation here, incl. renaming of aliases
-        print([table.filename, table.sheetname, table.range])
         df = table.dataframe
 
         nrows = df.shape[0]
