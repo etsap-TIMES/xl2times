@@ -360,17 +360,17 @@ def remove_comment_rows(
     else:
         return table
 
-    if colname in chars_by_colname.keys():
-
-        comment_rows = list(
-            locate(
-                df[colname],
-                lambda cell: isinstance(cell, str)
-                and (cell.startswith(tuple(chars_by_colname[colname]))),
+    for colname in df.columns:
+        if colname in chars_by_colname.keys():
+            comment_rows = list(
+                locate(
+                    df[colname],
+                    lambda cell: isinstance(cell, str)
+                    and (cell.startswith(tuple(chars_by_colname[colname]))),
+                )
             )
-        )
-        df.drop(index=comment_rows, inplace=True)
-        df.reset_index(drop=True, inplace=True)
+            df.drop(index=comment_rows, inplace=True)
+            df.reset_index(drop=True, inplace=True)
 
     return replace(table, dataframe=df)
 
