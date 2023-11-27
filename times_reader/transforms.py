@@ -336,7 +336,9 @@ attr_timeslice_def = {
 }
 
 
-def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
+def remove_comment_rows(
+    config: datatypes.Config, table: datatypes.EmbeddedXlTable
+) -> datatypes.EmbeddedXlTable:
     """
     Return a modified copy of 'table' where rows with cells starting with symbols
     indicating a comment row in their first column have been deleted. These symbols (i.e.
@@ -349,15 +351,26 @@ def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         return table
 
     df = table.dataframe.copy()
-    comment_rows = list(
-        locate(
-            df.iloc[:, 0],
-            lambda cell: isinstance(cell, str)
-            and (cell.startswith("*") or cell.startswith("\\I:")),
+    colname = df.columns[0]
+
+    tag = table.tag.split(":")[0]
+
+    if tag in config.row_comment_chars:
+        chars_by_colname = config.row_comment_chars[tag]
+    else:
+        return table
+
+    if colname in chars_by_colname.keys():
+
+        comment_rows = list(
+            locate(
+                df[colname],
+                lambda cell: isinstance(cell, str)
+                and (cell.startswith(tuple(chars_by_colname[colname]))),
+            )
         )
-    )
-    df.drop(index=comment_rows, inplace=True)
-    df.reset_index(drop=True, inplace=True)
+        df.drop(index=comment_rows, inplace=True)
+        df.reset_index(drop=True, inplace=True)
 
     return replace(table, dataframe=df)
 

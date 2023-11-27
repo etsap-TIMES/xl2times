@@ -57,11 +57,13 @@ def convert_xl_to_times(
         transforms.normalize_tags_columns_attrs,
         transforms.remove_fill_tables,
         transforms.remove_empty_tables,
-        lambda config, tables: [transforms.remove_comment_rows(t) for t in tables],
         lambda config, tables: [transforms.remove_comment_cols(t) for t in tables],
         transforms.remove_tables_with_formulas,  # slow
         transforms.normalize_column_aliases,
         transforms.apply_postnormalisation_fixes,
+        lambda config, tables: [
+            transforms.remove_comment_rows(config, t) for t in tables
+        ],
         transforms.generate_dummy_processes,
         transforms.process_transform_insert_variants,
         transforms.process_transform_insert,

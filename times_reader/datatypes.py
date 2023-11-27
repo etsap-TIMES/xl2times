@@ -148,6 +148,8 @@ class Config:
     all_attributes: Set[str]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: Dict[Tag, Dict[str, str]]
+    # For each tag, this dictionary specifies comment row symbols by column name
+    row_comment_chars: Dict[Tag, Dict[str, list]]
 
     def __init__(self, mapping_file: str, times_info_file: str, veda_tags_file: str):
         self.times_xl_maps = Config._read_mappings(mapping_file)
@@ -155,6 +157,7 @@ class Config:
             times_info_file
         )
         self.column_aliases = Config._read_veda_tags_info(veda_tags_file)
+        self.row_comment_chars = Config._get_row_comment_chars(veda_tags_file)
 
     @staticmethod
     def _process_times_info(times_info_file: str) -> Tuple[Iterable[str], Set[str]]:
@@ -270,3 +273,21 @@ class Config:
                     for alias in aliases:
                         column_aliases[tag_name][alias] = name
         return column_aliases
+
+    @staticmethod
+    def _get_row_comment_chars(veda_tags_file: str) -> Dict[Tag, Dict[str, list]]:
+        # Read veda_tags_file
+        with resources.open_text("times_reader.config", veda_tags_file) as f:
+            veda_tags_info = json.load(f)
+        row_comment_chars = {}
+        for tag_info in veda_tags_info:
+            if "tag_fields" in tag_info:
+                # The file stores the tag name in lowercase, and without the ~
+                tag_name = "~" + tag_info["tag_name"].upper()
+                row_comment_chars[tag_name] = {}
+                names = tag_info["tag_fields"]["fields_names"]
+                chars = tag_info["tag_fields"]["row_ignore_symbol"]
+                assert len(names) == len(chars)
+                for name, chars_list in zip(names, chars):
+                    row_comment_chars[tag_name][name] = chars_list
+        return row_comment_chars
