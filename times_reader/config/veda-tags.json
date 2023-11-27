@@ -26,6 +26,29 @@
     }
   },
   {
+    "tag_name": "comemi",
+    "tag_allowed_in": [
+      "BY",
+      "SubRES"
+    ],
+    "tag_fields": {
+      "fields_names": [
+        "commname"
+      ],
+      "fields_aliases": [
+        [
+          "commodity"
+        ]
+      ],
+      "row_ignore_symbol": [
+        [
+          "\\I:",
+          "*"
+        ]
+      ]
+    }
+  },
+  {
     "tag_name": "currencies",
     "tag_allowed_in": [
       "SysSettings"
