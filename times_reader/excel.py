@@ -28,13 +28,14 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
         # https://stackoverflow.com/questions/40251948/stop-pandas-from-converting-int-to-float-due-to-an-insertion-in-another-column
         df = DataFrame(sheet.values, dtype=object)
         uc_sets = {}
+        sheet_tables = []
 
         for row_index, row in df.iterrows():
             for colname in df.columns:
                 value = str(row[colname])
                 if value.startswith("~"):
                     match = re.match(
-                        f"~{datatypes.Tag.uc_sets}:(.*)", value, re.IGNORECASE
+                        f"{datatypes.Tag.uc_sets.value}:(.*)", value, re.IGNORECASE
                     )
                     if match:
                         parts = match.group(1).split(":")
@@ -46,11 +47,16 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
                             )
                     else:
                         col_index = df.columns.get_loc(colname)
-                        tables.append(
+                        sheet_tables.append(
                             extract_table(
                                 row_index, col_index, uc_sets, df, sheet.title, filename
                             )
                         )
+
+        for sheet_table in sheet_tables:
+            sheet_table.uc_sets = uc_sets
+
+        tables += sheet_tables
 
     end_time = time.time()
     if end_time - start_time > 2:
@@ -80,6 +86,7 @@ def extract_table(
 
     :param tag_row:         Row number for the tag designating the table to be extracted
     :param tag_col:         Column number for the tag designating the table to be extracted
+    :param uc_sets:         Sets (regions and timeslices) for user constraints
     :param df:              Dataframe object containing all values for the worksheet being evaluated
     :param sheetname:       Name of the worksheet being evaluated
     :param filename:        Path to the excel file being evaluated.
