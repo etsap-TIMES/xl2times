@@ -892,7 +892,8 @@ def process_user_constraint_tables(
         regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R")]
         if table.uc_sets[regions_lists[-1]] != "":
             regions = table.uc_sets[regions_lists[-1]]
-            df["region"] = df["region"].fillna(regions)
+            if regions.lower() != "allregions":
+                df["region"] = df["region"].fillna(regions)
 
         # TODO: detect RHS correctly
         i = df["side"].isna()
