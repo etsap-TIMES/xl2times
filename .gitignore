@@ -4,6 +4,7 @@ build/
 input/*
 output/*
 ground_truth/*
+/.fleet
 /.obsidian
 /.spyproject
 /.vs
