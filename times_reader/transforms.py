@@ -627,7 +627,7 @@ def process_flexible_import_tables(
     # Get a list of allowed values for each category.
     legal_values = {
         "limtype": {"LO", "UP", "FX"},
-        "timeslice": utils.timeslices(tables),
+        "timeslice": utils.extract_timeslices(tables),
         "commodity-out": set(
             utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
