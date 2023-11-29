@@ -492,8 +492,6 @@ def normalize_tags_columns(
     :return:            List of tables in EmbeddedXlTable format with normalzed values.
     """
 
-    # TODO Normalize column names and attribute values in mapping.txt when reading it
-    # TODO Check all string literals left in file
     def normalize(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
         # Only uppercase upto ':', the rest can be non-uppercase values like regions
         parts = table.tag.split(":")
