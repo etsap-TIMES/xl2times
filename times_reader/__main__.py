@@ -54,7 +54,7 @@ def convert_xl_to_times(
         return {}
 
     transform_list = [
-        transforms.normalize_tags_columns_attrs,
+        transforms.normalize_tags_columns,
         transforms.remove_fill_tables,
         transforms.remove_empty_tables,
         lambda config, tables: [transforms.remove_comment_cols(t) for t in tables],
@@ -406,7 +406,12 @@ def main():
     )
     args = args_parser.parse_args()
 
-    config = datatypes.Config("times_mapping.txt", "times-info.json", "veda-tags.json")
+    config = datatypes.Config(
+        "times_mapping.txt",
+        "times-info.json",
+        "veda-tags.json",
+        "veda-attr-defaults.json",
+    )
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         print(f"ERROR: expected at least 1 input. Got {args.input}")

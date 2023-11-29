@@ -1,15 +1,13 @@
-from pandas.core.frame import DataFrame
-import pandas as pd
-from dataclasses import replace
-from typing import Iterable, List
-from more_itertools import locate, one
-from itertools import groupby
-import numpy
 import re
-import os
-from concurrent.futures import ProcessPoolExecutor
-from functools import reduce
+from dataclasses import replace
 from math import log10, floor
+from typing import Iterable, List
+
+import numpy
+import pandas as pd
+from more_itertools import one
+from pandas.core.frame import DataFrame
+
 from . import datatypes
 
 
@@ -61,13 +59,13 @@ def explode(df, data_columns):
 
     names = pd.Series(data_columns * nrows, index=df.index, dtype=str)
     # Remove rows with no VALUE
-    filter = df[value_column].notna()
-    df = df[filter]
-    names = names[filter]
+    index = df[value_column].notna()
+    df = df[index]
+    names = names[index]
     return df, names
 
 
-def timeslices(tables: List[datatypes.EmbeddedXlTable]):
+def extract_timeslices(tables: List[datatypes.EmbeddedXlTable]):
     """
     Given a list of tables with a unique table with a time slice tag, return a list
     with all the column names of that table + "ANNUAL".
@@ -142,7 +140,7 @@ def apply_wildcards(
     wildcard_map = {}
     all_wildcards = df[wildcard_col].unique()
     for wildcard_string in all_wildcards:
-        if wildcard_string == None:
+        if wildcard_string is None:
             wildcard_map[wildcard_string] = None
         else:
             wildcard_list = wildcard_string.split(",")
@@ -174,7 +172,7 @@ def missing_value_inherit(df: DataFrame, colname: str):
     """
     last = None
     for index, value in df[colname].items():
-        if value == None:
+        if value is None:
             df.loc[index, colname] = last
         else:
             last = value
