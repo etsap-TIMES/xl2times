@@ -44,8 +44,8 @@ def remove_comment_rows(
 ) -> datatypes.EmbeddedXlTable:
     """
     Return a modified copy of 'table' where rows with cells starting with symbols
-    indicating a comment row in their first column have been deleted. These symbols (i.e.
-    '*' or '\I:') depend on the column name and are specified in in the config.
+    indicating a comment row in any column have been deleted. Comment row symbols
+    are column name dependant and are specified in the config.
 
     :param table:       Table object in EmbeddedXlTable format.
     :return:            Table object in EmbeddedXlTable format without comment rows.
@@ -54,7 +54,6 @@ def remove_comment_rows(
         return table
 
     df = table.dataframe.copy()
-    colname = df.columns[0]
 
     tag = table.tag.split(":")[0]
 
@@ -63,17 +62,22 @@ def remove_comment_rows(
     else:
         return table
 
+    comment_rows = set()
+
     for colname in df.columns:
         if colname in chars_by_colname.keys():
-            comment_rows = list(
-                locate(
-                    df[colname],
-                    lambda cell: isinstance(cell, str)
-                    and (cell.startswith(tuple(chars_by_colname[colname]))),
+            comment_rows.update(
+                list(
+                    locate(
+                        df[colname],
+                        lambda cell: isinstance(cell, str)
+                        and (cell.startswith(tuple(chars_by_colname[colname]))),
+                    )
                 )
             )
-            df.drop(index=comment_rows, inplace=True)
-            df.reset_index(drop=True, inplace=True)
+
+    df.drop(index=list(comment_rows), inplace=True)
+    df.reset_index(drop=True, inplace=True)
 
     return replace(table, dataframe=df)
 
