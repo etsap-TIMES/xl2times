@@ -148,13 +148,23 @@ class Config:
     all_attributes: Set[str]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: Dict[Tag, Dict[str, str]]
+    veda_attr_defaults: Dict[str, Dict[str, list]]
 
-    def __init__(self, mapping_file: str, times_info_file: str, veda_tags_file: str):
+    def __init__(
+        self,
+        mapping_file: str,
+        times_info_file: str,
+        veda_tags_file: str,
+        veda_attr_defaults_file: str,
+    ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         self.dd_table_order, self.all_attributes = Config._process_times_info(
             times_info_file
         )
         self.column_aliases = Config._read_veda_tags_info(veda_tags_file)
+        self.veda_attr_defaults = Config._read_veda_attr_defaults(
+            veda_attr_defaults_file
+        )
 
     @staticmethod
     def _process_times_info(times_info_file: str) -> Tuple[Iterable[str], Set[str]]:
@@ -270,3 +280,49 @@ class Config:
                     for alias in aliases:
                         column_aliases[tag_name][alias] = name
         return column_aliases
+
+    @staticmethod
+    def _read_veda_attr_defaults(
+        veda_attr_defaults_file: str,
+    ) -> Dict[str, Dict[str, list]]:
+        # Read veda_tags_file
+        with resources.open_text("times_reader.config", veda_attr_defaults_file) as f:
+            defaults = json.load(f)
+
+        veda_attr_defaults = {
+            "aliases": {},
+            "commodity": {},
+            "limtype": {"FX": [], "LO": [], "UP": []},
+            "tslvl": {"DAYNITE": [], "ANNUAL": []},
+        }
+
+        for attr in defaults.keys():
+            # Populate aliases by attribute dictionary
+            if "times-attribute" in defaults[attr].keys():
+                times_attr = defaults[attr]["times-attribute"]
+                if times_attr in veda_attr_defaults["aliases"].keys():
+                    veda_attr_defaults["aliases"][times_attr] = veda_attr_defaults[
+                        "aliases"
+                    ][times_attr] + [attr]
+                else:
+                    veda_attr_defaults["aliases"][times_attr] = [attr]
+
+            if "defaults" in defaults[attr].keys():
+                attr_defaults = defaults[attr]["defaults"]
+
+                if "commodity" in attr_defaults.keys():
+                    veda_attr_defaults["commodity"][attr] = attr_defaults["commodity"]
+
+                if "limtype" in attr_defaults.keys():
+                    limtype = attr_defaults["limtype"]
+                    veda_attr_defaults["limtype"][limtype] = veda_attr_defaults[
+                        "limtype"
+                    ][limtype] + [attr]
+
+                if "ts-level" in attr_defaults.keys():
+                    tslvl = attr_defaults["ts-level"]
+                    veda_attr_defaults["tslvl"][tslvl] = veda_attr_defaults["tslvl"][
+                        tslvl
+                    ] + [attr]
+
+        return veda_attr_defaults
