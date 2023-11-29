@@ -480,21 +480,18 @@ def remove_empty_tables(
     return [table for table in tables if not discard(table)]
 
 
-def normalize_tags_columns_attrs(
+def normalize_tags_columns(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Normalize (uppercase) tags, (lowercase) column names, and (uppercase) values in
-    attribute columns.
+    Normalize (uppercase) tags and (lowercase) column names.
 
 
     :param tables:      List of tables in EmbeddedXlTable format.
     :return:            List of tables in EmbeddedXlTable format with normalzed values.
     """
 
-    # TODO Normalize column names and attribute values in mapping.txt when reading it
-    # TODO Check all string literals left in file
     def normalize(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
         # Only uppercase upto ':', the rest can be non-uppercase values like regions
         parts = table.tag.split(":")
