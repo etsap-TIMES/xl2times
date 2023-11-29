@@ -404,7 +404,12 @@ def main():
     )
     args = args_parser.parse_args()
 
-    config = datatypes.Config("times_mapping.txt", "times-info.json", "veda-tags.json")
+    config = datatypes.Config(
+        "times_mapping.txt",
+        "times-info.json",
+        "veda-tags.json",
+        "veda-attr-defaults.json",
+    )
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         print(f"ERROR: expected at least 1 input. Got {args.input}")

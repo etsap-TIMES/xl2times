@@ -29,118 +29,6 @@ default_pcg_suffixes = [
     cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
 ]
 
-# Specify a list of aliases per TIMES attribute
-aliases_by_attr = {
-    "ACT_BND": ["ACTBND", "BNDACT"],
-    "ACT_COST": ["ACTCOST", "VAROM"],
-    "ACT_CUM": ["CUM"],
-    "ACT_EFF": [
-        "CEFF",
-        "CEFFICIENCY",
-        "CEFF-I",
-        "CEFF-O",
-        "EFF",
-        "EFFICIENCY",
-        "VDA_EFF",
-    ],
-    "CAP_BND": ["BNDCAP"],
-    "COM_AGG": ["CAGG"],
-    "COM_BNDNET": ["ENVBND", "CBNDNET"],
-    "COM_BNDPRD": ["CBNDPRD"],
-    "COM_BPRICE": ["CBPRICE"],
-    "COM_CSTNET": ["ENV_COST", "ENVCOST", "CCSTNET"],
-    "COM_CSTPRD": ["CCSTPRD"],
-    "COM_CUMNET": ["ENV_CUMMAX", "ENVCUM"],
-    "COM_ELAST": ["CELAST"],
-    "COM_ELASTX": ["ELASTX"],
-    "COM_IE": ["FRACTION"],
-    "COM_PKFLX": ["PKFLX"],
-    "COM_PKRSV": ["HRESERV"],
-    "COM_PROJ": ["DEMAND"],
-    "COM_STEP": ["CSTEP"],
-    "COM_SUBNET": ["CSUBNET"],
-    "COM_SUBPRD": ["CSUBPRD"],
-    "COM_TAXNET": ["CTAXNET"],
-    "COM_TAXPRD": ["CTAXPRD"],
-    "COM_VOC": ["CVOC"],
-    "DAM_BQTY": ["DBQTY"],
-    "DAM_COST": ["DAMCOST"],
-    "DAM_ELAST": ["DELAST"],
-    "DAM_STEP": ["DSTEP"],
-    "DAM_VOC": ["DVOC"],
-    "FLO_COST": ["FCOST"],
-    "FLO_DELIV": ["DELIV"],
-    "FLO_EMIS": ["ENV_ACT", "ENVACT", "FEMIS"],
-    "FLO_MARK": ["FMSHARE"],
-    "FLO_PKCOI": ["PKCOI"],
-    "FLO_SHAR": ["FLOSHAR", "SHARE", "SHARE-I", "SHARE-O"],
-    "G_CHNGMONY": ["CURREX"],
-    "G_DRATE": ["DISCOUNT"],
-    "G_RFRIR": ["RFRIR"],
-    "G_YRFR": ["YRFR"],
-    "IRE_FLOSUM": ["IFLOSUM"],
-    "IRE_PRICE": ["COST"],
-    "IRE_TSCVT": ["TSCVT"],
-    "IRE_XBND": ["IRE_XXBND"],
-    "NCAP_AF": ["AF", "AVAILABILITY", "CF", "UTILIZATION"],
-    "NCAP_AFA": ["AFA", "ARAF"],
-    "NCAP_AFAC": ["AFAC"],
-    "NCAP_AFC": ["AFC"],
-    "NCAP_AFCS": ["AFCS"],
-    "NCAP_AFM": ["AFM"],
-    "NCAP_AFS": ["AFS", "SRAF"],
-    "NCAP_AFSX": ["AFSX"],
-    "NCAP_AFX": ["AFX"],
-    "NCAP_BND": ["IBOND", "BNDINV"],
-    "NCAP_CHPR": ["CHPR"],
-    "NCAP_CLAG": ["CLAG"],
-    "NCAP_CLED": ["CLED"],
-    "NCAP_COM": ["ENV_CAP", "ENVCAP"],
-    "NCAP_COST": ["INVCOST"],
-    "NCAP_CPX": ["CPX"],
-    "NCAP_DCOST": ["DCOST"],
-    "NCAP_DELIF": ["DELIF"],
-    "NCAP_DLAG": ["DLAG"],
-    "NCAP_DLAGC": ["DLAGC"],
-    "NCAP_DLIFE": ["DLIFE"],
-    "NCAP_DRATE": ["DISCRATE", "DRATE"],
-    "NCAP_ELIFE": ["ELIFE"],
-    "NCAP_FOM": ["FIXOM"],
-    "NCAP_FOMM": ["FOMM"],
-    "NCAP_FOMX": ["FOMX"],
-    "NCAP_FSUB": ["FSUB"],
-    "NCAP_FSUBM": ["FSUBM"],
-    "NCAP_FSUBX": ["FSUBX"],
-    "NCAP_FTAX": ["TFTAX"],
-    "NCAP_FTAXM": ["FTAXM"],
-    "NCAP_FTAXX": ["FTAXX"],
-    "NCAP_ILED": ["ILED"],
-    "NCAP_ISPCT": ["ISPCT"],
-    "NCAP_ISUB": ["TISUB"],
-    "NCAP_ITAX": ["ITAX"],
-    "NCAP_OCOM": ["OCOM"],
-    "NCAP_OLIFE": ["OLIFE"],
-    "NCAP_PASTI": ["PASTI"],
-    "NCAP_PASTY": ["PASTY"],
-    "NCAP_PKCNT": ["PEAK", "PKCNT"],
-    "NCAP_START": ["START"],
-    "NCAP_TLIFE": ["LIFE"],
-    "PRC_ACTFLO": ["ACTFLO", "ACT2FLO"],
-    "PRC_CAPACT": ["CAPUNIT", "CAP2ACT"],
-    "PRC_RESID": ["RESID", "STOCK"],
-    "REG_BNDCST": ["BNDCST"],
-    "REG_CUMCST": ["CUMCST"],
-    "S_DAM_COST": ["S_DCOST", "SDAMCOST"],
-    "STG_CHRG": ["S_CHRG"],
-    "STG_EFF": ["S_EFF"],
-    "STG_LOSS": ["S_LOSS"],
-    "STGIN_BND": ["S_INBND"],
-    "STGOUT_BND": ["S_OUTBND"],
-    "VDA_CEH": ["CEH"],
-    "VDA_EMCB": ["EMCB"],
-    "VDA_FLOP": ["FLOP"],
-}
-
 attr_prop = {
     "COM_LIM": "limtype",
     "COM_TSL": "ctslvl",
@@ -148,191 +36,6 @@ attr_prop = {
     "PRC_PCG": "primarycg",
     "PRC_TSL": "tslvl",
     "PRC_VINT": "vintage",
-}
-
-# Specify, in order of priority, what to use as CommName if CommName is empty
-attr_com_def = {
-    "CEFF": ["commodity-in", "commodity-out"],  # this one is a Veda alias
-    "CEFFICIENCY": [
-        "commodity-in",
-        "commodity-out",
-    ],  # this one is an alias of the above
-    "CEFF-I": ["commodity-in"],
-    "CEFF-O": ["commodity-out"],
-    "FLO_COST": ["commodity-in", "commodity-out"],
-    "FLO_DELIV": ["commodity-in"],
-    "DELIV": ["commodity-in"],
-    "FLO_EMIS": ["commodity-out", "commodity-in"],
-    "FEMIS": ["commodity-out", "commodity-in"],
-    "FLO_EFF": ["commodity-out", "commodity-in"],
-    "ENV_ACT": ["commodity-out", "commodity-in"],
-    "ENVACT": ["commodity-out", "commodity-in"],
-    "FLO_MARK": ["commodity-in", "commodity-out"],
-    "FLO_SHAR": ["commodity-in", "commodity-out"],
-    "FLOSHAR": ["commodity-in", "commodity-out"],
-    "SHARE": ["commodity-in", "commodity-out"],
-    "SHARE-I": ["commodity-in"],
-    "SHARE-O": ["commodity-out"],
-    "FLO_SUB": ["commodity-out", "commodity-in"],
-    "FLO_TAX": ["commodity-out", "commodity-in"],
-    "STGIN_BND": ["commodity-in"],
-    "STGOUT_BND": ["commodity-out"],
-}
-
-attr_limtype_def = {
-    "FX": [
-        "ACT_LOSPL",
-        "FLO_SHAR",
-        "FLOSHAR",
-        "SHARE",
-        "SHARE-I",
-        "SHARE-O",
-        "NCAP_CHPR",
-        "CHPR",
-        "REG_BDNCAP",
-    ],
-    "LO": ["BS_STIME", "GR_VARGEN", "RCAP_BND"],
-    "UP": [
-        "ACT_BND",
-        "ACTBND",
-        "BNDACT",
-        "ACT_CSTRMP",
-        "ACT_CSTSD",
-        "ACT_CUM",
-        "CUM",
-        "ACT_LOSSD",
-        "ACT_SDTIME",
-        "ACT_TIME",
-        "ACT_UPS",
-        "BS_BNDPRS",
-        "BS_SHARE",
-        "CAP_BND",
-        "COM_BNDNET",
-        "COM_BNDPRD",
-        "COM_CUMNET",
-        "COM_CUMPRD",
-        "FLO_BND",
-        "FLO_CUM",
-        "FLO_FR",
-        "FLO_MARK",
-        "IRE_BND",
-        "IRE_XBND",
-        "NCAP_AF",
-        "AF",
-        "NCAP_AFA",
-        "AFA",
-        "NCAP_AFAC",
-        "NCAP_AFS",
-        "NCAP_AFSX",
-        "NCAP_BND",
-        "PRC_MARK",
-        "REG_BNDCST",
-        "REG_CUMCST",
-        "S_CAP_BND",
-        "S_COM_CUMNET",
-        "S_COM_CUMPRD",
-        "S_FLO_CUM",
-        "S_UC_RHS",
-        "S_UC_RHSR",
-        "S_UC_RHSRT",
-        "S_UC_RHSRTS",
-        "S_UC_RHSTS",
-        "STGIN_BND",
-        "STGOUT_BND",
-        "UC_DYNBND",
-        "UC_RHS",
-        "UC_RHSR",
-        "UC_RHSRT",
-        "UC_RHSRTS",
-        "UC_RHST",
-        "UC_RHSTS",
-    ],
-}
-
-attr_timeslice_def = {
-    "DAYNITE": ["ACT_CSTUP"],
-    "ANNUAL": [
-        "ACT_BND",
-        "ACTBND",
-        "BNDACT",
-        "ACT_EFF",
-        "CEFF",
-        "CEFF-O",
-        "CEFF-I",
-        "CEFFICIENCY",
-        "EFFICIENCY",
-        "EFF",
-        "ACT_FLO",
-        "ACT_UPS",
-        "BS_BNDPRS",
-        "BS_DELTA",
-        "BS_DEMDET",
-        "BS_MAINT",
-        "BS_OMEGA",
-        "BS_RMAX",
-        "BS_SIGMA",
-        "COM_BNDNET",
-        "COM_BNDPRD",
-        "COM_BPRICE",
-        "COM_CSTBAL",
-        "COM_CSTNET",
-        "COM_CSTPRD",
-        "COM_ELAST",
-        "COM_IE",
-        "COM_SUBNET",
-        "COM_SUBPRD",
-        "COM_TAXNET",
-        "COM_TAXPRD",
-        "FLO_BND",
-        "FLO_COST",
-        "FLO_DELIV",
-        "DELIV",
-        "FLO_EFF",
-        "FLO_EMIS",
-        "FEMIS",
-        "ENV_ACT",
-        "ENVACT",
-        "FLO_FUNC",
-        "FLO_SHAR",
-        "FLOSHAR",
-        "SHARE",
-        "SHARE-I",
-        "SHARE-O",
-        "FLO_SUB",
-        "FLO_TAX",
-        "G_YRFR",
-        "GR_DEMFR",
-        "IRE_BND",
-        "IRE_FLOSUM",
-        "IRE_PRICE",
-        "COST",
-        "IRE_XBND",
-        "NCAP_AF",
-        "AF",
-        "NCAP_AFC",
-        "AFC",
-        "NCAP_AFCS",
-        "NCAP_PKCNT",
-        "PEAK",
-        "PRC_FOFF",
-        "S_UC_RHSRTS",
-        "S_UC_RHSTS",
-        "STG_CHRG",
-        "STG_LOSS",
-        "STG_SIFT",
-        "STGIN_BND",
-        "STGOUT_BND",
-        "TS_CYCLE",
-        "UC_ACT",
-        "UC_COMCON",
-        "UC_COMNET",
-        "UC_COMPRD",
-        "UC_FLO",
-        "UC_IRE",
-        "UC_RHSRTS",
-        "UC_RHSTS",
-        "VDA_FLOP",
-    ],
 }
 
 
@@ -977,19 +680,22 @@ def fill_in_missing_values(
                 and len(df) > 0
             ):
                 isna = df[colname].isna()
-                for lim in attr_limtype_def.keys():
-                    df.loc[
-                        isna & df["attribute"].str.upper().isin(attr_limtype_def[lim]),
-                        colname,
-                    ] = lim
-            elif colname == "timeslice" and len(df) > 0 and "attribute" in df.columns:
-                isna = df[colname].isna()
-                for timeslice in attr_timeslice_def.keys():
+                for lim in config.veda_attr_defaults["limtype"].keys():
                     df.loc[
                         isna
                         & df["attribute"]
                         .str.upper()
-                        .isin(attr_timeslice_def[timeslice]),
+                        .isin(config.veda_attr_defaults["limtype"][lim]),
+                        colname,
+                    ] = lim
+            elif colname == "timeslice" and len(df) > 0 and "attribute" in df.columns:
+                isna = df[colname].isna()
+                for timeslice in config.veda_attr_defaults["tslvl"].keys():
+                    df.loc[
+                        isna
+                        & df["attribute"]
+                        .str.upper()
+                        .isin(config.veda_attr_defaults["tslvl"][timeslice]),
                         colname,
                     ] = timeslice
             elif (
@@ -1215,12 +921,14 @@ def apply_fixups(
 
         # Populate CommName based on defaults
         i = (
-            df["attribute"].str.upper().isin(attr_com_def.keys())
+            df["attribute"]
+            .str.upper()
+            .isin(config.veda_attr_defaults["commodity"].keys())
             & df["commodity"].isna()
         )
         if len(df[i]) > 0:
             for attr in df[i]["attribute"].unique():
-                for com_in_out in attr_com_def[attr.upper()]:
+                for com_in_out in config.veda_attr_defaults["commodity"][attr.upper()]:
                     index = i & (df["attribute"] == attr) & (df["commodity"].isna())
                     if len(df[index]) > 0:
                         df.loc[index, ["commodity"]] = df[index][com_in_out]
@@ -2442,7 +2150,7 @@ def convert_aliases(
 ) -> Dict[str, DataFrame]:
     # Ensure TIMES names for all attributes
     replacement_dict = {}
-    for k, v in aliases_by_attr.items():
+    for k, v in config.veda_attr_defaults["aliases"].items():
         for alias in v:
             replacement_dict[alias] = k
 
