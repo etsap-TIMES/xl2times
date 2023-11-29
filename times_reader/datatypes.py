@@ -290,39 +290,30 @@ class Config:
             defaults = json.load(f)
 
         veda_attr_defaults = {
-            "aliases": {},
+            "aliases": defaultdict(list),
             "commodity": {},
             "limtype": {"FX": [], "LO": [], "UP": []},
             "tslvl": {"DAYNITE": [], "ANNUAL": []},
         }
 
-        for attr in defaults.keys():
+        for attr, attr_info in defaults.items():
             # Populate aliases by attribute dictionary
-            if "times-attribute" in defaults[attr].keys():
-                times_attr = defaults[attr]["times-attribute"]
-                if times_attr in veda_attr_defaults["aliases"].keys():
-                    veda_attr_defaults["aliases"][times_attr] = veda_attr_defaults[
-                        "aliases"
-                    ][times_attr] + [attr]
-                else:
-                    veda_attr_defaults["aliases"][times_attr] = [attr]
+            if "times-attribute" in attr_info:
+                times_attr = attr_info["times-attribute"]
+                veda_attr_defaults["aliases"][times_attr].append(attr)
 
-            if "defaults" in defaults[attr].keys():
-                attr_defaults = defaults[attr]["defaults"]
+            if "defaults" in attr_info:
+                attr_defaults = attr_info["defaults"]
 
-                if "commodity" in attr_defaults.keys():
+                if "commodity" in attr_defaults:
                     veda_attr_defaults["commodity"][attr] = attr_defaults["commodity"]
 
-                if "limtype" in attr_defaults.keys():
+                if "limtype" in attr_defaults:
                     limtype = attr_defaults["limtype"]
-                    veda_attr_defaults["limtype"][limtype] = veda_attr_defaults[
-                        "limtype"
-                    ][limtype] + [attr]
+                    veda_attr_defaults["limtype"][limtype].append(attr)
 
-                if "ts-level" in attr_defaults.keys():
+                if "ts-level" in attr_defaults:
                     tslvl = attr_defaults["ts-level"]
-                    veda_attr_defaults["tslvl"][tslvl] = veda_attr_defaults["tslvl"][
-                        tslvl
-                    ] + [attr]
+                    veda_attr_defaults["tslvl"][tslvl].append(attr)
 
         return veda_attr_defaults
