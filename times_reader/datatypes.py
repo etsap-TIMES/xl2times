@@ -160,18 +160,27 @@ class Config:
         veda_attr_defaults_file: str,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
-        self.dd_table_order, self.all_attributes = Config._process_times_info(
-            times_info_file
-        )
+        (
+            self.dd_table_order,
+            self.all_attributes,
+            param_mappings,
+        ) = Config._process_times_info(times_info_file)
         self.column_aliases, self.row_comment_chars = Config._read_veda_tags_info(
             veda_tags_file
         )
         self.veda_attr_defaults = Config._read_veda_attr_defaults(
             veda_attr_defaults_file
         )
+        # Migration in progress: use parameter mappings from times_info_file for now
+        name_to_map = {m.times_name: m for m in self.times_xl_maps}
+        for m in param_mappings:
+            name_to_map[m.times_name] = m
+        self.times_xl_maps = list(name_to_map.values())
 
     @staticmethod
-    def _process_times_info(times_info_file: str) -> Tuple[Iterable[str], Set[str]]:
+    def _process_times_info(
+        times_info_file: str,
+    ) -> Tuple[Iterable[str], Set[str], List[TimesXlMap]]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
         with resources.open_text("times_reader.config", times_info_file) as f:
@@ -193,7 +202,27 @@ class Config:
             for item in table_info
             if item["gams-cat"] == "parameter"
         }
-        return dd_table_order, attributes
+
+        # Compute the mapping for attributes / parameters:
+        def create_mapping(entity):
+            assert entity["gams-cat"] == "parameter"
+            times_cols = entity["indexes"] + ["VALUE"]
+            xl_cols = entity["mapping"] + ["value"]  # TODO map in json
+            col_map = dict(zip(times_cols, xl_cols))
+            return TimesXlMap(
+                times_name=entity["name"],
+                times_cols=times_cols,
+                xl_name="MainData",  # TODO make this a Tag?
+                xl_cols=xl_cols,
+                col_map=col_map,
+                filter_rows={"attribute": entity["name"]},  # TODO value:1?
+            )
+
+        param_mappings = [
+            create_mapping(x) for x in table_info if x["gams-cat"] == "parameter"
+        ]
+
+        return dd_table_order, attributes, param_mappings
 
     @staticmethod
     def _read_mappings(filename: str) -> List[TimesXlMap]:

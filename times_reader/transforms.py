@@ -299,12 +299,6 @@ def merge_tables(
             set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group
         ):
             cols = [(",".join(g.dataframe.columns), g) for g in group]
-            cols_groups = [
-                (key, list(group))
-                for key, group in groupby(
-                    sorted(cols, key=lambda ct: ct[0]), lambda ct: ct[0]
-                )
-            ]
             print(
                 f"WARNING: Cannot merge tables with tag {key} as their columns are not identical"
             )
@@ -2143,6 +2137,15 @@ def process_time_slices(
             timeslices_table(table, regions, result)
 
     return result
+
+
+def create_main_data_table(
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
+    """Merge FI_T and UC_T into one MainData table"""
+    dfs = [tables.pop(datatypes.Tag.fi_t, None), tables.pop(datatypes.Tag.uc_t, None)]
+    tables["MainData"] = pd.concat(dfs, ignore_index=True)
+    return tables
 
 
 def convert_to_string(
