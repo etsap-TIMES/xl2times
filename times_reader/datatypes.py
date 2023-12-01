@@ -254,16 +254,26 @@ class Config:
 
     @staticmethod
     def _read_veda_tags_info(veda_tags_file: str) -> Dict[Tag, Dict[str, str]]:
+        def to_tag(s: str) -> Tag:
+            # The file stores the tag name in lowercase, and without the ~
+            return Tag("~" + s.upper())
+
         # Read veda_tags_file
         with resources.open_text("times_reader.config", veda_tags_file) as f:
             veda_tags_info = json.load(f)
+
+        # Check that all the tags we use are present in veda_tags_file
+        tags = {to_tag(tag_info["tag_name"]) for tag_info in veda_tags_info}
+        for tag in Tag:
+            if tag not in tags:
+                print(
+                    f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
+                )
+
         column_aliases = {}
         for tag_info in veda_tags_info:
             if "tag_fields" in tag_info:
-                # The file stores the tag name in lowercase, and without the ~
-                tag_name = "~" + tag_info["tag_name"].upper()
-                if not Tag.has_tag(tag_name):
-                    raise ValueError(f"{veda_tags_file} has an unknown Tag {tag_name}")
+                tag_name = to_tag(tag_info["tag_name"])
                 column_aliases[tag_name] = {}
                 names = tag_info["tag_fields"]["fields_names"]
                 aliases = tag_info["tag_fields"]["fields_aliases"]
