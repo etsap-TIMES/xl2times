@@ -61,7 +61,7 @@ class Tag(str, Enum):
     uc_sets = "~UC_SETS"
     uc_t = "~UC_T"
     # This is used by Veda for unit conversion when displaying results
-    # unitconversion = "~UNITCONVERSION"
+    unitconversion = "~UNITCONVERSION"
 
     @classmethod
     def has_tag(cls, tag):

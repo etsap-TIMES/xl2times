@@ -102,15 +102,6 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
 
     df = table.dataframe.drop(comment_cols, axis=1)
     df.reset_index(drop=True, inplace=True)
-
-    # TODO: should we move the code below to a separate transform?
-    seen = set()
-    dupes = [x for x in df.columns if x in seen or seen.add(x)]
-    if len(dupes) > 0:
-        print(
-            f"WARNING: Duplicate columns in {table.range}, {table.sheetname},"
-            f" {table.filename}: {','.join(dupes)}"
-        )
     return replace(table, dataframe=df)
 
 
@@ -138,15 +129,13 @@ def remove_tables_with_formulas(
     return [table for table in tables if not has_formulas(table)]
 
 
-def remove_empty_tables(
+def validate_input_tables(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Return a modified copy of 'tables' where empty tables have been deleted from the list.
-
-    :param tables:      List of tables in EmbeddedXlTable format.
-    :return:            List of non-empty tables in EmbeddedXlTable format.
+    Perform some basic validation (tag names are valid, no duplicate column labels), and
+    remove empty tables (for recognized tags).
     """
 
     check_list = [
@@ -181,10 +170,29 @@ def remove_empty_tables(
     def discard(table):
         if table.tag in check_list:
             return not table.dataframe.shape[0]
+        elif table.tag == datatypes.Tag.unitconversion:
+            print("Dropping ~UNITCONVERSION table")
+            return True
         else:
             return False
 
-    return [table for table in tables if not discard(table)]
+    result = []
+    for table in tables:
+        if not datatypes.Tag.has_tag(table.tag.split(":")[0]):
+            print(f"WARNING: Dropping table with unrecognized tag {table.tag}")
+            continue
+        if discard(table):
+            continue
+        # Check for duplicate columns:
+        seen = set()
+        dupes = [x for x in table.dataframe.columns if x in seen or seen.add(x)]
+        if len(dupes) > 0:
+            print(
+                f"WARNING: Duplicate columns in {table.range}, {table.sheetname},"
+                f" {table.filename}: {','.join(dupes)}"
+            )
+        result.append(table)
+    return result
 
 
 def normalize_tags_columns(
