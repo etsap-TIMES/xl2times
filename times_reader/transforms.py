@@ -29,118 +29,6 @@ default_pcg_suffixes = [
     cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
 ]
 
-# Specify a list of aliases per TIMES attribute
-aliases_by_attr = {
-    "ACT_BND": ["ACTBND", "BNDACT"],
-    "ACT_COST": ["ACTCOST", "VAROM"],
-    "ACT_CUM": ["CUM"],
-    "ACT_EFF": [
-        "CEFF",
-        "CEFFICIENCY",
-        "CEFF-I",
-        "CEFF-O",
-        "EFF",
-        "EFFICIENCY",
-        "VDA_EFF",
-    ],
-    "CAP_BND": ["BNDCAP"],
-    "COM_AGG": ["CAGG"],
-    "COM_BNDNET": ["ENVBND", "CBNDNET"],
-    "COM_BNDPRD": ["CBNDPRD"],
-    "COM_BPRICE": ["CBPRICE"],
-    "COM_CSTNET": ["ENV_COST", "ENVCOST", "CCSTNET"],
-    "COM_CSTPRD": ["CCSTPRD"],
-    "COM_CUMNET": ["ENV_CUMMAX", "ENVCUM"],
-    "COM_ELAST": ["CELAST"],
-    "COM_ELASTX": ["ELASTX"],
-    "COM_IE": ["FRACTION"],
-    "COM_PKFLX": ["PKFLX"],
-    "COM_PKRSV": ["HRESERV"],
-    "COM_PROJ": ["DEMAND"],
-    "COM_STEP": ["CSTEP"],
-    "COM_SUBNET": ["CSUBNET"],
-    "COM_SUBPRD": ["CSUBPRD"],
-    "COM_TAXNET": ["CTAXNET"],
-    "COM_TAXPRD": ["CTAXPRD"],
-    "COM_VOC": ["CVOC"],
-    "DAM_BQTY": ["DBQTY"],
-    "DAM_COST": ["DAMCOST"],
-    "DAM_ELAST": ["DELAST"],
-    "DAM_STEP": ["DSTEP"],
-    "DAM_VOC": ["DVOC"],
-    "FLO_COST": ["FCOST"],
-    "FLO_DELIV": ["DELIV"],
-    "FLO_EMIS": ["ENV_ACT", "ENVACT", "FEMIS"],
-    "FLO_MARK": ["FMSHARE"],
-    "FLO_PKCOI": ["PKCOI"],
-    "FLO_SHAR": ["FLOSHAR", "SHARE", "SHARE-I", "SHARE-O"],
-    "G_CHNGMONY": ["CURREX"],
-    "G_DRATE": ["DISCOUNT"],
-    "G_RFRIR": ["RFRIR"],
-    "G_YRFR": ["YRFR"],
-    "IRE_FLOSUM": ["IFLOSUM"],
-    "IRE_PRICE": ["COST"],
-    "IRE_TSCVT": ["TSCVT"],
-    "IRE_XBND": ["IRE_XXBND"],
-    "NCAP_AF": ["AF", "AVAILABILITY", "CF", "UTILIZATION"],
-    "NCAP_AFA": ["AFA", "ARAF"],
-    "NCAP_AFAC": ["AFAC"],
-    "NCAP_AFC": ["AFC"],
-    "NCAP_AFCS": ["AFCS"],
-    "NCAP_AFM": ["AFM"],
-    "NCAP_AFS": ["AFS", "SRAF"],
-    "NCAP_AFSX": ["AFSX"],
-    "NCAP_AFX": ["AFX"],
-    "NCAP_BND": ["IBOND", "BNDINV"],
-    "NCAP_CHPR": ["CHPR"],
-    "NCAP_CLAG": ["CLAG"],
-    "NCAP_CLED": ["CLED"],
-    "NCAP_COM": ["ENV_CAP", "ENVCAP"],
-    "NCAP_COST": ["INVCOST"],
-    "NCAP_CPX": ["CPX"],
-    "NCAP_DCOST": ["DCOST"],
-    "NCAP_DELIF": ["DELIF"],
-    "NCAP_DLAG": ["DLAG"],
-    "NCAP_DLAGC": ["DLAGC"],
-    "NCAP_DLIFE": ["DLIFE"],
-    "NCAP_DRATE": ["DISCRATE", "DRATE"],
-    "NCAP_ELIFE": ["ELIFE"],
-    "NCAP_FOM": ["FIXOM"],
-    "NCAP_FOMM": ["FOMM"],
-    "NCAP_FOMX": ["FOMX"],
-    "NCAP_FSUB": ["FSUB"],
-    "NCAP_FSUBM": ["FSUBM"],
-    "NCAP_FSUBX": ["FSUBX"],
-    "NCAP_FTAX": ["TFTAX"],
-    "NCAP_FTAXM": ["FTAXM"],
-    "NCAP_FTAXX": ["FTAXX"],
-    "NCAP_ILED": ["ILED"],
-    "NCAP_ISPCT": ["ISPCT"],
-    "NCAP_ISUB": ["TISUB"],
-    "NCAP_ITAX": ["ITAX"],
-    "NCAP_OCOM": ["OCOM"],
-    "NCAP_OLIFE": ["OLIFE"],
-    "NCAP_PASTI": ["PASTI"],
-    "NCAP_PASTY": ["PASTY"],
-    "NCAP_PKCNT": ["PEAK", "PKCNT"],
-    "NCAP_START": ["START"],
-    "NCAP_TLIFE": ["LIFE"],
-    "PRC_ACTFLO": ["ACTFLO", "ACT2FLO"],
-    "PRC_CAPACT": ["CAPUNIT", "CAP2ACT"],
-    "PRC_RESID": ["RESID", "STOCK"],
-    "REG_BNDCST": ["BNDCST"],
-    "REG_CUMCST": ["CUMCST"],
-    "S_DAM_COST": ["S_DCOST", "SDAMCOST"],
-    "STG_CHRG": ["S_CHRG"],
-    "STG_EFF": ["S_EFF"],
-    "STG_LOSS": ["S_LOSS"],
-    "STGIN_BND": ["S_INBND"],
-    "STGOUT_BND": ["S_OUTBND"],
-    "VDA_CEH": ["CEH"],
-    "VDA_EMCB": ["EMCB"],
-    "VDA_FLOP": ["FLOP"],
-}
-
 attr_prop = {
     "COM_LIM": "limtype",
     "COM_TSL": "ctslvl",
@@ -150,201 +38,14 @@ attr_prop = {
     "PRC_VINT": "vintage",
 }
 
-# Specify, in order of priority, what to use as CommName if CommName is empty
-attr_com_def = {
-    "CEFF": ["commodity-in", "commodity-out"],  # this one is a Veda alias
-    "CEFFICIENCY": [
-        "commodity-in",
-        "commodity-out",
-    ],  # this one is an alias of the above
-    "CEFF-I": ["commodity-in"],
-    "CEFF-O": ["commodity-out"],
-    "FLO_COST": ["commodity-in", "commodity-out"],
-    "FLO_DELIV": ["commodity-in"],
-    "DELIV": ["commodity-in"],
-    "FLO_EMIS": ["commodity-out", "commodity-in"],
-    "FEMIS": ["commodity-out", "commodity-in"],
-    "FLO_EFF": ["commodity-out", "commodity-in"],
-    "ENV_ACT": ["commodity-out", "commodity-in"],
-    "ENVACT": ["commodity-out", "commodity-in"],
-    "FLO_MARK": ["commodity-in", "commodity-out"],
-    "FLO_SHAR": ["commodity-in", "commodity-out"],
-    "FLOSHAR": ["commodity-in", "commodity-out"],
-    "SHARE": ["commodity-in", "commodity-out"],
-    "SHARE-I": ["commodity-in"],
-    "SHARE-O": ["commodity-out"],
-    "FLO_SUB": ["commodity-out", "commodity-in"],
-    "FLO_TAX": ["commodity-out", "commodity-in"],
-    "STGIN_BND": ["commodity-in"],
-    "STGOUT_BND": ["commodity-out"],
-}
 
-attr_limtype_def = {
-    "FX": [
-        "ACT_LOSPL",
-        "FLO_SHAR",
-        "FLOSHAR",
-        "SHARE",
-        "SHARE-I",
-        "SHARE-O",
-        "NCAP_CHPR",
-        "CHPR",
-        "REG_BDNCAP",
-    ],
-    "LO": ["BS_STIME", "GR_VARGEN", "RCAP_BND"],
-    "UP": [
-        "ACT_BND",
-        "ACTBND",
-        "BNDACT",
-        "ACT_CSTRMP",
-        "ACT_CSTSD",
-        "ACT_CUM",
-        "CUM",
-        "ACT_LOSSD",
-        "ACT_SDTIME",
-        "ACT_TIME",
-        "ACT_UPS",
-        "BS_BNDPRS",
-        "BS_SHARE",
-        "CAP_BND",
-        "COM_BNDNET",
-        "COM_BNDPRD",
-        "COM_CUMNET",
-        "COM_CUMPRD",
-        "FLO_BND",
-        "FLO_CUM",
-        "FLO_FR",
-        "FLO_MARK",
-        "IRE_BND",
-        "IRE_XBND",
-        "NCAP_AF",
-        "AF",
-        "NCAP_AFA",
-        "AFA",
-        "NCAP_AFAC",
-        "NCAP_AFS",
-        "NCAP_AFSX",
-        "NCAP_BND",
-        "PRC_MARK",
-        "REG_BNDCST",
-        "REG_CUMCST",
-        "S_CAP_BND",
-        "S_COM_CUMNET",
-        "S_COM_CUMPRD",
-        "S_FLO_CUM",
-        "S_UC_RHS",
-        "S_UC_RHSR",
-        "S_UC_RHSRT",
-        "S_UC_RHSRTS",
-        "S_UC_RHSTS",
-        "STGIN_BND",
-        "STGOUT_BND",
-        "UC_DYNBND",
-        "UC_RHS",
-        "UC_RHSR",
-        "UC_RHSRT",
-        "UC_RHSRTS",
-        "UC_RHST",
-        "UC_RHSTS",
-    ],
-}
-
-attr_timeslice_def = {
-    "DAYNITE": ["ACT_CSTUP"],
-    "ANNUAL": [
-        "ACT_BND",
-        "ACTBND",
-        "BNDACT",
-        "ACT_EFF",
-        "CEFF",
-        "CEFF-O",
-        "CEFF-I",
-        "CEFFICIENCY",
-        "EFFICIENCY",
-        "EFF",
-        "ACT_FLO",
-        "ACT_UPS",
-        "BS_BNDPRS",
-        "BS_DELTA",
-        "BS_DEMDET",
-        "BS_MAINT",
-        "BS_OMEGA",
-        "BS_RMAX",
-        "BS_SIGMA",
-        "COM_BNDNET",
-        "COM_BNDPRD",
-        "COM_BPRICE",
-        "COM_CSTBAL",
-        "COM_CSTNET",
-        "COM_CSTPRD",
-        "COM_ELAST",
-        "COM_IE",
-        "COM_SUBNET",
-        "COM_SUBPRD",
-        "COM_TAXNET",
-        "COM_TAXPRD",
-        "FLO_BND",
-        "FLO_COST",
-        "FLO_DELIV",
-        "DELIV",
-        "FLO_EFF",
-        "FLO_EMIS",
-        "FEMIS",
-        "ENV_ACT",
-        "ENVACT",
-        "FLO_FUNC",
-        "FLO_SHAR",
-        "FLOSHAR",
-        "SHARE",
-        "SHARE-I",
-        "SHARE-O",
-        "FLO_SUB",
-        "FLO_TAX",
-        "G_YRFR",
-        "GR_DEMFR",
-        "IRE_BND",
-        "IRE_FLOSUM",
-        "IRE_PRICE",
-        "COST",
-        "IRE_XBND",
-        "NCAP_AF",
-        "AF",
-        "NCAP_AFC",
-        "AFC",
-        "NCAP_AFCS",
-        "NCAP_PKCNT",
-        "PEAK",
-        "PRC_FOFF",
-        "S_UC_RHSRTS",
-        "S_UC_RHSTS",
-        "STG_CHRG",
-        "STG_LOSS",
-        "STG_SIFT",
-        "STGIN_BND",
-        "STGOUT_BND",
-        "TS_CYCLE",
-        "UC_ACT",
-        "UC_COMCON",
-        "UC_COMNET",
-        "UC_COMPRD",
-        "UC_FLO",
-        "UC_IRE",
-        "UC_RHSRTS",
-        "UC_RHSTS",
-        "VDA_FLOP",
-    ],
-}
-
-
-def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
+def remove_comment_rows(
+    config: datatypes.Config, table: datatypes.EmbeddedXlTable
+) -> datatypes.EmbeddedXlTable:
     """
-    Return a modified copy of 'table' where rows with cells containig '*'
-    or '\I:' in their first or third columns have been deleted. These characters
-    are defined in https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-    as comment identifiers (pag 15).
-    TODO: we believe the deletion of the third column is a bug. We tried deleting that part
-    of the code but we failed to parse a row as a consequence. We need to investigate why,
-    fix that parsing and remove the deletion of the third column.
+    Return a modified copy of 'table' where rows with cells starting with symbols
+    indicating a comment row in any column have been deleted. Comment row symbols
+    are column name dependant and are specified in the config.
 
     :param table:       Table object in EmbeddedXlTable format.
     :return:            Table object in EmbeddedXlTable format without comment rows.
@@ -353,35 +54,39 @@ def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         return table
 
     df = table.dataframe.copy()
-    comment_rows = list(
-        locate(
-            df.iloc[:, 0],
-            lambda cell: isinstance(cell, str)
-            and (cell.startswith("*") or cell.startswith("\\I:")),
-        )
-    )
-    df.drop(index=comment_rows, inplace=True)
+
+    tag = table.tag.split(":")[0]
+
+    if tag in config.row_comment_chars:
+        chars_by_colname = config.row_comment_chars[tag]
+    else:
+        return table
+
+    comment_rows = set()
+
+    for colname in df.columns:
+        if colname in chars_by_colname.keys():
+            comment_rows.update(
+                list(
+                    locate(
+                        df[colname],
+                        lambda cell: isinstance(cell, str)
+                        and (cell.startswith(tuple(chars_by_colname[colname]))),
+                    )
+                )
+            )
+
+    df.drop(index=list(comment_rows), inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # TODO: the deletion of this third column is a bug. Removing it causes the
-    # program to fail parse all rows. We need to fix the parsing so it can read
-    # all rows and remove this code block.
-    if df.shape[1] > 1:
-        comment_rows = list(
-            locate(
-                df.iloc[:, 1],
-                lambda cell: isinstance(cell, str) and cell.startswith("*"),
-            )
-        )
-        df.drop(index=comment_rows, inplace=True)
-        df.reset_index(drop=True, inplace=True)
     return replace(table, dataframe=df)
 
 
 def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
     """
     Return a modified copy of 'table' where columns with labels starting with '*'
-    have been deleted.
+    have been deleted. Assumes that any leading spaces in the original input table
+    have been removed.
 
     :param table:       Table object in EmbeddedXlTable format.
     :return:            Table object in EmbeddedXlTable format without comment columns.
@@ -389,14 +94,16 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     if table.dataframe.size == 0:
         return table
 
-    comment_cols = list(
-        locate(
-            table.dataframe.columns,
-            lambda cell: isinstance(cell, str) and cell.startswith("*"),
-        )
-    )
-    df = table.dataframe.drop(table.dataframe.columns[comment_cols], axis=1)
+    comment_cols = [
+        colname
+        for colname in table.dataframe.columns
+        if isinstance(colname, str) and colname.startswith("*")
+    ]
+
+    df = table.dataframe.drop(comment_cols, axis=1)
     df.reset_index(drop=True, inplace=True)
+
+    # TODO: should we move the code below to a separate transform?
     seen = set()
     dupes = [x for x in df.columns if x in seen or seen.add(x)]
     if len(dupes) > 0:
@@ -480,21 +187,18 @@ def remove_empty_tables(
     return [table for table in tables if not discard(table)]
 
 
-def normalize_tags_columns_attrs(
+def normalize_tags_columns(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Normalize (uppercase) tags, (lowercase) column names, and (uppercase) values in
-    attribute columns.
+    Normalize (uppercase) tags and (lowercase) column names.
 
 
     :param tables:      List of tables in EmbeddedXlTable format.
     :return:            List of tables in EmbeddedXlTable format with normalzed values.
     """
 
-    # TODO Normalize column names and attribute values in mapping.txt when reading it
-    # TODO Check all string literals left in file
     def normalize(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
         # Only uppercase upto ':', the rest can be non-uppercase values like regions
         parts = table.tag.split(":")
@@ -536,6 +240,7 @@ def apply_postnormalisation_fixes(
     config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
 ) -> List[datatypes.EmbeddedXlTable]:
     rename_cols_dict = {
+        datatypes.Tag.comemi: {"commname": "commodity"},
         datatypes.Tag.fi_comm: {"commname": "commodity"},
         datatypes.Tag.fi_process: {"techname": "process"},
         datatypes.Tag.tfm_comgrp: {"value": "allregions"},
@@ -634,7 +339,7 @@ def process_flexible_import_tables(
     # Get a list of allowed values for each category.
     legal_values = {
         "limtype": {"LO", "UP", "FX"},
-        "timeslice": utils.timeslices(tables),
+        "timeslice": utils.extract_timeslices(tables),
         "commodity-out": set(
             utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
@@ -764,9 +469,14 @@ def process_flexible_import_tables(
                 .loc[veda_process_sets["process"] == process]
                 .unique()
             )
-            df.loc[i & (df["process"] == process), other] = cost_mapping[
-                veda_process_set[0]
-            ]
+            if veda_process_set.shape[0]:
+                df.loc[i & (df["process"] == process), other] = cost_mapping[
+                    veda_process_set[0]
+                ]
+            else:
+                print(
+                    f"WARNING: COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
+                )
 
         # Use CommName to store the active commodity for EXP / IMP
         i = df[attribute].isin(["COST", "IRE_PRICE"])
@@ -892,6 +602,13 @@ def process_user_constraint_tables(
                 df[colname] = [None] * nrows
         table = replace(table, dataframe=df)
 
+        # Fill missing regions using defaults (if specified)
+        regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R")]
+        if table.uc_sets[regions_lists[-1]] != "":
+            regions = table.uc_sets[regions_lists[-1]]
+            if regions.lower() != "allregions":
+                df["region"] = df["region"].fillna(regions)
+
         # TODO: detect RHS correctly
         i = df["side"].isna()
         df.loc[i, "side"] = "LHS"
@@ -977,19 +694,22 @@ def fill_in_missing_values(
                 and len(df) > 0
             ):
                 isna = df[colname].isna()
-                for lim in attr_limtype_def.keys():
-                    df.loc[
-                        isna & df["attribute"].str.upper().isin(attr_limtype_def[lim]),
-                        colname,
-                    ] = lim
-            elif colname == "timeslice" and len(df) > 0 and "attribute" in df.columns:
-                isna = df[colname].isna()
-                for timeslice in attr_timeslice_def.keys():
+                for lim in config.veda_attr_defaults["limtype"].keys():
                     df.loc[
                         isna
                         & df["attribute"]
                         .str.upper()
-                        .isin(attr_timeslice_def[timeslice]),
+                        .isin(config.veda_attr_defaults["limtype"][lim]),
+                        colname,
+                    ] = lim
+            elif colname == "timeslice" and len(df) > 0 and "attribute" in df.columns:
+                isna = df[colname].isna()
+                for timeslice in config.veda_attr_defaults["tslvl"].keys():
+                    df.loc[
+                        isna
+                        & df["attribute"]
+                        .str.upper()
+                        .isin(config.veda_attr_defaults["tslvl"][timeslice]),
                         colname,
                     ] = timeslice
             elif (
@@ -1215,12 +935,14 @@ def apply_fixups(
 
         # Populate CommName based on defaults
         i = (
-            df["attribute"].str.upper().isin(attr_com_def.keys())
+            df["attribute"]
+            .str.upper()
+            .isin(config.veda_attr_defaults["commodity"].keys())
             & df["commodity"].isna()
         )
         if len(df[i]) > 0:
             for attr in df[i]["attribute"].unique():
-                for com_in_out in attr_com_def[attr.upper()]:
+                for com_in_out in config.veda_attr_defaults["commodity"][attr.upper()]:
                     index = i & (df["attribute"] == attr) & (df["commodity"].isna())
                     if len(df[index]) > 0:
                         df.loc[index, ["commodity"]] = df[index][com_in_out]
@@ -1566,8 +1288,6 @@ def process_commodity_emissions(
             result.append(table)
         else:
             df = table.dataframe.copy()
-            # TODO either add ~COMEMI to veda-tags.json or do this somewhere less hacky:
-            df.rename(columns={"commname": "commodity"}, inplace=True)
             index_columns = ["region", "year", "commodity"]
             data_columns = [
                 colname for colname in df.columns if colname not in index_columns
@@ -1579,7 +1299,9 @@ def process_commodity_emissions(
 
             if "region" in df.columns:
                 df = df.astype({"region": "string"})
-                df["region"] = df["region"].map(lambda s: s.split(","))
+                df["region"] = df["region"].map(
+                    lambda s: s.split(",") if isinstance(s, str) else s
+                )
                 df = df.explode("region", ignore_index=True)
                 df = df[df["region"].isin(regions)]
 
@@ -2442,7 +2164,7 @@ def convert_aliases(
 ) -> Dict[str, DataFrame]:
     # Ensure TIMES names for all attributes
     replacement_dict = {}
-    for k, v in aliases_by_attr.items():
+    for k, v in config.veda_attr_defaults["aliases"].items():
         for alias in v:
             replacement_dict[alias] = k
 

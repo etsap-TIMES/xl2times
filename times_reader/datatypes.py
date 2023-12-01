@@ -148,13 +148,27 @@ class Config:
     all_attributes: Set[str]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: Dict[Tag, Dict[str, str]]
+    # For each tag, this dictionary specifies comment row symbols by column name
+    row_comment_chars: Dict[Tag, Dict[str, list]]
+    veda_attr_defaults: Dict[str, Dict[str, list]]
 
-    def __init__(self, mapping_file: str, times_info_file: str, veda_tags_file: str):
+    def __init__(
+        self,
+        mapping_file: str,
+        times_info_file: str,
+        veda_tags_file: str,
+        veda_attr_defaults_file: str,
+    ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         self.dd_table_order, self.all_attributes = Config._process_times_info(
             times_info_file
         )
-        self.column_aliases = Config._read_veda_tags_info(veda_tags_file)
+        self.column_aliases, self.row_comment_chars = Config._read_veda_tags_info(
+            veda_tags_file
+        )
+        self.veda_attr_defaults = Config._read_veda_attr_defaults(
+            veda_attr_defaults_file
+        )
 
     @staticmethod
     def _process_times_info(times_info_file: str) -> Tuple[Iterable[str], Set[str]]:
@@ -253,7 +267,9 @@ class Config:
         return mappings
 
     @staticmethod
-    def _read_veda_tags_info(veda_tags_file: str) -> Dict[Tag, Dict[str, str]]:
+    def _read_veda_tags_info(
+        veda_tags_file: str,
+    ) -> Tuple[Dict[Tag, Dict[str, str]], Dict[Tag, Dict[str, list]]]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
             return Tag("~" + s.upper())
@@ -271,9 +287,12 @@ class Config:
                 )
 
         column_aliases = {}
+        row_comment_chars = {}
+
         for tag_info in veda_tags_info:
             if "tag_fields" in tag_info:
                 tag_name = to_tag(tag_info["tag_name"])
+                # Process column aliases:
                 column_aliases[tag_name] = {}
                 names = tag_info["tag_fields"]["fields_names"]
                 aliases = tag_info["tag_fields"]["fields_aliases"]
@@ -281,4 +300,47 @@ class Config:
                 for name, aliases in zip(names, aliases):
                     for alias in aliases:
                         column_aliases[tag_name][alias] = name
-        return column_aliases
+                # Process comment chars:
+                row_comment_chars[tag_name] = {}
+                chars = tag_info["tag_fields"]["row_ignore_symbol"]
+                assert len(names) == len(chars)
+                for name, chars_list in zip(names, chars):
+                    row_comment_chars[tag_name][name] = chars_list
+        return column_aliases, row_comment_chars
+
+    @staticmethod
+    def _read_veda_attr_defaults(
+        veda_attr_defaults_file: str,
+    ) -> Dict[str, Dict[str, list]]:
+        # Read veda_tags_file
+        with resources.open_text("times_reader.config", veda_attr_defaults_file) as f:
+            defaults = json.load(f)
+
+        veda_attr_defaults = {
+            "aliases": defaultdict(list),
+            "commodity": {},
+            "limtype": {"FX": [], "LO": [], "UP": []},
+            "tslvl": {"DAYNITE": [], "ANNUAL": []},
+        }
+
+        for attr, attr_info in defaults.items():
+            # Populate aliases by attribute dictionary
+            if "times-attribute" in attr_info:
+                times_attr = attr_info["times-attribute"]
+                veda_attr_defaults["aliases"][times_attr].append(attr)
+
+            if "defaults" in attr_info:
+                attr_defaults = attr_info["defaults"]
+
+                if "commodity" in attr_defaults:
+                    veda_attr_defaults["commodity"][attr] = attr_defaults["commodity"]
+
+                if "limtype" in attr_defaults:
+                    limtype = attr_defaults["limtype"]
+                    veda_attr_defaults["limtype"][limtype].append(attr)
+
+                if "ts-level" in attr_defaults:
+                    tslvl = attr_defaults["ts-level"]
+                    veda_attr_defaults["tslvl"][tslvl].append(attr)
+
+        return veda_attr_defaults
