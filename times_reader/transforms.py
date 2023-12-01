@@ -39,15 +39,13 @@ attr_prop = {
 }
 
 
-def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
+def remove_comment_rows(
+    config: datatypes.Config, table: datatypes.EmbeddedXlTable
+) -> datatypes.EmbeddedXlTable:
     """
-    Return a modified copy of 'table' where rows with cells containig '*'
-    or '\I:' in their first or third columns have been deleted. These characters
-    are defined in https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-    as comment identifiers (pag 15).
-    TODO: we believe the deletion of the third column is a bug. We tried deleting that part
-    of the code but we failed to parse a row as a consequence. We need to investigate why,
-    fix that parsing and remove the deletion of the third column.
+    Return a modified copy of 'table' where rows with cells starting with symbols
+    indicating a comment row in any column have been deleted. Comment row symbols
+    are column name dependant and are specified in the config.
 
     :param table:       Table object in EmbeddedXlTable format.
     :return:            Table object in EmbeddedXlTable format without comment rows.
@@ -56,35 +54,39 @@ def remove_comment_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         return table
 
     df = table.dataframe.copy()
-    comment_rows = list(
-        locate(
-            df.iloc[:, 0],
-            lambda cell: isinstance(cell, str)
-            and (cell.startswith("*") or cell.startswith("\\I:")),
-        )
-    )
-    df.drop(index=comment_rows, inplace=True)
+
+    tag = table.tag.split(":")[0]
+
+    if tag in config.row_comment_chars:
+        chars_by_colname = config.row_comment_chars[tag]
+    else:
+        return table
+
+    comment_rows = set()
+
+    for colname in df.columns:
+        if colname in chars_by_colname.keys():
+            comment_rows.update(
+                list(
+                    locate(
+                        df[colname],
+                        lambda cell: isinstance(cell, str)
+                        and (cell.startswith(tuple(chars_by_colname[colname]))),
+                    )
+                )
+            )
+
+    df.drop(index=list(comment_rows), inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # TODO: the deletion of this third column is a bug. Removing it causes the
-    # program to fail parse all rows. We need to fix the parsing so it can read
-    # all rows and remove this code block.
-    if df.shape[1] > 1:
-        comment_rows = list(
-            locate(
-                df.iloc[:, 1],
-                lambda cell: isinstance(cell, str) and cell.startswith("*"),
-            )
-        )
-        df.drop(index=comment_rows, inplace=True)
-        df.reset_index(drop=True, inplace=True)
     return replace(table, dataframe=df)
 
 
 def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
     """
     Return a modified copy of 'table' where columns with labels starting with '*'
-    have been deleted.
+    have been deleted. Assumes that any leading spaces in the original input table
+    have been removed.
 
     :param table:       Table object in EmbeddedXlTable format.
     :return:            Table object in EmbeddedXlTable format without comment columns.
@@ -92,14 +94,16 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     if table.dataframe.size == 0:
         return table
 
-    comment_cols = list(
-        locate(
-            table.dataframe.columns,
-            lambda cell: isinstance(cell, str) and cell.startswith("*"),
-        )
-    )
-    df = table.dataframe.drop(table.dataframe.columns[comment_cols], axis=1)
+    comment_cols = [
+        colname
+        for colname in table.dataframe.columns
+        if isinstance(colname, str) and colname.startswith("*")
+    ]
+
+    df = table.dataframe.drop(comment_cols, axis=1)
     df.reset_index(drop=True, inplace=True)
+
+    # TODO: should we move the code below to a separate transform?
     seen = set()
     dupes = [x for x in df.columns if x in seen or seen.add(x)]
     if len(dupes) > 0:
@@ -232,6 +236,7 @@ def apply_postnormalisation_fixes(
     config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
 ) -> List[datatypes.EmbeddedXlTable]:
     rename_cols_dict = {
+        datatypes.Tag.comemi: {"commname": "commodity"},
         datatypes.Tag.fi_comm: {"commname": "commodity"},
         datatypes.Tag.fi_process: {"techname": "process"},
         datatypes.Tag.tfm_comgrp: {"value": "allregions"},
@@ -460,9 +465,14 @@ def process_flexible_import_tables(
                 .loc[veda_process_sets["process"] == process]
                 .unique()
             )
-            df.loc[i & (df["process"] == process), other] = cost_mapping[
-                veda_process_set[0]
-            ]
+            if veda_process_set.shape[0]:
+                df.loc[i & (df["process"] == process), other] = cost_mapping[
+                    veda_process_set[0]
+                ]
+            else:
+                print(
+                    f"WARNING: COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
+                )
 
         # Use CommName to store the active commodity for EXP / IMP
         i = df[attribute].isin(["COST", "IRE_PRICE"])
@@ -1274,8 +1284,6 @@ def process_commodity_emissions(
             result.append(table)
         else:
             df = table.dataframe.copy()
-            # TODO either add ~COMEMI to veda-tags.json or do this somewhere less hacky:
-            df.rename(columns={"commname": "commodity"}, inplace=True)
             index_columns = ["region", "year", "commodity"]
             data_columns = [
                 colname for colname in df.columns if colname not in index_columns
@@ -1287,7 +1295,9 @@ def process_commodity_emissions(
 
             if "region" in df.columns:
                 df = df.astype({"region": "string"})
-                df["region"] = df["region"].map(lambda s: s.split(","))
+                df["region"] = df["region"].map(
+                    lambda s: s.split(",") if isinstance(s, str) else s
+                )
                 df = df.explode("region", ignore_index=True)
                 df = df[df["region"].isin(regions)]
 

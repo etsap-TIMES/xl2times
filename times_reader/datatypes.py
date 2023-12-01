@@ -148,6 +148,8 @@ class Config:
     all_attributes: Set[str]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: Dict[Tag, Dict[str, str]]
+    # For each tag, this dictionary specifies comment row symbols by column name
+    row_comment_chars: Dict[Tag, Dict[str, list]]
     veda_attr_defaults: Dict[str, Dict[str, list]]
 
     def __init__(
@@ -161,7 +163,9 @@ class Config:
         self.dd_table_order, self.all_attributes = Config._process_times_info(
             times_info_file
         )
-        self.column_aliases = Config._read_veda_tags_info(veda_tags_file)
+        self.column_aliases, self.row_comment_chars = Config._read_veda_tags_info(
+            veda_tags_file
+        )
         self.veda_attr_defaults = Config._read_veda_attr_defaults(
             veda_attr_defaults_file
         )
@@ -263,15 +267,19 @@ class Config:
         return mappings
 
     @staticmethod
-    def _read_veda_tags_info(veda_tags_file: str) -> Dict[Tag, Dict[str, str]]:
-        # Read veda_tags_file
+    def _read_veda_tags_info(
+        veda_tags_file: str,
+    ) -> Tuple[Dict[Tag, Dict[str, str]], Dict[Tag, Dict[str, list]]]:
         with resources.open_text("times_reader.config", veda_tags_file) as f:
             veda_tags_info = json.load(f)
         column_aliases = {}
+        row_comment_chars = {}
+
         for tag_info in veda_tags_info:
             if "tag_fields" in tag_info:
                 # The file stores the tag name in lowercase, and without the ~
                 tag_name = "~" + tag_info["tag_name"].upper()
+                # Process column aliases:
                 column_aliases[tag_name] = {}
                 names = tag_info["tag_fields"]["fields_names"]
                 aliases = tag_info["tag_fields"]["fields_aliases"]
@@ -279,7 +287,13 @@ class Config:
                 for name, aliases in zip(names, aliases):
                     for alias in aliases:
                         column_aliases[tag_name][alias] = name
-        return column_aliases
+                # Process comment chars:
+                row_comment_chars[tag_name] = {}
+                chars = tag_info["tag_fields"]["row_ignore_symbol"]
+                assert len(names) == len(chars)
+                for name, chars_list in zip(names, chars):
+                    row_comment_chars[tag_name][name] = chars_list
+        return column_aliases, row_comment_chars
 
     @staticmethod
     def _read_veda_attr_defaults(
