@@ -146,6 +146,7 @@ class Config:
     times_xl_maps: List[TimesXlMap]
     dd_table_order: Iterable[str]
     all_attributes: Set[str]
+    attr_aliases: Set[str]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: Dict[Tag, Dict[str, str]]
     veda_attr_defaults: Dict[str, Dict[str, list]]
@@ -162,7 +163,7 @@ class Config:
             times_info_file
         )
         self.column_aliases = Config._read_veda_tags_info(veda_tags_file)
-        self.veda_attr_defaults = Config._read_veda_attr_defaults(
+        self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
             veda_attr_defaults_file
         )
 
@@ -284,7 +285,7 @@ class Config:
     @staticmethod
     def _read_veda_attr_defaults(
         veda_attr_defaults_file: str,
-    ) -> Dict[str, Dict[str, list]]:
+    ) -> Tuple[Dict[str, Dict[str, list]], Set[str]]:
         # Read veda_tags_file
         with resources.open_text("times_reader.config", veda_attr_defaults_file) as f:
             defaults = json.load(f)
@@ -294,6 +295,10 @@ class Config:
             "commodity": {},
             "limtype": {"FX": [], "LO": [], "UP": []},
             "tslvl": {"DAYNITE": [], "ANNUAL": []},
+        }
+
+        attr_aliases = {
+            attr for attr in defaults if "times-attribute" in defaults[attr]
         }
 
         for attr, attr_info in defaults.items():
@@ -316,4 +321,4 @@ class Config:
                     tslvl = attr_defaults["ts-level"]
                     veda_attr_defaults["tslvl"][tslvl].append(attr)
 
-        return veda_attr_defaults
+        return veda_attr_defaults, attr_aliases
