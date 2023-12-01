@@ -61,7 +61,7 @@ class Tag(str, Enum):
     uc_sets = "~UC_SETS"
     uc_t = "~UC_T"
     # This is used by Veda for unit conversion when displaying results
-    # unitconversion = "~UNITCONVERSION"
+    unitconversion = "~UNITCONVERSION"
 
     @classmethod
     def has_tag(cls, tag):
@@ -270,15 +270,28 @@ class Config:
     def _read_veda_tags_info(
         veda_tags_file: str,
     ) -> Tuple[Dict[Tag, Dict[str, str]], Dict[Tag, Dict[str, list]]]:
+        def to_tag(s: str) -> Tag:
+            # The file stores the tag name in lowercase, and without the ~
+            return Tag("~" + s.upper())
+
+        # Read veda_tags_file
         with resources.open_text("times_reader.config", veda_tags_file) as f:
             veda_tags_info = json.load(f)
+
+        # Check that all the tags we use are present in veda_tags_file
+        tags = {to_tag(tag_info["tag_name"]) for tag_info in veda_tags_info}
+        for tag in Tag:
+            if tag not in tags:
+                print(
+                    f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
+                )
+
         column_aliases = {}
         row_comment_chars = {}
 
         for tag_info in veda_tags_info:
             if "tag_fields" in tag_info:
-                # The file stores the tag name in lowercase, and without the ~
-                tag_name = "~" + tag_info["tag_name"].upper()
+                tag_name = to_tag(tag_info["tag_name"])
                 # Process column aliases:
                 column_aliases[tag_name] = {}
                 names = tag_info["tag_fields"]["fields_names"]
