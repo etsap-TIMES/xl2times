@@ -908,20 +908,25 @@ def generate_all_regions(
     return tables
 
 
-def capitalise_attributes(
+def capitalise_some_values(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Ensure that all attributes are uppercase
+    Ensure that all attributes and units are uppercase
     """
 
     # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
+
+    colnames = ["attribute", "tact", "tcap", "unit"]
+
     def capitalise_attributes_table(table: datatypes.EmbeddedXlTable):
         df = table.dataframe.copy()
-        if "attribute" in df.columns and len(df) > 0:
-            df["attribute"] = df["attribute"].str.upper()
+        seen_cols = [colname for colname in colnames if colname in df.columns]
+        if len(df) > 0:
+            for seen_col in seen_cols:
+                df[seen_col] = df[seen_col].str.upper()
             return replace(table, dataframe=df)
         else:
             return table
