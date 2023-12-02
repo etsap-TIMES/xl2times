@@ -80,7 +80,7 @@ def convert_xl_to_times(
         transforms.remove_invalid_values,
         transforms.process_time_periods,
         transforms.generate_all_regions,
-        transforms.capitalise_attributes,
+        transforms.capitalise_some_values,
         transforms.apply_fixups,
         transforms.generate_commodity_groups,
         transforms.fill_in_missing_pcgs,
