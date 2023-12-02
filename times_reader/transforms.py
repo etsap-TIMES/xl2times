@@ -1605,7 +1605,7 @@ def process_transform_insert_variants(
             other_columns = [
                 col_name
                 for col_name in df.columns
-                if col_name not in config.all_attributes
+                if col_name not in (config.all_attributes | config.attr_aliases)
             ]
             df = pd.melt(
                 df,
