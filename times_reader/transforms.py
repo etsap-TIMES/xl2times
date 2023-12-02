@@ -742,6 +742,7 @@ def fill_in_missing_values(
                 df[colname].fillna(start_year, inplace=True)
             elif colname == "currency":
                 df[colname].fillna(currency, inplace=True)
+
         return replace(table, dataframe=df)
 
     for table in tables:
@@ -1818,17 +1819,10 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, Data
     processes = tables[datatypes.Tag.fi_process]
     commodities = tables[datatypes.Tag.fi_comm]
 
-    duplicated_processes = processes[["process"]].duplicated()
-    if any(duplicated_processes):
-        duplicated_process_names = processes["process"][duplicated_processes]
-        print(
-            f"WARNING: {len(duplicated_process_names)} duplicated processes: {duplicated_process_names.values[1:3]}"
-        )
-        processes.drop_duplicates(subset="process", inplace=True)
-
     dictionary["processes_by_name"] = (
         processes[["process"]]
         .dropna()
+        .drop_duplicates()
         .set_index("process", drop=False)
         .rename_axis("index")
     )
