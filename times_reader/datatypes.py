@@ -314,6 +314,16 @@ class Config:
                             "row_ignore_symbol"
                         ]
 
+        # TODO: Account for differences in valid field names with base_tag
+        for tag_info in veda_tags_info:
+            if "base_tag" in tag_info:
+                tag_name = to_tag(tag_info["tag_name"])
+                base_tag = to_tag(tag_info["base_tag"])
+                if base_tag in valid_column_names:
+                    valid_column_names[tag_name] = valid_column_names[base_tag]
+                if base_tag in row_comment_chars:
+                    row_comment_chars[tag_name] = row_comment_chars[base_tag]
+
         return valid_column_names, row_comment_chars
 
     @staticmethod
