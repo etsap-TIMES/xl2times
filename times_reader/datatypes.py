@@ -151,6 +151,8 @@ class Config:
     column_aliases: Dict[Tag, Dict[str, str]]
     # For each tag, this dictionary specifies comment row symbols by column name
     row_comment_chars: Dict[Tag, Dict[str, list]]
+    # List of tags for which empty tables should be discarded
+    discard_if_empty: Iterable[Tag]
     veda_attr_defaults: Dict[str, Dict[str, list]]
 
     def __init__(
@@ -164,9 +166,11 @@ class Config:
         self.dd_table_order, self.all_attributes = Config._process_times_info(
             times_info_file
         )
-        self.column_aliases, self.row_comment_chars = Config._read_veda_tags_info(
-            veda_tags_file
-        )
+        (
+            self.column_aliases,
+            self.row_comment_chars,
+            self.discard_if_empty,
+        ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
             veda_attr_defaults_file
         )
@@ -270,7 +274,7 @@ class Config:
     @staticmethod
     def _read_veda_tags_info(
         veda_tags_file: str,
-    ) -> Tuple[Dict[Tag, Dict[str, str]], Dict[Tag, Dict[str, list]]]:
+    ) -> Tuple[Dict[Tag, Dict[str, str]], Dict[Tag, Dict[str, list]], Iterable[Tag]]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
             return Tag("~" + s.upper())
@@ -289,10 +293,12 @@ class Config:
 
         valid_column_names = {}
         row_comment_chars = {}
+        discard_if_empty = list()
 
         for tag_info in veda_tags_info:
             if "valid_fields" in tag_info:
                 tag_name = to_tag(tag_info["tag_name"])
+                discard_if_empty.append(tag_name)
 
                 valid_column_names[tag_name] = {}
                 row_comment_chars[tag_name] = {}
@@ -321,10 +327,11 @@ class Config:
                 base_tag = to_tag(tag_info["base_tag"])
                 if base_tag in valid_column_names:
                     valid_column_names[tag_name] = valid_column_names[base_tag]
+                    discard_if_empty.append(tag_name)
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
 
-        return valid_column_names, row_comment_chars
+        return valid_column_names, row_comment_chars, discard_if_empty
 
     @staticmethod
     def _read_veda_attr_defaults(

@@ -138,37 +138,8 @@ def validate_input_tables(
     remove empty tables (for recognized tags).
     """
 
-    check_list = [
-        datatypes.Tag.comagg,
-        datatypes.Tag.comemi,
-        datatypes.Tag.currencies,
-        datatypes.Tag.fi_comm,
-        datatypes.Tag.fi_process,
-        datatypes.Tag.fi_t,
-        datatypes.Tag.tfm_ava,
-        datatypes.Tag.tfm_comgrp,
-        datatypes.Tag.tfm_csets,
-        datatypes.Tag.tfm_dins,
-        datatypes.Tag.tfm_dins_at,
-        datatypes.Tag.tfm_dins_ts,
-        datatypes.Tag.tfm_dins_tsl,
-        datatypes.Tag.tfm_ins,
-        datatypes.Tag.tfm_ins_at,
-        datatypes.Tag.tfm_ins_ts,
-        datatypes.Tag.tfm_ins_tsl,
-        datatypes.Tag.tfm_ins_txt,
-        datatypes.Tag.tfm_mig,
-        datatypes.Tag.tfm_psets,
-        datatypes.Tag.tfm_topdins,
-        datatypes.Tag.tfm_topins,
-        datatypes.Tag.tfm_upd,
-        datatypes.Tag.tfm_upd_at,
-        datatypes.Tag.tfm_upd_ts,
-        datatypes.Tag.uc_t,
-    ]
-
     def discard(table):
-        if table.tag in check_list:
+        if table.tag in config.discard_if_empty:
             return not table.dataframe.shape[0]
         elif table.tag == datatypes.Tag.unitconversion:
             print("Dropping ~UNITCONVERSION table")
