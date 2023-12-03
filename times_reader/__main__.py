@@ -63,7 +63,6 @@ def convert_xl_to_times(
         lambda config, tables: [
             transforms.remove_comment_rows(config, t) for t in tables
         ],
-        transforms.apply_postnormalisation_fixes,
         transforms.generate_dummy_processes,
         transforms.process_transform_insert_variants,
         transforms.process_transform_insert,

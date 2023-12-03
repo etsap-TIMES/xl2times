@@ -287,27 +287,34 @@ class Config:
                     f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
                 )
 
-        column_aliases = {}
+        valid_column_names = {}
         row_comment_chars = {}
 
         for tag_info in veda_tags_info:
-            if "tag_fields" in tag_info:
+            if "valid_fields" in tag_info:
                 tag_name = to_tag(tag_info["tag_name"])
-                # Process column aliases:
-                column_aliases[tag_name] = {}
-                names = tag_info["tag_fields"]["fields_names"]
-                aliases = tag_info["tag_fields"]["fields_aliases"]
-                assert len(names) == len(aliases)
-                for name, aliases in zip(names, aliases):
-                    for alias in aliases:
-                        column_aliases[tag_name][alias] = name
-                # Process comment chars:
+
+                valid_column_names[tag_name] = {}
                 row_comment_chars[tag_name] = {}
-                chars = tag_info["tag_fields"]["row_ignore_symbol"]
-                assert len(names) == len(chars)
-                for name, chars_list in zip(names, chars):
-                    row_comment_chars[tag_name][name] = chars_list
-        return column_aliases, row_comment_chars
+                # Process column aliases and comment chars:
+                for valid_field in tag_info["valid_fields"]:
+                    valid_field_names = valid_field["aliases"]
+                    if (
+                        "use_name" in valid_field
+                        and valid_field["use_name"] != valid_field["name"]
+                    ):
+                        field_name = valid_field["use_name"]
+                        valid_field_names.append(valid_field["name"])
+                    else:
+                        field_name = valid_field["name"]
+
+                    for valid_field_name in valid_field_names:
+                        valid_column_names[tag_name][valid_field_name] = field_name
+                        row_comment_chars[tag_name][field_name] = valid_field[
+                            "row_ignore_symbol"
+                        ]
+
+        return valid_column_names, row_comment_chars
 
     @staticmethod
     def _read_veda_attr_defaults(
