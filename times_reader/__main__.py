@@ -56,14 +56,13 @@ def convert_xl_to_times(
     transform_list = [
         transforms.normalize_tags_columns,
         transforms.remove_fill_tables,
-        transforms.remove_empty_tables,
+        transforms.validate_input_tables,
         lambda config, tables: [transforms.remove_comment_cols(t) for t in tables],
         transforms.remove_tables_with_formulas,  # slow
         transforms.normalize_column_aliases,
         lambda config, tables: [
             transforms.remove_comment_rows(config, t) for t in tables
         ],
-        transforms.apply_postnormalisation_fixes,
         transforms.generate_dummy_processes,
         transforms.process_transform_insert_variants,
         transforms.process_transform_insert,
@@ -80,7 +79,7 @@ def convert_xl_to_times(
         transforms.remove_invalid_values,
         transforms.process_time_periods,
         transforms.generate_all_regions,
-        transforms.capitalise_attributes,
+        transforms.capitalise_some_values,
         transforms.apply_fixups,
         transforms.generate_commodity_groups,
         transforms.fill_in_missing_pcgs,

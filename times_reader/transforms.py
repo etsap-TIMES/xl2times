@@ -102,15 +102,6 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
 
     df = table.dataframe.drop(comment_cols, axis=1)
     df.reset_index(drop=True, inplace=True)
-
-    # TODO: should we move the code below to a separate transform?
-    seen = set()
-    dupes = [x for x in df.columns if x in seen or seen.add(x)]
-    if len(dupes) > 0:
-        print(
-            f"WARNING: Duplicate columns in {table.range}, {table.sheetname},"
-            f" {table.filename}: {','.join(dupes)}"
-        )
     return replace(table, dataframe=df)
 
 
@@ -138,53 +129,41 @@ def remove_tables_with_formulas(
     return [table for table in tables if not has_formulas(table)]
 
 
-def remove_empty_tables(
+def validate_input_tables(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Return a modified copy of 'tables' where empty tables have been deleted from the list.
-
-    :param tables:      List of tables in EmbeddedXlTable format.
-    :return:            List of non-empty tables in EmbeddedXlTable format.
+    Perform some basic validation (tag names are valid, no duplicate column labels), and
+    remove empty tables (for recognized tags).
     """
 
-    check_list = [
-        datatypes.Tag.comagg,
-        datatypes.Tag.comemi,
-        datatypes.Tag.currencies,
-        datatypes.Tag.fi_comm,
-        datatypes.Tag.fi_process,
-        datatypes.Tag.fi_t,
-        datatypes.Tag.tfm_ava,
-        datatypes.Tag.tfm_comgrp,
-        datatypes.Tag.tfm_csets,
-        datatypes.Tag.tfm_dins,
-        datatypes.Tag.tfm_dins_at,
-        datatypes.Tag.tfm_dins_ts,
-        datatypes.Tag.tfm_dins_tsl,
-        datatypes.Tag.tfm_ins,
-        datatypes.Tag.tfm_ins_at,
-        datatypes.Tag.tfm_ins_ts,
-        datatypes.Tag.tfm_ins_tsl,
-        datatypes.Tag.tfm_ins_txt,
-        datatypes.Tag.tfm_mig,
-        datatypes.Tag.tfm_psets,
-        datatypes.Tag.tfm_topdins,
-        datatypes.Tag.tfm_topins,
-        datatypes.Tag.tfm_upd,
-        datatypes.Tag.tfm_upd_at,
-        datatypes.Tag.tfm_upd_ts,
-        datatypes.Tag.uc_t,
-    ]
-
     def discard(table):
-        if table.tag in check_list:
+        if table.tag in config.discard_if_empty:
             return not table.dataframe.shape[0]
+        elif table.tag == datatypes.Tag.unitconversion:
+            print("Dropping ~UNITCONVERSION table")
+            return True
         else:
             return False
 
-    return [table for table in tables if not discard(table)]
+    result = []
+    for table in tables:
+        if not datatypes.Tag.has_tag(table.tag.split(":")[0]):
+            print(f"WARNING: Dropping table with unrecognized tag {table.tag}")
+            continue
+        if discard(table):
+            continue
+        # Check for duplicate columns:
+        seen = set()
+        dupes = [x for x in table.dataframe.columns if x in seen or seen.add(x)]
+        if len(dupes) > 0:
+            print(
+                f"WARNING: Duplicate columns in {table.range}, {table.sheetname},"
+                f" {table.filename}: {','.join(dupes)}"
+            )
+        result.append(table)
+    return result
 
 
 def normalize_tags_columns(
@@ -229,40 +208,10 @@ def normalize_column_aliases(
             )
         else:
             print(f"WARNING: could not find {table.tag} in config.column_aliases")
-    return tables
-
-
-def apply_postnormalisation_fixes(
-    config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
-) -> List[datatypes.EmbeddedXlTable]:
-    rename_cols_dict = {
-        datatypes.Tag.comemi: {"commname": "commodity"},
-        datatypes.Tag.fi_comm: {"commname": "commodity"},
-        datatypes.Tag.fi_process: {"techname": "process"},
-        datatypes.Tag.tfm_comgrp: {"value": "allregions"},
-        datatypes.Tag.tfm_dins: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_dins_at: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_dins_ts: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_dins_tsl: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins_at: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins_ts: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins_tsl: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins_txt: {"curr": "currency"},
-        datatypes.Tag.tfm_mig: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_topdins: {"value": "allregions"},
-        datatypes.Tag.tfm_topins: {"value": "allregions"},
-        datatypes.Tag.tfm_upd: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_upd_at: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_upd_ts: {"curr": "currency", "value": "allregions"},
-    }
-
-    for table in tables:
-        if table.tag in rename_cols_dict:
-            table.dataframe = table.dataframe.rename(
-                columns=rename_cols_dict[table.tag]
+        if len(set(table.dataframe.columns)) > len(table.dataframe.columns):
+            raise ValueError(
+                f"Table has duplicate column names (after normalization): {table}"
             )
-
     return tables
 
 
@@ -724,6 +673,7 @@ def fill_in_missing_values(
                 df[colname].fillna(start_year, inplace=True)
             elif colname == "currency":
                 df[colname].fillna(currency, inplace=True)
+
         return replace(table, dataframe=df)
 
     for table in tables:
@@ -889,20 +839,25 @@ def generate_all_regions(
     return tables
 
 
-def capitalise_attributes(
+def capitalise_some_values(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Ensure that all attributes are uppercase
+    Ensure that all attributes and units are uppercase
     """
 
     # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
+
+    colnames = ["attribute", "tact", "tcap", "unit"]
+
     def capitalise_attributes_table(table: datatypes.EmbeddedXlTable):
         df = table.dataframe.copy()
-        if "attribute" in df.columns and len(df) > 0:
-            df["attribute"] = df["attribute"].str.upper()
+        seen_cols = [colname for colname in colnames if colname in df.columns]
+        if len(df) > 0:
+            for seen_col in seen_cols:
+                df[seen_col] = df[seen_col].str.upper()
             return replace(table, dataframe=df)
         else:
             return table
@@ -1587,7 +1542,7 @@ def process_transform_insert_variants(
             other_columns = [
                 col_name
                 for col_name in df.columns
-                if col_name not in config.all_attributes
+                if col_name not in (config.all_attributes | config.attr_aliases)
             ]
             df = pd.melt(
                 df,
@@ -1800,17 +1755,10 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, Data
     processes = tables[datatypes.Tag.fi_process]
     commodities = tables[datatypes.Tag.fi_comm]
 
-    duplicated_processes = processes[["process"]].duplicated()
-    if any(duplicated_processes):
-        duplicated_process_names = processes["process"][duplicated_processes]
-        print(
-            f"WARNING: {len(duplicated_process_names)} duplicated processes: {duplicated_process_names.values[1:3]}"
-        )
-        processes.drop_duplicates(subset="process", inplace=True)
-
     dictionary["processes_by_name"] = (
         processes[["process"]]
         .dropna()
+        .drop_duplicates()
         .set_index("process", drop=False)
         .rename_axis("index")
     )
