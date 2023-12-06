@@ -1776,7 +1776,7 @@
     ],
     "mapping": [
       "currency",
-      "currency"
+      "other_indexes"
     ]
   },
   {
@@ -3925,7 +3925,7 @@
       "AGE"
     ],
     "mapping": [
-      "stage",
+      "other_indexes",
       "year"
     ]
   },
@@ -5111,7 +5111,7 @@
     "mapping": [
       "region",
       "year",
-      "commodity",
+      "other_indexes",
       "commodity"
     ]
   },
