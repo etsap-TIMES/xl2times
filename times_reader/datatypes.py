@@ -227,7 +227,10 @@ class Config:
             )
 
         param_mappings = [
-            create_mapping(x) for x in table_info if x["gams-cat"] == "parameter"
+            create_mapping(x)
+            for x in table_info
+            if x["gams-cat"] == "parameter"
+            and x["name"] not in {"B", "E"}  # TODO this is a hack
         ]
 
         return dd_table_order, attributes, param_mappings
