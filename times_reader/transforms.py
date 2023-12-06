@@ -138,37 +138,8 @@ def validate_input_tables(
     remove empty tables (for recognized tags).
     """
 
-    check_list = [
-        datatypes.Tag.comagg,
-        datatypes.Tag.comemi,
-        datatypes.Tag.currencies,
-        datatypes.Tag.fi_comm,
-        datatypes.Tag.fi_process,
-        datatypes.Tag.fi_t,
-        datatypes.Tag.tfm_ava,
-        datatypes.Tag.tfm_comgrp,
-        datatypes.Tag.tfm_csets,
-        datatypes.Tag.tfm_dins,
-        datatypes.Tag.tfm_dins_at,
-        datatypes.Tag.tfm_dins_ts,
-        datatypes.Tag.tfm_dins_tsl,
-        datatypes.Tag.tfm_ins,
-        datatypes.Tag.tfm_ins_at,
-        datatypes.Tag.tfm_ins_ts,
-        datatypes.Tag.tfm_ins_tsl,
-        datatypes.Tag.tfm_ins_txt,
-        datatypes.Tag.tfm_mig,
-        datatypes.Tag.tfm_psets,
-        datatypes.Tag.tfm_topdins,
-        datatypes.Tag.tfm_topins,
-        datatypes.Tag.tfm_upd,
-        datatypes.Tag.tfm_upd_at,
-        datatypes.Tag.tfm_upd_ts,
-        datatypes.Tag.uc_t,
-    ]
-
     def discard(table):
-        if table.tag in check_list:
+        if table.tag in config.discard_if_empty:
             return not table.dataframe.shape[0]
         elif table.tag == datatypes.Tag.unitconversion:
             print("Dropping ~UNITCONVERSION table")
@@ -241,40 +212,6 @@ def normalize_column_aliases(
             raise ValueError(
                 f"Table has duplicate column names (after normalization): {table}"
             )
-    return tables
-
-
-def apply_postnormalisation_fixes(
-    config: datatypes.Config, tables: List[datatypes.EmbeddedXlTable]
-) -> List[datatypes.EmbeddedXlTable]:
-    rename_cols_dict = {
-        datatypes.Tag.comemi: {"commname": "commodity"},
-        datatypes.Tag.fi_comm: {"commname": "commodity"},
-        datatypes.Tag.fi_process: {"techname": "process"},
-        datatypes.Tag.tfm_comgrp: {"value": "allregions"},
-        datatypes.Tag.tfm_dins: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_dins_at: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_dins_ts: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_dins_tsl: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins_at: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins_ts: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins_tsl: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_ins_txt: {"curr": "currency"},
-        datatypes.Tag.tfm_mig: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_topdins: {"value": "allregions"},
-        datatypes.Tag.tfm_topins: {"value": "allregions"},
-        datatypes.Tag.tfm_upd: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_upd_at: {"curr": "currency", "value": "allregions"},
-        datatypes.Tag.tfm_upd_ts: {"curr": "currency", "value": "allregions"},
-    }
-
-    for table in tables:
-        if table.tag in rename_cols_dict:
-            table.dataframe = table.dataframe.rename(
-                columns=rename_cols_dict[table.tag]
-            )
-
     return tables
 
 
