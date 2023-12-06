@@ -194,30 +194,30 @@ def compare(
                     f"WARNING: Table {table_name} header incorrect, was"
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
-            else:
-                # both are in string form so can be compared without any issues
-                gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
-                data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
-                total_correct_rows += len(gt_rows.intersection(data_rows))
-                additional = data_rows - gt_rows
-                total_additional_rows += len(additional)
-                missing = gt_rows - data_rows
-                if len(additional) != 0 or len(missing) != 0:
-                    print(
-                        f"WARNING: Table {table_name} ({data_table.shape[0]} rows,"
-                        f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
-                        f" additional rows and is missing {len(missing)} rows"
-                    )
-                if len(additional) != 0:
-                    DataFrame(additional).to_csv(
-                        os.path.join(output_dir, table_name + "_additional.csv"),
-                        index=False,
-                    )
-                if len(missing) != 0:
-                    DataFrame(missing).to_csv(
-                        os.path.join(output_dir, table_name + "_missing.csv"),
-                        index=False,
-                    )
+
+            # both are in string form so can be compared without any issues
+            gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
+            data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
+            total_correct_rows += len(gt_rows.intersection(data_rows))
+            additional = data_rows - gt_rows
+            total_additional_rows += len(additional)
+            missing = gt_rows - data_rows
+            if len(additional) != 0 or len(missing) != 0:
+                print(
+                    f"WARNING: Table {table_name} ({data_table.shape[0]} rows,"
+                    f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
+                    f" additional rows and is missing {len(missing)} rows"
+                )
+            if len(additional) != 0:
+                DataFrame(additional).to_csv(
+                    os.path.join(output_dir, table_name + "_additional.csv"),
+                    index=False,
+                )
+            if len(missing) != 0:
+                DataFrame(missing).to_csv(
+                    os.path.join(output_dir, table_name + "_missing.csv"),
+                    index=False,
+                )
 
     print(
         f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
