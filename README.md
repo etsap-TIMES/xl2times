@@ -1,8 +1,8 @@
-# Project
+# xl2times
 
 **Note: this tool is a work in progress and not yet in a useful state**
 
-This project is an open source tool to convert TIMES model Excel input files to DD format ready for processing by [GAMS](https://www.gams.com/).  The intention is to make it easier for people to reproduce research results on TIMES models.
+`xl2times` is an open source tool to convert TIMES model Excel input files to DD format ready for processing by [GAMS](https://www.gams.com/).  The intention is to make it easier for people to reproduce research results on TIMES models.
 
 [TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) is an energy systems model generator from the International Energy Agency that is used around the world to inform energy policy.
 It is fully explained in the [TIMES Model Documentation](https://iea-etsap.org/index.php/documentation).
@@ -11,7 +11,12 @@ The Excel input format accepted by this tool is documented in the [TIMES Model D
 
 ## Installation and Basic Usage
 
-The tool is not (yet) on PyPI, but you can still install it using pip (preferably in a virtual environment) by cloning the repository and running the following command in the root directory:
+You can install the latest published version of the tool from PyPI using pip (preferably in a virtual environment):
+```bash
+pip install xl2times
+```
+
+You can also install the latest development version by cloning this repository and running the following command in the root directory:
 ```bash
 pip install .
 ```
@@ -46,6 +51,17 @@ pre-commit install
 If you want to skip these pre-commit steps for a particular commit, if for instance pyright has issues but you still want to commit your changes to your branch, you can run:
 ```bash
 git commit --no-verify
+```
+
+### Publishing the Tool
+
+To publish a new version of the tool on PyPI, update the version number in `pyproject.toml`, and then run:
+```bash
+python -m pip install --upgrade build
+python -m pip install --upgrade twine
+rm -rf dist
+python -m build
+python -m twine upload dist/*
 ```
 
 ## Debugging Regressions
