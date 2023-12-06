@@ -17,10 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          path: times-excel-reader
+          path: xl2times
 
       - name: Install tool and dependencies
-        working-directory: times-excel-reader
+        working-directory: xl2times
         run: |
           python -m venv .venv
           source .venv/bin/activate
@@ -28,7 +28,7 @@ jobs:
           python -m pip install -e .[dev]
 
       - name: Check code formatting
-        working-directory: times-excel-reader
+        working-directory: xl2times
         run: |
           source .venv/bin/activate
           pre-commit install
@@ -44,12 +44,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
-          path: times-excel-reader/benchmarks/dd
+          path: xl2times/benchmarks/dd
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-xlsx
-          path: times-excel-reader/benchmarks/xlsx
+          path: xl2times/benchmarks/xlsx
           token: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
       # ---------- Prepare TIMES Ireland Model
@@ -59,12 +59,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: samwebster/times-ireland-model
-          path: times-excel-reader/benchmarks/xlsx/Ireland
+          path: xl2times/benchmarks/xlsx/Ireland
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/times-ireland-model_gams
-          path: times-excel-reader/benchmarks/dd/Ireland
+          path: xl2times/benchmarks/dd/Ireland
 
       # ---------- Install GAMS
 
@@ -87,7 +87,7 @@ jobs:
       # ---------- Run tool, check for regressions
 
       - name: Run tool on all benchmarks
-        working-directory: times-excel-reader
+        working-directory: xl2times
         # Use tee to also save the output to out.txt so that the summary table can be
         # printed again in the next step.
         # Save the return code to retcode.txt so that the next step can fail the action
@@ -102,7 +102,7 @@ jobs:
             echo ${PIPESTATUS[0]} > retcode.txt)
 
       - name: Print summary
-        working-directory: times-excel-reader
+        working-directory: xl2times
         run: |
           sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
           exit $(cat retcode.txt)

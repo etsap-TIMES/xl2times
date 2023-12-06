@@ -18,7 +18,7 @@ pip install .
 
 After installation, run the following command to see the basic usage and available options:
 ```bash
-times-excel-reader --help
+xl2times --help
 ```
 
 ## Development Setup
@@ -53,10 +53,10 @@ git commit --no-verify
 If your change is causing regressions on one of the benchmarks, a useful way to debug and find the difference is to run the tool in verbose mode and compare the intermediate tables. For example, if your branch has regressions on Demo 1:
 ```bash
 # First, on the `main` branch:
-times-excel-reader benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > before 2>&1
+xl2times benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > before 2>&1
 # Then, on your branch:
 git checkout my-branch-name
-times-excel-reader benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > after 2>&1
+xl2times benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > after 2>&1
 # And then compare the files `before` and `after`
 code -d before after
 ```

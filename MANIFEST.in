@@ -1,2 +1,2 @@
-include times_reader/config/*
-include times_reader/gams_scaffold/*
+include xl2times/config/*
+include xl2times/gams_scaffold/*

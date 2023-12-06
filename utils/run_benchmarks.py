@@ -39,7 +39,7 @@ def run_gams_gdxdiff(
 
     # Copy GAMS scaffolding
     scaffolding_folder = path.join(
-        path.dirname(path.realpath(__file__)), "..", "times_reader", "gams_scaffold"
+        path.dirname(path.realpath(__file__)), "..", "xl2times", "gams_scaffold"
     )
     shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
     # Create link to TIMES source
@@ -168,7 +168,7 @@ def run_benchmark(
         args.append(xl_folder)
     start = time.time()
     res = subprocess.run(
-        ["times-excel-reader"] + args,
+        ["xl2times"] + args,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
