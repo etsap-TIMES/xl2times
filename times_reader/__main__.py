@@ -97,8 +97,6 @@ def convert_xl_to_times(
         transforms.rename_cgs,
         transforms.fix_topology,
         transforms.convert_to_string,
-        # TODO what's the best place for this?
-        transforms.create_main_data_table,
         lambda config, tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),

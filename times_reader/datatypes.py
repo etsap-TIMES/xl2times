@@ -132,7 +132,7 @@ class TimesXlMap:
 
     times_name: str
     times_cols: List[str]
-    xl_name: str
+    xl_name: str  # TODO once we move away from times_mapping.txt, make this type Tag
     xl_cols: List[str]
     col_map: Dict[str, str]
     filter_rows: Dict[str, str]
@@ -174,6 +174,12 @@ class Config:
         # Migration in progress: use parameter mappings from times_info_file for now
         name_to_map = {m.times_name: m for m in self.times_xl_maps}
         for m in param_mappings:
+            # TODO use normalized names in times_info_file instead of fixing here?
+            tag = Tag(m.xl_name)
+            m.xl_cols = [self.column_aliases[tag].get(c, c) for c in m.xl_cols]
+            m.col_map = {
+                k: self.column_aliases[tag].get(v, v) for k, v in m.col_map.items()
+            }
             name_to_map[m.times_name] = m
         self.times_xl_maps = list(name_to_map.values())
 
@@ -209,10 +215,12 @@ class Config:
             times_cols = entity["indexes"] + ["VALUE"]
             xl_cols = entity["mapping"] + ["value"]  # TODO map in json
             col_map = dict(zip(times_cols, xl_cols))
+            # If tag starts with UC, then the data is in UC_T, else FI_T
+            xl_name = Tag.uc_t if entity["name"].lower().startswith("uc") else Tag.fi_t
             return TimesXlMap(
                 times_name=entity["name"],
                 times_cols=times_cols,
-                xl_name="MainData",  # TODO make this a Tag?
+                xl_name=xl_name,
                 xl_cols=xl_cols,
                 col_map=col_map,
                 filter_rows={"attribute": entity["name"]},  # TODO value:1?

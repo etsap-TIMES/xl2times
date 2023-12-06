@@ -2139,15 +2139,6 @@ def process_time_slices(
     return result
 
 
-def create_main_data_table(
-    config: datatypes.Config, tables: Dict[str, DataFrame]
-) -> Dict[str, DataFrame]:
-    """Merge FI_T and UC_T into one MainData table"""
-    dfs = [tables.pop(datatypes.Tag.fi_t, None), tables.pop(datatypes.Tag.uc_t, None)]
-    tables["MainData"] = pd.concat(dfs, ignore_index=True)
-    return tables
-
-
 def convert_to_string(
     config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
