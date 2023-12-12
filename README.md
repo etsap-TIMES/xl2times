@@ -1,8 +1,8 @@
-# Project
+# xl2times
 
 **Note: this tool is a work in progress and not yet in a useful state**
 
-This project is an open source tool to convert TIMES model Excel input files to DD format ready for processing by [GAMS](https://www.gams.com/).  The intention is to make it easier for people to reproduce research results on TIMES models.
+`xl2times` is an open source tool to convert TIMES model Excel input files to DD format ready for processing by [GAMS](https://www.gams.com/).  The intention is to make it easier for people to reproduce research results on TIMES models.
 
 [TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) is an energy systems model generator from the International Energy Agency that is used around the world to inform energy policy.
 It is fully explained in the [TIMES Model Documentation](https://iea-etsap.org/index.php/documentation).
@@ -11,14 +11,19 @@ The Excel input format accepted by this tool is documented in the [TIMES Model D
 
 ## Installation and Basic Usage
 
-The tool is not (yet) on PyPI, but you can still install it using pip (preferably in a virtual environment) by cloning the repository and running the following command in the root directory:
+You can install the latest published version of the tool from PyPI using pip (preferably in a virtual environment):
+```bash
+pip install xl2times
+```
+
+You can also install the latest development version by cloning this repository and running the following command in the root directory:
 ```bash
 pip install .
 ```
 
 After installation, run the following command to see the basic usage and available options:
 ```bash
-times-excel-reader --help
+xl2times --help
 ```
 
 ## Development Setup
@@ -48,15 +53,26 @@ If you want to skip these pre-commit steps for a particular commit, if for insta
 git commit --no-verify
 ```
 
+### Publishing the Tool
+
+To publish a new version of the tool on PyPI, update the version number in `pyproject.toml`, and then run:
+```bash
+python -m pip install --upgrade build
+python -m pip install --upgrade twine
+rm -rf dist
+python -m build
+python -m twine upload dist/*
+```
+
 ## Debugging Regressions
 
 If your change is causing regressions on one of the benchmarks, a useful way to debug and find the difference is to run the tool in verbose mode and compare the intermediate tables. For example, if your branch has regressions on Demo 1:
 ```bash
 # First, on the `main` branch:
-times-excel-reader benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > before 2>&1
+xl2times benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > before 2>&1
 # Then, on your branch:
 git checkout my-branch-name
-times-excel-reader benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > after 2>&1
+xl2times benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > after 2>&1
 # And then compare the files `before` and `after`
 code -d before after
 ```

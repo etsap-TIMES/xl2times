@@ -181,7 +181,7 @@ def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
     os.makedirs(set_path, exist_ok=True)
 
     # Extract headers with key=param_name and value=List[attributes]
-    lines = list(open("times_reader/config/times_mapping.txt", "r"))
+    lines = list(open("xl2times/config/times_mapping.txt", "r"))
     headers_data = dict()
     for line in lines:
         line = line.strip()

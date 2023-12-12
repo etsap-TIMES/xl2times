@@ -1,6 +1,6 @@
 {
   "include": [
-    "times_reader",
+    "xl2times",
     "utils",
     "times_excel_reader.py"
   ],
