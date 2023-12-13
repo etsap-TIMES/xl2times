@@ -237,7 +237,7 @@ class Config:
             create_mapping(x)
             for x in table_info
             if x["gams-cat"] == "parameter"
-            and x["name"] not in {"B", "E"}  # TODO this is a hack
+            and "type" not in x  # TODO Generalise derived parameters?
         ]
 
         return dd_table_order, attributes, param_mappings
