@@ -196,7 +196,7 @@ class Config:
     ) -> Tuple[Iterable[str], Set[str], List[TimesXlMap]]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
-        with resources.open_text("times_reader.config", times_info_file) as f:
+        with resources.open_text("xl2times.config", times_info_file) as f:
             table_info = json.load(f)
         categories = ["set", "subset", "subsubset", "md-set", "parameter"]
         cat_to_tables = defaultdict(list)
@@ -265,7 +265,7 @@ class Config:
         """
         mappings = []
         dropped = []
-        with resources.open_text("times_reader.config", filename) as file:
+        with resources.open_text("xl2times.config", filename) as file:
             while True:
                 line = file.readline().rstrip()
                 if line == "":
@@ -322,7 +322,7 @@ class Config:
             return Tag("~" + s.upper())
 
         # Read veda_tags_file
-        with resources.open_text("times_reader.config", veda_tags_file) as f:
+        with resources.open_text("xl2times.config", veda_tags_file) as f:
             veda_tags_info = json.load(f)
 
         # Check that all the tags we use are present in veda_tags_file
@@ -378,7 +378,7 @@ class Config:
         veda_attr_defaults_file: str,
     ) -> Tuple[Dict[str, Dict[str, list]], Set[str]]:
         # Read veda_tags_file
-        with resources.open_text("times_reader.config", veda_attr_defaults_file) as f:
+        with resources.open_text("xl2times.config", veda_attr_defaults_file) as f:
             defaults = json.load(f)
 
         veda_attr_defaults = {
