@@ -2,7 +2,6 @@
   "include": [
     "xl2times",
     "utils",
-    "times_excel_reader.py"
   ],
   "exclude": [
     "**/node_modules",

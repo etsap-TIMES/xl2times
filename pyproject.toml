@@ -30,9 +30,9 @@ dependencies = [
 dev = ["black", "pre-commit", "tabulate"]
 
 [project.urls]
-Documentation = "https://github.com/etsap-TIMES/times-excel-reader#readme"
-Issues = "https://github.com/etsap-TIMES/times-excel-reader/issues"
-Source = "https://github.com/etsap-TIMES/times-excel-reader"
+Documentation = "https://github.com/etsap-TIMES/xl2times#readme"
+Issues = "https://github.com/etsap-TIMES/xl2times/issues"
+Source = "https://github.com/etsap-TIMES/xl2times"
 
 [project.scripts]
 xl2times = "xl2times.__main__:main"
