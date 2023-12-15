@@ -248,12 +248,6 @@ def merge_tables(
             set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group
         ):
             cols = [(",".join(g.dataframe.columns), g) for g in group]
-            cols_groups = [
-                (key, list(group))
-                for key, group in groupby(
-                    sorted(cols, key=lambda ct: ct[0]), lambda ct: ct[0]
-                )
-            ]
             print(
                 f"WARNING: Cannot merge tables with tag {key} as their columns are not identical"
             )
@@ -535,8 +529,6 @@ def process_user_constraint_tables(
             "uc_desc",  # Why is this in the index columns?
             # TODO remove these?
             "timeslice",
-            "commodity",
-            "process",
         ]
         data_columns = [x for x in df.columns if x not in known_columns]
 
@@ -1837,6 +1829,8 @@ def process_uc_wildcards(
             lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
         )
 
+        cols_to_drop = [col for col in df.columns if col in query_columns]
+
         df = expand_rows(
             datatypes.EmbeddedXlTable(
                 tag="",
@@ -1844,7 +1838,7 @@ def process_uc_wildcards(
                 sheetname="",
                 range="",
                 filename="",
-                dataframe=df,
+                dataframe=df.drop(columns=cols_to_drop),
             )
         ).dataframe
 
