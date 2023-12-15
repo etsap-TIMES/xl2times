@@ -1774,7 +1774,7 @@
     "gams-cat": "parameter",
     "indexes": [
       "CUR",
-      "CUR"
+      "CUR2"
     ],
     "mapping": [
       "currency",
