@@ -137,7 +137,7 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "timeslice"
     ]
   },
@@ -155,7 +155,7 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "timeslice"
     ]
   },
@@ -697,7 +697,7 @@
     "mapping": [
       "region",
       "commodity",
-      "commodity_group"
+      "other_indexes"
     ]
   },
   {
@@ -765,7 +765,7 @@
       "COM_GRP"
     ],
     "mapping": [
-      "commodity_group"
+      "other_indexes"
     ]
   },
   {
@@ -1032,7 +1032,7 @@
     ],
     "mapping": [
       "region",
-      "commodity_group",
+      "other_indexes",
       "commodity"
     ]
   },
@@ -1099,7 +1099,7 @@
     ],
     "mapping": [
       "region",
-      "commodity_group"
+      "other_indexes"
     ]
   },
   {
@@ -1142,7 +1142,7 @@
     ],
     "mapping": [
       "region",
-      "commodity_group",
+      "other_indexes",
       "timeslice"
     ]
   },
@@ -1470,7 +1470,7 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "timeslice",
       "limtype"
     ]
@@ -1550,7 +1550,7 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "commodity",
       "timeslice"
     ]
@@ -1570,7 +1570,7 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "commodity",
       "timeslice"
     ]
@@ -1626,8 +1626,8 @@
       "region",
       "year",
       "process",
-      "commodity_group",
-      "commodity_group",
+      "other_indexes",
+      "other_indexes",
       "timeslice"
     ]
   },
@@ -1645,8 +1645,8 @@
       "region",
       "year",
       "process",
-      "commodity_group",
-      "commodity_group"
+      "other_indexes",
+      "other_indexes"
     ]
   },
   {
@@ -1702,7 +1702,7 @@
       "year",
       "process",
       "commodity",
-      "commodity_group",
+      "other_indexes",
       "timeslice",
       "limtype"
     ]
@@ -1743,9 +1743,9 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "commodity",
-      "commodity_group",
+      "other_indexes",
       "timeslice"
     ]
   },
@@ -1902,7 +1902,7 @@
       "region",
       "year",
       "commodity",
-      "commodity_group"
+      "other_indexes"
     ]
   },
   {
@@ -2208,7 +2208,7 @@
       "region",
       "year",
       "process",
-      "commodity_group"
+      "other_indexes"
     ]
   },
   {
@@ -2225,7 +2225,7 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "timeslice"
     ]
   },
@@ -2243,7 +2243,7 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "timeslice"
     ]
   },
@@ -2508,7 +2508,7 @@
       "region",
       "year",
       "process",
-      "tbd"
+      "other_indexes"
     ]
   },
   {
@@ -3054,7 +3054,7 @@
       "region",
       "year",
       "process",
-      "commodity_group"
+      "other_indexes"
     ]
   },
   {
@@ -3069,7 +3069,7 @@
     "mapping": [
       "region",
       "process",
-      "commodity_group",
+      "other_indexes",
       "tbd"
     ]
   },
@@ -3113,7 +3113,7 @@
     "mapping": [
       "region",
       "process",
-      "commodity_group",
+      "other_indexes",
       "tbd"
     ]
   },
@@ -3749,8 +3749,8 @@
       "region",
       "year",
       "process",
-      "commodity_group",
-      "commodity_group",
+      "other_indexes",
+      "other_indexes",
       "stage",
       "sow"
     ]
@@ -4403,7 +4403,7 @@
     ],
     "mapping": [
       "region",
-      "commodity_group",
+      "other_indexes",
       "limtype"
     ]
   },
@@ -4419,7 +4419,7 @@
     "mapping": [
       "region",
       "year",
-      "commodity_group",
+      "other_indexes",
       "limtype"
     ]
   },
@@ -4754,7 +4754,7 @@
       "region",
       "year",
       "process",
-      "commodity_group"
+      "other_indexes"
     ]
   },
   {
@@ -5104,6 +5104,7 @@
   {
     "name": "VDA_EMCB",
     "gams-cat": "parameter",
+    "type": "special",
     "indexes": [
       "REG",
       "YEAR",
@@ -5131,7 +5132,7 @@
       "region",
       "year",
       "process",
-      "commodity_group",
+      "other_indexes",
       "timeslice"
     ]
   }

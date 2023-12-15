@@ -179,14 +179,6 @@ class Config:
         # Migration in progress: use parameter mappings from times_info_file for now
         name_to_map = {m.times_name: m for m in self.times_xl_maps}
         for m in param_mappings:
-            # TODO use normalized names in times_info_file instead of fixing here?
-            tag = Tag(m.xl_name)
-            substitution = self.column_aliases[tag]
-            substitution.pop(
-                "value", None
-            )  # TODO hack to stop renaming value to allregions
-            m.xl_cols = [substitution.get(c, c) for c in m.xl_cols]
-            m.col_map = {k: substitution.get(v, v) for k, v in m.col_map.items()}
             name_to_map[m.times_name] = m
         self.times_xl_maps = list(name_to_map.values())
 
