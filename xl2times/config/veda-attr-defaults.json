@@ -510,9 +510,6 @@
   "FIXOM": {
     "times-attribute": "NCAP_FOM"
   },
-  "FLOP": {
-    "times-attribute": "VDA_FLOP"
-  },
   "FLOSHAR": {
     "defaults": {
       "commodity": [
@@ -671,6 +668,15 @@
   "ILED": {
     "times-attribute": "NCAP_ILED"
   },
+  "INPUT": {
+    "defaults": {
+      "commodity": [
+        "commodity-in"
+      ],
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "VDA_FLOP"
+  },
   "INVCOST": {
     "times-attribute": "NCAP_COST"
   },
@@ -764,6 +770,15 @@
   },
   "OLIFE": {
     "times-attribute": "NCAP_OLIFE"
+  },
+  "OUTPUT": {
+    "defaults": {
+      "commodity": [
+        "commodity-out"
+      ],
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "VDA_FLOP"
   },
   "PASTI": {
     "times-attribute": "NCAP_PASTI"
@@ -1055,6 +1070,10 @@
   },
   "VDA_FLOP": {
     "defaults": {
+      "commodity": [
+        "commodity-in",
+        "commodity-out"
+      ],
       "ts-level": "ANNUAL"
     }
   },
