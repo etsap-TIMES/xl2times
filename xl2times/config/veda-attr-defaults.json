@@ -215,7 +215,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -224,7 +226,8 @@
   "CEFF-I": {
     "defaults": {
       "commodity": [
-        "commodity-in"
+        "commodity-in",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -233,7 +236,8 @@
   "CEFF-O": {
     "defaults": {
       "commodity": [
-        "commodity-out"
+        "commodity-out",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -243,7 +247,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -399,7 +405,8 @@
   "DELIV": {
     "defaults": {
       "commodity": [
-        "commodity-in"
+        "commodity-in",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -457,7 +464,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -479,7 +488,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -501,7 +512,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -514,7 +527,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -531,7 +546,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -544,7 +561,8 @@
   "FLO_DELIV": {
     "defaults": {
       "commodity": [
-        "commodity-in"
+        "commodity-in",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -553,7 +571,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -562,7 +582,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -581,7 +603,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "limtype": "UP"
     }
@@ -590,7 +614,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -600,7 +626,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -609,7 +637,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -671,7 +701,8 @@
   "INPUT": {
     "defaults": {
       "commodity": [
-        "commodity-in"
+        "commodity-in",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -774,7 +805,8 @@
   "OUTPUT": {
     "defaults": {
       "commodity": [
-        "commodity-out"
+        "commodity-out",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -844,7 +876,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -854,7 +888,8 @@
   "SHARE-I": {
     "defaults": {
       "commodity": [
-        "commodity-in"
+        "commodity-in",
+        "commodity-in-aux"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -864,7 +899,8 @@
   "SHARE-O": {
     "defaults": {
       "commodity": [
-        "commodity-out"
+        "commodity-out",
+        "commodity-out-aux"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -1072,7 +1108,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     }
