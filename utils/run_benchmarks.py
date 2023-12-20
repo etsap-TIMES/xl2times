@@ -102,6 +102,7 @@ def run_gams_gdxdiff(
             path.join(dd_folder, "scenario.gdx"),
             path.join(out_folder, "scenario.gdx"),
             path.join(out_folder, "diffile.gdx"),
+            "Eps=0.000001",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
