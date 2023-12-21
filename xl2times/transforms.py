@@ -318,23 +318,7 @@ def process_flexible_import_tables(
         # datatypes.Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
         # TODO: Include other valid column headers
-        known_columns = [
-            "region",
-            "process",
-            "commodity",
-            "commodity-in",
-            "commodity-in-aux",
-            "commodity-out",
-            "commodity-out-aux",
-            "attribute",
-            "year",
-            "timeslice",
-            "limtype",
-            "currency",
-            "other_indexes",
-            "stage",
-            "sow",
-        ]
+        known_columns = config.known_columns[datatypes.Tag.fi_t]
         data_columns = [x for x in df.columns if x not in known_columns]
 
         # Populate index columns
@@ -509,32 +493,13 @@ def process_user_constraint_tables(
         # Fill in UC_N blank cells with value from above
         df["uc_n"] = df["uc_n"].ffill()
 
-        # TODO: Include other valid column headers
-        known_columns = [
-            "uc_n",
-            "region",
-            "pset_set",
-            "pset_pn",
-            "pset_pd",
-            "pset_ci",
-            "pset_co",
-            "cset_cn",
-            "cset_cd",
-            "cset_set",
-            "side",
-            "attribute",
-            "year",
-            "limtype",
-            "top_check",
-            "uc_desc",  # Why is this in the index columns?
-            # TODO remove these?
-            "timeslice",
+        data_columns = [
+            x for x in df.columns if x not in config.known_columns[datatypes.Tag.uc_t]
         ]
-        data_columns = [x for x in df.columns if x not in known_columns]
 
         # Populate columns
         nrows = df.shape[0]
-        for colname in known_columns:
+        for colname in config.known_columns[datatypes.Tag.uc_t]:
             if colname not in df.columns:
                 df[colname] = [None] * nrows
         table = replace(table, dataframe=df)
@@ -1586,18 +1551,7 @@ def process_transform_insert(
             df = table.dataframe.copy()
 
             # Standardize column names
-            # TODO: Include other valid column names
-            # TODO should this go in datatypes.Config?
-            known_columns = {
-                "attribute",
-                "year",
-                "timeslice",
-                "limtype",
-                "currency",
-                "stage",
-                "sow",
-                "other_indexes",
-            } | query_columns
+            known_columns = config.known_columns[datatypes.Tag.tfm_ins] | query_columns
 
             # Handle Regions:
             if set(df.columns).isdisjoint(
