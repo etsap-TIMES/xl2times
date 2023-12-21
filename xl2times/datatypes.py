@@ -154,6 +154,8 @@ class Config:
     # List of tags for which empty tables should be discarded
     discard_if_empty: Iterable[Tag]
     veda_attr_defaults: Dict[str, Dict[str, list]]
+    # Known columns for each tag
+    known_columns: Dict[Tag, Set[str]]
 
     def __init__(
         self,
@@ -172,6 +174,7 @@ class Config:
             self.column_aliases,
             self.row_comment_chars,
             self.discard_if_empty,
+            self.known_columns,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
             veda_attr_defaults_file
@@ -308,7 +311,12 @@ class Config:
     @staticmethod
     def _read_veda_tags_info(
         veda_tags_file: str,
-    ) -> Tuple[Dict[Tag, Dict[str, str]], Dict[Tag, Dict[str, list]], Iterable[Tag]]:
+    ) -> Tuple[
+        Dict[Tag, Dict[str, str]],
+        Dict[Tag, Dict[str, list]],
+        Iterable[Tag],
+        Dict[Tag, Set[str]],
+    ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
             return Tag("~" + s.upper())
@@ -328,6 +336,7 @@ class Config:
         valid_column_names = {}
         row_comment_chars = {}
         discard_if_empty = []
+        known_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
             tag_name = to_tag(tag_info["tag_name"])
@@ -348,6 +357,8 @@ class Config:
                     else:
                         field_name = valid_field["name"]
 
+                    known_cols[tag_name].add(field_name)
+
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
                         row_comment_chars[tag_name][field_name] = valid_field[
@@ -363,7 +374,7 @@ class Config:
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
 
-        return valid_column_names, row_comment_chars, discard_if_empty
+        return valid_column_names, row_comment_chars, discard_if_empty, known_cols
 
     @staticmethod
     def _read_veda_attr_defaults(
