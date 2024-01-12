@@ -506,7 +506,7 @@ def process_user_constraint_tables(
 
         # Fill missing regions using defaults (if specified)
         regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R")]
-        if table.uc_sets[regions_lists[-1]] != "":
+        if regions_lists and table.uc_sets[regions_lists[-1]] != "":
             regions = table.uc_sets[regions_lists[-1]]
             if regions.lower() != "allregions":
                 df["region"] = df["region"].fillna(regions)
