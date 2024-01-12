@@ -1898,12 +1898,49 @@ def process_wildcards(
                         row = matching_commodities.merge(row, how="cross")
                     new_rows.append(row)
             if tag == datatypes.Tag.tfm_ins_txt:
-                # df_prc = tables[datatypes.Tag.fi_process]
-                # df_com = tables[datatypes.Tag.fi_comm]
-                new_rows.append(df)  # pyright: ignore
-                tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
+                new_df = pd.concat(new_rows, ignore_index=True)
 
-            if tag != datatypes.Tag.tfm_upd and tag != datatypes.Tag.tfm_ins_txt:
+                prc_rows = []
+                com_rows = []
+                for attr, val_col_name in attr_prop.items():
+                    attr_rows = new_df[new_df["attribute"] == attr]
+                    if attr_rows.empty:
+                        continue
+                    attr_rows = attr_rows.rename(columns={"value": val_col_name})
+                    # Attriubutes beginning PRC_ go to fi_process, COM_ go to fi_comm:
+                    if attr.startswith("PRC_"):
+                        # Remove columns not in fi_process and then add to prc_rows
+                        prc_rows.append(
+                            attr_rows.drop(
+                                columns=[
+                                    c
+                                    for c in attr_rows.columns
+                                    if c not in tables[datatypes.Tag.fi_process]
+                                ]
+                            )
+                        )
+                    elif attr.startswith("COM_"):
+                        # Remove columns not in fi_comm and then add to com_rows
+                        com_rows.append(
+                            attr_rows.drop(
+                                columns=[
+                                    c
+                                    for c in attr_rows.columns
+                                    if c not in tables[datatypes.Tag.fi_comm]
+                                ]
+                            )
+                        )
+                    else:
+                        raise ValueError(f"Unexpected attribute {attr}")
+
+                tables[datatypes.Tag.fi_process] = pd.concat(
+                    [tables[datatypes.Tag.fi_process]] + prc_rows, ignore_index=True
+                )
+                tables[datatypes.Tag.fi_comm] = pd.concat(
+                    [tables[datatypes.Tag.fi_comm]] + com_rows, ignore_index=True
+                )
+
+            elif tag != datatypes.Tag.tfm_upd:
                 new_rows.append(df)  # pyright: ignore
                 tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
 
