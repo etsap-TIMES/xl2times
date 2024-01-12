@@ -68,21 +68,21 @@ jobs:
 
       # ---------- Install GAMS
 
-      # - name: Install GAMS
-      #   run: |
-      #     curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
-      #     chmod +x linux_x64_64_sfx.exe
-      #     mkdir GAMS
-      #     pushd  GAMS
-      #     ../linux_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
-      #     export PATH=$PATH:$(pwd)/gams44.1_linux_x64_64_sfx
-      #     popd
-      #     echo Creating license file at $HOME/.local/share/GAMS
-      #     mkdir -p $HOME/.local/share/GAMS
-      #     echo "$GAMS_LICENSE" > $HOME/.local/share/GAMS/gamslice.txt
-      #     ls -l $HOME/.local/share/GAMS/
-      #   env:
-      #     GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+      - name: Install GAMS
+        run: |
+          curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
+          chmod +x linux_x64_64_sfx.exe
+          mkdir GAMS
+          pushd  GAMS
+          ../linux_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
+          export PATH=$PATH:$(pwd)/gams44.1_linux_x64_64_sfx
+          popd
+          echo Creating license file at $HOME/.local/share/GAMS
+          mkdir -p $HOME/.local/share/GAMS
+          echo "$GAMS_LICENSE" > $HOME/.local/share/GAMS/gamslice.txt
+          ls -l $HOME/.local/share/GAMS/
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
 
       # ---------- Run tool, check for regressions
 
@@ -96,6 +96,7 @@ jobs:
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
           (python utils/run_benchmarks.py benchmarks.yml \
+              --dd --times_dir $GITHUB_WORKSPACE/TIMES_model \
               --verbose \
               | tee out.txt; \
             echo ${PIPESTATUS[0]} > retcode.txt)
