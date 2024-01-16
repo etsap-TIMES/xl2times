@@ -2160,6 +2160,24 @@ def apply_more_fixups(
     return tables
 
 
+def final_cleanup(
+    config: datatypes.Config, tables: Dict[str, DataFrame]
+) -> Dict[str, DataFrame]:
+    """Apply final clean up. E.g. discard not relevant data"""
+
+    # Apply regions filter
+    # TODO: Apply regions filtering earlier (incl. populating default regions)
+    # TODO: Warn if invalid filter entries?
+    # TODO: Do not filter if no valid filter entries?
+    if config.filter_regions:
+        for k, v in tables.items():
+            if "region" in v.columns:
+                df = v[v["region"].isin(config.filter_regions)]
+                tables[k] = df
+
+    return tables
+
+
 def expand_rows_parallel(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],

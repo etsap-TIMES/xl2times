@@ -95,6 +95,7 @@ def convert_xl_to_times(
         transforms.convert_aliases,
         transforms.rename_cgs,
         transforms.fix_topology,
+        transforms.final_cleanup,
         transforms.convert_to_string,
         lambda config, tables: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
@@ -383,6 +384,12 @@ def main():
         help="Either an input directory, or a list of input xlsx files to process",
     )
     args_parser.add_argument(
+        "--regions",
+        type=str,
+        default="",
+        help="Comma-separated list of regions to include in the model",
+    )
+    args_parser.add_argument(
         "--output_dir", type=str, default="output", help="Output directory"
     )
     args_parser.add_argument(
@@ -410,6 +417,7 @@ def main():
         "times-info.json",
         "veda-tags.json",
         "veda-attr-defaults.json",
+        args.regions,
     )
 
     if not isinstance(args.input, list) or len(args.input) < 1:
