@@ -157,7 +157,7 @@ class Config:
     # Known columns for each tag
     known_columns: Dict[Tag, Set[str]]
     # Names of regions to include in the model; if empty, all regions are included.
-    filter_regions: Iterable[str]
+    filter_regions: Set[str]
 
     def __init__(
         self,
@@ -422,8 +422,8 @@ class Config:
         return veda_attr_defaults, attr_aliases
 
     @staticmethod
-    def _read_regions_filter(regions_list: str) -> Iterable[str]:
+    def _read_regions_filter(regions_list: str) -> Set[str]:
         if regions_list == "":
-            return list()
+            return set()
         else:
-            return regions_list.strip(" ").upper().split(sep=",")
+            return set(regions_list.strip(" ").upper().split(sep=","))
