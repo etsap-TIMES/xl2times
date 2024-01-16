@@ -156,6 +156,8 @@ class Config:
     veda_attr_defaults: Dict[str, Dict[str, list]]
     # Known columns for each tag
     known_columns: Dict[Tag, Set[str]]
+    # Names of regions to include in the model; if empty, all regions are included.
+    filter_regions: Iterable[str]
 
     def __init__(
         self,
@@ -163,6 +165,7 @@ class Config:
         times_info_file: str,
         veda_tags_file: str,
         veda_attr_defaults_file: str,
+        regions: str,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         (
@@ -184,6 +187,7 @@ class Config:
         for m in param_mappings:
             name_to_map[m.times_name] = m
         self.times_xl_maps = list(name_to_map.values())
+        self.filter_regions = Config._read_regions_filter(regions)
 
     @staticmethod
     def _process_times_info(
@@ -416,3 +420,10 @@ class Config:
                     veda_attr_defaults["tslvl"][tslvl].append(attr)
 
         return veda_attr_defaults, attr_aliases
+
+    @staticmethod
+    def _read_regions_filter(regions_list: str) -> Iterable[str]:
+        if regions_list == "":
+            return list()
+        else:
+            return regions_list.strip(" ").upper().split(sep=",")
