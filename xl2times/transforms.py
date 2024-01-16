@@ -2163,7 +2163,7 @@ def apply_more_fixups(
 def final_cleanup(
     config: datatypes.Config, tables: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    """Apply final clean up. E.g. discard not irrelevant data"""
+    """Apply final clean up. E.g. discard not relevant data"""
 
     # Apply regions filter
     # TODO: Apply regions filtering earlier (incl. populating default regions)
