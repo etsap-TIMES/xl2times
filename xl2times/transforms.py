@@ -294,7 +294,7 @@ def process_flexible_import_tables(
         "commodity-out": set(
             utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
-        "region": model.all_regions(),
+        "region": model.internal_regions,
         "currency": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
         "other_indexes": {"INPUT", "OUTPUT"},
     }
@@ -477,7 +477,7 @@ def process_user_constraint_tables(
             "UC_R_EACH",
             "UC_R_SUM",
         },
-        "region": model.all_regions(),
+        "region": model.internal_regions,
         "limtype": {"FX", "LO", "UP"},
         "side": {"LHS", "RHS"},
     }
@@ -577,7 +577,6 @@ def fill_in_missing_values(
     :return:            List of tables in EmbeddedXlTable format with empty values filled in.
     """
     result = []
-    regions = model.internal_regions
     start_year = one(utils.single_column(tables, datatypes.Tag.start_year, "value"))
     # TODO there are multiple currencies
     currency = utils.single_column(tables, datatypes.Tag.currencies, "currency")[0]
@@ -714,7 +713,7 @@ def remove_invalid_values(
     # a given column, and the values that are allowed for that column.
     constraints = {
         "csets": csets_ordered_for_pcg,
-        "region": model.all_regions(),
+        "region": model.all_regions,
     }
 
     result = []
@@ -798,11 +797,19 @@ def process_regions(
     IMPEXP and MINRNW are external regions that are defined by default by Veda
     """
 
-    model.external_regions.update(["IMPEXP", "MINRNW"])
+    model.all_regions.update((["IMPEXP", "MINRNW"]))
     model.internal_regions.update(
         utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
     )
-    df = pd.DataFrame(model.all_regions(), columns=["region"])
+    model.all_regions.update(model.internal_regions)
+
+    # Apply regions filter
+    if config.filter_regions:
+        filtered_regions = model.internal_regions.intersection(config.filter_regions)
+        if filtered_regions:
+            model.internal_regions.update(filtered_regions)
+        else:
+            print("WARNING: Regions filter not applied; no valid entries found. ")
 
     tables.append(
         datatypes.EmbeddedXlTable(
@@ -811,7 +818,7 @@ def process_regions(
             sheetname="",
             range="",
             filename="",
-            dataframe=df,
+            dataframe=pd.DataFrame(model.all_regions, columns=["region"]),
         )
     )
 
@@ -1235,7 +1242,7 @@ def process_commodity_emissions(
                     lambda s: s.split(",") if isinstance(s, str) else s
                 )
                 df = df.explode("region", ignore_index=True)
-                df = df[df["region"].isin(model.all_regions())]
+                df = df[df["region"].isin(model.internal_regions)]
 
             nrows = df.shape[0]
             for colname in index_columns:
@@ -1557,7 +1564,7 @@ def process_transform_insert(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    regions = model.all_regions()
+    regions = model.internal_regions
     tfm_tags = [
         datatypes.Tag.tfm_ins,
         datatypes.Tag.tfm_ins_txt,
@@ -2065,7 +2072,7 @@ def process_time_slices(
     result = []
 
     # TODO: Timeslices can differ from region to region
-    regions = list(model.all_regions())
+    regions = list(model.internal_regions)
 
     for table in tables:
         if table.tag != datatypes.Tag.time_slices:
@@ -2201,26 +2208,6 @@ def apply_more_fixups(
                     df.at[list(index).index(True), "uc_desc"] = uc_n
 
         tables[datatypes.Tag.uc_t] = df
-
-    return tables
-
-
-def final_cleanup(
-    config: datatypes.Config,
-    tables: Dict[str, DataFrame],
-    model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
-    """Apply final clean up. E.g. discard not relevant data"""
-
-    # Apply regions filter
-    # TODO: Apply regions filtering earlier (incl. populating default regions)
-    # TODO: Warn if invalid filter entries?
-    # TODO: Do not filter if no valid filter entries?
-    if config.filter_regions:
-        for k, v in tables.items():
-            if "region" in v.columns:
-                df = v[v["region"].isin(config.filter_regions)]
-                tables[k] = df
 
     return tables
 

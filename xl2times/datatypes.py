@@ -144,14 +144,14 @@ class TimesModel:
     """
 
     internal_regions: Set[str]
-    external_regions: Set[str]
+    all_regions: Set[str]
 
     def __init__(self):
         self.internal_regions = set()
-        self.external_regions = set()
+        self.all_regions = set()
 
-    def all_regions(self) -> Set[str]:
-        return self.internal_regions.union(self.external_regions)
+    def external_regions(self) -> Set[str]:
+        return self.all_regions.difference(self.internal_regions)
 
 
 class Config:
