@@ -66,6 +66,7 @@ def convert_xl_to_times(
         lambda config, tables, model: [
             transforms.remove_comment_rows(config, t, model) for t in tables
         ],
+        transforms.process_regions,
         transforms.generate_dummy_processes,
         transforms.process_transform_insert_variants,
         transforms.process_transform_insert,
@@ -81,7 +82,6 @@ def convert_xl_to_times(
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
         transforms.process_time_periods,
-        transforms.generate_all_regions,
         transforms.capitalise_some_values,
         transforms.apply_fixups,
         transforms.generate_commodity_groups,

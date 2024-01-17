@@ -294,7 +294,7 @@ def process_flexible_import_tables(
         "commodity-out": set(
             utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
-        "region": utils.single_column(tables, datatypes.Tag.book_regions_map, "region"),
+        "region": model.all_regions(),
         "currency": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
         "other_indexes": {"INPUT", "OUTPUT"},
     }
@@ -477,7 +477,7 @@ def process_user_constraint_tables(
             "UC_R_EACH",
             "UC_R_SUM",
         },
-        "region": utils.single_column(tables, datatypes.Tag.book_regions_map, "region"),
+        "region": model.all_regions(),
         "limtype": {"FX", "LO", "UP"},
         "side": {"LHS", "RHS"},
     }
@@ -577,7 +577,7 @@ def fill_in_missing_values(
     :return:            List of tables in EmbeddedXlTable format with empty values filled in.
     """
     result = []
-    regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
+    regions = model.internal_regions
     start_year = one(utils.single_column(tables, datatypes.Tag.start_year, "value"))
     # TODO there are multiple currencies
     currency = utils.single_column(tables, datatypes.Tag.currencies, "currency")[0]
@@ -710,13 +710,11 @@ def remove_invalid_values(
     """
     # TODO: This should be table type specific
     # TODO pull this out
-    regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
-    # TODO pull this out
     # Rules for allowing entries. Each entry of the dictionary designates a rule for a
     # a given column, and the values that are allowed for that column.
     constraints = {
         "csets": csets_ordered_for_pcg,
-        "region": regions,
+        "region": model.all_regions(),
     }
 
     result = []
@@ -790,7 +788,7 @@ def process_time_periods(
     return [process_time_periods_table(table) for table in tables]
 
 
-def generate_all_regions(
+def process_regions(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
@@ -1215,7 +1213,6 @@ def process_commodity_emissions(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
 
     result = []
     for table in tables:
@@ -1238,7 +1235,7 @@ def process_commodity_emissions(
                     lambda s: s.split(",") if isinstance(s, str) else s
                 )
                 df = df.explode("region", ignore_index=True)
-                df = df[df["region"].isin(regions)]
+                df = df[df["region"].isin(model.all_regions())]
 
             nrows = df.shape[0]
             for colname in index_columns:
@@ -1255,9 +1252,8 @@ def process_commodities(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    regions = ",".join(
-        utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
-    )
+
+    regions = ",".join(model.internal_regions)
 
     result = []
     for table in tables:
@@ -1561,7 +1557,7 @@ def process_transform_insert(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    regions = utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
+    regions = model.all_regions()
     tfm_tags = [
         datatypes.Tag.tfm_ins,
         datatypes.Tag.tfm_ins_txt,
@@ -2069,9 +2065,7 @@ def process_time_slices(
     result = []
 
     # TODO: Timeslices can differ from region to region
-    regions = list(
-        utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
-    )
+    regions = list(model.all_regions())
 
     for table in tables:
         if table.tag != datatypes.Tag.time_slices:
