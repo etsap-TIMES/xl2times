@@ -138,6 +138,22 @@ class TimesXlMap:
     filter_rows: Dict[str, str]
 
 
+class TimesModel:
+    """
+    This class contains all the information about the processed TIMES model.
+    """
+
+    internal_regions: Set[str]
+    external_regions: Set[str]
+
+    def __init__(self):
+        self.internal_regions = set()
+        self.external_regions = set()
+
+    def all_regions(self) -> Set[str]:
+        return self.internal_regions.union(self.external_regions)
+
+
 class Config:
     """Encapsulates all configuration options for a run of the tool, including
     the mapping betwen excel tables and output tables, categories of tables, etc.
