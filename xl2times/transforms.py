@@ -581,12 +581,12 @@ def fill_in_missing_values(
     # TODO there are multiple currencies
     currency = utils.single_column(tables, datatypes.Tag.currencies, "currency")[0]
     # The default regions for VT_* files is given by ~BookRegions_Map:
-    regions = defaultdict(list)
+    vt_regions = defaultdict(list)
     brm = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
     utils.missing_value_inherit(brm, "bookname")
     for _, row in brm.iterrows():
-        regions[row["bookname"]].append(row["region"])
-    all_regions = list(brm["region"])
+        if row["region"] in model.internal_regions:
+            vt_regions[row["bookname"]].append(row["region"])
     ts_levels = (
         utils.single_table(tables, "TimeSlicesGroup").dataframe["tslvl"].unique()
     )
@@ -639,12 +639,12 @@ def fill_in_missing_values(
                 matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).name)
                 if matches is not None:
                     book = matches.group(1)
-                    if book in regions:
-                        df[colname].fillna(",".join(regions[book]), inplace=True)
+                    if book in vt_regions:
+                        df[colname].fillna(",".join(vt_regions[book]), inplace=True)
                     else:
                         print(f"WARNING: book name {book} not in BookRegions_Map")
                 else:
-                    df[colname].fillna(",".join(all_regions), inplace=True)
+                    df[colname].fillna(",".join(model.internal_regions), inplace=True)
             elif colname == "year":
                 df[colname].fillna(start_year, inplace=True)
             elif colname == "currency":
@@ -805,22 +805,26 @@ def process_regions(
 
     # Apply regions filter
     if config.filter_regions:
-        filtered_regions = model.internal_regions.intersection(config.filter_regions)
-        if filtered_regions:
-            model.internal_regions.update(filtered_regions)
+        keep_regions = model.internal_regions.intersection(config.filter_regions)
+        if keep_regions:
+            model.internal_regions.intersection_update(keep_regions)
         else:
             print("WARNING: Regions filter not applied; no valid entries found. ")
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="AllRegions",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=pd.DataFrame(model.all_regions, columns=["region"]),
+    for k, v in {
+        "AllRegions": model.all_regions,
+        "Regions": model.internal_regions,
+    }.items():
+        tables.append(
+            datatypes.EmbeddedXlTable(
+                tag=k,
+                uc_sets={},
+                sheetname="",
+                range="",
+                filename="",
+                dataframe=pd.DataFrame(v, columns=["region"]),
+            )
         )
-    )
 
     return tables
 
@@ -1091,12 +1095,7 @@ def generate_top_ire(
             )
     ire_prc.drop_duplicates(keep="first", inplace=True)
 
-    internal_regions = pd.DataFrame([], columns=["region"])
-    for table in tables:
-        if table.tag == datatypes.Tag.book_regions_map:
-            internal_regions = pd.concat(
-                [internal_regions, table.dataframe.loc[:, ["region"]]]
-            )
+    internal_regions = pd.DataFrame(model.internal_regions, columns=["region"])
 
     # Generate inter-regional exchange topology
     top_ire = pd.DataFrame(dummy_process_cset, columns=["csets", "process"])
