@@ -793,8 +793,8 @@ def process_regions(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Include IMPEXP and MINRNW together with the user-defined regions in the AllRegions set
-    IMPEXP and MINRNW are external regions that are defined by default by Veda
+    Include IMPEXP and MINRNW together with the user-defined regions in the AllRegions set.
+    IMPEXP and MINRNW are external regions that are defined by default by Veda.
     """
 
     model.all_regions.update((["IMPEXP", "MINRNW"]))
@@ -807,7 +807,7 @@ def process_regions(
     if config.filter_regions:
         keep_regions = model.internal_regions.intersection(config.filter_regions)
         if keep_regions:
-            model.internal_regions.intersection_update(keep_regions)
+            model.internal_regions = keep_regions
         else:
             print("WARNING: Regions filter not applied; no valid entries found. ")
 

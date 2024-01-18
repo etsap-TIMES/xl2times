@@ -1,5 +1,5 @@
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import resources
 from itertools import chain
 import json
@@ -138,17 +138,14 @@ class TimesXlMap:
     filter_rows: Dict[str, str]
 
 
+@dataclass
 class TimesModel:
     """
     This class contains all the information about the processed TIMES model.
     """
 
-    internal_regions: Set[str]
-    all_regions: Set[str]
-
-    def __init__(self):
-        self.internal_regions = set()
-        self.all_regions = set()
+    internal_regions: Set[str] = field(default_factory=set)
+    all_regions: Set[str] = field(default_factory=set)
 
     def external_regions(self) -> Set[str]:
         return self.all_regions.difference(self.internal_regions)
