@@ -17,6 +17,7 @@ def convert_xl_to_times(
     input_files: List[str],
     output_dir: str,
     config: datatypes.Config,
+    model: datatypes.TimesModel,
     use_pkl: bool,
     verbose: bool = False,
     stop_after_read: bool = False,
@@ -57,12 +58,15 @@ def convert_xl_to_times(
         transforms.normalize_tags_columns,
         transforms.remove_fill_tables,
         transforms.validate_input_tables,
-        lambda config, tables: [transforms.remove_comment_cols(t) for t in tables],
+        lambda config, tables, model: [
+            transforms.remove_comment_cols(t) for t in tables
+        ],
         transforms.remove_tables_with_formulas,  # slow
         transforms.normalize_column_aliases,
-        lambda config, tables: [
-            transforms.remove_comment_rows(config, t) for t in tables
+        lambda config, tables, model: [
+            transforms.remove_comment_rows(config, t, model) for t in tables
         ],
+        transforms.process_regions,
         transforms.generate_dummy_processes,
         transforms.process_transform_insert_variants,
         transforms.process_transform_insert,
@@ -78,7 +82,6 @@ def convert_xl_to_times(
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
         transforms.process_time_periods,
-        transforms.generate_all_regions,
         transforms.capitalise_some_values,
         transforms.apply_fixups,
         transforms.generate_commodity_groups,
@@ -95,19 +98,18 @@ def convert_xl_to_times(
         transforms.convert_aliases,
         transforms.rename_cgs,
         transforms.fix_topology,
-        transforms.final_cleanup,
         transforms.convert_to_string,
-        lambda config, tables: dump_tables(
+        lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
-        lambda config, tables: produce_times_tables(config, tables),
+        lambda config, tables, model: produce_times_tables(config, tables),
     ]
 
     input = raw_tables
     output = {}
     for transform in transform_list:
         start_time = time.time()
-        output = transform(config, input)
+        output = transform(config, input, model)
         end_time = time.time()
         sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
         print(
@@ -421,6 +423,8 @@ def main():
         args.regions,
     )
 
+    model = datatypes.TimesModel()
+
     if not isinstance(args.input, list) or len(args.input) < 1:
         print(f"ERROR: expected at least 1 input. Got {args.input}")
         sys.exit(1)
@@ -440,6 +444,7 @@ def main():
             input_files,
             args.output_dir,
             config,
+            model,
             args.use_pkl,
             verbose=args.verbose,
             stop_after_read=True,
@@ -447,7 +452,7 @@ def main():
         sys.exit(0)
 
     tables = convert_xl_to_times(
-        input_files, args.output_dir, config, args.use_pkl, verbose=args.verbose
+        input_files, args.output_dir, config, model, args.use_pkl, verbose=args.verbose
     )
 
     if args.dd:
