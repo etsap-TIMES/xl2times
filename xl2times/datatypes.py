@@ -146,6 +146,23 @@ class TimesModel:
 
     internal_regions: Set[str] = field(default_factory=set)
     all_regions: Set[str] = field(default_factory=set)
+    processes: DataFrame = field(default_factory=DataFrame)
+    commodities: DataFrame = field(default_factory=DataFrame)
+    com_gmap: DataFrame = field(default_factory=DataFrame)
+    comm_groups: DataFrame = field(default_factory=DataFrame)
+    topology: DataFrame = field(default_factory=DataFrame)
+    top_ire: DataFrame = field(default_factory=DataFrame)
+    main_data: DataFrame = field(default_factory=DataFrame)
+    uc_data: DataFrame = field(default_factory=DataFrame)
+    ts_group: DataFrame = field(default_factory=DataFrame)
+    ts_map: DataFrame = field(default_factory=DataFrame)
+    time_periods: DataFrame = field(default_factory=DataFrame)
+    units: DataFrame = field(default_factory=DataFrame)
+    # currencies
+    # datayear
+    # modelyear
+    # pastyear
+    # UC_Rs...
 
     def external_regions(self) -> Set[str]:
         return self.all_regions.difference(self.internal_regions)
