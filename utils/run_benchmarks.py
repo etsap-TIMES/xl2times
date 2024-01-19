@@ -163,6 +163,8 @@ def run_benchmark(
         csv_folder,
     ]
     args += ["--dd"] if run_gams else []
+    if "regions" in benchmark:
+        args.extend(["--regions", benchmark["regions"]])
     if "inputs" in benchmark:
         args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
     else:
