@@ -279,6 +279,7 @@ def produce_times_tables(
                 i = (
                     df[mapping.times_cols[-1]].notna()
                     & (df != "None").all(axis=1)
+                    & (df != "nan").all(axis=1)
                     & (df != "").all(axis=1)
                 )
                 df = df.loc[i, mapping.times_cols]
