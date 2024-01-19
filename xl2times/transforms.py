@@ -1219,7 +1219,6 @@ def process_commodity_emissions(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-
     result = []
     for table in tables:
         if table.tag != datatypes.Tag.comemi:
@@ -1258,7 +1257,6 @@ def process_commodities(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-
     regions = ",".join(model.internal_regions)
 
     result = []
@@ -1852,6 +1850,7 @@ def process_wildcards(
 ) -> Dict[str, DataFrame]:
     dictionary = generate_topology_dictionary(tables)
 
+    # TODO separate this code into expading wildcards and updating/inserting data!
     for tag in [
         datatypes.Tag.tfm_upd,
         datatypes.Tag.tfm_ins,
@@ -1929,6 +1928,29 @@ def process_wildcards(
                     if len(df) == 0:
                         print(f"WARNING: {tag} row matched nothing")
                     tables[datatypes.Tag.fi_t].update(df)
+                elif tag == datatypes.Tag.tfm_ins_txt:
+                    # This row matches either a commodity or a process
+                    assert not (
+                        matching_commodities is not None
+                        and matching_processes is not None
+                    )
+                    if matching_commodities is not None:
+                        df = tables[datatypes.Tag.fi_comm]
+                        query_str = f"commodity in [{','.join(map(repr, matching_commodities['commodity']))}] and region == '{row['region']}'"
+                    elif matching_processes is not None:
+                        df = tables[datatypes.Tag.fi_process]
+                        query_str = f"process in [{','.join(map(repr, matching_processes['process']))}] and region == '{row['region']}'"
+                    else:
+                        print(
+                            f"WARNING: {tag} row matched neither commodity nor process"
+                        )
+                        continue
+                    # Query for rows with matching process/commodity and region
+                    rows_to_update = df.query(query_str).index
+                    # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
+                    # with the value from row
+                    # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
+                    df.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
                 else:
                     # Construct 1-row data frame for data
                     # Cross merge with processes and commodities (if they exist)
@@ -1939,50 +1961,7 @@ def process_wildcards(
                     if matching_commodities is not None:
                         row = matching_commodities.merge(row, how="cross")
                     new_rows.append(row)
-            if tag == datatypes.Tag.tfm_ins_txt:
-                new_df = pd.concat(new_rows, ignore_index=True)
-
-                prc_rows = []
-                com_rows = []
-                for attr, val_col_name in attr_prop.items():
-                    attr_rows = new_df[new_df["attribute"] == attr]
-                    if attr_rows.empty:
-                        continue
-                    attr_rows = attr_rows.rename(columns={"value": val_col_name})
-                    # Attriubutes beginning PRC_ go to fi_process, COM_ go to fi_comm:
-                    if attr.startswith("PRC_"):
-                        # Remove columns not in fi_process and then add to prc_rows
-                        prc_rows.append(
-                            attr_rows.drop(
-                                columns=[
-                                    c
-                                    for c in attr_rows.columns
-                                    if c not in tables[datatypes.Tag.fi_process]
-                                ]
-                            )
-                        )
-                    elif attr.startswith("COM_"):
-                        # Remove columns not in fi_comm and then add to com_rows
-                        com_rows.append(
-                            attr_rows.drop(
-                                columns=[
-                                    c
-                                    for c in attr_rows.columns
-                                    if c not in tables[datatypes.Tag.fi_comm]
-                                ]
-                            )
-                        )
-                    else:
-                        raise ValueError(f"Unexpected attribute {attr}")
-
-                tables[datatypes.Tag.fi_process] = pd.concat(
-                    [tables[datatypes.Tag.fi_process]] + prc_rows, ignore_index=True
-                )
-                tables[datatypes.Tag.fi_comm] = pd.concat(
-                    [tables[datatypes.Tag.fi_comm]] + com_rows, ignore_index=True
-                )
-
-            elif tag != datatypes.Tag.tfm_upd:
+            if tag == datatypes.Tag.tfm_ins:
                 new_rows.append(df)  # pyright: ignore
                 tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
 
