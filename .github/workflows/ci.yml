@@ -58,12 +58,12 @@ jobs:
       # so that the run_benchmarks.py script runs this model too
       - uses: actions/checkout@v3
         with:
-          repository: samwebster/times-ireland-model
+          repository: esma-cgep/tim
           path: xl2times/benchmarks/xlsx/Ireland
 
       - uses: actions/checkout@v3
         with:
-          repository: olejandro/times-ireland-model_gams
+          repository: esma-cgep/tim-gams
           path: xl2times/benchmarks/dd/Ireland
 
       # ---------- Install GAMS
