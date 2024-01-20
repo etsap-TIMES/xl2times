@@ -127,7 +127,7 @@ def save_data_with_headers(
 ) -> None:
     """
 
-    :param param_data: Dictionary containing key=param_name and val=dataframe for parameters or List[str] for sets
+    :param param_data_dict: Dictionary containing key=param_name and val=dataframe for parameters or List[str] for sets
     :param headers_data: Dictionary containing key=param_name and val=dataframes
     :param save_dir: Path to folder in which to save the tabular data files
     :return: None
@@ -154,7 +154,27 @@ def save_data_with_headers(
     return
 
 
-def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
+def generate_headers_by_attr() -> Dict[str, List[str]]:
+
+    with open("xl2times/config/times-info.json") as f:
+        attributes = f.read()
+
+    attributes = eval(attributes)
+
+    headers_by_attr = {}
+
+    for attr in attributes:
+        if attr["gams-cat"] == "parameter":
+            headers_by_attr[attr["name"]] = [*attr["indexes"], "VALUE"]
+        else:
+            headers_by_attr[attr["name"]] = attr["indexes"]
+
+    return headers_by_attr
+
+
+def convert_dd_to_tabular(
+    basedir: str, output_dir: str, headers_by_attr: Dict[str, List[str]]
+) -> None:
     dd_files = [p for p in Path(basedir).rglob("*.dd")]
 
     all_sets = defaultdict(list)
@@ -182,7 +202,9 @@ def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
 
     # Extract headers with key=param_name and value=List[attributes]
     lines = list(open("xl2times/config/times_mapping.txt", "r"))
-    headers_data = dict()
+    headers_data = headers_by_attr
+    # The following will overwrite data obtained from headers_by_attr
+    # TODO: Remove once migration is done?
     for line in lines:
         line = line.strip()
         if line != "":
@@ -205,4 +227,4 @@ if __name__ == "__main__":
         "output_dir", type=str, help="Output directory to save the .csv files in."
     )
     args = args_parser.parse_args()
-    convert_dd_to_tabular(args.input_dir, args.output_dir)
+    convert_dd_to_tabular(args.input_dir, args.output_dir, generate_headers_by_attr())

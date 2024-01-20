@@ -279,20 +279,20 @@
     "name": "ALL_TS",
     "gams-cat": "set",
     "indexes": [
-      "*"
+      "ALL_TS"
     ],
     "mapping": [
-      "tbd"
+      "ts_group"
     ]
   },
   {
     "name": "ALL_REG",
     "gams-cat": "set",
     "indexes": [
-      "*"
+      "ALL_REG"
     ],
     "mapping": [
-      "tbd"
+      "region"
     ]
   },
   {
@@ -1040,10 +1040,10 @@
     "name": "COM_GRP",
     "gams-cat": "set",
     "indexes": [
-      "*"
+      "COM_GRP"
     ],
     "mapping": [
-      "tbd"
+      "commoditygroup"
     ]
   },
   {
@@ -1256,7 +1256,7 @@
     ],
     "mapping": [
       "region",
-      "tbd",
+      "csets",
       "commodity"
     ]
   },
@@ -1285,7 +1285,7 @@
     "mapping": [
       "region",
       "commodity",
-      "tbd"
+      "unit"
     ]
   },
   {
@@ -1320,10 +1320,10 @@
     "name": "CUR",
     "gams-cat": "set",
     "indexes": [
-      "*"
+      "CUR"
     ],
     "mapping": [
-      "tbd"
+      "currency"
     ]
   },
   {
@@ -2993,7 +2993,7 @@
     ],
     "mapping": [
       "region",
-      "tbd",
+      "ctype",
       "commodity"
     ]
   },
@@ -3035,10 +3035,10 @@
     "name": "PRC",
     "gams-cat": "set",
     "indexes": [
-      "*"
+      "PRC"
     ],
     "mapping": [
-      "tbd"
+      "process"
     ]
   },
   {
@@ -3069,8 +3069,8 @@
     "mapping": [
       "region",
       "process",
-      "other_indexes",
-      "tbd"
+      "primarycg",
+      "tact"
     ]
   },
   {
@@ -3113,8 +3113,8 @@
     "mapping": [
       "region",
       "process",
-      "other_indexes",
-      "tbd"
+      "primarycg",
+      "tcap"
     ]
   },
   {
@@ -3217,7 +3217,7 @@
     ],
     "mapping": [
       "region",
-      "tbd",
+      "sets",
       "process"
     ]
   },
@@ -3935,10 +3935,10 @@
     "name": "SPE",
     "gams-cat": "set",
     "indexes": [
-      "*"
+      "SPE"
     ],
     "mapping": [
-      "tbd"
+      "spe"
     ]
   },
   {
@@ -4209,10 +4209,10 @@
     "name": "TM_DEFVAL",
     "gams-cat": "parameter",
     "indexes": [
-      "*"
+      "TM_DEFVAL"
     ],
     "mapping": [
-      "tbd"
+      "tm_defval"
     ]
   },
   {
@@ -4785,10 +4785,10 @@
     "name": "UC_N",
     "gams-cat": "set",
     "indexes": [
-      "*"
+      "UC_N"
     ],
     "mapping": [
-      "tbd"
+      "uc_n"
     ]
   },
   {
@@ -5045,10 +5045,10 @@
     "name": "UNITS",
     "gams-cat": "set",
     "indexes": [
-      "*"
+      "UNITS"
     ],
     "mapping": [
-      "tbd"
+      "units"
     ]
   },
   {
@@ -5058,7 +5058,7 @@
       "UNITS"
     ],
     "mapping": [
-      "tbd"
+      "units"
     ]
   },
   {
@@ -5068,7 +5068,7 @@
       "UNITS"
     ],
     "mapping": [
-      "tbd"
+      "units"
     ]
   },
   {
@@ -5078,7 +5078,7 @@
       "UNITS"
     ],
     "mapping": [
-      "tbd"
+      "units"
     ]
   },
   {
