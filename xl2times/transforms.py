@@ -414,7 +414,7 @@ def process_flexible_import_tables(
                 )
 
         # Use CommName to store the active commodity for EXP / IMP
-        i = df[attribute].isin(["COST", "IRE_PRICE"])
+        i = df[attribute].isin({"COST", "IRE_PRICE"})
         i_exp = i & (df[other] == "EXP")
         df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
         i_imp = i & (df[other] == "IMP")
@@ -892,12 +892,12 @@ def apply_fixups(
         i = df["attribute"] == "SHARE-O"
         df.loc[i, "other_indexes"] = "NRGO"
         # ACT_EFF
-        i = df["attribute"].isin(["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"])
+        i = df["attribute"].isin({"CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"})
         df.loc[i, "other_indexes"] = df[i]["commodity"]
-        i = df["attribute"].isin(["EFF", "EFFICIENCY"])
+        i = df["attribute"].isin({"EFF", "EFFICIENCY"})
         df.loc[i, "other_indexes"] = "ACT"
         # FLO_EMIS
-        i = df["attribute"].isin(["ENV_ACT", "ENVACT"])
+        i = df["attribute"].isin({"ENV_ACT", "ENVACT"})
         df.loc[i, "other_indexes"] = "ACT"
 
         # Fill CommName for COST (alias of IRE_PRICE) if missing
@@ -1116,8 +1116,8 @@ def generate_top_ire(
     top_ire.loc[na_out, ["out"]] = top_ire["in"].loc[na_out]
     na_in = top_ire["in"].isna()
     top_ire.loc[na_in, ["in"]] = top_ire["out"].loc[na_in]
-    is_imp_or_min = top_ire["sets"].isin(["IMP", "MIN"])
-    is_exp = top_ire["sets"].isin(["EXP"])
+    is_imp_or_min = top_ire["sets"].isin({"IMP", "MIN"})
+    is_exp = top_ire["sets"] == "EXP"
     top_ire.loc[is_imp_or_min, ["origin"]] = top_ire["region2"].loc[is_imp_or_min]
     top_ire.loc[is_imp_or_min, ["destination"]] = top_ire["region"].loc[is_imp_or_min]
     top_ire.loc[is_exp, ["origin"]] = top_ire["region"].loc[is_exp]
@@ -2182,7 +2182,7 @@ def apply_more_fixups(
                     if len(df[i_reg_prc]["year"].unique()) == 1:
                         year = df[i_reg_prc]["year"].unique()[0]
                         i_attr = (
-                            df["attribute"].isin(["NCAP_TLIFE", "LIFE"])
+                            df["attribute"].isin({"NCAP_TLIFE", "LIFE"})
                             & (df["region"] == region)
                             & (df["process"] == process)
                         )
