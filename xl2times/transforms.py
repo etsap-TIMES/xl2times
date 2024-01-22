@@ -247,12 +247,13 @@ def merge_tables(
     """
     Merge all tables in 'tables' with the same table tag, as long as they share the same
     column field values. Print a warning for those that don't share the same column values.
-    Return a dictionary linking each table tag with its merged table.
+    Return a dictionary linking each table tag with its merged table or populate TimesModel class.
 
     :param tables:      List of tables in datatypes.EmbeddedXlTable format.
     :return:            Dictionary associating a given table tag with its merged table.
     """
     result = {}
+
     for key, value in groupby(sorted(tables, key=lambda t: t.tag), lambda t: t.tag):
         group = list(value)
         if not all(
@@ -266,7 +267,14 @@ def merge_tables(
                 print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
         else:
             df = pd.concat([table.dataframe for table in group], ignore_index=True)
-            result[key] = df
+
+            match key:
+                case datatypes.Tag.fi_comm:
+                    model.commodities = df
+                case datatypes.Tag.fi_process:
+                    model.processes = df
+                case _:
+                    result[key] = df
     return result
 
 
@@ -739,23 +747,17 @@ def process_units(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    all_units = set()
 
-    tags = {
-        datatypes.Tag.fi_comm: ["unit"],
-        datatypes.Tag.fi_process: ["tact", "tcap"],
-        datatypes.Tag.currencies: ["currency"],
+    units_map = {
+        "activity": model.processes["tact"].unique(),
+        "capacity": model.processes["tcap"].unique(),
+        "commodity": model.commodities["unit"].unique(),
+        "currency": tables[datatypes.Tag.currencies]["currency"].unique(),
     }
 
-    invalid_values = ["", None]
-
-    for tag, columns in tags.items():
-        for column in columns:
-            all_units.update(tables[tag][column].unique())
-
-    all_units -= set(invalid_values)
-
-    tables["ALL_UNITS"] = DataFrame({"units": sorted(all_units)})
+    model.units = pd.concat(
+        [pd.DataFrame({"unit": v, "type": k}) for k, v in units_map.items()]
+    )
 
     return tables
 
@@ -831,8 +833,11 @@ def complete_dictionary(
 
     # Dataframes
     for k, v in {
+        "Commodities": model.commodities,
+        "Processes": model.processes,
         "TimeSlices": model.ts_tslvl,
         "TimeSliceMap": model.ts_map,
+        "Units": model.units,
     }.items():
         tables[k] = v
 
@@ -1072,9 +1077,9 @@ def complete_commodity_groups(
     Complete the list of commodity groups
     """
 
-    commodities = generate_topology_dictionary(tables)["commodities_by_name"].rename(
-        columns={"commodity": "commoditygroup"}
-    )
+    commodities = generate_topology_dictionary(tables, model)[
+        "commodities_by_name"
+    ].rename(columns={"commodity": "commoditygroup"})
     cgs_in_top = tables["TOPOLOGY"]["commoditygroup"].to_frame()
     commodity_groups = pd.concat([commodities, cgs_in_top])
     tables["COMM_GROUPS"] = commodity_groups.drop_duplicates(keep="first").reset_index()
@@ -1744,30 +1749,32 @@ def get_matching_commodities(row, dictionary):
     return matching_commodities
 
 
-def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def generate_topology_dictionary(
+    tables: Dict[str, DataFrame], model: datatypes.TimesModel
+) -> Dict[str, DataFrame]:
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
 
-    dictionary = {}
-
-    processes = tables[datatypes.Tag.fi_process]
-    commodities = tables[datatypes.Tag.fi_comm]
+    dictionary = dict()
 
     dictionary["processes_by_name"] = (
-        processes[["process"]]
+        model.processes[["process"]]
         .dropna()
         .drop_duplicates()
         .set_index("process", drop=False)
         .rename_axis("index")
     )
     dictionary["processes_by_desc"] = (
-        processes[["process", "techdesc"]]
+        model.processes[["process", "techdesc"]]
         .dropna()
         .drop_duplicates()
         .set_index("techdesc")
     )
     dictionary["processes_by_sets"] = (
-        processes[["process", "sets"]].dropna().drop_duplicates().set_index("sets")
+        model.processes[["process", "sets"]]
+        .dropna()
+        .drop_duplicates()
+        .set_index("sets")
     )
     processes_and_commodities = tables[datatypes.Tag.fi_t]
     dictionary["processes_by_comm_in"] = (
@@ -1783,20 +1790,20 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, Data
         .set_index("commodity-out")
     )
     dictionary["commodities_by_name"] = (
-        commodities[["commodity"]]
+        model.commodities[["commodity"]]
         .dropna()
         .drop_duplicates()
         .set_index("commodity", drop=False)
         .rename_axis("index")
     )
     dictionary["commodities_by_desc"] = (
-        commodities[["commodity", "commdesc"]]
+        model.commodities[["commodity", "commdesc"]]
         .dropna()
         .drop_duplicates()
         .set_index("commdesc")
     )
     dictionary["commodities_by_sets"] = (
-        commodities[["commodity", "csets"]]
+        model.commodities[["commodity", "csets"]]
         .dropna()
         .drop_duplicates()
         .set_index("csets")
@@ -1822,7 +1829,7 @@ def process_uc_wildcards(
     if tag in tables:
         start_time = time.time()
         df = tables[tag]
-        dictionary = generate_topology_dictionary(tables)
+        dictionary = generate_topology_dictionary(tables, model)
 
         df["process"] = df.apply(
             lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
@@ -1858,7 +1865,7 @@ def process_wildcards(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    dictionary = generate_topology_dictionary(tables)
+    dictionary = generate_topology_dictionary(tables, model)
 
     # TODO separate this code into expading wildcards and updating/inserting data!
     for tag in [
@@ -1945,10 +1952,10 @@ def process_wildcards(
                         and matching_processes is not None
                     )
                     if matching_commodities is not None:
-                        df = tables[datatypes.Tag.fi_comm]
+                        df = model.commodities
                         query_str = f"commodity in [{','.join(map(repr, matching_commodities['commodity']))}] and region == '{row['region']}'"
                     elif matching_processes is not None:
-                        df = tables[datatypes.Tag.fi_process]
+                        df = model.processes
                         query_str = f"process in [{','.join(map(repr, matching_processes['process']))}] and region == '{row['region']}'"
                     else:
                         print(
