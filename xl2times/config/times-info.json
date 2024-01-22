@@ -282,7 +282,7 @@
       "ALL_TS"
     ],
     "mapping": [
-      "ts_group"
+      "timeslice"
     ]
   },
   {

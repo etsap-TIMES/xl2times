@@ -68,6 +68,7 @@ def convert_xl_to_times(
         ],
         transforms.process_regions,
         transforms.generate_dummy_processes,
+        transforms.process_time_slices,
         transforms.process_transform_insert_variants,
         transforms.process_transform_insert,
         transforms.process_processes,
@@ -77,7 +78,6 @@ def convert_xl_to_times(
         transforms.process_commodity_emissions,
         transforms.process_commodities,
         transforms.process_transform_availability,
-        transforms.process_time_slices,
         transforms.fill_in_missing_values,
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,

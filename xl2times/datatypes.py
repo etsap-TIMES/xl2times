@@ -154,7 +154,7 @@ class TimesModel:
     top_ire: DataFrame = field(default_factory=DataFrame)
     main_data: DataFrame = field(default_factory=DataFrame)
     uc_data: DataFrame = field(default_factory=DataFrame)
-    ts_group: DataFrame = field(default_factory=DataFrame)
+    ts_tslvl: DataFrame = field(default_factory=DataFrame)
     ts_map: DataFrame = field(default_factory=DataFrame)
     time_periods: DataFrame = field(default_factory=DataFrame)
     units: DataFrame = field(default_factory=DataFrame)

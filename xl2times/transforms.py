@@ -288,9 +288,11 @@ def process_flexible_import_tables(
     :return:            List of tables in EmbeddedXlTable format with all FI_T processed.
     """
     # Get a list of allowed values for each category.
+    # TODO: update this dictionary
     legal_values = {
         "limtype": {"LO", "UP", "FX"},
-        "timeslice": utils.extract_timeslices(tables),
+        # TODO: check what the values for the below should be
+        "timeslice": set(model.ts_tslvl["tslvl"]),
         "commodity-out": set(
             utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
@@ -587,10 +589,10 @@ def fill_in_missing_values(
     for _, row in brm.iterrows():
         if row["region"] in model.internal_regions:
             vt_regions[row["bookname"]].append(row["region"])
-    ts_levels = (
-        utils.single_table(tables, "TimeSlicesGroup").dataframe["tslvl"].unique()
+
+    ele_default_tslvl = (
+        "DAYNITE" if "DAYNITE" in model.ts_tslvl["tslvl"].unique() else "ANNUAL"
     )
-    ele_default_tslvl = "DAYNITE" if "DAYNITE" in ts_levels else "ANNUAL"
 
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
@@ -820,12 +822,19 @@ def complete_dictionary(
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
 
+    # Sets
     for k, v in {
         "AllRegions": model.all_regions,
         "Regions": model.internal_regions,
     }.items():
-
         tables[k] = pd.DataFrame(v, columns=["region"])
+
+    # Dataframes
+    for k, v in {
+        "TimeSlices": model.ts_tslvl,
+        "TimeSliceMap": model.ts_map,
+    }.items():
+        tables[k] = v
 
     return tables
 
@@ -2020,7 +2029,7 @@ def process_time_slices(
 
         ts_groups = pd.merge(
             pd.DataFrame({"region": regions}),
-            pd.DataFrame({"tslvl": ["ANNUAL"], "ts_group": ["ANNUAL"]}),
+            pd.DataFrame({"tslvl": ["ANNUAL"], "ts": ["ANNUAL"]}),
             how="cross",
         )
 
@@ -2032,7 +2041,7 @@ def process_time_slices(
                         reg_ts,
                         id_vars=["region"],
                         var_name="tslvl",
-                        value_name="ts_group",
+                        value_name="ts",
                     ),
                 ]
             )
@@ -2079,11 +2088,8 @@ def process_time_slices(
             ts_maps.drop_duplicates(keep="first", inplace=True)
             ts_maps.sort_values(by=list(ts_maps.columns), inplace=True)
 
-        result.append(replace(table, tag="TimeSliceMap", dataframe=DataFrame(ts_maps)))
-
-        result.append(
-            replace(table, tag="TimeSlicesGroup", dataframe=DataFrame(ts_groups))
-        )
+        model.ts_map = DataFrame(ts_maps)
+        model.ts_tslvl = DataFrame(ts_groups)
 
     result = []
 
