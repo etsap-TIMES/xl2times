@@ -811,20 +811,21 @@ def process_regions(
         else:
             print("WARNING: Regions filter not applied; no valid entries found. ")
 
+    return tables
+
+
+def complete_dictionary(
+    config: datatypes.Config,
+    tables: Dict[str, DataFrame],
+    model: datatypes.TimesModel,
+) -> Dict[str, DataFrame]:
+
     for k, v in {
         "AllRegions": model.all_regions,
         "Regions": model.internal_regions,
     }.items():
-        tables.append(
-            datatypes.EmbeddedXlTable(
-                tag=k,
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=pd.DataFrame(v, columns=["region"]),
-            )
-        )
+
+        tables[k] = pd.DataFrame(v, columns=["region"])
 
     return tables
 
