@@ -824,12 +824,19 @@ def complete_dictionary(
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
 
-    # Sets
     for k, v in {
         "AllRegions": model.all_regions,
         "Regions": model.internal_regions,
+        "DataYears": model.data_years,
+        "PastYears": model.past_years,
+        "ModelYears": model.model_years,
     }.items():
-        tables[k] = pd.DataFrame(v, columns=["region"])
+        if "region" in k.lower():
+            column_list = ["region"]
+        else:
+            column_list = ["year"]
+
+        tables[k] = pd.DataFrame(v, columns=column_list)
 
     # Dataframes
     for k, v in {
@@ -1283,23 +1290,21 @@ def process_years(
         .apply(lambda x: x if (x is not str) and x >= 1000 else None)
         .dropna()
     )
-    datayears = datayears.drop_duplicates().sort_values()
-    tables["DataYear"] = pd.DataFrame({"year": datayears})
+    model.data_years = datayears.drop_duplicates().sort_values()
 
     # Pastyears is the set of all years before ~StartYear
-    start_year = tables[datatypes.Tag.start_year]["value"][0]
-    pastyears = datayears.where(lambda x: x < start_year).dropna()
-    tables["PastYear"] = pd.DataFrame({"year": pastyears})
+    model.start_year = tables[datatypes.Tag.start_year]["value"][0]
+    model.past_years = datayears.where(lambda x: x < model.start_year).dropna()
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
-    modelyears = (
+    model.model_years = (
         pd.concat(
-            [pastyears, tables[datatypes.Tag.time_periods]["m"]], ignore_index=True
+            [model.past_years, tables[datatypes.Tag.time_periods]["m"]],
+            ignore_index=True,
         )
         .drop_duplicates()
         .sort_values()
     )
-    tables["ModelYear"] = pd.DataFrame({"year": modelyears})
 
     return tables
 

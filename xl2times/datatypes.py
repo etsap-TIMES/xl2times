@@ -152,16 +152,19 @@ class TimesModel:
     commodity_groups: DataFrame = field(default_factory=DataFrame)
     topology: DataFrame = field(default_factory=DataFrame)
     trade: DataFrame = field(default_factory=DataFrame)
+    #
     main_data: DataFrame = field(default_factory=DataFrame)
+    #
     uc_data: DataFrame = field(default_factory=DataFrame)
     ts_tslvl: DataFrame = field(default_factory=DataFrame)
     ts_map: DataFrame = field(default_factory=DataFrame)
+    #
     time_periods: DataFrame = field(default_factory=DataFrame)
     units: DataFrame = field(default_factory=DataFrame)
-    # currencies
-    # datayear
-    # modelyear
-    # pastyear
+    start_year: int = field(default_factory=int)
+    data_years: Tuple[int] = field(default_factory=tuple)
+    model_years: Tuple[int] = field(default_factory=tuple)
+    past_years: Tuple[int] = field(default_factory=tuple)
     # UC_Rs...
 
     def external_regions(self) -> Set[str]:
