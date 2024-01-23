@@ -834,7 +834,11 @@ def complete_dictionary(
     # Dataframes
     for k, v in {
         "Commodities": model.commodities,
+        "CommodityGroups": model.commodity_groups,
+        "CommodityGroupMap": model.com_gmap,
         "Processes": model.processes,
+        "Topology": model.topology,
+        "Trade": model.trade,
         "TimeSlices": model.ts_tslvl,
         "TimeSliceMap": model.ts_map,
         "Units": model.units,
@@ -1041,29 +1045,10 @@ def generate_commodity_groups(
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            sheetname="",
-            range="",
-            filename="",
-            uc_sets={},
-            tag="TOPOLOGY",
-            dataframe=comm_groups,
-        )
-    )
-
     i = comm_groups["commoditygroup"] != comm_groups["commodity"]
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            sheetname="",
-            range="",
-            filename="",
-            uc_sets={},
-            tag="COM_GMAP",
-            dataframe=comm_groups.loc[i, ["region", "commoditygroup", "commodity"]],
-        )
-    )
+    model.topology = comm_groups
+    model.com_gmap = comm_groups.loc[i, ["region", "commoditygroup", "commodity"]]
 
     return tables
 
@@ -1080,9 +1065,11 @@ def complete_commodity_groups(
     commodities = generate_topology_dictionary(tables, model)[
         "commodities_by_name"
     ].rename(columns={"commodity": "commoditygroup"})
-    cgs_in_top = tables["TOPOLOGY"]["commoditygroup"].to_frame()
+    cgs_in_top = model.topology["commoditygroup"].to_frame()
     commodity_groups = pd.concat([commodities, cgs_in_top])
-    tables["COMM_GROUPS"] = commodity_groups.drop_duplicates(keep="first").reset_index()
+    model.commodity_groups = commodity_groups.drop_duplicates(
+        keep="first"
+    ).reset_index()
 
     return tables
 
@@ -1099,7 +1086,6 @@ def generate_top_ire(
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
     dummy_process_cset = [["NRG", "IMPNRGZ"], ["MAT", "IMPMATZ"], ["DEM", "IMPDEMZ"]]
     veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
-    com_map = utils.single_table(tables, "TOPOLOGY").dataframe
 
     ire_prc = pd.DataFrame(columns=["region", "process"])
     for table in tables:
@@ -1115,10 +1101,12 @@ def generate_top_ire(
     # Generate inter-regional exchange topology
     top_ire = pd.DataFrame(dummy_process_cset, columns=["csets", "process"])
     top_ire = pd.merge(top_ire, internal_regions, how="cross")
-    top_ire = pd.merge(top_ire, com_map[["region", "csets", "commodity"]])
+    top_ire = pd.merge(top_ire, model.topology[["region", "csets", "commodity"]])
     top_ire.drop(columns=["csets"], inplace=True)
     top_ire["io"] = "OUT"
-    top_ire = pd.concat([top_ire, com_map[["region", "process", "commodity", "io"]]])
+    top_ire = pd.concat(
+        [top_ire, model.topology[["region", "process", "commodity", "io"]]]
+    )
     top_ire = pd.merge(top_ire, ire_prc)
     top_ire = pd.merge(top_ire, veda_process_sets)
     top_ire["region2"] = top_ire["sets"].replace(veda_set_ext_reg_mapping)
@@ -1139,16 +1127,8 @@ def generate_top_ire(
     top_ire.drop(columns=["region", "region2", "sets", "io"], inplace=True)
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="TOP_IRE",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=top_ire,
-        )
-    )
+    model.trade = top_ire
+
     return tables
 
 
@@ -1180,7 +1160,7 @@ def fill_in_missing_pcgs(
         else:
             df = table.dataframe.copy()
             df["primarycg"] = df.apply(expand_pcg_from_suffix, axis=1)
-            default_pcgs = utils.single_table(tables, "TOPOLOGY").dataframe.copy()
+            default_pcgs = model.topology.copy()
             default_pcgs = default_pcgs.loc[
                 default_pcgs["DefaultVedaPCG"] == 1,
                 ["region", "process", "commoditygroup"],
@@ -2166,8 +2146,7 @@ def fix_topology(
 ) -> Dict[str, DataFrame]:
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
-    if "TOPOLOGY" in tables:
-        tables["TOPOLOGY"]["io"].replace(mapping, inplace=True)
+    model.topology["io"].replace(mapping, inplace=True)
 
     return tables
 
