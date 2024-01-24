@@ -1,6 +1,7 @@
 import argparse
-import os
 from collections import defaultdict
+import json
+import os
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
@@ -155,11 +156,8 @@ def save_data_with_headers(
 
 
 def generate_headers_by_attr() -> Dict[str, List[str]]:
-
     with open("xl2times/config/times-info.json") as f:
-        attributes = f.read()
-
-    attributes = eval(attributes)
+        attributes = json.load(f)
 
     headers_by_attr = {}
 
