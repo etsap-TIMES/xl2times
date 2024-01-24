@@ -767,28 +767,27 @@ def process_time_periods(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    start_year = utils.get_scalar(datatypes.Tag.start_year, tables)
+
+    model.start_year = utils.get_scalar(datatypes.Tag.start_year, tables)
     active_pdef = utils.get_scalar(datatypes.Tag.active_p_def, tables)
+    df = utils.single_table(tables, datatypes.Tag.time_periods).dataframe.copy()
 
-    def process_time_periods_table(table: datatypes.EmbeddedXlTable):
-        if table.tag != datatypes.Tag.time_periods:
-            return table
+    active_series = df[active_pdef.lower()]
+    # Remove empty rows
+    active_series.dropna(inplace=True)
 
-        df = table.dataframe.copy()
-        active_series = df[active_pdef.lower()]
-        # Remove empty rows
-        active_series.dropna(inplace=True)
+    df = pd.DataFrame({"d": active_series})
+    # Start years = start year, then cumulative sum of period durations
+    df["b"] = (active_series.cumsum() + model.start_year).shift(
+        1, fill_value=model.start_year
+    )
+    df["e"] = df.b + df.d - 1
+    df["m"] = df.b + ((df.d - 1) // 2)
+    df["year"] = df.m
 
-        df = pd.DataFrame({"d": active_series})
-        # Start years = start year, then cumulative sum of period durations
-        df["b"] = (active_series.cumsum() + start_year).shift(1, fill_value=start_year)
-        df["e"] = df.b + df.d - 1
-        df["m"] = df.b + ((df.d - 1) // 2)
-        df["year"] = df.m
+    model.time_periods = df.astype(int)
 
-        return replace(table, dataframe=df.astype(int))
-
-    return [process_time_periods_table(table) for table in tables]
+    return tables
 
 
 def process_regions(
@@ -840,14 +839,17 @@ def complete_dictionary(
 
     # Dataframes
     for k, v in {
+        "Attributes": model.attributes,
         "Commodities": model.commodities,
         "CommodityGroups": model.commodity_groups,
         "CommodityGroupMap": model.com_gmap,
         "Processes": model.processes,
         "Topology": model.topology,
         "Trade": model.trade,
+        "TimePeriods": model.time_periods,
         "TimeSlices": model.ts_tslvl,
         "TimeSliceMap": model.ts_map,
+        "UserConstraints": model.user_constraints,
         "Units": model.units,
     }.items():
         tables[k] = v
@@ -1293,13 +1295,12 @@ def process_years(
     model.data_years = datayears.drop_duplicates().sort_values()
 
     # Pastyears is the set of all years before ~StartYear
-    model.start_year = tables[datatypes.Tag.start_year]["value"][0]
     model.past_years = datayears.where(lambda x: x < model.start_year).dropna()
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
     model.model_years = (
         pd.concat(
-            [model.past_years, tables[datatypes.Tag.time_periods]["m"]],
+            [model.past_years, model.time_periods["m"]],
             ignore_index=True,
         )
         .drop_duplicates()
@@ -2124,6 +2125,11 @@ def convert_aliases(
         if "attribute" in df.columns:
             df.replace({"attribute": replacement_dict}, inplace=True)
         tables[table_type] = df
+
+    # TODO: do this earlier
+    model.attributes = tables[datatypes.Tag.fi_t]
+    if datatypes.Tag.uc_t in tables.keys():
+        model.user_constraints = tables[datatypes.Tag.uc_t]
 
     return tables
 
