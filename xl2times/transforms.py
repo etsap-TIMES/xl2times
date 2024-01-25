@@ -1855,17 +1855,18 @@ def process_wildcards(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    dictionary = generate_topology_dictionary(tables)
+    topology = generate_topology_dictionary(tables)
 
-    # TODO rename dictionary -> topology?
     # TODO add type annots to below fns
 
-    def match_wildcards(row: pd.Series, dictionary: Dict[str, DataFrame]):
-        matching_processes = get_matching_processes(row, dictionary)
-        matching_commodities = get_matching_commodities(row, dictionary)
+    def match_wildcards(
+        row: pd.Series,
+    ) -> tuple[DataFrame | None, DataFrame | None] | None:
+        matching_processes = get_matching_processes(row, topology)
+        matching_commodities = get_matching_commodities(row, topology)
         if (matching_processes is None or len(matching_processes) == 0) and (
             matching_commodities is None or len(matching_commodities) == 0
-        ):
+        ):  # TODO is this necessary? Try without?
             # TODO debug these
             print(f"WARNING: a row matched no processes or commodities:\n{row}")
             return None
@@ -1893,7 +1894,7 @@ def process_wildcards(
 
     def do_an_ins_row(row):
         table = tables[datatypes.Tag.fi_t]
-        match = match_wildcards(row, dictionary)
+        match = match_wildcards(row)
         # TODO perf: add matched procs/comms into column and use explode?
         new_rows = pd.DataFrame([row.filter(table.columns)])
         if match is not None:
@@ -1905,7 +1906,7 @@ def process_wildcards(
         return new_rows
 
     def do_an_ins_txt_row(row):
-        match = match_wildcards(row, dictionary)
+        match = match_wildcards(row)
         if match is None:
             print(f"WARNING: TFM_INS-TXT row matched neither commodity nor process")
             return
@@ -1931,10 +1932,11 @@ def process_wildcards(
         # Reset FI_T index so that queries can determine unique rows to update
         tables[datatypes.Tag.fi_t].reset_index(inplace=True)
 
+        # TODO perf: collect all updates and go through FI_T only once?
         for _, row in updates.iterrows():
             if row["value"] is None:  # TODO is this really needed?
                 continue
-            match = match_wildcards(row, dictionary)
+            match = match_wildcards(row)
             if match is None:
                 continue
             processes, commodities = match
@@ -1962,7 +1964,7 @@ def process_wildcards(
         new_tables = []
 
         for _, row in updates.iterrows():
-            match = match_wildcards(row, dictionary)
+            match = match_wildcards(row)
             processes, commodities = match if match is not None else (None, None)
             # TODO should we also query on limtype?
             rows_to_update = query(
@@ -1980,8 +1982,6 @@ def process_wildcards(
         # Add new rows to table
         new_tables.append(tables[datatypes.Tag.fi_t])
         tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
-
-    # TODO perf: collect all updates and go through FI_T only once!
 
     return tables
 
