@@ -247,12 +247,13 @@ def merge_tables(
     """
     Merge all tables in 'tables' with the same table tag, as long as they share the same
     column field values. Print a warning for those that don't share the same column values.
-    Return a dictionary linking each table tag with its merged table.
+    Return a dictionary linking each table tag with its merged table or populate TimesModel class.
 
     :param tables:      List of tables in datatypes.EmbeddedXlTable format.
     :return:            Dictionary associating a given table tag with its merged table.
     """
     result = {}
+
     for key, value in groupby(sorted(tables, key=lambda t: t.tag), lambda t: t.tag):
         group = list(value)
         if not all(
@@ -266,7 +267,14 @@ def merge_tables(
                 print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
         else:
             df = pd.concat([table.dataframe for table in group], ignore_index=True)
-            result[key] = df
+
+            match key:
+                case datatypes.Tag.fi_comm:
+                    model.commodities = df
+                case datatypes.Tag.fi_process:
+                    model.processes = df
+                case _:
+                    result[key] = df
     return result
 
 
@@ -288,9 +296,11 @@ def process_flexible_import_tables(
     :return:            List of tables in EmbeddedXlTable format with all FI_T processed.
     """
     # Get a list of allowed values for each category.
+    # TODO: update this dictionary
     legal_values = {
         "limtype": {"LO", "UP", "FX"},
-        "timeslice": utils.extract_timeslices(tables),
+        # TODO: check what the values for the below should be
+        "timeslice": set(model.ts_tslvl["tslvl"]),
         "commodity-out": set(
             utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
@@ -414,7 +424,7 @@ def process_flexible_import_tables(
                 )
 
         # Use CommName to store the active commodity for EXP / IMP
-        i = df[attribute].isin(["COST", "IRE_PRICE"])
+        i = df[attribute].isin({"COST", "IRE_PRICE"})
         i_exp = i & (df[other] == "EXP")
         df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
         i_imp = i & (df[other] == "IMP")
@@ -587,10 +597,10 @@ def fill_in_missing_values(
     for _, row in brm.iterrows():
         if row["region"] in model.internal_regions:
             vt_regions[row["bookname"]].append(row["region"])
-    ts_levels = (
-        utils.single_table(tables, "TimeSlicesGroup").dataframe["tslvl"].unique()
+
+    ele_default_tslvl = (
+        "DAYNITE" if "DAYNITE" in model.ts_tslvl["tslvl"].unique() else "ANNUAL"
     )
-    ele_default_tslvl = "DAYNITE" if "DAYNITE" in ts_levels else "ANNUAL"
 
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
@@ -737,23 +747,16 @@ def process_units(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    all_units = set()
-
-    tags = {
-        datatypes.Tag.fi_comm: ["unit"],
-        datatypes.Tag.fi_process: ["tact", "tcap"],
-        datatypes.Tag.currencies: ["currency"],
+    units_map = {
+        "activity": model.processes["tact"].unique(),
+        "capacity": model.processes["tcap"].unique(),
+        "commodity": model.commodities["unit"].unique(),
+        "currency": tables[datatypes.Tag.currencies]["currency"].unique(),
     }
 
-    invalid_values = ["", None]
-
-    for tag, columns in tags.items():
-        for column in columns:
-            all_units.update(tables[tag][column].unique())
-
-    all_units -= set(invalid_values)
-
-    tables["ALL_UNITS"] = DataFrame({"units": sorted(all_units)})
+    model.units = pd.concat(
+        [pd.DataFrame({"unit": v, "type": k}) for k, v in units_map.items()]
+    )
 
     return tables
 
@@ -763,28 +766,26 @@ def process_time_periods(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    start_year = utils.get_scalar(datatypes.Tag.start_year, tables)
+    model.start_year = utils.get_scalar(datatypes.Tag.start_year, tables)
     active_pdef = utils.get_scalar(datatypes.Tag.active_p_def, tables)
+    df = utils.single_table(tables, datatypes.Tag.time_periods).dataframe.copy()
 
-    def process_time_periods_table(table: datatypes.EmbeddedXlTable):
-        if table.tag != datatypes.Tag.time_periods:
-            return table
+    active_series = df[active_pdef.lower()]
+    # Remove empty rows
+    active_series.dropna(inplace=True)
 
-        df = table.dataframe.copy()
-        active_series = df[active_pdef.lower()]
-        # Remove empty rows
-        active_series.dropna(inplace=True)
+    df = pd.DataFrame({"d": active_series})
+    # Start years = start year, then cumulative sum of period durations
+    df["b"] = (active_series.cumsum() + model.start_year).shift(
+        1, fill_value=model.start_year
+    )
+    df["e"] = df.b + df.d - 1
+    df["m"] = df.b + ((df.d - 1) // 2)
+    df["year"] = df.m
 
-        df = pd.DataFrame({"d": active_series})
-        # Start years = start year, then cumulative sum of period durations
-        df["b"] = (active_series.cumsum() + start_year).shift(1, fill_value=start_year)
-        df["e"] = df.b + df.d - 1
-        df["m"] = df.b + ((df.d - 1) // 2)
-        df["year"] = df.m
+    model.time_periods = df.astype(int)
 
-        return replace(table, dataframe=df.astype(int))
-
-    return [process_time_periods_table(table) for table in tables]
+    return tables
 
 
 def process_regions(
@@ -811,20 +812,44 @@ def process_regions(
         else:
             print("WARNING: Regions filter not applied; no valid entries found. ")
 
+    return tables
+
+
+def complete_dictionary(
+    config: datatypes.Config,
+    tables: Dict[str, DataFrame],
+    model: datatypes.TimesModel,
+) -> Dict[str, DataFrame]:
     for k, v in [
         ("AllRegions", model.all_regions),
         ("Regions", model.internal_regions),
+        ("DataYears", model.data_years),
+        ("PastYears", model.past_years),
+        ("ModelYears", model.model_years),
     ]:
-        tables.append(
-            datatypes.EmbeddedXlTable(
-                tag=k,
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=pd.DataFrame(sorted(v), columns=["region"]),
-            )
-        )
+        if "region" in k.lower():
+            column_list = ["region"]
+        else:
+            column_list = ["year"]
+
+        tables[k] = pd.DataFrame(sorted(v), columns=column_list)
+
+    # Dataframes
+    for k, v in {
+        "Attributes": model.attributes,
+        "Commodities": model.commodities,
+        "CommodityGroups": model.commodity_groups,
+        "CommodityGroupMap": model.com_gmap,
+        "Processes": model.processes,
+        "Topology": model.topology,
+        "Trade": model.trade,
+        "TimePeriods": model.time_periods,
+        "TimeSlices": model.ts_tslvl,
+        "TimeSliceMap": model.ts_map,
+        "UserConstraints": model.user_constraints,
+        "Units": model.units,
+    }.items():
+        tables[k] = v
 
     return tables
 
@@ -891,12 +916,12 @@ def apply_fixups(
         i = df["attribute"] == "SHARE-O"
         df.loc[i, "other_indexes"] = "NRGO"
         # ACT_EFF
-        i = df["attribute"].isin(["CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"])
+        i = df["attribute"].isin({"CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"})
         df.loc[i, "other_indexes"] = df[i]["commodity"]
-        i = df["attribute"].isin(["EFF", "EFFICIENCY"])
+        i = df["attribute"].isin({"EFF", "EFFICIENCY"})
         df.loc[i, "other_indexes"] = "ACT"
         # FLO_EMIS
-        i = df["attribute"].isin(["ENV_ACT", "ENVACT"])
+        i = df["attribute"].isin({"ENV_ACT", "ENVACT"})
         df.loc[i, "other_indexes"] = "ACT"
 
         # Fill CommName for COST (alias of IRE_PRICE) if missing
@@ -1026,29 +1051,10 @@ def generate_commodity_groups(
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            sheetname="",
-            range="",
-            filename="",
-            uc_sets={},
-            tag="TOPOLOGY",
-            dataframe=comm_groups,
-        )
-    )
-
     i = comm_groups["commoditygroup"] != comm_groups["commodity"]
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            sheetname="",
-            range="",
-            filename="",
-            uc_sets={},
-            tag="COM_GMAP",
-            dataframe=comm_groups.loc[i, ["region", "commoditygroup", "commodity"]],
-        )
-    )
+    model.topology = comm_groups
+    model.com_gmap = comm_groups.loc[i, ["region", "commoditygroup", "commodity"]]
 
     return tables
 
@@ -1062,12 +1068,14 @@ def complete_commodity_groups(
     Complete the list of commodity groups
     """
 
-    commodities = generate_topology_dictionary(tables)["commodities_by_name"].rename(
-        columns={"commodity": "commoditygroup"}
-    )
-    cgs_in_top = tables["TOPOLOGY"]["commoditygroup"].to_frame()
+    commodities = generate_topology_dictionary(tables, model)[
+        "commodities_by_name"
+    ].rename(columns={"commodity": "commoditygroup"})
+    cgs_in_top = model.topology["commoditygroup"].to_frame()
     commodity_groups = pd.concat([commodities, cgs_in_top])
-    tables["COMM_GROUPS"] = commodity_groups.drop_duplicates(keep="first").reset_index()
+    model.commodity_groups = commodity_groups.drop_duplicates(
+        keep="first"
+    ).reset_index()
 
     return tables
 
@@ -1084,7 +1092,6 @@ def generate_top_ire(
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
     dummy_process_cset = [["NRG", "IMPNRGZ"], ["MAT", "IMPMATZ"], ["DEM", "IMPDEMZ"]]
     veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
-    com_map = utils.single_table(tables, "TOPOLOGY").dataframe
 
     ire_prc = pd.DataFrame(columns=["region", "process"])
     for table in tables:
@@ -1100,10 +1107,12 @@ def generate_top_ire(
     # Generate inter-regional exchange topology
     top_ire = pd.DataFrame(dummy_process_cset, columns=["csets", "process"])
     top_ire = pd.merge(top_ire, internal_regions, how="cross")
-    top_ire = pd.merge(top_ire, com_map[["region", "csets", "commodity"]])
+    top_ire = pd.merge(top_ire, model.topology[["region", "csets", "commodity"]])
     top_ire.drop(columns=["csets"], inplace=True)
     top_ire["io"] = "OUT"
-    top_ire = pd.concat([top_ire, com_map[["region", "process", "commodity", "io"]]])
+    top_ire = pd.concat(
+        [top_ire, model.topology[["region", "process", "commodity", "io"]]]
+    )
     top_ire = pd.merge(top_ire, ire_prc)
     top_ire = pd.merge(top_ire, veda_process_sets)
     top_ire["region2"] = top_ire["sets"].replace(veda_set_ext_reg_mapping)
@@ -1115,8 +1124,8 @@ def generate_top_ire(
     top_ire.loc[na_out, ["out"]] = top_ire["in"].loc[na_out]
     na_in = top_ire["in"].isna()
     top_ire.loc[na_in, ["in"]] = top_ire["out"].loc[na_in]
-    is_imp_or_min = top_ire["sets"].isin(["IMP", "MIN"])
-    is_exp = top_ire["sets"].isin(["EXP"])
+    is_imp_or_min = top_ire["sets"].isin({"IMP", "MIN"})
+    is_exp = top_ire["sets"] == "EXP"
     top_ire.loc[is_imp_or_min, ["origin"]] = top_ire["region2"].loc[is_imp_or_min]
     top_ire.loc[is_imp_or_min, ["destination"]] = top_ire["region"].loc[is_imp_or_min]
     top_ire.loc[is_exp, ["origin"]] = top_ire["region"].loc[is_exp]
@@ -1124,16 +1133,8 @@ def generate_top_ire(
     top_ire.drop(columns=["region", "region2", "sets", "io"], inplace=True)
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
 
-    tables.append(
-        datatypes.EmbeddedXlTable(
-            tag="TOP_IRE",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=top_ire,
-        )
-    )
+    model.trade = top_ire
+
     return tables
 
 
@@ -1165,7 +1166,7 @@ def fill_in_missing_pcgs(
         else:
             df = table.dataframe.copy()
             df["primarycg"] = df.apply(expand_pcg_from_suffix, axis=1)
-            default_pcgs = utils.single_table(tables, "TOPOLOGY").dataframe.copy()
+            default_pcgs = model.topology.copy()
             default_pcgs = default_pcgs.loc[
                 default_pcgs["DefaultVedaPCG"] == 1,
                 ["region", "process", "commoditygroup"],
@@ -1288,23 +1289,20 @@ def process_years(
         .apply(lambda x: x if (x is not str) and x >= 1000 else None)
         .dropna()
     )
-    datayears = datayears.drop_duplicates().sort_values()
-    tables["DataYear"] = pd.DataFrame({"year": datayears})
+    model.data_years = datayears.drop_duplicates().sort_values()
 
     # Pastyears is the set of all years before ~StartYear
-    start_year = tables[datatypes.Tag.start_year]["value"][0]
-    pastyears = datayears.where(lambda x: x < start_year).dropna()
-    tables["PastYear"] = pd.DataFrame({"year": pastyears})
+    model.past_years = datayears.where(lambda x: x < model.start_year).dropna()
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
-    modelyears = (
+    model.model_years = (
         pd.concat(
-            [pastyears, tables[datatypes.Tag.time_periods]["m"]], ignore_index=True
+            [model.past_years, model.time_periods["m"]],
+            ignore_index=True,
         )
         .drop_duplicates()
         .sort_values()
     )
-    tables["ModelYear"] = pd.DataFrame({"year": modelyears})
 
     return tables
 
@@ -1741,30 +1739,32 @@ def get_matching_commodities(row, dictionary):
     return matching_commodities
 
 
-def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+def generate_topology_dictionary(
+    tables: Dict[str, DataFrame], model: datatypes.TimesModel
+) -> Dict[str, DataFrame]:
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
 
-    dictionary = {}
-
-    processes = tables[datatypes.Tag.fi_process]
-    commodities = tables[datatypes.Tag.fi_comm]
+    dictionary = dict()
 
     dictionary["processes_by_name"] = (
-        processes[["process"]]
+        model.processes[["process"]]
         .dropna()
         .drop_duplicates()
         .set_index("process", drop=False)
         .rename_axis("index")
     )
     dictionary["processes_by_desc"] = (
-        processes[["process", "techdesc"]]
+        model.processes[["process", "techdesc"]]
         .dropna()
         .drop_duplicates()
         .set_index("techdesc")
     )
     dictionary["processes_by_sets"] = (
-        processes[["process", "sets"]].dropna().drop_duplicates().set_index("sets")
+        model.processes[["process", "sets"]]
+        .dropna()
+        .drop_duplicates()
+        .set_index("sets")
     )
     processes_and_commodities = tables[datatypes.Tag.fi_t]
     dictionary["processes_by_comm_in"] = (
@@ -1780,20 +1780,20 @@ def generate_topology_dictionary(tables: Dict[str, DataFrame]) -> Dict[str, Data
         .set_index("commodity-out")
     )
     dictionary["commodities_by_name"] = (
-        commodities[["commodity"]]
+        model.commodities[["commodity"]]
         .dropna()
         .drop_duplicates()
         .set_index("commodity", drop=False)
         .rename_axis("index")
     )
     dictionary["commodities_by_desc"] = (
-        commodities[["commodity", "commdesc"]]
+        model.commodities[["commodity", "commdesc"]]
         .dropna()
         .drop_duplicates()
         .set_index("commdesc")
     )
     dictionary["commodities_by_sets"] = (
-        commodities[["commodity", "csets"]]
+        model.commodities[["commodity", "csets"]]
         .dropna()
         .drop_duplicates()
         .set_index("csets")
@@ -1819,7 +1819,7 @@ def process_uc_wildcards(
     if tag in tables:
         start_time = time.time()
         df = tables[tag]
-        dictionary = generate_topology_dictionary(tables)
+        dictionary = generate_topology_dictionary(tables, model)
 
         df["process"] = df.apply(
             lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
@@ -1855,7 +1855,7 @@ def process_wildcards(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    topology = generate_topology_dictionary(tables)
+    topology = generate_topology_dictionary(tables, model)
 
     # TODO add type annots to below fns
 
@@ -1912,9 +1912,9 @@ def process_wildcards(
             return
         processes, commodities = match
         if commodities is not None:
-            table = tables[datatypes.Tag.fi_comm]
+            table = model.commodities
         elif processes is not None:
-            table = tables[datatypes.Tag.fi_process]
+            table = model.processes
         else:
             assert False  # All rows match either a commodity or a process
 
@@ -2033,7 +2033,7 @@ def process_time_slices(
 
         ts_groups = pd.merge(
             pd.DataFrame({"region": regions}),
-            pd.DataFrame({"tslvl": ["ANNUAL"], "ts_group": ["ANNUAL"]}),
+            pd.DataFrame({"tslvl": ["ANNUAL"], "ts": ["ANNUAL"]}),
             how="cross",
         )
 
@@ -2045,7 +2045,7 @@ def process_time_slices(
                         reg_ts,
                         id_vars=["region"],
                         var_name="tslvl",
-                        value_name="ts_group",
+                        value_name="ts",
                     ),
                 ]
             )
@@ -2092,11 +2092,8 @@ def process_time_slices(
             ts_maps.drop_duplicates(keep="first", inplace=True)
             ts_maps.sort_values(by=list(ts_maps.columns), inplace=True)
 
-        result.append(replace(table, tag="TimeSliceMap", dataframe=DataFrame(ts_maps)))
-
-        result.append(
-            replace(table, tag="TimeSlicesGroup", dataframe=DataFrame(ts_groups))
-        )
+        model.ts_map = DataFrame(ts_maps)
+        model.ts_tslvl = DataFrame(ts_groups)
 
     result = []
 
@@ -2140,6 +2137,11 @@ def convert_aliases(
             df.replace({"attribute": replacement_dict}, inplace=True)
         tables[table_type] = df
 
+    # TODO: do this earlier
+    model.attributes = tables[datatypes.Tag.fi_t]
+    if datatypes.Tag.uc_t in tables.keys():
+        model.user_constraints = tables[datatypes.Tag.uc_t]
+
     return tables
 
 
@@ -2166,8 +2168,7 @@ def fix_topology(
 ) -> Dict[str, DataFrame]:
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
-    if "TOPOLOGY" in tables:
-        tables["TOPOLOGY"]["io"].replace(mapping, inplace=True)
+    model.topology["io"].replace(mapping, inplace=True)
 
     return tables
 
@@ -2195,7 +2196,7 @@ def apply_more_fixups(
                     if len(df[i_reg_prc]["year"].unique()) == 1:
                         year = df[i_reg_prc]["year"].unique()[0]
                         i_attr = (
-                            df["attribute"].isin(["NCAP_TLIFE", "LIFE"])
+                            df["attribute"].isin({"NCAP_TLIFE", "LIFE"})
                             & (df["region"] == region)
                             & (df["process"] == process)
                         )
