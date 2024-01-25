@@ -811,10 +811,10 @@ def process_regions(
         else:
             print("WARNING: Regions filter not applied; no valid entries found. ")
 
-    for k, v in {
-        "AllRegions": model.all_regions,
-        "Regions": model.internal_regions,
-    }.items():
+    for k, v in [
+        ("AllRegions", model.all_regions),
+        ("Regions", model.internal_regions),
+    ]:
         tables.append(
             datatypes.EmbeddedXlTable(
                 tag=k,
@@ -822,7 +822,7 @@ def process_regions(
                 sheetname="",
                 range="",
                 filename="",
-                dataframe=pd.DataFrame(v, columns=["region"]),
+                dataframe=pd.DataFrame(sorted(v), columns=["region"]),
             )
         )
 
