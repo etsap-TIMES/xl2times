@@ -1568,6 +1568,7 @@ def process_transform_insert(
         datatypes.Tag.tfm_dins,
         datatypes.Tag.tfm_topins,
         datatypes.Tag.tfm_upd,
+        # datatypes.Tag.tfm_mig,
         datatypes.Tag.tfm_comgrp,
     ]
 
@@ -1581,6 +1582,7 @@ def process_transform_insert(
             datatypes.Tag.tfm_ins,
             datatypes.Tag.tfm_ins_txt,
             datatypes.Tag.tfm_upd,
+            # datatypes.Tag.tfm_mig,
             datatypes.Tag.tfm_comgrp,
         ]:
             df = table.dataframe.copy()
@@ -1850,18 +1852,71 @@ def process_wildcards(
 ) -> Dict[str, DataFrame]:
     dictionary = generate_topology_dictionary(tables)
 
+    # TODO rename dictionary -> topology?
+    # TODO add type annots to below fns
+
+    def match_wildcards(row: pd.Series, dictionary: Dict[str, DataFrame]):
+        matching_processes = get_matching_processes(row, dictionary)
+        matching_commodities = get_matching_commodities(row, dictionary)
+        if (matching_processes is None or len(matching_processes) == 0) and (
+            matching_commodities is None or len(matching_commodities) == 0
+        ):
+            # TODO debug these
+            print(f"WARNING: a row matched no processes or commodities:\n{row}")
+            return None
+        return matching_processes, matching_commodities
+
+    def query(table, processes, commodities, attribute, region):
+        qs = []
+        if processes is not None and not processes.empty:
+            qs.append(f"process in [{','.join(map(repr, processes['process']))}]")
+        if commodities is not None and not commodities.empty:
+            qs.append(f"commodity in [{','.join(map(repr, commodities['commodity']))}]")
+        if attribute is not None:
+            qs.append(f"attribute == '{attribute}'")
+        if region is not None:
+            qs.append(f"region == '{region}'")
+        return table.query(" and ".join(qs)).index
+
+    def do_an_upd_row(row):
+        table = tables[datatypes.Tag.fi_t]
+        match = match_wildcards(row, dictionary)
+        if match is None:
+            return
+        processes, commodities = match
+        rows_to_update = query(
+            table, processes, commodities, row["attribute"], row["region"]
+        )
+        if isinstance(row["value"], str) and row["value"][0] in {"*", "+", "-", "/"}:
+            old_values = table.loc[rows_to_update, "value"]
+            updated = old_values.astype(float).map(lambda x: eval("x" + row["value"]))
+            table.loc[rows_to_update, "value"] = updated
+        else:
+            table.loc[rows_to_update, "value"] = row["value"]
+        return
+
+    # TODO eventually:
+    # if  datatypes.Tag.tfm_upd in tables:
+    #   table = tables[datatypes.Tag.tfm_upd]
+    #   ...
+
+    # TODO perf: collect all updates and go through FI_T only once!
+
     # TODO separate this code into expading wildcards and updating/inserting data!
+    # upd: wildcard prc/com -> query -> eval -> update
+    # ins-txt: wildcard prc/com -> query -> update prc/com table
+    # ins: wildcard prc/com -> expand row -> insert
+    # mig: wildcard prc/com -> query -> modify '*2' cols -> eval -> update
     for tag in [
         datatypes.Tag.tfm_upd,
         datatypes.Tag.tfm_ins,
         datatypes.Tag.tfm_ins_txt,
+        # datatypes.Tag.tfm_mig,
     ]:
         if tag in tables:
             start_time = time.time()
             upd = tables[tag]
             new_rows = []
-            # reset index to make sure there are no duplicates
-            tables[datatypes.Tag.fi_t].reset_index(drop=True, inplace=True)
             if tag == datatypes.Tag.tfm_upd:
                 # copy old index to new column 'index'
                 tables[datatypes.Tag.fi_t].reset_index(inplace=True)
@@ -1870,7 +1925,13 @@ def process_wildcards(
                 debug = False
                 if debug:
                     print(row)
+                # TODO temporarily migrate code here, then into separate loop above:
+                if tag == datatypes.Tag.tfm_upd:
+                    if row["value"] is not None:
+                        do_an_upd_row(row)
+                    continue
                 matching_processes = get_matching_processes(row, dictionary)
+                # TODO no need to skip these rows! Perhaps instead warn if no procs AND no comms matched?
                 if matching_processes is not None and len(matching_processes) == 0:
                     print(f"WARNING: {tag} row matched no processes")
                     continue
@@ -1881,53 +1942,13 @@ def process_wildcards(
                 df = tables[datatypes.Tag.fi_t]
                 if any(df.index.duplicated()):
                     raise ValueError("~FI_T table has duplicated indices")
+                # tfm_mig
+                # Query: process, commodity, attribute, region (limtype?)
+                # Modify values in all '*2' columns
+                # Evaluate 'value' column based on existing values
+                # Update
                 if tag == datatypes.Tag.tfm_upd:
-                    # construct query into ~FI_T to get indices of matching rows
-                    if matching_processes is not None:
-                        df = df.merge(matching_processes, on="process")
-                    if debug:
-                        print(f"{len(df)} rows after processes")
-                        if any(df["index"].duplicated()):
-                            raise ValueError("~FI_T table has duplicated indices")
-                    if matching_commodities is not None:
-                        df = df.merge(matching_commodities)
-                    if debug:
-                        print(f"{len(df)} rows after commodities")
-                        if any(df["index"].duplicated()):
-                            raise ValueError("~FI_T table has duplicated indices")
-                    attribute = row.attribute
-                    if attribute is not None:
-                        df = df.query("attribute == @attribute")
-                    if debug:
-                        print(f"{len(df)} rows after Attribute")
-                        if any(df["index"].duplicated()):
-                            raise ValueError("~FI_T table has duplicated indices")
-                    region = row.region
-                    if region is not None:
-                        df = df.query("region == @region")
-                    if debug:
-                        print(f"{len(df)} rows after Region")
-                        if any(df["index"].duplicated()):
-                            raise ValueError("~FI_T table has duplicated indices")
-                    # so that we can update the original table, copy original index back that was lost when merging
-                    df = df.set_index("index")
-                    # for speed, extract just the VALUE column as that is the only one being updated
-                    df = df[["value"]]
-                    if debug:
-                        if any(df.index.duplicated()):
-                            raise ValueError("~FI_T table has duplicated indices")
-                    if isinstance(row.value, str) and row.value[0] in {
-                        "*",
-                        "+",
-                        "-",
-                        "/",
-                    }:
-                        df = df.astype({"value": float}).eval("value=value" + row.value)
-                    else:
-                        df["value"] = [row.value] * len(df)
-                    if len(df) == 0:
-                        print(f"WARNING: {tag} row matched nothing")
-                    tables[datatypes.Tag.fi_t].update(df)
+                    assert False
                 elif tag == datatypes.Tag.tfm_ins_txt:
                     # This row matches either a commodity or a process
                     assert not (
@@ -1951,7 +1972,7 @@ def process_wildcards(
                     # with the value from row
                     # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
                     df.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
-                else:
+                elif tag == datatypes.Tag.tfm_ins:
                     # Construct 1-row data frame for data
                     # Cross merge with processes and commodities (if they exist)
                     row = row.filter(df.columns)
