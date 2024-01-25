@@ -1568,7 +1568,7 @@ def process_transform_insert(
         datatypes.Tag.tfm_dins,
         datatypes.Tag.tfm_topins,
         datatypes.Tag.tfm_upd,
-        # datatypes.Tag.tfm_mig,
+        datatypes.Tag.tfm_mig,
         datatypes.Tag.tfm_comgrp,
     ]
 
@@ -1582,13 +1582,18 @@ def process_transform_insert(
             datatypes.Tag.tfm_ins,
             datatypes.Tag.tfm_ins_txt,
             datatypes.Tag.tfm_upd,
-            # datatypes.Tag.tfm_mig,
+            datatypes.Tag.tfm_mig,
             datatypes.Tag.tfm_comgrp,
         ]:
             df = table.dataframe.copy()
 
             # Standardize column names
             known_columns = config.known_columns[datatypes.Tag.tfm_ins] | query_columns
+            if table.tag == datatypes.Tag.tfm_mig:
+                # Also allow attribute2, year2 etc for TFM_MIG tables
+                known_columns.update(
+                    (c + "2" for c in config.known_columns[datatypes.Tag.tfm_ins])
+                )
 
             # Handle Regions:
             if set(df.columns).isdisjoint(
@@ -1878,22 +1883,13 @@ def process_wildcards(
             qs.append(f"region == '{region}'")
         return table.query(" and ".join(qs)).index
 
-    def do_an_upd_row(row):
-        table = tables[datatypes.Tag.fi_t]
-        match = match_wildcards(row, dictionary)
-        if match is None:
-            return
-        processes, commodities = match
-        rows_to_update = query(
-            table, processes, commodities, row["attribute"], row["region"]
-        )
-        if isinstance(row["value"], str) and row["value"][0] in {"*", "+", "-", "/"}:
+    def eval_and_update(table, rows_to_update, new_value):
+        if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
             old_values = table.loc[rows_to_update, "value"]
-            updated = old_values.astype(float).map(lambda x: eval("x" + row["value"]))
+            updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
             table.loc[rows_to_update, "value"] = updated
         else:
-            table.loc[rows_to_update, "value"] = row["value"]
-        return
+            table.loc[rows_to_update, "value"] = new_value
 
     def do_an_ins_row(row):
         table = tables[datatypes.Tag.fi_t]
@@ -1929,14 +1925,23 @@ def process_wildcards(
         table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
         # return rows_to_update
 
-    # TODO eventually:
     if datatypes.Tag.tfm_upd in tables:
         updates = tables[datatypes.Tag.tfm_upd]
+        table = tables[datatypes.Tag.fi_t]
         # Reset FI_T index so that queries can determine unique rows to update
         tables[datatypes.Tag.fi_t].reset_index(inplace=True)
+
         for _, row in updates.iterrows():
-            if row["value"] is not None:  # TODO is this really needed?
-                do_an_upd_row(row)
+            if row["value"] is None:  # TODO is this really needed?
+                continue
+            match = match_wildcards(row, dictionary)
+            if match is None:
+                continue
+            processes, commodities = match
+            rows_to_update = query(
+                table, processes, commodities, row["attribute"], row["region"]
+            )
+            eval_and_update(table, rows_to_update, row["value"])
 
     if datatypes.Tag.tfm_ins in tables:
         updates = tables[datatypes.Tag.tfm_ins]
@@ -1951,19 +1956,32 @@ def process_wildcards(
         for _, row in updates.iterrows():
             do_an_ins_txt_row(row)
 
+    if datatypes.Tag.tfm_mig in tables:
+        updates = tables[datatypes.Tag.tfm_mig]
+        table = tables[datatypes.Tag.fi_t]
+        new_tables = []
+
+        for _, row in updates.iterrows():
+            match = match_wildcards(row, dictionary)
+            processes, commodities = match if match is not None else (None, None)
+            # TODO should we also query on limtype?
+            rows_to_update = query(
+                table, processes, commodities, row["attribute"], row["region"]
+            )
+            new_rows = table.loc[rows_to_update].copy()
+            # Modify values in all '*2' columns
+            for c, v in row.items():
+                if c.endswith("2") and v is not None:
+                    new_rows.loc[:, c[:-1]] = v
+            # Evaluate 'value' column based on existing values
+            eval_and_update(new_rows, rows_to_update, row["value"])
+            new_tables.append(new_rows)
+
+        # Add new rows to table
+        new_tables.append(tables[datatypes.Tag.fi_t])
+        tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+
     # TODO perf: collect all updates and go through FI_T only once!
-
-    # TODO separate this code into expading wildcards and updating/inserting data!
-    # upd: wildcard prc/com -> query -> eval -> update
-    # ins-txt: wildcard prc/com -> query -> update prc/com table
-    # ins: wildcard prc/com -> expand row -> insert
-    # mig: wildcard prc/com -> query -> modify '*2' cols -> eval -> update
-
-    # tfm_mig
-    # Query: process, commodity, attribute, region (limtype?)
-    # Modify values in all '*2' columns
-    # Evaluate 'value' column based on existing values
-    # Update
 
     return tables
 
