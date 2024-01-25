@@ -1895,10 +1895,35 @@ def process_wildcards(
             table.loc[rows_to_update, "value"] = row["value"]
         return
 
+    def do_an_ins_row(row):
+        table = tables[datatypes.Tag.fi_t]
+        match = match_wildcards(row, dictionary)
+        # TODO perf: add matched procs/comms into column and use explode?
+        new_rows = pd.DataFrame([row.filter(table.columns)])
+        if match is not None:
+            processes, commodities = match
+            if processes is not None:
+                new_rows = processes.merge(new_rows, how="cross")
+            if commodities is not None:
+                new_rows = commodities.merge(new_rows, how="cross")
+        return new_rows
+
     # TODO eventually:
-    # if  datatypes.Tag.tfm_upd in tables:
-    #   table = tables[datatypes.Tag.tfm_upd]
-    #   ...
+    if datatypes.Tag.tfm_upd in tables:
+        updates = tables[datatypes.Tag.tfm_upd]
+        # Reset FI_T index so that queries can determine unique rows to update
+        tables[datatypes.Tag.fi_t].reset_index(inplace=True)
+        for _, row in updates.iterrows():
+            if row["value"] is not None:  # TODO is this really needed?
+                do_an_upd_row(row)
+
+    if datatypes.Tag.tfm_ins in tables:
+        updates = tables[datatypes.Tag.tfm_ins]
+        new_rows = []
+        for _, row in updates.iterrows():
+            new_rows.append(do_an_ins_row(row))
+        new_rows.append(tables[datatypes.Tag.fi_t])
+        tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
 
     # TODO perf: collect all updates and go through FI_T only once!
 
@@ -1907,9 +1932,16 @@ def process_wildcards(
     # ins-txt: wildcard prc/com -> query -> update prc/com table
     # ins: wildcard prc/com -> expand row -> insert
     # mig: wildcard prc/com -> query -> modify '*2' cols -> eval -> update
+
+    # tfm_mig
+    # Query: process, commodity, attribute, region (limtype?)
+    # Modify values in all '*2' columns
+    # Evaluate 'value' column based on existing values
+    # Update
+
     for tag in [
-        datatypes.Tag.tfm_upd,
-        datatypes.Tag.tfm_ins,
+        # datatypes.Tag.tfm_upd,
+        # datatypes.Tag.tfm_ins,
         datatypes.Tag.tfm_ins_txt,
         # datatypes.Tag.tfm_mig,
     ]:
@@ -1925,11 +1957,6 @@ def process_wildcards(
                 debug = False
                 if debug:
                     print(row)
-                # TODO temporarily migrate code here, then into separate loop above:
-                if tag == datatypes.Tag.tfm_upd:
-                    if row["value"] is not None:
-                        do_an_upd_row(row)
-                    continue
                 matching_processes = get_matching_processes(row, dictionary)
                 # TODO no need to skip these rows! Perhaps instead warn if no procs AND no comms matched?
                 if matching_processes is not None and len(matching_processes) == 0:
@@ -1940,13 +1967,8 @@ def process_wildcards(
                     print(f"WARNING: {tag} row matched no commodities")
                     continue
                 df = tables[datatypes.Tag.fi_t]
-                if any(df.index.duplicated()):
-                    raise ValueError("~FI_T table has duplicated indices")
-                # tfm_mig
-                # Query: process, commodity, attribute, region (limtype?)
-                # Modify values in all '*2' columns
-                # Evaluate 'value' column based on existing values
-                # Update
+                # if any(df.index.duplicated()):
+                #     raise ValueError("~FI_T table has duplicated indices")
                 if tag == datatypes.Tag.tfm_upd:
                     assert False
                 elif tag == datatypes.Tag.tfm_ins_txt:
@@ -1973,18 +1995,9 @@ def process_wildcards(
                     # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
                     df.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
                 elif tag == datatypes.Tag.tfm_ins:
-                    # Construct 1-row data frame for data
-                    # Cross merge with processes and commodities (if they exist)
-                    row = row.filter(df.columns)
-                    row = pd.DataFrame([row])
-                    if matching_processes is not None:
-                        row = matching_processes.merge(row, how="cross")
-                    if matching_commodities is not None:
-                        row = matching_commodities.merge(row, how="cross")
-                    new_rows.append(row)
+                    assert False
             if tag == datatypes.Tag.tfm_ins:
-                new_rows.append(df)  # pyright: ignore
-                tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
+                assert False
 
             print(
                 f"  process_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(upd)} rows"
