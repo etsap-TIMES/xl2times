@@ -2838,6 +2838,72 @@
     ]
   },
   {
+    "tag_name": "tradelinks_dins",
+    "tag_allowed_in": [
+      "TradeScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "reg1",
+        "aliases": [],
+        "use_name": "reg1",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ]
+      },
+      {
+        "name": "reg2",
+        "aliases": [],
+        "use_name": "reg2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ]
+      },
+      {
+        "name": "comm",
+        "aliases": [],
+        "use_name": "comm",
+        "row_ignore_symbol": [
+          "\\I:"
+        ]
+      },
+      {
+        "name": "comm1",
+        "aliases": [],
+        "use_name": "comm1",
+        "row_ignore_symbol": [
+          "\\I:"
+        ]
+      },
+      {
+        "name": "comm2",
+        "aliases": [],
+        "use_name": "comm2",
+        "row_ignore_symbol": [
+          "\\I:"
+        ]
+      },
+      {
+        "name": "tech",
+        "aliases": [],
+        "use_name": "process",
+        "row_ignore_symbol": [
+          "\\I:"
+        ]
+      },
+      {
+        "name": "tradelink",
+        "aliases": [],
+        "use_name": "tradelink",
+        "row_ignore_symbol": [
+          "\\I:"
+        ]
+      }
+    ]
+  },
+  {
     "tag_name": "uc_t",
     "tag_allowed_in": [
       "SysSettings",
