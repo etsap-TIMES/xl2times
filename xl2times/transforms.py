@@ -1555,8 +1555,7 @@ def process_transform_insert_variants(
     return result
 
 
-# TODO: should we rename this to something more general, since it takes care of more than tfm_ins?
-def process_transform_insert(
+def process_transform_tables(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
@@ -1659,7 +1658,7 @@ def process_transform_insert(
         ]
         for key, group in by_tag:
             print(
-                f"WARNING: Dropped {len(group)} transform insert tables ({key})"
+                f"WARNING: Dropped {len(group)} transform tables ({key})"
                 f" rather than processing them"
             )
 
