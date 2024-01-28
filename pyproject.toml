@@ -5,6 +5,31 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["xl2times"]
 
+[tool.poetry]
+name = "xl2times"
+version = "0.1.0"
+description = 'An open source tool to convert Excel input files for TIMES models to the DD format accepted by GAMS'
+readme = "README.md"
+authors = []
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+GitPython = ">=3.1.31,<3.2"
+more-itertools = "*"
+openpyxl = ">=3.0"
+pandas = ">=2.1"
+loguru = "^0.7.2"
+tqdm = "^4.66.1"
+
+[tool.poetry.dev-dependencies]
+pre-commit = "*"
+black = "*"
+tabulate = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pyarrow = "^15.0.0"
+
 [project]
 name = "xl2times"
 version = "0.1.0"
@@ -24,6 +49,8 @@ dependencies = [
   "more-itertools",
   "openpyxl >= 3.0, < 3.1",
   "pandas >= 2.1",
+  "loguru >= 0.7.2",
+  "tqdm = >= 4.66.1",
 ]
 
 [project.optional-dependencies]

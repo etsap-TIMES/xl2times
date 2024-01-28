@@ -8,6 +8,7 @@ import os
 import sys
 import time
 from typing import Dict, List
+from loguru import logger
 from . import datatypes
 from . import excel
 from . import transforms
@@ -112,7 +113,7 @@ def convert_xl_to_times(
         output = transform(config, input, model)
         end_time = time.time()
         sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
-        print(
+        logger.info(
             f"{sep}transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
         )
         if verbose:
@@ -128,7 +129,7 @@ def convert_xl_to_times(
         input = output
     assert isinstance(output, dict)
 
-    print(
+    logger.info(
         f"Conversion complete, {len(output)} tables produced,"
         f" {sum(df.shape[0] for df in output.values())} rows"
     )

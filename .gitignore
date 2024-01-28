@@ -9,6 +9,7 @@ ground_truth/*
 /.spyproject
 /.vs
 /.vscode
+/.idea
 /env*
 *.pyproj.*
 speedscope.json
