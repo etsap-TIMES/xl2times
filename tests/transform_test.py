@@ -1,3 +1,5 @@
+from timeit import timeit
+
 import pandas as pd
 import sys
 from loguru import logger
@@ -20,11 +22,10 @@ pd.set_option(
 )
 
 
-class TestXL2Times:
+class TestTransforms:
     def test_default_pcg_vectorised(self):
         """Tests the default primary commodity group identification logic in vectorised form."""
         comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.pq")
-        regions = comm_groups["region"].unique()
 
         t1 = comm_groups[
             (comm_groups["process"] == "EN_CSP15-Q8")
@@ -67,9 +68,23 @@ class TestXL2Times:
             cg_vec.fillna(False)
         ), "Looped and vectorised versions should be equal"
 
-        t5 = comm_groups[(comm_groups["region"].isin(["ACT", "NT"]))]
+        t5 = comm_groups[(comm_groups["region"].isin(["ACT", "NT", "NSW"]))]
         cg_loop = pcg_looped(t5.copy(), transforms.csets_ordered_for_pcg)
         cg_vec = pcg_vectorised(t5.copy(), transforms.csets_ordered_for_pcg)
         assert cg_loop.fillna(False).equals(
             cg_vec.fillna(False)
         ), "Looped and vectorised versions should be equal"
+
+        # Timing comparison:
+        # e.g. 'Looped version took 1107.66 seconds, vectorised version took 62.85 seconds'
+        t6 = comm_groups
+        t_looped = timeit(
+            lambda: pcg_looped(t6.copy(), transforms.csets_ordered_for_pcg), number=1
+        )
+        t_vector = timeit(
+            lambda: pcg_vectorised(t6.copy(), transforms.csets_ordered_for_pcg),
+            number=1,
+        )
+        logger.info(
+            f"Looped version took {t_looped:.2f} seconds, vectorised version took {t_vector:.2f} seconds"
+        )

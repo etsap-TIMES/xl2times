@@ -1,3 +1,4 @@
+from loguru import logger
 from openpyxl import load_workbook
 from openpyxl.worksheet.cell_range import CellRange
 from typing import Dict, List
@@ -42,7 +43,7 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
                         if len(parts) == 2:
                             uc_sets[parts[0].strip()] = parts[1].strip()
                         else:
-                            print(
+                            logger.warning(
                                 f"WARNING: Malformed UC_SET in {sheet.title}, {filename}"
                             )
                     else:

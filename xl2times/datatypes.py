@@ -6,6 +6,8 @@ import json
 import re
 from typing import Dict, Iterable, List, Set, Tuple
 from enum import Enum
+
+from loguru import logger
 from pandas.core.frame import DataFrame
 
 # ============================================================================
@@ -216,7 +218,9 @@ class Config:
             cat_to_tables[item["gams-cat"]].append(item["name"])
         unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
         if unknown_cats:
-            print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
+            logger.warning(
+                f"WARNING: Unknown categories in times-info.json: {unknown_cats}"
+            )
         dd_table_order = chain.from_iterable(
             (sorted(cat_to_tables[c]) for c in categories)
         )
@@ -320,7 +324,7 @@ class Config:
                     dropped.append(line)
 
         if len(dropped) > 0:
-            print(
+            logger.warning(
                 f"WARNING: Dropping {len(dropped)} mappings that are not yet complete"
             )
         return mappings
@@ -346,7 +350,7 @@ class Config:
         tags = {to_tag(tag_info["tag_name"]) for tag_info in veda_tags_info}
         for tag in Tag:
             if tag not in tags:
-                print(
+                logger.warning(
                     f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
                 )
 

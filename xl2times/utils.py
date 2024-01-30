@@ -197,7 +197,8 @@ def remove_positive_patterns(pattern):
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
-def create_regexp(pattern):
+def create_regexp(pattern: str):
+    pattern = str(pattern)
     # exclude negative patterns
     if has_negative_patterns(pattern):
         pattern = remove_negative_patterns(pattern)

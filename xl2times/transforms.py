@@ -130,7 +130,9 @@ def remove_tables_with_formulas(
     def has_formulas(table):
         has = table.dataframe.map(is_formula).any(axis=None)
         if has:
-            print(f"WARNING: Excluding table {table.tag} because it has formulas")
+            logger.warning(
+                f"WARNING: Excluding table {table.tag} because it has formulas"
+            )
         return has
 
     return [table for table in tables if not has_formulas(table)]
@@ -158,7 +160,7 @@ def validate_input_tables(
     result = []
     for table in tables:
         if not datatypes.Tag.has_tag(table.tag.split(":")[0]):
-            print(f"WARNING: Dropping table with unrecognized tag {table.tag}")
+            logger.warning(f"WARNING: Dropping table with unrecognized tag {table.tag}")
             continue
         if discard(table):
             continue
@@ -166,7 +168,7 @@ def validate_input_tables(
         seen = set()
         dupes = [x for x in table.dataframe.columns if x in seen or seen.add(x)]
         if len(dupes) > 0:
-            print(
+            logger.warning(
                 f"WARNING: Duplicate columns in {table.range}, {table.sheetname},"
                 f" {table.filename}: {','.join(dupes)}"
             )
@@ -218,7 +220,9 @@ def normalize_column_aliases(
                 columns=config.column_aliases[tag], errors="ignore"
             )
         else:
-            print(f"WARNING: could not find {table.tag} in config.column_aliases")
+            logger.warning(
+                f"WARNING: could not find {table.tag} in config.column_aliases"
+            )
         if len(set(table.dataframe.columns)) > len(table.dataframe.columns):
             raise ValueError(
                 f"Table has duplicate column names (after normalization): {table}"
@@ -259,18 +263,24 @@ def merge_tables(
     result = {}
     for key, value in groupby(sorted(tables, key=lambda t: t.tag), lambda t: t.tag):
         group = list(value)
-        if not all(
-            set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group
-        ):
-            cols = [(",".join(g.dataframe.columns), g) for g in group]
-            print(
-                f"WARNING: Cannot merge tables with tag {key} as their columns are not identical"
-            )
-            for c, table in cols:
-                print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
-        else:
-            df = pd.concat([table.dataframe for table in group], ignore_index=True)
-            result[key] = df
+
+        if len(group) == 0:
+            continue
+
+        df = pd.concat([table.dataframe for table in group], ignore_index=True)
+        result[key] = df
+
+        # VEDA appears to support merging tables where come columns are optional, e.g. ctslvl and ctype from ~FI_COMM.
+        # So just print detailed warning if we find tables with fewer columns than the concat'ed table.
+        concat_cols = set(df.columns)
+        missing_cols = [concat_cols - set(t.dataframe.columns) for t in group]
+
+        if any([len(m) for m in missing_cols]):
+            err = f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual table(s), see details below:"
+            for table in group:
+                err += f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, {table.filename}"
+            logger.warning(err)
+
     return result
 
 
@@ -428,7 +438,7 @@ def process_flexible_import_tables(
                     veda_process_set[0]
                 ]
             else:
-                print(
+                logger.warning(
                     f"WARNING: COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
                 )
 
@@ -664,7 +674,9 @@ def fill_in_missing_values(
                     if book in vt_regions:
                         df[colname].fillna(",".join(vt_regions[book]), inplace=True)
                     else:
-                        print(f"WARNING: book name {book} not in BookRegions_Map")
+                        logger.warning(
+                            f"WARNING: book name {book} not in BookRegions_Map"
+                        )
                 else:
                     df[colname].fillna(",".join(model.internal_regions), inplace=True)
             elif colname == "year":
@@ -771,7 +783,9 @@ def process_units(
 
     for tag, columns in tags.items():
         for column in columns:
-            all_units.update(tables[tag][column].unique())
+            table = tables.get(tag)
+            if table is not None:
+                all_units.update(table[column].unique())
 
     all_units -= set(invalid_values)
 
@@ -831,7 +845,9 @@ def process_regions(
         if keep_regions:
             model.internal_regions = keep_regions
         else:
-            print("WARNING: Regions filter not applied; no valid entries found. ")
+            logger.warning(
+                "WARNING: Regions filter not applied; no valid entries found. "
+            )
 
     for k, v in {
         "AllRegions": model.all_regions,
@@ -954,7 +970,7 @@ def generate_commodity_groups(
 
     columns = ["region", "process", "primarycg"]
     reg_prc_pcg = pd.DataFrame(columns=columns)
-    for process_table in tqdm(process_tables, "Process Tables"):
+    for process_table in process_tables:
         df = process_table.dataframe[
             [c for c in columns if c in process_table.dataframe.columns]
         ]
@@ -1015,10 +1031,11 @@ def generate_commodity_groups(
     comm_groups_test = comm_groups.copy()
 
     # Determine default PCG according to Veda
-    # comm_groups = pcg_looped(comm_groups, csets_ordered_for_pcg)  # original logic, slow for large tables
-    comm_groups = pcg_vectorised(
-        comm_groups, csets_ordered_for_pcg
-    )  # vectorised logic, much faster
+    # original logic, slow for large tables
+    # comm_groups = pcg_looped(comm_groups, csets_ordered_for_pcg)
+
+    # vectorised logic, much faster
+    comm_groups = pcg_vectorised(comm_groups, csets_ordered_for_pcg)
 
     # Add standard Veda PCGS named contrary to name_comm_group
     if reg_prc_veda_pcg.shape[0]:
@@ -1100,7 +1117,11 @@ def pcg_looped(comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]):
 
 
 def pcg_vectorised(comm_groups_test: pd.DataFrame, csets_ordered_for_pcg: list[str]):
-    """Vectorised version of the pcg_looped() logic, for speedup with large commodity tables."""
+    """Vectorised version of the pcg_looped() logic, for speedup (~18x faster) with large commodity tables.
+    See Section 3.7.2.2, pg 80. of `TIMES Documentation PART IV` for details.
+    :param comm_groups_test: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
+    :param csets_ordered_for_pcg: List of csets in the order they should be considered for default pcg
+    """
 
     def set_default_veda_pcg(group):
         """For a given [region, process] group, default group is set as the first cset in the `csets_ordered_for_pcg` list, which is an output, if
@@ -1115,8 +1136,6 @@ def pcg_vectorised(comm_groups_test: pd.DataFrame, csets_ordered_for_pcg: list[s
                 ] = True
                 if group["DefaultVedaPCG"].any():
                     break
-            if group["DefaultVedaPCG"].any():
-                break
         return group
 
     comm_groups_test["DefaultVedaPCG"] = None
@@ -1240,6 +1259,8 @@ def fill_in_missing_pcgs(
             result.append(table)
         else:
             df = table.dataframe.copy()
+            if "primarycg" not in df.columns:
+                df["primarycg"] = None
             df["primarycg"] = df.apply(expand_pcg_from_suffix, axis=1)
             default_pcgs = utils.single_table(tables, "TOPOLOGY").dataframe.copy()
             default_pcgs = default_pcgs.loc[
@@ -1727,7 +1748,7 @@ def process_transform_insert(
             )
         ]
         for key, group in by_tag:
-            print(
+            logger.warning(
                 f"WARNING: Dropped {len(group)} transform insert tables ({key})"
                 f" rather than processing them"
             )
@@ -1757,7 +1778,7 @@ def process_transform_availability(
             )
         ]
         for key, group in by_tag:
-            print(
+            logger.warning(
                 f"WARNING: Dropped {len(group)} transform availability tables ({key})"
                 f" rather than processing them"
             )
@@ -1924,15 +1945,16 @@ def process_wildcards(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
+
     dictionary = generate_topology_dictionary(tables)
 
-    # TODO separate this code into expading wildcards and updating/inserting data!
+    # TODO separate this code into expanding wildcards and updating/inserting data!
     for tag in [
         datatypes.Tag.tfm_upd,
         datatypes.Tag.tfm_ins,
         datatypes.Tag.tfm_ins_txt,
     ]:
-        if tag in tables:
+        if tag in tqdm(tables, desc="Processing wildcards"):
             start_time = time.time()
             upd = tables[tag]
             new_rows = []
@@ -1948,11 +1970,11 @@ def process_wildcards(
                     print(row)
                 matching_processes = get_matching_processes(row, dictionary)
                 if matching_processes is not None and len(matching_processes) == 0:
-                    print(f"WARNING: {tag} row matched no processes")
+                    logger.warning(f"WARNING: {tag} row matched no processes")
                     continue
                 matching_commodities = get_matching_commodities(row, dictionary)
                 if matching_commodities is not None and len(matching_commodities) == 0:
-                    print(f"WARNING: {tag} row matched no commodities")
+                    logger.warning(f"WARNING: {tag} row matched no commodities")
                     continue
                 df = tables[datatypes.Tag.fi_t]
                 if any(df.index.duplicated()):
@@ -2002,7 +2024,7 @@ def process_wildcards(
                     else:
                         df["value"] = [row.value] * len(df)
                     if len(df) == 0:
-                        print(f"WARNING: {tag} row matched nothing")
+                        logger.warning(f"WARNING: {tag} row matched nothing")
                     tables[datatypes.Tag.fi_t].update(df)
                 elif tag == datatypes.Tag.tfm_ins_txt:
                     # This row matches either a commodity or a process
@@ -2017,7 +2039,7 @@ def process_wildcards(
                         df = tables[datatypes.Tag.fi_process]
                         query_str = f"process in [{','.join(map(repr, matching_processes['process']))}] and region == '{row['region']}'"
                     else:
-                        print(
+                        logger.warning(
                             f"WARNING: {tag} row matched neither commodity nor process"
                         )
                         continue

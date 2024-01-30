@@ -26,7 +26,7 @@ def convert_xl_to_times(
     pickle_file = "raw_tables.pkl"
     if use_pkl and os.path.isfile(pickle_file):
         raw_tables = pickle.load(open(pickle_file, "rb"))
-        print(f"WARNING: Using pickled data not xlsx")
+        logger.warning(f"WARNING: Using pickled data not xlsx")
     else:
         raw_tables = []
 
@@ -168,14 +168,16 @@ def compare(
         [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
     )
     if len(missing) > 0:
-        print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
+        logger.warning(f"WARNING: Missing {len(missing)} tables: {missing_str}")
 
     additional_tables = set(data.keys()) - set(ground_truth.keys())
     additional_str = ", ".join(
         [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
     )
     if len(additional_tables) > 0:
-        print(f"WARNING: {len(additional_tables)} additional tables: {additional_str}")
+        logger.warning(
+            f"WARNING: {len(additional_tables)} additional tables: {additional_str}"
+        )
     # Additional rows starts as the sum of lengths of additional tables produced
     total_additional_rows = sum(len(data[x]) for x in additional_tables)
 
@@ -193,7 +195,7 @@ def compare(
             data_cols = list(data_table.columns)
 
             if transformed_gt_cols != data_cols:
-                print(
+                logger.warning(
                     f"WARNING: Table {table_name} header incorrect, was"
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
@@ -206,7 +208,7 @@ def compare(
             total_additional_rows += len(additional)
             missing = gt_rows - data_rows
             if len(additional) != 0 or len(missing) != 0:
-                print(
+                logger.warning(
                     f"WARNING: Table {table_name} ({data_table.shape[0]} rows,"
                     f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
                     f" additional rows and is missing {len(missing)} rows"
@@ -240,7 +242,7 @@ def produce_times_tables(
     used_tables = set()
     for mapping in config.times_xl_maps:
         if not mapping.xl_name in input:
-            print(
+            logger.warning(
                 f"WARNING: Cannot produce table {mapping.times_name} because input table"
                 f" {mapping.xl_name} does not exist"
             )
@@ -250,7 +252,7 @@ def produce_times_tables(
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
-                    print(
+                    logger.warning(
                         f"WARNING: Cannot produce table {mapping.times_name} because input"
                         f" table {mapping.xl_name} does not contain column {filter_col}"
                     )
@@ -263,7 +265,7 @@ def produce_times_tables(
                 df["techgroup"] = df["techname"]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols) - set(df.columns)
-                print(
+                logger.warning(
                     f"WARNING: Cannot produce table {mapping.times_name} because input"
                     f" table {mapping.xl_name} does not contain the required columns"
                     f" - {', '.join(missing)}"
@@ -291,7 +293,7 @@ def produce_times_tables(
 
     unused_tables = set(input.keys()) - used_tables
     if len(unused_tables) > 0:
-        print(
+        logger.warning(
             f"WARNING: {len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
         )
 

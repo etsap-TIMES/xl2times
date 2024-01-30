@@ -34,6 +34,12 @@ jobs:
           pre-commit install
           pre-commit run --all-files
 
+      - name: Run unit tests
+        working-directory: xl2times
+        run: |
+          source .venv/bin/activate
+          pytest
+
       # ---------- Prepare ETSAP Demo models
 
       - uses: actions/checkout@v3
