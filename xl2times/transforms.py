@@ -565,9 +565,6 @@ def process_user_constraint_tables(
                     else:
                         df.loc[i, colname] = typed_value
 
-        # TODO: should we have a global list of column name -> type?
-        df["year"] = df["year"].astype("Int64")
-
         return replace(table, dataframe=df)
 
     return [process_user_constraint_table(t) for t in tables]
@@ -894,6 +891,10 @@ def apply_fixups(
             return table
 
         df = table.dataframe.copy()
+
+        # TODO: should we have a global list of column name -> type?
+        if "year" in df.columns:
+            df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
         # Populate CommName based on defaults
         i = (
@@ -1281,9 +1282,11 @@ def process_years(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
+
     # Datayears is the set of all years in ~FI_T's Year column
     # We ignore values < 1000 because those signify interpolation/extrapolation rules
     # (see Table 8 of Part IV of the Times Documentation)
+
     datayears = (
         tables[datatypes.Tag.fi_t]["year"]
         .apply(lambda x: x if (x is not str) and x >= 1000 else None)
@@ -1327,12 +1330,16 @@ def process_processes(
             )
             df.replace({"sets": veda_sets_to_times}, inplace=True)
             nrows = df.shape[0]
-            if "vintage" not in table.dataframe.columns:
-                df["vintage"] = [None] * nrows
-            if "region" not in table.dataframe.columns:
-                df.insert(1, "region", [None] * nrows)
-            if "tslvl" not in table.dataframe.columns:
-                df.insert(6, "tslvl", ["ANNUAL"] * nrows)
+            # TODO: Use info from config instead. Introduce required columns in the meta file?
+            add_columns = [
+                (1, "region"),
+                (6, "tslvl"),
+                (7, "primarycg"),
+                (8, "vintage"),
+            ]
+            for column in add_columns:
+                if column[1] not in table.dataframe.columns:
+                    df.insert(column[0], column[1], [None] * nrows)
             result.append(replace(table, dataframe=df))
 
     veda_process_sets = datatypes.EmbeddedXlTable(
