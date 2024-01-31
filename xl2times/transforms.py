@@ -1930,6 +1930,7 @@ def process_wildcards(
     if datatypes.Tag.tfm_upd in tables:
         updates = tables[datatypes.Tag.tfm_upd]
         table = tables[datatypes.Tag.fi_t]
+        new_tables = [table]
         # Reset FI_T index so that queries can determine unique rows to update
         tables[datatypes.Tag.fi_t].reset_index(inplace=True)
 
@@ -1944,7 +1945,12 @@ def process_wildcards(
             rows_to_update = query(
                 table, processes, commodities, row["attribute"], row["region"]
             )
-            eval_and_update(table, rows_to_update, row["value"])
+            new_rows = table.loc[rows_to_update].copy()
+            eval_and_update(new_rows, rows_to_update, row["value"])
+            new_tables.append(new_rows)
+
+        # Add new rows to table
+        tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
 
     if datatypes.Tag.tfm_ins in tables:
         updates = tables[datatypes.Tag.tfm_ins]
