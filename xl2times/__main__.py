@@ -70,7 +70,7 @@ def convert_xl_to_times(
         transforms.generate_dummy_processes,
         transforms.process_time_slices,
         transforms.process_transform_insert_variants,
-        transforms.process_transform_insert,
+        transforms.process_transform_tables,
         transforms.process_processes,
         transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
@@ -385,7 +385,7 @@ def main():
     args_parser.add_argument(
         "input",
         nargs="*",
-        help="Either an input directory, or a list of input xlsx files to process",
+        help="Either an input directory, or a list of input xlsx/xlsm files to process",
     )
     args_parser.add_argument(
         "--regions",
@@ -405,7 +405,7 @@ def main():
     args_parser.add_argument(
         "--only_read",
         action="store_true",
-        help="Read xlsx files and stop after outputting raw_tables.txt",
+        help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
     )
     args_parser.add_argument("--use_pkl", action="store_true")
     args_parser.add_argument(
@@ -433,8 +433,8 @@ def main():
         assert os.path.isdir(args.input[0])
         input_files = [
             str(path)
-            for path in Path(args.input[0]).rglob("*.xlsx")
-            if not path.name.startswith("~")
+            for path in Path(args.input[0]).rglob("*")
+            if path.suffix in [".xlsx", ".xlsm"] and not path.name.startswith("~")
         ]
         print(f"Loading {len(input_files)} files from {args.input[0]}")
     else:
