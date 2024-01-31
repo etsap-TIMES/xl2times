@@ -647,15 +647,15 @@ def fill_in_missing_values(
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
-                        df[colname].fillna(",".join(vt_regions[book]), inplace=True)
+                        df.fillna({colname: ",".join(vt_regions[book])}, inplace=True)
                     else:
                         print(f"WARNING: book name {book} not in BookRegions_Map")
                 else:
-                    df[colname].fillna(",".join(model.internal_regions), inplace=True)
+                    df.fillna({colname: ",".join(model.internal_regions)}, inplace=True)
             elif colname == "year":
-                df[colname].fillna(start_year, inplace=True)
+                df.fillna({colname: start_year}, inplace=True)
             elif colname == "currency":
-                df[colname].fillna(currency, inplace=True)
+                df.fillna({colname: currency}, inplace=True)
 
         return replace(table, dataframe=df)
 
@@ -1331,7 +1331,7 @@ def process_processes(
             processes_and_sets = pd.concat(
                 [processes_and_sets, df[["sets", "process"]].ffill()]
             )
-            df["sets"].replace(veda_sets_to_times, inplace=True)
+            df.replace({"sets": veda_sets_to_times}, inplace=True)
             nrows = df.shape[0]
             # TODO: Use info from config instead. Introduce required columns in the meta file?
             add_columns = [
@@ -1394,13 +1394,15 @@ def process_topology(
         value_name="commodity",
     )
 
-    topology["process"].ffill(inplace=True)
-    topology["io"].replace(
+    topology["process"] = topology["process"].ffill()
+    topology.replace(
         {
-            "commodity-in": "IN",
-            "commodity-in-aux": "IN-A",
-            "commodity-out": "OUT",
-            "commodity-out-aux": "OUT-A",
+            "io": {
+                "commodity-in": "IN",
+                "commodity-in-aux": "IN-A",
+                "commodity-out": "OUT",
+                "commodity-out-aux": "OUT-A",
+            }
         },
         inplace=True,
     )
@@ -2164,7 +2166,7 @@ def fix_topology(
 ) -> Dict[str, DataFrame]:
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
-    model.topology["io"].replace(mapping, inplace=True)
+    model.topology.replace({"io": mapping}, inplace=True)
 
     return tables
 
