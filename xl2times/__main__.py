@@ -184,23 +184,27 @@ def compare(
     for table_name, gt_table in sorted(
         ground_truth.items(), reverse=True, key=lambda t: len(t[1])
     ):
-        total_gt_rows += len(gt_table)
         if table_name in data:
             data_table = data[table_name]
 
             # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
             data_cols = list(data_table.columns)
-
             if transformed_gt_cols != data_cols:
                 print(
                     f"WARNING: Table {table_name} header incorrect, was"
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
 
+            # Remove duplicate rows from ground truth
+            # For parameters, ignore VALUE col when computing dupilcates
+            query_columns = [c for c in gt_table.columns if c != "VALUE"] or None
+            gt_table = gt_table.drop_duplicates(subset=query_columns, keep="last")
+
             # both are in string form so can be compared without any issues
             gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
             data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
+            total_gt_rows += len(gt_rows)
             total_correct_rows += len(gt_rows.intersection(data_rows))
             additional = data_rows - gt_rows
             total_additional_rows += len(additional)
