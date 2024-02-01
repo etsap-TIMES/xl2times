@@ -1665,6 +1665,18 @@
     "mod_type": "tsl"
   },
   {
+    "tag_name": "tfm_ins-txt",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_ins",
+    "mod_type": "ts"
+  },
+  {
     "tag_name": "tfm_mig",
     "tag_allowed_in": [
       "BY_Trans",
