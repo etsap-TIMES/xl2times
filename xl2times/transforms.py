@@ -1594,12 +1594,7 @@ def process_transform_tables(
             df = table.dataframe.copy()
 
             # Standardize column names
-            known_columns = config.known_columns[datatypes.Tag.tfm_ins] | query_columns
-            if table.tag == datatypes.Tag.tfm_mig:
-                # Also allow attribute2, year2 etc for TFM_MIG tables
-                known_columns.update(
-                    (c + "2" for c in config.known_columns[datatypes.Tag.tfm_ins])
-                )
+            known_columns = config.known_columns[table.tag] | query_columns
 
             # Handle Regions:
             if set(df.columns).isdisjoint(
