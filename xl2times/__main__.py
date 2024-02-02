@@ -196,11 +196,6 @@ def compare(
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
 
-            # Remove duplicate rows from ground truth
-            # For parameters, ignore VALUE col when computing dupilcates
-            query_columns = [c for c in gt_table.columns if c != "VALUE"] or None
-            gt_table = gt_table.drop_duplicates(subset=query_columns, keep="last")
-
             # both are in string form so can be compared without any issues
             gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
             data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
