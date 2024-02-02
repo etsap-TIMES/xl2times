@@ -1282,7 +1282,6 @@ def process_years(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-
     # Datayears is the set of all years in ~FI_T's Year column
     # We ignore values < 1000 because those signify interpolation/extrapolation rules
     # (see Table 8 of Part IV of the Times Documentation)
@@ -1860,8 +1859,6 @@ def process_wildcards(
 ) -> Dict[str, DataFrame]:
     topology = generate_topology_dictionary(tables, model)
 
-    # TODO add type annots to below fns
-
     def match_wildcards(
         row: pd.Series,
     ) -> tuple[DataFrame | None, DataFrame | None] | None:
@@ -1875,7 +1872,13 @@ def process_wildcards(
             return None
         return matching_processes, matching_commodities
 
-    def query(table, processes, commodities, attribute, region):
+    def query(
+        table: DataFrame,
+        processes: DataFrame | None,
+        commodities: DataFrame | None,
+        attribute: str | None,
+        region: str | None,
+    ) -> pd.Index:
         qs = []
         if processes is not None and not processes.empty:
             qs.append(f"process in [{','.join(map(repr, processes['process']))}]")
@@ -1887,7 +1890,9 @@ def process_wildcards(
             qs.append(f"region == '{region}'")
         return table.query(" and ".join(qs)).index
 
-    def eval_and_update(table, rows_to_update, new_value):
+    def eval_and_update(
+        table: DataFrame, rows_to_update: pd.Index, new_value: str
+    ) -> None:
         if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
             old_values = table.loc[rows_to_update, "value"]
             updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
