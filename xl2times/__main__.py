@@ -317,6 +317,9 @@ def write_dd_files(
     def convert_parameter(tablename: str, df: DataFrame):
         if "VALUE" not in df.columns:
             raise KeyError(f"Unable to find VALUE column in parameter {tablename}")
+        # Remove duplicate rows, ignoring value column
+        query_columns = [c for c in df.columns if c != "VALUE"] or None
+        df = df.drop_duplicates(subset=query_columns, keep="last")
         for row in df.itertuples(index=False):
             val = row.VALUE
             row_str = "'.'".join(
