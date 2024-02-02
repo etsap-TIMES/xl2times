@@ -277,8 +277,9 @@ def produce_times_tables(
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 cols_to_drop = [x for x in df.columns if not x in mapping.times_cols]
-                df = df.drop(columns=cols_to_drop)
-                # Remove rows with NA values
+                df.drop(columns=cols_to_drop, inplace=True)
+                df.drop_duplicates(inplace=True)
+                df.reset_index(drop=True, inplace=True)
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
                 i = (
                     df[mapping.times_cols[-1]].notna()
@@ -287,10 +288,6 @@ def produce_times_tables(
                     & (df != "").all(axis=1)
                 )
                 df = df.loc[i, mapping.times_cols]
-                # Remove duplicate rows. For parameters, remove rows with duplicate query cols
-                query_columns = [c for c in df.columns if c != "VALUE"] or None
-                df = df.drop_duplicates(subset=query_columns, keep="last")
-                df = df.reset_index(drop=True)
                 # Drop tables that are empty after filtering and dropping Nones:
                 if len(df) == 0:
                     continue
