@@ -1667,11 +1667,7 @@
   {
     "tag_name": "tfm_ins-txt",
     "tag_allowed_in": [
-      "BY_Trans",
-      "SR_Trans",
-      "SysSettings",
-      "RegScen",
-      "TradeScen"
+      "SysSettings"
     ],
     "base_tag": "tfm_ins",
     "mod_type": "ts"
