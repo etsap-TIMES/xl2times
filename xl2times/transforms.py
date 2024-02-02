@@ -1282,7 +1282,6 @@ def process_years(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-
     # Datayears is the set of all years in ~FI_T's Year column
     # We ignore values < 1000 because those signify interpolation/extrapolation rules
     # (see Table 8 of Part IV of the Times Documentation)
@@ -1594,12 +1593,7 @@ def process_transform_tables(
             df = table.dataframe.copy()
 
             # Standardize column names
-            known_columns = config.known_columns[datatypes.Tag.tfm_ins] | query_columns
-            if table.tag == datatypes.Tag.tfm_mig:
-                # Also allow attribute2, year2 etc for TFM_MIG tables
-                known_columns.update(
-                    (c + "2" for c in config.known_columns[datatypes.Tag.tfm_ins])
-                )
+            known_columns = config.known_columns[table.tag] | query_columns
 
             # Handle Regions:
             if set(df.columns).isdisjoint(
@@ -1865,8 +1859,6 @@ def process_wildcards(
 ) -> Dict[str, DataFrame]:
     topology = generate_topology_dictionary(tables, model)
 
-    # TODO add type annots to below fns
-
     def match_wildcards(
         row: pd.Series,
     ) -> tuple[DataFrame | None, DataFrame | None] | None:
@@ -1876,11 +1868,17 @@ def process_wildcards(
             matching_commodities is None or len(matching_commodities) == 0
         ):  # TODO is this necessary? Try without?
             # TODO debug these
-            print(f"WARNING: a row matched no processes or commodities:\n{row}")
+            print(f"WARNING: a row matched no processes or commodities")
             return None
         return matching_processes, matching_commodities
 
-    def query(table, processes, commodities, attribute, region):
+    def query(
+        table: DataFrame,
+        processes: DataFrame | None,
+        commodities: DataFrame | None,
+        attribute: str | None,
+        region: str | None,
+    ) -> pd.Index:
         qs = []
         if processes is not None and not processes.empty:
             qs.append(f"process in [{','.join(map(repr, processes['process']))}]")
@@ -1892,47 +1890,17 @@ def process_wildcards(
             qs.append(f"region == '{region}'")
         return table.query(" and ".join(qs)).index
 
-    def eval_and_update(table, rows_to_update, new_value):
+    def eval_and_update(
+        table: DataFrame, rows_to_update: pd.Index, new_value: str
+    ) -> None:
+        """Performs an inplace update of rows `rows_to_update` of `table` with `new_value`,
+        which can be a update formula like `*2.3`."""
         if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
             old_values = table.loc[rows_to_update, "value"]
             updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
             table.loc[rows_to_update, "value"] = updated
         else:
             table.loc[rows_to_update, "value"] = new_value
-
-    def do_an_ins_row(row):
-        table = tables[datatypes.Tag.fi_t]
-        match = match_wildcards(row)
-        # TODO perf: add matched procs/comms into column and use explode?
-        new_rows = pd.DataFrame([row.filter(table.columns)])
-        if match is not None:
-            processes, commodities = match
-            if processes is not None:
-                new_rows = processes.merge(new_rows, how="cross")
-            if commodities is not None:
-                new_rows = commodities.merge(new_rows, how="cross")
-        return new_rows
-
-    def do_an_ins_txt_row(row):
-        match = match_wildcards(row)
-        if match is None:
-            print(f"WARNING: TFM_INS-TXT row matched neither commodity nor process")
-            return
-        processes, commodities = match
-        if commodities is not None:
-            table = model.commodities
-        elif processes is not None:
-            table = model.processes
-        else:
-            assert False  # All rows match either a commodity or a process
-
-        # Query for rows with matching process/commodity and region
-        rows_to_update = query(table, processes, commodities, None, row["region"])
-        # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
-        # with the value from row
-        # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
-        table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
-        # return rows_to_update
 
     if datatypes.Tag.tfm_upd in tables:
         updates = tables[datatypes.Tag.tfm_upd]
@@ -1941,6 +1909,8 @@ def process_wildcards(
         # Reset FI_T index so that queries can determine unique rows to update
         tables[datatypes.Tag.fi_t].reset_index(inplace=True)
 
+        # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
+        # evaluate the update formula, and add new rows to FI_T
         # TODO perf: collect all updates and go through FI_T only once?
         for _, row in updates.iterrows():
             if row["value"] is None:  # TODO is this really needed?
@@ -1961,16 +1931,49 @@ def process_wildcards(
 
     if datatypes.Tag.tfm_ins in tables:
         updates = tables[datatypes.Tag.tfm_ins]
-        new_rows = []
+        table = tables[datatypes.Tag.fi_t]
+        new_tables = []
+
+        # TFM_INS: expand each row by wildcards, then add to FI_T
         for _, row in updates.iterrows():
-            new_rows.append(do_an_ins_row(row))
-        new_rows.append(tables[datatypes.Tag.fi_t])
-        tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)
+            match = match_wildcards(row)
+            # TODO perf: add matched procs/comms into column and use explode?
+            new_rows = pd.DataFrame([row.filter(table.columns)])
+            if match is not None:
+                processes, commodities = match
+                if processes is not None:
+                    new_rows = processes.merge(new_rows, how="cross")
+                if commodities is not None:
+                    new_rows = commodities.merge(new_rows, how="cross")
+            new_tables.append(new_rows)
+
+        new_tables.append(tables[datatypes.Tag.fi_t])
+        tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
 
     if datatypes.Tag.tfm_ins_txt in tables:
         updates = tables[datatypes.Tag.tfm_ins_txt]
+
+        # TFM_INS-TXT: expand row by wildcards, query FI_PROC/COMM for matching rows,
+        # evaluate the update formula, and inplace update the rows
         for _, row in updates.iterrows():
-            do_an_ins_txt_row(row)
+            match = match_wildcards(row)
+            if match is None:
+                print(f"WARNING: TFM_INS-TXT row matched neither commodity nor process")
+                continue
+            processes, commodities = match
+            if commodities is not None:
+                table = model.commodities
+            elif processes is not None:
+                table = model.processes
+            else:
+                assert False  # All rows match either a commodity or a process
+
+            # Query for rows with matching process/commodity and region
+            rows_to_update = query(table, processes, commodities, None, row["region"])
+            # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
+            # with the value from row
+            # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
+            table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
 
     if datatypes.Tag.tfm_mig in tables:
         updates = tables[datatypes.Tag.tfm_mig]
