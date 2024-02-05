@@ -406,6 +406,8 @@ class Config:
                     discard_if_empty.append(tag_name)
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
+                if base_tag in known_cols:
+                    known_cols[tag_name] = known_cols[base_tag]
 
         return valid_column_names, row_comment_chars, discard_if_empty, known_cols
 

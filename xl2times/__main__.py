@@ -184,14 +184,12 @@ def compare(
     for table_name, gt_table in sorted(
         ground_truth.items(), reverse=True, key=lambda t: len(t[1])
     ):
-        total_gt_rows += len(gt_table)
         if table_name in data:
             data_table = data[table_name]
 
             # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
             data_cols = list(data_table.columns)
-
             if transformed_gt_cols != data_cols:
                 print(
                     f"WARNING: Table {table_name} header incorrect, was"
@@ -201,6 +199,7 @@ def compare(
             # both are in string form so can be compared without any issues
             gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
             data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
+            total_gt_rows += len(gt_rows)
             total_correct_rows += len(gt_rows.intersection(data_rows))
             additional = data_rows - gt_rows
             total_additional_rows += len(additional)
@@ -318,6 +317,9 @@ def write_dd_files(
     def convert_parameter(tablename: str, df: DataFrame):
         if "VALUE" not in df.columns:
             raise KeyError(f"Unable to find VALUE column in parameter {tablename}")
+        # Remove duplicate rows, ignoring value column
+        query_columns = [c for c in df.columns if c != "VALUE"] or None
+        df = df.drop_duplicates(subset=query_columns, keep="last")
         for row in df.itertuples(index=False):
             val = row.VALUE
             row_str = "'.'".join(
