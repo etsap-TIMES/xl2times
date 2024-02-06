@@ -86,7 +86,7 @@ def convert_xl_to_times(
         transforms.apply_fixups,
         transforms.generate_commodity_groups,
         transforms.fill_in_missing_pcgs,
-        transforms.generate_top_ire,
+        transforms.generate_trade,
         transforms.include_tables_source,
         transforms.merge_tables,
         transforms.apply_more_fixups,

@@ -1081,7 +1081,7 @@ def complete_commodity_groups(
     return tables
 
 
-def generate_top_ire(
+def generate_trade(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
@@ -1133,6 +1133,36 @@ def generate_top_ire(
     top_ire.loc[is_exp, ["destination"]] = top_ire["region2"].loc[is_exp]
     top_ire.drop(columns=["region", "region2", "sets", "io"], inplace=True)
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
+
+    cols_list = ["origin", "in", "destination", "out", "process"]
+    # Include trade between internal regions
+    for table in tables:
+        if table.tag == datatypes.Tag.tradelinks_dins:
+            df = table.dataframe
+            f_links = df.rename(
+                columns={
+                    "reg1": "origin",
+                    "comm1": "in",
+                    "reg2": "destination",
+                    "comm2": "out",
+                }
+            ).copy()
+            top_ire = pd.concat([top_ire, f_links[cols_list]])
+            # Check if any of the links are bi-directional
+            if "b" in df["tradelink"].str.lower().unique():
+                b_links = (
+                    df[df["tradelink"].str.lower() == "b"]
+                    .rename(
+                        columns={
+                            "reg1": "destination",
+                            "comm1": "out",
+                            "reg2": "origin",
+                            "comm2": "in",
+                        }
+                    )
+                    .copy()
+                )
+                top_ire = pd.concat([top_ire, b_links[cols_list]])
 
     model.trade = top_ire
 
