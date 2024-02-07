@@ -148,6 +148,22 @@ class TimesModel:
 
     internal_regions: Set[str] = field(default_factory=set)
     all_regions: Set[str] = field(default_factory=set)
+    processes: DataFrame = field(default_factory=DataFrame)
+    commodities: DataFrame = field(default_factory=DataFrame)
+    com_gmap: DataFrame = field(default_factory=DataFrame)
+    commodity_groups: DataFrame = field(default_factory=DataFrame)
+    topology: DataFrame = field(default_factory=DataFrame)
+    trade: DataFrame = field(default_factory=DataFrame)
+    attributes: DataFrame = field(default_factory=DataFrame)
+    user_constraints: DataFrame = field(default_factory=DataFrame)
+    ts_tslvl: DataFrame = field(default_factory=DataFrame)
+    ts_map: DataFrame = field(default_factory=DataFrame)
+    time_periods: DataFrame = field(default_factory=DataFrame)
+    units: DataFrame = field(default_factory=DataFrame)
+    start_year: int = field(default_factory=int)
+    data_years: Tuple[int] = field(default_factory=tuple)
+    model_years: Tuple[int] = field(default_factory=tuple)
+    past_years: Tuple[int] = field(default_factory=tuple)
 
     def external_regions(self) -> Set[str]:
         return self.all_regions.difference(self.internal_regions)
@@ -394,6 +410,8 @@ class Config:
                     discard_if_empty.append(tag_name)
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
+                if base_tag in known_cols:
+                    known_cols[tag_name] = known_cols[base_tag]
 
         return valid_column_names, row_comment_chars, discard_if_empty, known_cols
 

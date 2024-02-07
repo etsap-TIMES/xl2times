@@ -69,8 +69,9 @@ def convert_xl_to_times(
         ],
         transforms.process_regions,
         transforms.generate_dummy_processes,
+        transforms.process_time_slices,
         transforms.process_transform_insert_variants,
-        transforms.process_transform_insert,
+        transforms.process_transform_tables,
         transforms.process_processes,
         transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
@@ -78,7 +79,6 @@ def convert_xl_to_times(
         transforms.process_commodity_emissions,
         transforms.process_commodities,
         transforms.process_transform_availability,
-        transforms.process_time_slices,
         transforms.fill_in_missing_values,
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
@@ -99,6 +99,7 @@ def convert_xl_to_times(
         transforms.convert_aliases,
         transforms.rename_cgs,
         transforms.fix_topology,
+        transforms.complete_dictionary,
         transforms.convert_to_string,
         lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
@@ -186,14 +187,12 @@ def compare(
     for table_name, gt_table in sorted(
         ground_truth.items(), reverse=True, key=lambda t: len(t[1])
     ):
-        total_gt_rows += len(gt_table)
         if table_name in data:
             data_table = data[table_name]
 
             # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
             data_cols = list(data_table.columns)
-
             if transformed_gt_cols != data_cols:
                 logger.warning(
                     f"WARNING: Table {table_name} header incorrect, was"
@@ -203,6 +202,7 @@ def compare(
             # both are in string form so can be compared without any issues
             gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
             data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
+            total_gt_rows += len(gt_rows)
             total_correct_rows += len(gt_rows.intersection(data_rows))
             additional = data_rows - gt_rows
             total_additional_rows += len(additional)
@@ -320,6 +320,9 @@ def write_dd_files(
     def convert_parameter(tablename: str, df: DataFrame):
         if "VALUE" not in df.columns:
             raise KeyError(f"Unable to find VALUE column in parameter {tablename}")
+        # Remove duplicate rows, ignoring value column
+        query_columns = [c for c in df.columns if c != "VALUE"] or None
+        df = df.drop_duplicates(subset=query_columns, keep="last")
         for row in df.itertuples(index=False):
             val = row.VALUE
             row_str = "'.'".join(
@@ -387,7 +390,7 @@ def main():
     args_parser.add_argument(
         "input",
         nargs="*",
-        help="Either an input directory, or a list of input xlsx files to process",
+        help="Either an input directory, or a list of input xlsx/xlsm files to process",
     )
     args_parser.add_argument(
         "--regions",
@@ -407,7 +410,7 @@ def main():
     args_parser.add_argument(
         "--only_read",
         action="store_true",
-        help="Read xlsx files and stop after outputting raw_tables.txt",
+        help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
     )
     args_parser.add_argument("--use_pkl", action="store_true")
     args_parser.add_argument(
@@ -435,8 +438,8 @@ def main():
         assert os.path.isdir(args.input[0])
         input_files = [
             str(path)
-            for path in Path(args.input[0]).rglob("*.xlsx")
-            if not path.name.startswith("~")
+            for path in Path(args.input[0]).rglob("*")
+            if path.suffix in [".xlsx", ".xlsm"] and not path.name.startswith("~")
         ]
         print(f"Loading {len(input_files)} files from {args.input[0]}")
     else:

@@ -65,23 +65,6 @@ def explode(df, data_columns):
     return df, names
 
 
-def extract_timeslices(tables: List[datatypes.EmbeddedXlTable]):
-    """
-    Given a list of tables with a unique table with a time slice tag, return a list
-    with all the column names of that table + "ANNUAL".
-
-    :param tables:          List of tables in EmbeddedXlTable format.
-    :return:                List of column names of the unique time slice table.
-    """
-    # TODO merge with other timeslice code - should we delete this def or move the other one here?
-
-    # No idea why casing of Weekly is special
-    cols = single_table(tables, datatypes.Tag.time_slices).dataframe.columns
-    timeslices = [col if col == "Weekly" else col.upper() for col in cols]
-    timeslices.insert(0, "ANNUAL")
-    return timeslices
-
-
 def single_table(tables: List[datatypes.EmbeddedXlTable], tag: str):
     """
     Make sure exactly one table in 'tables' has the given table tag, and return it.
