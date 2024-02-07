@@ -71,6 +71,7 @@ def convert_xl_to_times(
         transforms.process_time_slices,
         transforms.process_transform_insert_variants,
         transforms.process_transform_tables,
+        transforms.process_tradelinks,
         transforms.process_processes,
         transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow

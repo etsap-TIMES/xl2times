@@ -1511,6 +1511,57 @@ def generate_dummy_processes(
     return tables
 
 
+def process_tradelinks(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Transform tradelinks table
+    """
+
+    result = []
+    for table in tables:
+        if table.tag == datatypes.Tag.tradelinks:
+            df = table.dataframe
+            print(df)
+            comm = df.columns[0]
+            destinations = list(df.columns).remove(comm)
+            df.rename(columns={comm: "origin"}, inplace=True)
+            df = pd.melt(
+                df, id_vars=["origin"], value_vars=destinations, var_name="destination"
+            )
+            df = df[df["value"] == 1].drop(columns=["value"])
+            df["comm"] = comm.upper()
+            df["comm1"] = df["comm"]
+            df["comm2"] = df["comm"]
+            df["tradelink"] = "u"
+            print(df)
+            df.rename(columns={"origin": "reg1", "destination": "reg2"}, inplace=True)
+            df["reg2"] = df["reg2"].str.upper()
+            df["process"] = df.apply(
+                lambda row: "T"
+                + "_".join(
+                    [
+                        row["tradelink"].upper(),
+                        row["comm"],
+                        row["reg1"],
+                        row["reg2"],
+                        "01",
+                    ]
+                ),
+                axis=1,
+            )
+            print(df)
+            result.append(
+                replace(table, dataframe=df, tag=datatypes.Tag.tradelinks_dins)
+            )
+        else:
+            result.append(table)
+
+    return result
+
+
 def process_transform_insert_variants(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -1539,20 +1590,16 @@ def process_transform_insert_variants(
             # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
             df = table.dataframe
             if "year" in df.columns:
-                raise ValueError(f"TFM_INS-AT table already has Year column: {table}")
-            # TODO can we remove this hacky shortcut?
-            if (
-                table.tag == datatypes.Tag.tfm_ins_ts
-                and set(df.columns) & query_columns == {"cset_cn"}
-                and has_no_wildcards(df["cset_cn"])
+                raise ValueError(f"TFM_INS-TS table already has Year column: {table}")
+            # TODO: can we remove this hacky shortcut? Or should it be also applied to the AT variant?
+            if set(df.columns) & query_columns == {"cset_cn"} and has_no_wildcards(
+                df["cset_cn"]
             ):
                 df.rename(columns={"cset_cn": "commodity"}, inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
                 continue
-            elif (
-                table.tag == datatypes.Tag.tfm_ins_ts
-                and set(df.columns) & query_columns == {"pset_pn"}
-                and has_no_wildcards(df["pset_pn"])
+            elif set(df.columns) & query_columns == {"pset_pn"} and has_no_wildcards(
+                df["pset_pn"]
             ):
                 df.rename(columns={"pset_pn": "process"}, inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
@@ -1572,7 +1619,7 @@ def process_transform_insert_variants(
             df["year"] = df["year"].astype("int")
             result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
         elif table.tag == datatypes.Tag.tfm_ins_at:
-            # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribue" column
+            # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribute" column
             df = table.dataframe
             if "attribute" in df.columns:
                 raise ValueError(
