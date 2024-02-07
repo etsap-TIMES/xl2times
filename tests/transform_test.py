@@ -1,3 +1,5 @@
+import pickle
+from pathlib import Path
 from timeit import timeit
 
 import pandas as pd
@@ -23,6 +25,14 @@ pd.set_option(
 
 
 class TestTransforms:
+    def test_process_wildcards(self):
+        with Path("../austimes-lfs/data/austimes_process_wildcards_test_data.pkl").open(
+            "rb"
+        ) as f:
+            tables = pickle.load(f)
+
+        transforms.process_wildcards(None, tables, None)  # pyright: ignore
+
     def test_default_pcg_vectorised(self):
         """Tests the default primary commodity group identification logic in vectorised form."""
         comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.pq")
@@ -88,3 +98,7 @@ class TestTransforms:
         logger.info(
             f"Looped version took {t_looped:.2f} seconds, vectorised version took {t_vector:.2f} seconds"
         )
+
+
+if __name__ == "__main__":
+    TestTransforms().test_process_wildcards()

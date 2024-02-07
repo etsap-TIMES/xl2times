@@ -1945,7 +1945,6 @@ def process_wildcards(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-
     dictionary = generate_topology_dictionary(tables)
 
     # TODO separate this code into expanding wildcards and updating/inserting data!
@@ -1954,7 +1953,7 @@ def process_wildcards(
         datatypes.Tag.tfm_ins,
         datatypes.Tag.tfm_ins_txt,
     ]:
-        if tag in tqdm(tables, desc="Processing wildcards"):
+        if tag in tables:
             start_time = time.time()
             upd = tables[tag]
             new_rows = []
@@ -1963,7 +1962,9 @@ def process_wildcards(
             if tag == datatypes.Tag.tfm_upd:
                 # copy old index to new column 'index'
                 tables[datatypes.Tag.fi_t].reset_index(inplace=True)
-            for i in range(0, len(upd)):
+
+            for i in tqdm(range(0, len(upd)), desc=f"matching names for table: {tag}"):
+
                 row = upd.iloc[i]
                 debug = False
                 if debug:
@@ -1979,6 +1980,7 @@ def process_wildcards(
                 df = tables[datatypes.Tag.fi_t]
                 if any(df.index.duplicated()):
                     raise ValueError("~FI_T table has duplicated indices")
+
                 if tag == datatypes.Tag.tfm_upd:
                     # construct query into ~FI_T to get indices of matching rows
                     if matching_processes is not None:
@@ -1987,6 +1989,7 @@ def process_wildcards(
                         print(f"{len(df)} rows after processes")
                         if any(df["index"].duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
+
                     if matching_commodities is not None:
                         df = df.merge(matching_commodities)
                     if debug:
@@ -1994,6 +1997,7 @@ def process_wildcards(
                         if any(df["index"].duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
                     attribute = row.attribute
+
                     if attribute is not None:
                         df = df.query("attribute == @attribute")
                     if debug:
@@ -2001,12 +2005,14 @@ def process_wildcards(
                         if any(df["index"].duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
                     region = row.region
+
                     if region is not None:
                         df = df.query("region == @region")
                     if debug:
                         print(f"{len(df)} rows after Region")
                         if any(df["index"].duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
+
                     # so that we can update the original table, copy original index back that was lost when merging
                     df = df.set_index("index")
                     # for speed, extract just the VALUE column as that is the only one being updated
@@ -2014,6 +2020,7 @@ def process_wildcards(
                     if debug:
                         if any(df.index.duplicated()):
                             raise ValueError("~FI_T table has duplicated indices")
+
                     if isinstance(row.value, str) and row.value[0] in {
                         "*",
                         "+",
@@ -2026,6 +2033,7 @@ def process_wildcards(
                     if len(df) == 0:
                         logger.warning(f"WARNING: {tag} row matched nothing")
                     tables[datatypes.Tag.fi_t].update(df)
+
                 elif tag == datatypes.Tag.tfm_ins_txt:
                     # This row matches either a commodity or a process
                     assert not (
@@ -2059,6 +2067,7 @@ def process_wildcards(
                     if matching_commodities is not None:
                         row = matching_commodities.merge(row, how="cross")
                     new_rows.append(row)
+
             if tag == datatypes.Tag.tfm_ins:
                 new_rows.append(df)  # pyright: ignore
                 tables[datatypes.Tag.fi_t] = pd.concat(new_rows, ignore_index=True)

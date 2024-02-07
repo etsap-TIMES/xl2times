@@ -13,7 +13,7 @@ readme = "README.md"
 authors = []
 
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.9,<3.11.0 || >3.11.0"
 GitPython = ">=3.1.31,<3.2"
 more-itertools = "*"
 openpyxl = ">=3.0"
@@ -29,6 +29,7 @@ tabulate = "*"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 pyarrow = "^15.0.0"
+scalene = "^1.5.34"
 
 [project]
 name = "xl2times"
