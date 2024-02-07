@@ -217,6 +217,7 @@ def create_regexp(pattern: str):
 
 
 def create_negative_regexp(pattern):
+    pattern = str(pattern)
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
         pattern = "^$"  # matches nothing

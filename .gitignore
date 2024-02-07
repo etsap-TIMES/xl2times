@@ -16,3 +16,4 @@ speedscope.json
 *.pkl
 .venv/
 benchmarks/
+profile.*
