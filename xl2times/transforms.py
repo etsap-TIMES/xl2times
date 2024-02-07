@@ -716,6 +716,7 @@ def remove_invalid_values(
     """
     # TODO: This should be table type specific
     # TODO pull this out
+    # TODO: This should take into account whether a specific dimension is required
     # Rules for allowing entries. Each entry of the dictionary designates a rule for a
     # a given column, and the values that are allowed for that column.
     constraints = {
@@ -1164,7 +1165,12 @@ def generate_trade(
                 )
                 top_ire = pd.concat([top_ire, b_links[cols_list]])
 
-    model.trade = top_ire
+    filter_regions = model.internal_regions.union({"IMPEXP", "MINRNW"})
+    i = top_ire["origin"].isin(filter_regions) & top_ire["destination"].isin(
+        filter_regions
+    )
+
+    model.trade = top_ire[i].reset_index()
 
     return tables
 
