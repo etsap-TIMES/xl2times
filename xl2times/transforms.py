@@ -1536,8 +1536,7 @@ def process_tradelinks(
             df["tradelink"] = 1
             # Add a column containing linked regions (directionless)
             df["regions"] = df.apply(
-                lambda row: tuple(set().union([row["origin"], row["destination"]])),
-                axis=1,
+                lambda row: tuple(sorted([row["origin"], row["destination"]])), axis=1
             )
             # Determine whether a trade link is bi- or unidirectional
             td_type = df.groupby(["regions"])["tradelink"].agg("count").reset_index()
