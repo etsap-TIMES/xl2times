@@ -5,3 +5,5 @@ pre-commit
 black
 tabulate
 GitPython >= 3.1.31, < 3.2
+loguru >= 0.7.2
+tqdm >= 4.66.1

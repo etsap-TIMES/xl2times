@@ -1022,6 +1022,7 @@ def generate_commodity_groups(
     comm_groups["commoditygroup"] = 0
 
     # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
+    # TODO remove this code block.  Only retained for easy loop vs vectorised comparison
     # for region in comm_groups["region"].unique():
     #     i_reg = comm_groups["region"] == region
     #     for process in tqdm(comm_groups[i_reg]["process"].unique(), f"Summing commodities for {region}"):
@@ -1060,7 +1061,7 @@ def generate_commodity_groups(
     # comm_groups = pcg_looped(comm_groups, csets_ordered_for_pcg)
 
     # vectorised logic, much faster
-    comm_groups = pcg_vectorised(comm_groups, csets_ordered_for_pcg)
+    comm_groups = _process_comm_groups_vectorised(comm_groups, csets_ordered_for_pcg)
 
     # Add standard Veda PCGS named contrary to name_comm_group
     if reg_prc_veda_pcg.shape[0]:
@@ -1094,7 +1095,9 @@ def generate_commodity_groups(
     return tables
 
 
-def pcg_looped(comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]):
+def _process_comm_groups_looped(
+    comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]
+):
     """Original, looped version of the default pcg logic.
     Sets the first commodity group in the list of csets_ordered_for_pcg as the default pcg for each region/process/io combination,
     but setting the io="OUT" subset as default before "IN".
@@ -1122,7 +1125,9 @@ def pcg_looped(comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]):
     return comm_groups
 
 
-def pcg_vectorised(comm_groups_test: pd.DataFrame, csets_ordered_for_pcg: list[str]):
+def _process_comm_groups_vectorised(
+    comm_groups_test: pd.DataFrame, csets_ordered_for_pcg: list[str]
+):
     """Vectorised version of the pcg_looped() logic, for speedup (~18x faster) with large commodity tables.
     See Section 3.7.2.2, pg 80. of `TIMES Documentation PART IV` for details.
     :param comm_groups_test: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
@@ -1953,6 +1958,7 @@ def process_wildcards(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
+
     topology = generate_topology_dictionary(tables, model)
 
     def match_wildcards(
@@ -1964,7 +1970,7 @@ def process_wildcards(
             matching_commodities is None or len(matching_commodities) == 0
         ):  # TODO is this necessary? Try without?
             # TODO debug these
-            print(f"WARNING: a row matched no processes or commodities")
+            logger.warning("A row matched no processes or commodities")
             return None
         return matching_processes, matching_commodities
 
@@ -2008,7 +2014,11 @@ def process_wildcards(
         # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
         # evaluate the update formula, and add new rows to FI_T
         # TODO perf: collect all updates and go through FI_T only once?
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            desc=f"Processing wildcards in {datatypes.Tag.tfm_upd}",
+            total=len(updates),
+        ):
             if row["value"] is None:  # TODO is this really needed?
                 continue
             match = match_wildcards(row)

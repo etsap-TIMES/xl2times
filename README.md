@@ -21,6 +21,12 @@ You can also install the latest development version by cloning this repository a
 pip install .
 ```
 
+Alternatively, you can use the [poetry](https://python-poetry.org/) dependency manager to install for development:
+```bash
+poetry env use path/to/your/python
+poetry install
+````
+
 After installation, run the following command to see the basic usage and available options:
 ```bash
 xl2times --help

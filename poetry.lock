@@ -680,6 +680,24 @@ files = [
 ]
 
 [[package]]
+name = "pyright"
+version = "1.1.350"
+description = "Command line wrapper for pyright"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pyright-1.1.350-py3-none-any.whl", hash = "sha256:f1dde6bcefd3c90aedbe9dd1c573e4c1ddbca8c74bf4fa664dd3b1a599ac9a66"},
+    {file = "pyright-1.1.350.tar.gz", hash = "sha256:a8ba676de3a3737ea4d8590604da548d4498cc5ee9ee00b1a403c6db987916c6"},
+]
+
+[package.dependencies]
+nodeenv = ">=1.6.0"
+
+[package.extras]
+all = ["twine (>=3.4.1)"]
+dev = ["twine (>=3.4.1)"]
+
+[[package]]
 name = "pytest"
 version = "8.0.0"
 description = "pytest: simple powerful testing with Python"
@@ -992,4 +1010,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.11.0 || >3.11.0"
-content-hash = "f4b23aec7aed3fd1089eab91a1186a3813367a6056d7d6fe39c42dba0bb74373"
+content-hash = "b22d33cb74afe3d4b9ae992ad6794ff6ac8f5bca248ade9d241b6c0a0b6edba1"
