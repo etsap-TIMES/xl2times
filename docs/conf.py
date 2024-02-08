@@ -19,8 +19,6 @@ extensions = [
     "sphinxcontrib.apidoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
-    # "sphinx_immaterial",
-    # "sphinx_immaterial.apidoc.python.apigen",
 ]
 
 templates_path = ["_templates"]
@@ -30,25 +28,6 @@ apidoc_module_dir = "../xl2times"
 apidoc_output_dir = "api"
 # apidoc_excluded_paths = ['tests']
 # apidoc_separate_modules = True
-
-# This didn't work: didn't create pages for classes, just table summary..
-# # Autosummary
-# autosummary_generate = True
-
-# This didn't work because it tried to gen docs for DataFrame..
-# python_apigen_modules = {
-#     "xl2times.datatypes": "api/xl2times.datatypes.",
-#     "xl2times.transforms": "api/xl2times.transforms.",
-# }
-# python_apigen_default_groups = [
-#     (r".*:xl2times.datatypes.*", "datatypes-members"),
-#     (r"class:xl2times.datatypes(?!DataFrame$).*", "datatypes-classes"),
-#     (r".*:xl2times.transforms.*", "transforms-members"),
-#     (r"class:xl2times.transforms.*", "transforms-classes"),
-#     (r".*:.*\.__(init|new)__", "Constructors"),
-#     (r".*:.*\.__eq__", "Comparison operators"),
-#     (r".*:.*\.__(str|repr)__", "String representation"),
-# ]
 
 # -- Options for autodoc ----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#configuration
