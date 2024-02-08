@@ -15,12 +15,13 @@ author = "xl2times authors"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "myst_parser",
     "sphinx.ext.duration",
     "sphinx.ext.autodoc",
-    "sphinxcontrib.apidoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
-    "myst_parser",
+    "sphinx_copybutton",
+    "sphinxcontrib.apidoc",
 ]
 
 templates_path = ["_templates"]
