@@ -1,20 +1,20 @@
-.. xl2times documentation master file, created by
-   sphinx-quickstart on Wed Feb  7 14:48:05 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-xl2times
-========
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
 
-   api/modules.rst
+   API Documentation <api/modules.rst>
+
+..
+   Include the README as the index page of the docs to avoid duplication of essential information
+   https://stackoverflow.com/a/69134918/3189420
+
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`

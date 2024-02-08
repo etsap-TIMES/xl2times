@@ -9,6 +9,7 @@
 project = "xl2times"
 copyright = "2024, xl2times authors"
 author = "xl2times authors"
+# TODO version = xl2times.__version__ ?
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -19,6 +20,7 @@ extensions = [
     "sphinxcontrib.apidoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
+    "myst_parser",
 ]
 
 templates_path = ["_templates"]
@@ -50,4 +52,5 @@ html_theme_options = {
     "use_repository_button": True,
     "path_to_docs": "docs",
     "use_edit_page_button": True,
+    "home_page_in_toc": True,
 }
