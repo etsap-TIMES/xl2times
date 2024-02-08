@@ -16,3 +16,4 @@ speedscope.json
 .venv/
 benchmarks/
 docs/_build/
+docs/api/
