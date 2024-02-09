@@ -1,4 +1,5 @@
 import pickle
+from datetime import datetime
 from pathlib import Path
 from timeit import timeit
 
@@ -11,6 +12,8 @@ from xl2times import datatypes, transforms
 from xl2times.transforms import (
     _process_comm_groups_looped,
     _process_comm_groups_vectorised,
+    _count_comm_group_vectorised,
+    _count_comm_group_looped,
 )
 
 pd.set_option(
@@ -28,9 +31,45 @@ pd.set_option(
 
 
 class TestTransforms:
+    def test_generate_commodity_groups(self):
+        """
+        Full run, all regions:
+            Vectorised version took 0.021999 seconds
+            looped version took 966.653371 seconds
+            43958x speedup!
+        """
+        # data extracted immediately before the original for loops
+        comm_groups = pd.read_parquet(
+            "tests/data/comm_groups_austimes_test_data.parquet"
+        )
+
+        # filter data so test runs faster
+        comm_groups = comm_groups.query("region in ['ACT', 'NSW']")
+
+        t1 = comm_groups.copy()
+        t2 = comm_groups.copy()
+
+        s0 = datetime.now()
+        _count_comm_group_vectorised(t2)
+        s1 = datetime.now()
+        _count_comm_group_looped(t1)
+        s2 = datetime.now()
+
+        logger.debug(
+            f"_count_comm_group_vectorised took {(s1 - s0).total_seconds()} seconds, _count_comm_group_looped took "
+            f"{(s2 - s1).total_seconds()} seconds, {(s2 - s1).microseconds / (s1 - s0).microseconds }x speedup"
+        )
+        assert t1.equals(t2), "Looped and vectorised versions should be equal"
+
     def test_default_pcg_vectorised(self):
-        """Tests the default primary commodity group identification logic in vectorised form."""
-        comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.pq")
+        """Tests the default primary commodity group identification logic in vectorised form.
+        Full run:
+            Looped version took 1107.66 seconds
+            Vectorised version took 62.85 seconds
+        """
+
+        # data extracted immediately before the original for loops
+        comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.parquet")
 
         t1 = comm_groups[
             (comm_groups["process"] == "EN_CSP15-Q8")
@@ -100,9 +139,9 @@ class TestTransforms:
             cg_vec.fillna(False)
         ), "Looped and vectorised versions should be equal"
 
-        # Timing comparison:
-        # e.g. 'Looped version took 1107.66 seconds, vectorised version took 62.85 seconds'
-        t6 = comm_groups
+        # Benchmark:
+        # t6 = comm_groups # for full run
+        t6 = t5  # for smaller run
         t_looped = timeit(
             lambda: _process_comm_groups_looped(
                 t6.copy(), transforms.csets_ordered_for_pcg

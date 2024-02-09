@@ -66,3 +66,6 @@ pyright = ">=1.1.304"
 
 [tool.poetry.scripts]
 xl2times = "xl2times.__main__:main"
+
+[tool.pytest.ini_options]
+addopts = ["-s"]

@@ -1021,24 +1021,10 @@ def generate_commodity_groups(
     comm_groups = pd.merge(prc_top, comm_set, on=["region", "commodity"])
     comm_groups["commoditygroup"] = 0
 
-    # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
-    # TODO remove this code block.  Only retained for easy loop vs vectorised comparison
-    # for region in comm_groups["region"].unique():
-    #     i_reg = comm_groups["region"] == region
-    #     for process in tqdm(comm_groups[i_reg]["process"].unique(), f"Summing commodities for {region}"):
-    #         i_reg_prc = i_reg & (comm_groups["process"] == process)
-    #         for cset in comm_groups[i_reg_prc]["csets"].unique():
-    #             i_reg_prc_cset = i_reg_prc & (comm_groups["csets"] == cset)
-    #             for io in ["IN", "OUT"]:
-    #                 i_reg_prc_cset_io = i_reg_prc_cset & (comm_groups["io"] == io)
-    #                 comm_groups.loc[i_reg_prc_cset_io, "commoditygroup"] = sum(i_reg_prc_cset_io)
-
+    # Original logic, slow for large tables
+    # _count_comm_group_looped()
     # Much faster vectorised version
-    comm_groups["commoditygroup"] = (
-        comm_groups.groupby(["region", "process", "csets", "io"]).transform("count")
-    )["commoditygroup"]
-    # set comoditygroup to 0 for io rows that aren't IN or OUT
-    comm_groups.loc[~comm_groups["io"].isin(["IN", "OUT"]), "commoditygroup"] = 0
+    _count_comm_group_vectorised(comm_groups)
 
     def name_comm_group(df):
         """
@@ -1059,7 +1045,6 @@ def generate_commodity_groups(
     # Determine default PCG according to Veda
     # original logic, slow for large tables
     # comm_groups = pcg_looped(comm_groups, csets_ordered_for_pcg)
-
     # vectorised logic, much faster
     comm_groups = _process_comm_groups_vectorised(comm_groups, csets_ordered_for_pcg)
 
@@ -1095,12 +1080,43 @@ def generate_commodity_groups(
     return tables
 
 
+def _count_comm_group_looped(comm_groups):
+    """Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
+    TODO remove this function once _count_comm_group_vectorised is validated?
+    """
+    for region in comm_groups["region"].unique():
+        i_reg = comm_groups["region"] == region
+        for process in tqdm(
+            comm_groups[i_reg]["process"].unique(), f"Summing commodities for {region}"
+        ):
+            i_reg_prc = i_reg & (comm_groups["process"] == process)
+            for cset in comm_groups[i_reg_prc]["csets"].unique():
+                i_reg_prc_cset = i_reg_prc & (comm_groups["csets"] == cset)
+                for io in ["IN", "OUT"]:
+                    i_reg_prc_cset_io = i_reg_prc_cset & (comm_groups["io"] == io)
+                    comm_groups.loc[i_reg_prc_cset_io, "commoditygroup"] = sum(
+                        i_reg_prc_cset_io
+                    )
+
+
+def _count_comm_group_vectorised(comm_groups):
+    """Much faster vectorised version
+    Stores the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
+    """
+    comm_groups["commoditygroup"] = (
+        comm_groups.groupby(["region", "process", "csets", "io"]).transform("count")
+    )["commoditygroup"]
+    # set comoditygroup to 0 for io rows that aren't IN or OUT
+    comm_groups.loc[~comm_groups["io"].isin(["IN", "OUT"]), "commoditygroup"] = 0
+
+
 def _process_comm_groups_looped(
     comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]
-):
+) -> pd.DataFrame:
     """Original, looped version of the default pcg logic.
     Sets the first commodity group in the list of csets_ordered_for_pcg as the default pcg for each region/process/io combination,
     but setting the io="OUT" subset as default before "IN".
+    TODO remove this function once _count_comm_group_vectorised is validated?
     """
     comm_groups["DefaultVedaPCG"] = None
     for region in tqdm(
@@ -1127,14 +1143,14 @@ def _process_comm_groups_looped(
 
 def _process_comm_groups_vectorised(
     comm_groups_test: pd.DataFrame, csets_ordered_for_pcg: list[str]
-):
+) -> pd.DataFrame:
     """Vectorised version of the pcg_looped() logic, for speedup (~18x faster) with large commodity tables.
     See Section 3.7.2.2, pg 80. of `TIMES Documentation PART IV` for details.
     :param comm_groups_test: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
     :param csets_ordered_for_pcg: List of csets in the order they should be considered for default pcg
     """
 
-    def set_default_veda_pcg(group):
+    def _set_default_veda_pcg(group):
         """For a given [region, process] group, default group is set as the first cset in the `csets_ordered_for_pcg` list, which is an output, if
         one exists, otherwise the first input."""
         if not group["csets"].isin(csets_ordered_for_pcg).all():
@@ -1152,7 +1168,7 @@ def _process_comm_groups_vectorised(
     comm_groups_test["DefaultVedaPCG"] = None
     comm_groups_subset = comm_groups_test.groupby(
         ["region", "process"], sort=False, as_index=False
-    ).apply(set_default_veda_pcg)
+    ).apply(_set_default_veda_pcg)
     comm_groups_subset = comm_groups_subset.reset_index(
         level=0, drop=True
     ).sort_index()  # back to the original index and row order
