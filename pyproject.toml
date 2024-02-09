@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["black", "pre-commit", "tabulate"]
+dev = ["black", "pre-commit", "tabulate", "pytest"]
 
 [project.urls]
 Documentation = "https://github.com/etsap-TIMES/xl2times#readme"
