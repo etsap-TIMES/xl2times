@@ -1524,6 +1524,7 @@ def process_tradelinks(
     for table in tables:
         if table.tag == datatypes.Tag.tradelinks:
             df = table.dataframe
+            sheetname = table.sheetname.lower()
             comm = df.columns[0]
             destinations = list(df.columns).remove(comm)
             df.rename(columns={comm: "origin"}, inplace=True)
@@ -1533,18 +1534,33 @@ def process_tradelinks(
             df = df[df["value"] == 1].drop(columns=["value"])
             df["destination"] = df["destination"].str.upper()
             df.drop_duplicates(keep="first", inplace=True)
-            df["tradelink"] = 1
-            # Add a column containing linked regions (directionless)
+
+            if sheetname == "uni":
+                df["tradelink"] = "u"
+            elif sheetname == "bi":
+                df["tradelink"] = "b"
+            else:
+                df["tradelink"] = 1
+                # Determine whether a trade link is bi- or unidirectional
+                td_type = (
+                    df.groupby(["regions"])["tradelink"].agg("count").reset_index()
+                )
+                td_type.replace({"tradelink": {1: "u", 2: "b"}}, inplace=True)
+                df.drop(columns=["tradelink"], inplace=True)
+                df = df.merge(td_type, how="inner", on="regions")
+
+            # Add a column containing linked regions (directionless for bidirectional links)
             df["regions"] = df.apply(
-                lambda row: tuple(sorted([row["origin"], row["destination"]])), axis=1
+                lambda row: tuple(sorted([row["origin"], row["destination"]]))
+                if row["tradelink"] == "b"
+                else tuple([row["origin"], row["destination"]]),
+                axis=1,
             )
-            # Determine whether a trade link is bi- or unidirectional
-            td_type = df.groupby(["regions"])["tradelink"].agg("count").reset_index()
-            td_type.replace({"tradelink": {1: "u", 2: "b"}}, inplace=True)
-            df.drop(columns=["tradelink"], inplace=True)
-            df = df.merge(td_type, how="inner", on="regions")
+
             # Drop tradelink (bidirectional) duplicates
-            df.drop_duplicates(subset=["regions"], keep="last", inplace=True)
+            df.drop_duplicates(
+                subset=["regions", "tradelink"], keep="last", inplace=True
+            )
             df.drop(columns=["regions"], inplace=True)
             df["comm"] = comm.upper()
             df["comm1"] = df["comm"]
