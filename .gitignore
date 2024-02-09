@@ -15,3 +15,5 @@ speedscope.json
 *.pkl
 .venv/
 benchmarks/
+docs/_build/
+docs/api/
