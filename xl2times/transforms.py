@@ -1526,7 +1526,7 @@ def process_tradelinks(
             df = table.dataframe
             sheetname = table.sheetname.lower()
             comm = df.columns[0]
-            destinations = list(df.columns).remove(comm)
+            destinations = [c for c in df.columns if c != comm]
             df.rename(columns={comm: "origin"}, inplace=True)
             df = pd.melt(
                 df, id_vars=["origin"], value_vars=destinations, var_name="destination"
