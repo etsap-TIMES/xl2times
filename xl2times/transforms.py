@@ -1517,7 +1517,7 @@ def process_tradelinks(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Transform tradelinks table
+    Transform tradelinks to tradelinks_dins
     """
 
     result = []
@@ -2296,6 +2296,42 @@ def fix_topology(
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
     model.topology.replace({"io": mapping}, inplace=True)
+
+    return tables
+
+
+def complete_processes(
+    config: datatypes.Config,
+    tables: Dict[str, DataFrame],
+    model: datatypes.TimesModel,
+) -> Dict[str, DataFrame]:
+    # Generate processes based on trade links
+
+    trade_processes = pd.concat(
+        [
+            model.trade.loc[:, ["origin", "process"]].rename(
+                columns={"origin": "region"}
+            ),
+            model.trade.loc[:, ["destination", "process"]].rename(
+                columns={"destination": "region"}
+            ),
+        ],
+        ignore_index=True,
+        sort=False,
+    )
+    trade_processes.drop_duplicates(keep="last", inplace=True)
+    undeclared_td = trade_processes.merge(
+        model.processes.loc[:, ["region", "process"]], how="left", indicator=True
+    )
+    undeclared_td = undeclared_td.loc[
+        (
+            undeclared_td["region"].isin(model.internal_regions)
+            & (undeclared_td["_merge"] == "left_only")
+        ),
+        ["region", "process"],
+    ]
+    undeclared_td["sets"] = "IRE"
+    model.processes = pd.concat([model.processes, undeclared_td], ignore_index=True)
 
     return tables
 
