@@ -2309,17 +2309,17 @@ def complete_processes(
 
     trade_processes = pd.concat(
         [
-            model.trade.loc[:, ["origin", "process"]].rename(
-                columns={"origin": "region"}
+            model.trade.loc[:, ["origin", "process", "in"]].rename(
+                columns={"origin": "region", "in": "commodity"}
             ),
-            model.trade.loc[:, ["destination", "process"]].rename(
-                columns={"destination": "region"}
+            model.trade.loc[:, ["destination", "process", "out"]].rename(
+                columns={"destination": "region", "out": "commodity"}
             ),
         ],
         ignore_index=True,
         sort=False,
     )
-    trade_processes.drop_duplicates(keep="last", inplace=True)
+
     undeclared_td = trade_processes.merge(
         model.processes.loc[:, ["region", "process"]], how="left", indicator=True
     )
@@ -2328,9 +2328,31 @@ def complete_processes(
             undeclared_td["region"].isin(model.internal_regions)
             & (undeclared_td["_merge"] == "left_only")
         ),
-        ["region", "process"],
+        ["region", "process", "commodity"],
     ]
+
+    undeclared_td = undeclared_td.merge(
+        model.commodities.loc[:, ["region", "commodity", "csets", "ctslvl", "unit"]],
+        how="left",
+    )
+    undeclared_td.drop(columns=["commodity"], inplace=True)
+    undeclared_td.rename(
+        columns={"csets": "primarycg", "ctslvl": "tslvl", "unit": "tact"}, inplace=True
+    )
     undeclared_td["sets"] = "IRE"
+    undeclared_td.drop_duplicates(keep="last", inplace=True)
+
+    # TODO: Handle possible duplicates
+    for i in ["primarycg", "tslvl", "tact"]:
+        duplicates = undeclared_td.loc[:, ["region", "process", i]].duplicated(
+            keep=False
+        )
+        if any(duplicates):
+            duplicates = undeclared_td.loc[duplicates, ["region", "process", i]]
+            processes = duplicates["process"].unique()
+            regions = duplicates["region"].unique()
+            print(f"WARNING: Multiple possible {i} for {processes} in {regions}")
+
     model.processes = pd.concat([model.processes, undeclared_td], ignore_index=True)
 
     return tables
