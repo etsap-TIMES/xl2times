@@ -57,7 +57,7 @@ class TestTransforms:
 
         logger.debug(
             f"_count_comm_group_vectorised took {(s1 - s0).total_seconds()} seconds, _count_comm_group_looped took "
-            f"{(s2 - s1).total_seconds()} seconds, {(s2 - s1).microseconds / (s1 - s0).microseconds }x speedup"
+            f"{(s2 - s1).total_seconds()} seconds, {(s2 - s1).microseconds / (s1 - s0).microseconds :1f}x speedup"
         )
         assert t1.equals(t2), "Looped and vectorised versions should be equal"
 
