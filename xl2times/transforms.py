@@ -581,29 +581,41 @@ def generate_uc_properties(
 
     uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
     columns = ["name", "description", "reg_action", "ts_action"]
-    model.user_constraints = pd.DataFrame(columns=columns)
+    user_constraints = pd.DataFrame()
 
     for uc_table in uc_tables:
-        df = uc_table.dataframe.loc[:, ["uc_n", "uc_desc"]].rename(
-            columns={"uc_n": "name", "uc_desc": "description"}
+        df = uc_table.dataframe.loc[:, ["uc_n"]].drop_duplicates(keep="first")
+        df = df.merge(
+            uc_table.dataframe.loc[:, ["uc_n", "uc_desc"]]
+            .drop_duplicates(keep="first")
+            .dropna(),
+            how="left",
         )
-        # Use name if description is missing
-        for uc_name in df["name"].unique():
-            index = df["name"] == uc_name
-            if all(df["description"][index].isna()):
-                df["description"][index] = uc_name
-        df.drop_duplicates(keep="last", inplace=True)
-        df.dropna(inplace=True)
 
         for key in uc_table.uc_sets.keys():
             if key.startswith("R_"):
                 df["reg_action"] = key
+                df["region"] = uc_table.uc_sets[key]
             elif key.startswith("T_"):
                 df["ts_action"] = key
 
-        model.user_constraints = pd.concat(
-            [model.user_constraints, df], ignore_index=True
-        )
+        user_constraints = pd.concat([user_constraints, df], ignore_index=True)
+
+    # Use name if description is missing
+    index = user_constraints["uc_desc"].isna()
+    if any(index):
+        user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
+
+    # Expand all regions
+    index = user_constraints["region"].str.lower() == "allregions"
+    if any(index):
+        user_constraints["region"][index] = [model.internal_regions]
+    user_constraints = user_constraints.explode("region", ignore_index=True)
+
+    model.user_constraints = user_constraints.rename(
+        columns={"uc_n": "name", "uc_desc": "description"}
+    )
+    print(model.user_constraints)
 
     return tables
 
