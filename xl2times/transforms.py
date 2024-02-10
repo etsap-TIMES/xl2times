@@ -595,7 +595,7 @@ def generate_uc_properties(
         for key in uc_table.uc_sets.keys():
             if key.startswith("R_"):
                 df["reg_action"] = key
-                df["region"] = uc_table.uc_sets[key]
+                df["region"] = uc_table.uc_sets[key].upper().strip()
             elif key.startswith("T_"):
                 df["ts_action"] = key
 
@@ -606,10 +606,22 @@ def generate_uc_properties(
     if any(index):
         user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
 
-    # Expand all regions
+    # Expand regions
     index = user_constraints["region"].str.lower() == "allregions"
     if any(index):
         user_constraints["region"][index] = [model.internal_regions]
+
+    index = user_constraints["region"].str.contains(",").fillna(value=False)
+    if any(index):
+        user_constraints["region"][index] = user_constraints.apply(
+            lambda row: [
+                region
+                for region in str(row["region"]).split(",")
+                if region in model.internal_regions
+            ],
+            axis=1,
+        )
+
     user_constraints = user_constraints.explode("region", ignore_index=True)
 
     model.user_constraints = user_constraints.rename(
