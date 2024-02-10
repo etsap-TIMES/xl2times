@@ -570,6 +570,44 @@ def process_user_constraint_tables(
     return [process_user_constraint_table(t) for t in tables]
 
 
+def generate_uc_properties(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Generate a dataframe containing User Constraint properties
+    """
+
+    uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
+    columns = ["name", "description", "reg_action", "ts_action"]
+    model.user_constraints = pd.DataFrame(columns=columns)
+
+    for uc_table in uc_tables:
+        df = uc_table.dataframe.loc[:, ["uc_n", "uc_desc"]].rename(
+            columns={"uc_n": "name", "uc_desc": "description"}
+        )
+        # Use name if description is missing
+        for uc_name in df["name"].unique():
+            index = df["name"] == uc_name
+            if all(df["description"][index].isna()):
+                df["description"][index] = uc_name
+        df.drop_duplicates(keep="last", inplace=True)
+        df.dropna(inplace=True)
+
+        for key in uc_table.uc_sets.keys():
+            if key.startswith("R_"):
+                df["reg_action"] = key
+            elif key.startswith("T_"):
+                df["ts_action"] = key
+
+        model.user_constraints = pd.concat(
+            [model.user_constraints, df], ignore_index=True
+        )
+
+    return tables
+
+
 def fill_in_missing_values(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -845,6 +883,7 @@ def complete_dictionary(
         "TimeSlices": model.ts_tslvl,
         "TimeSliceMap": model.ts_map,
         "UserConstraints": model.user_constraints,
+        "UCAttributes": model.uc_attributes,
         "Units": model.units,
     }.items():
         tables[k] = v
@@ -2267,7 +2306,7 @@ def convert_aliases(
     # TODO: do this earlier
     model.attributes = tables[datatypes.Tag.fi_t]
     if datatypes.Tag.uc_t in tables.keys():
-        model.user_constraints = tables[datatypes.Tag.uc_t]
+        model.uc_attributes = tables[datatypes.Tag.uc_t]
 
     return tables
 
@@ -2410,19 +2449,6 @@ def apply_more_fixups(
                     ]
                 )
         tables[datatypes.Tag.fi_t] = df
-
-    df = tables.get(datatypes.Tag.uc_t)
-    if df is not None:
-        # TODO: Handle defaults in a general way.
-        # Use uc_n value if uc_desc is missing
-        for uc_n in df["uc_n"].unique():
-            index = df["uc_n"] == uc_n
-            if all(df["uc_desc"][index].isna()):
-                # Populate the first row only
-                if any(index):
-                    df.at[list(index).index(True), "uc_desc"] = uc_n
-
-        tables[datatypes.Tag.uc_t] = df
 
     return tables
 
