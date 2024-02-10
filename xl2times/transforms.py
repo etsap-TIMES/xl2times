@@ -580,8 +580,8 @@ def generate_uc_properties(
     """
 
     uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
-    columns = ["name", "description", "reg_action", "ts_action"]
-    user_constraints = pd.DataFrame()
+    columns = ["uc_n", "uc_desc", "region", "reg_action", "ts_action"]
+    user_constraints = pd.DataFrame(columns=columns)
 
     for uc_table in uc_tables:
         df = uc_table.dataframe.loc[:, ["uc_n"]].drop_duplicates(keep="first")
@@ -615,7 +615,6 @@ def generate_uc_properties(
     model.user_constraints = user_constraints.rename(
         columns={"uc_n": "name", "uc_desc": "description"}
     )
-    print(model.user_constraints)
 
     return tables
 
@@ -898,7 +897,8 @@ def complete_dictionary(
         "UCAttributes": model.uc_attributes,
         "Units": model.units,
     }.items():
-        tables[k] = v
+        if not v.empty:
+            tables[k] = v
 
     return tables
 
