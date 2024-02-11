@@ -306,7 +306,7 @@ def process_flexible_import_tables(
         ),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
-        "other_indexes": {"INPUT", "OUTPUT"},
+        "other_indexes": {"INPUT", "OUTPUT", "DEMO", "DEMI"},
     }
 
     def get_colname(value):
