@@ -17,3 +17,5 @@ speedscope.json
 .venv/
 benchmarks/
 profile.*
+docs/_build/
+docs/api/
