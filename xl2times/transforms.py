@@ -606,11 +606,13 @@ def generate_uc_properties(
     if any(index):
         user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
 
-    # Expand regions
+    # Exlode regions
+    # Handle allregions
     index = user_constraints["region"].str.lower() == "allregions"
     if any(index):
         user_constraints["region"][index] = [model.internal_regions]
 
+    # Handle comma-separated regions
     index = user_constraints["region"].str.contains(",").fillna(value=False)
     if any(index):
         user_constraints["region"][index] = user_constraints.apply(
@@ -708,15 +710,15 @@ def fill_in_missing_values(
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
-                        df.fillna({colname: ",".join(vt_regions[book])}, inplace=True)
+                        df = df.fillna({colname: ",".join(vt_regions[book])})
                     else:
                         print(f"WARNING: book name {book} not in BookRegions_Map")
                 else:
-                    df.fillna({colname: ",".join(model.internal_regions)}, inplace=True)
+                    df = df.fillna({colname: ",".join(model.internal_regions)})
             elif colname == "year":
-                df.fillna({colname: start_year}, inplace=True)
+                df = df.fillna({colname: start_year})
             elif colname == "currency":
-                df.fillna({colname: currency}, inplace=True)
+                df = df.fillna({colname: currency})
 
         return replace(table, dataframe=df)
 
