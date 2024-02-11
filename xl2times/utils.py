@@ -131,10 +131,10 @@ def apply_wildcards(
             for wildcard in wildcard_list:
                 if wildcard.startswith("-"):
                     wildcard = wildcard[1:]
-                    regexp = re.compile(wildcard.replace("*", ".*"))
+                    regexp = re.compile(wildcard.replace("*", ".*"), re.IGNORECASE)
                     current_list = [s for s in current_list if not regexp.match(s)]
                 else:
-                    regexp = re.compile(wildcard.replace("*", ".*"))
+                    regexp = re.compile(wildcard.replace("*", ".*"), re.IGNORECASE)
                     additions = [s for s in candidates if regexp.match(s)]
                     current_list = sorted(set(current_list + additions))
             wildcard_map[wildcard_string] = current_list
@@ -185,7 +185,7 @@ def create_regexp(pattern):
     if has_negative_patterns(pattern):
         pattern = remove_negative_patterns(pattern)
     if len(pattern) == 0:
-        return re.compile(pattern)  # matches everything
+        return re.compile(pattern, re.IGNORECASE)  # matches everything
     # escape special characters
     # Backslash must come first
     special = "\\.|^$+()[]{}"
@@ -195,7 +195,7 @@ def create_regexp(pattern):
     pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", "|")
     # Do not match substrings
     pattern = "^" + pattern + "$"
-    return re.compile(pattern)
+    return re.compile(pattern, re.IGNORECASE)
 
 
 def create_negative_regexp(pattern):
