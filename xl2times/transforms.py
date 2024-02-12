@@ -1220,7 +1220,7 @@ def fill_in_missing_pcgs(
                     "sets",
                     "region",
                     "process",
-                    "techdesc",
+                    "description",
                     "tact",
                     "tcap",
                     "tslvl",
@@ -1478,7 +1478,7 @@ def generate_dummy_processes(
 
         process_declarations = pd.DataFrame(
             dummy_processes,
-            columns=["sets", "process", "techdesc", "tact", "tcap", "primarycg"],
+            columns=["sets", "process", "description", "tact", "tcap", "primarycg"],
         )
 
         tables.append(
@@ -1492,7 +1492,7 @@ def generate_dummy_processes(
             )
         )
 
-        process_data_specs = process_declarations[["process", "techdesc"]].copy()
+        process_data_specs = process_declarations[["process", "description"]].copy()
         # Use this as default activity cost for dummy processes
         # TODO: Should this be included in settings instead?
         process_data_specs["ACTCOST"] = 1111
@@ -1878,8 +1878,8 @@ def generate_topology_dictionary(
         {"key": "processes_by_name", "df": pros[["process"]], "col": "process"},
         {
             "key": "processes_by_desc",
-            "df": pros[["process", "techdesc"]],
-            "col": "techdesc",
+            "df": pros[["process", "description"]],
+            "col": "description",
         },
         {"key": "processes_by_sets", "df": pros[["process", "sets"]], "col": "sets"},
         {
@@ -1895,8 +1895,8 @@ def generate_topology_dictionary(
         {"key": "commodities_by_name", "df": coms[["commodity"]], "col": "commodity"},
         {
             "key": "commodities_by_desc",
-            "df": coms[["commodity", "commdesc"]],
-            "col": "commdesc",
+            "df": coms[["commodity", "description"]],
+            "col": "description",
         },
         {
             "key": "commodities_by_sets",
