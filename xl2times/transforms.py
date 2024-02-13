@@ -1187,12 +1187,10 @@ def generate_trade(
                     .copy()
                 )
                 top_ire = pd.concat([top_ire, b_links[cols_list]])
-
-    filter_regions = model.internal_regions.union({"IMPEXP", "MINRNW"})
-    i = top_ire["origin"].isin(filter_regions) & top_ire["destination"].isin(
-        filter_regions
+    # Discard tradelinks if none of the regions is internal
+    i = top_ire["origin"].isin(model.internal_regions) | top_ire["destination"].isin(
+        model.internal_regions
     )
-
     model.trade = top_ire[i].reset_index()
 
     return tables
