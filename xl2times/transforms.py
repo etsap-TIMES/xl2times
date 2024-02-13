@@ -2323,8 +2323,11 @@ def complete_processes(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    # Generate processes based on trade links
+    """
+    Generate processes based on trade links if not defined elsewhere
+    """
 
+    # Dataframe with region, process and commodity columns (no trade direction)
     trade_processes = pd.concat(
         [
             model.trade.loc[:, ["origin", "process", "in"]].rename(
@@ -2338,9 +2341,11 @@ def complete_processes(
         sort=False,
     )
 
+    # Determine undeclared trade process
     undeclared_td = trade_processes.merge(
         model.processes.loc[:, ["region", "process"]], how="left", indicator=True
     )
+    # Keep only those undeclared processes that are in internal regions
     undeclared_td = undeclared_td.loc[
         (
             undeclared_td["region"].isin(model.internal_regions)
@@ -2348,19 +2353,23 @@ def complete_processes(
         ),
         ["region", "process", "commodity"],
     ]
-
+    # Include additional info from model.commodities
     undeclared_td = undeclared_td.merge(
         model.commodities.loc[:, ["region", "commodity", "csets", "ctslvl", "unit"]],
         how="left",
     )
+    # Remove unnecessary columns
     undeclared_td.drop(columns=["commodity"], inplace=True)
+    # Rename to match columns in model.processes
     undeclared_td.rename(
         columns={"csets": "primarycg", "ctslvl": "tslvl", "unit": "tact"}, inplace=True
     )
+    # Specify expected set
     undeclared_td["sets"] = "IRE"
+    # Remove full duplicates in case generated
     undeclared_td.drop_duplicates(keep="last", inplace=True)
-
-    # TODO: Handle possible duplicates
+    # TODO: Handle possible confilicting input
+    # Print warnings in case of conflicting input data
     for i in ["primarycg", "tslvl", "tact"]:
         duplicates = undeclared_td.loc[:, ["region", "process", i]].duplicated(
             keep=False
