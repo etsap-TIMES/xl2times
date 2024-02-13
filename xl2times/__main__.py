@@ -57,10 +57,10 @@ def convert_xl_to_times(
     transform_list = [
         transforms.normalize_tags_columns,
         transforms.remove_fill_tables,
-        transforms.validate_input_tables,
         lambda config, tables, model: [
             transforms.remove_comment_cols(t) for t in tables
         ],
+        transforms.validate_input_tables,
         transforms.remove_tables_with_formulas,  # slow
         transforms.normalize_column_aliases,
         lambda config, tables, model: [
