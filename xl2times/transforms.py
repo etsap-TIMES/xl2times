@@ -582,16 +582,19 @@ def generate_uc_properties(
     uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
     columns = ["uc_n", "uc_desc", "region", "reg_action", "ts_action"]
     user_constraints = pd.DataFrame(columns=columns)
-
+    # Create df_list to hold DataFrames that will be concatenated later on
+    df_list = list()
     for uc_table in uc_tables:
+        # Single-column DataFrame with unique UC names
         df = uc_table.dataframe.loc[:, ["uc_n"]].drop_duplicates(keep="first")
+        # Supplement UC names with descriptions, if they exist
         df = df.merge(
             uc_table.dataframe.loc[:, ["uc_n", "uc_desc"]]
             .drop_duplicates(keep="first")
             .dropna(),
             how="left",
         )
-
+        # Add info on how regions and timeslices should be treated by the UCs
         for key in uc_table.uc_sets.keys():
             if key.startswith("R_"):
                 df["reg_action"] = key
@@ -599,32 +602,36 @@ def generate_uc_properties(
             elif key.startswith("T_"):
                 df["ts_action"] = key
 
-        user_constraints = pd.concat([user_constraints, df], ignore_index=True)
+        df_list.append(df)
+    # Do further processing if df_list is not empty
+    if df_list:
+        # Create a single DataFrame with all UCs
+        user_constraints = pd.concat(df_list, ignore_index=True)
 
-    # Use name if description is missing
-    index = user_constraints["uc_desc"].isna()
-    if any(index):
-        user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
+        # Use name to populate description if it is missing
+        index = user_constraints["uc_desc"].isna()
+        if any(index):
+            user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
 
-    # Exlode regions
-    # Handle allregions
-    index = user_constraints["region"].str.lower() == "allregions"
-    if any(index):
-        user_constraints["region"][index] = [model.internal_regions]
+        # TODO: Can this (until user_constraints.explode) become a utility function?
+        # Handle allregions by substituting it with a list of internal regions
+        index = user_constraints["region"].str.lower() == "allregions"
+        if any(index):
+            user_constraints["region"][index] = [model.internal_regions]
 
-    # Handle comma-separated regions
-    index = user_constraints["region"].str.contains(",").fillna(value=False)
-    if any(index):
-        user_constraints["region"][index] = user_constraints.apply(
-            lambda row: [
-                region
-                for region in str(row["region"]).split(",")
-                if region in model.internal_regions
-            ],
-            axis=1,
-        )
-
-    user_constraints = user_constraints.explode("region", ignore_index=True)
+        # Handle comma-separated regions
+        index = user_constraints["region"].str.contains(",").fillna(value=False)
+        if any(index):
+            user_constraints["region"][index] = user_constraints.apply(
+                lambda row: [
+                    region
+                    for region in str(row["region"]).split(",")
+                    if region in model.internal_regions
+                ],
+                axis=1,
+            )
+        # Explode regions
+        user_constraints = user_constraints.explode("region", ignore_index=True)
 
     model.user_constraints = user_constraints.rename(
         columns={"uc_n": "name", "uc_desc": "description"}
