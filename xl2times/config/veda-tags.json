@@ -82,7 +82,7 @@
         "aliases": [
           "description"
         ],
-        "use_name": "commdesc",
+        "use_name": "description",
         "row_ignore_symbol": [
           "\\I:",
           "*"
@@ -241,7 +241,7 @@
         "aliases": [
           "description"
         ],
-        "use_name": "techdesc",
+        "use_name": "description",
         "row_ignore_symbol": [
           "\\I:",
           "*"
