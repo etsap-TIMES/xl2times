@@ -162,6 +162,7 @@ class TimesModel:
     data_years: Tuple[int] = field(default_factory=tuple)
     model_years: Tuple[int] = field(default_factory=tuple)
     past_years: Tuple[int] = field(default_factory=tuple)
+    files: Set[str] = field(default_factory=set)
 
     def external_regions(self) -> Set[str]:
         return self.all_regions.difference(self.internal_regions)

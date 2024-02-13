@@ -590,7 +590,6 @@ def fill_in_missing_values(
     # The default regions for VT_* files is given by ~BookRegions_Map:
     vt_regions = defaultdict(list)
     brm = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
-    utils.missing_value_inherit(brm, "bookname")
     for _, row in brm.iterrows():
         if row["region"] in model.internal_regions:
             vt_regions[row["bookname"]].append(row["region"])
@@ -604,7 +603,7 @@ def fill_in_missing_values(
         for colname in df.columns:
             # TODO make this more declarative
             if colname in ["sets", "csets", "process"]:
-                utils.missing_value_inherit(df, colname)
+                df[colname] = df[colname].ffill()
             elif colname == "limtype" and table.tag == datatypes.Tag.fi_comm and False:
                 isna = df[colname].isna()
                 ismat = df["csets"] == "MAT"
@@ -643,7 +642,7 @@ def fill_in_missing_values(
                 df.loc[isna & ~isele, colname] = "ANNUAL"
             elif colname == "region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
-                matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).name)
+                matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).stem)
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
@@ -792,15 +791,39 @@ def process_regions(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Include IMPEXP and MINRNW together with the user-defined regions in the AllRegions set.
-    IMPEXP and MINRNW are external regions that are defined by default by Veda.
+    Read model regions and update model.internal_regions and model.all_regions.
+    Include IMPEXP and MINRNW in model.all_regions (defined by default by Veda).
     """
 
     model.all_regions.update((["IMPEXP", "MINRNW"]))
-    model.internal_regions.update(
-        utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
+    # Read region settings
+    region_def = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
+    # Harmonise the dataframe
+    region_def["bookname"] = region_def[["bookname"]].ffill()
+    region_def = (
+        region_def.dropna(how="any")
+        .apply(lambda x: x.str.upper())
+        .drop_duplicates(ignore_index=True)
     )
-    model.all_regions.update(model.internal_regions)
+    # Update model.all_regions
+    model.all_regions.update(region_def["region"].to_list())
+    # Determine model.internal_regions
+    booknames = set(region_def["bookname"].to_list())
+    valid_booknames = {
+        b
+        for b in booknames
+        if any(re.match(rf"^VT_{b}_", file, re.IGNORECASE) for file in model.files)
+    }
+    model.internal_regions.update(
+        region_def["region"][region_def["bookname"].isin(valid_booknames)].to_list()
+    )
+
+    # Print a warning for any region treated as external
+    for bookname in booknames.difference(valid_booknames):
+        external = region_def["region"][region_def["bookname"].isin(bookname)].to_list()
+        print(
+            f"WARNING: VT_{bookname}_* is not in model files. Treated {external} as external regions."
+        )
 
     # Apply regions filter
     if config.filter_regions:

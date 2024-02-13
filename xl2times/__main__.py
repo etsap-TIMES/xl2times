@@ -444,6 +444,8 @@ def main():
     else:
         input_files = args.input
 
+    model.files.update([Path(path).stem for path in input_files])
+
     if args.only_read:
         tables = convert_xl_to_times(
             input_files,
