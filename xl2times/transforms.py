@@ -820,7 +820,7 @@ def process_regions(
 
     # Print a warning for any region treated as external
     for bookname in booknames.difference(valid_booknames):
-        external = region_def["region"][region_def["bookname"].isin(bookname)].to_list()
+        external = region_def["region"][region_def["bookname"] == bookname].to_list()
         print(
             f"WARNING: VT_{bookname}_* is not in model files. Treated {external} as external regions."
         )
