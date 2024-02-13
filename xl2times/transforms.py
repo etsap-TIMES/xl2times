@@ -272,7 +272,31 @@ def merge_tables(
                 case datatypes.Tag.fi_comm:
                     model.commodities = df
                 case datatypes.Tag.fi_process:
-                    model.processes = df
+                    # TODO: Find a better place for this (both info and processing)
+                    times_prc_sets = {
+                        "DMD",
+                        "CHP",
+                        "ELE",
+                        "HPL",
+                        "IRE",
+                        "NST",
+                        "PRE",
+                        "STG",
+                        "STK",
+                        "STS",
+                    }
+                    # Index of rows with TIMES process sets
+                    index = df["sets"].str.upper().isin(times_prc_sets)
+                    # Print a warning if non-TIMES sets are present
+                    if not all(index):
+                        for _, row in df[~index].iterrows():
+                            region, sets, process = row[["region", "sets", "process"]]
+                            print(
+                                f"WARNING: Unknown process set {sets} specified for process {process}"
+                                f" in region {region}. The record will be dropped."
+                            )
+                    # Exclude records with non-TIMES sets
+                    model.processes = df.loc[index]
                 case _:
                     result[key] = df
     return result
