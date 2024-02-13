@@ -306,7 +306,7 @@ def process_flexible_import_tables(
         ),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
-        "other_indexes": {"INPUT", "OUTPUT"},
+        "other_indexes": {"INPUT", "OUTPUT", "DEMO", "DEMI"},
     }
 
     def get_colname(value):
@@ -1220,7 +1220,7 @@ def fill_in_missing_pcgs(
                     "sets",
                     "region",
                     "process",
-                    "techdesc",
+                    "description",
                     "tact",
                     "tcap",
                     "tslvl",
@@ -1478,7 +1478,7 @@ def generate_dummy_processes(
 
         process_declarations = pd.DataFrame(
             dummy_processes,
-            columns=["sets", "process", "techdesc", "tact", "tcap", "primarycg"],
+            columns=["sets", "process", "description", "tact", "tcap", "primarycg"],
         )
 
         tables.append(
@@ -1492,7 +1492,7 @@ def generate_dummy_processes(
             )
         )
 
-        process_data_specs = process_declarations[["process", "techdesc"]].copy()
+        process_data_specs = process_declarations[["process", "description"]].copy()
         # Use this as default activity cost for dummy processes
         # TODO: Should this be included in settings instead?
         process_data_specs["ACTCOST"] = 1111
@@ -1830,7 +1830,7 @@ def get_matching_processes(row, dictionary):
     ]:
         if row[col] is not None:
             matching_processes = intersect(
-                matching_processes, filter_by_pattern(dictionary[key], row[col])
+                matching_processes, filter_by_pattern(dictionary[key], row[col].upper())
             )
     if matching_processes is not None and any(matching_processes.duplicated()):
         raise ValueError("duplicated")
@@ -1846,9 +1846,21 @@ def get_matching_commodities(row, dictionary):
     ]:
         if row[col] is not None:
             matching_commodities = intersect(
-                matching_commodities, filter_by_pattern(dictionary[key], row[col])
+                matching_commodities,
+                filter_by_pattern(dictionary[key], row[col].upper()),
             )
     return matching_commodities
+
+
+def df_indexed_by_col(df, col):
+    # Set df index using an existing column; make index is uppercase
+    df = df.dropna().drop_duplicates()
+    index = df[col].str.upper()
+    df = df.set_index(index).rename_axis("index")
+
+    if len(df.columns) > 1:
+        df = df.drop(columns=col)
+    return df
 
 
 def generate_topology_dictionary(
@@ -1858,58 +1870,43 @@ def generate_topology_dictionary(
     # So we construct tables whose indices are names, etc. and use pd.filter
 
     dictionary = dict()
+    pros = model.processes
+    coms = model.commodities
+    pros_and_coms = tables[datatypes.Tag.fi_t]
 
-    dictionary["processes_by_name"] = (
-        model.processes[["process"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("process", drop=False)
-        .rename_axis("index")
-    )
-    dictionary["processes_by_desc"] = (
-        model.processes[["process", "techdesc"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("techdesc")
-    )
-    dictionary["processes_by_sets"] = (
-        model.processes[["process", "sets"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("sets")
-    )
-    processes_and_commodities = tables[datatypes.Tag.fi_t]
-    dictionary["processes_by_comm_in"] = (
-        processes_and_commodities[["process", "commodity-in"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("commodity-in")
-    )
-    dictionary["processes_by_comm_out"] = (
-        processes_and_commodities[["process", "commodity-out"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("commodity-out")
-    )
-    dictionary["commodities_by_name"] = (
-        model.commodities[["commodity"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("commodity", drop=False)
-        .rename_axis("index")
-    )
-    dictionary["commodities_by_desc"] = (
-        model.commodities[["commodity", "commdesc"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("commdesc")
-    )
-    dictionary["commodities_by_sets"] = (
-        model.commodities[["commodity", "csets"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("csets")
-    )
+    dict_info = [
+        {"key": "processes_by_name", "df": pros[["process"]], "col": "process"},
+        {
+            "key": "processes_by_desc",
+            "df": pros[["process", "description"]],
+            "col": "description",
+        },
+        {"key": "processes_by_sets", "df": pros[["process", "sets"]], "col": "sets"},
+        {
+            "key": "processes_by_comm_in",
+            "df": pros_and_coms[["process", "commodity-in"]],
+            "col": "commodity-in",
+        },
+        {
+            "key": "processes_by_comm_out",
+            "df": pros_and_coms[["process", "commodity-out"]],
+            "col": "commodity-out",
+        },
+        {"key": "commodities_by_name", "df": coms[["commodity"]], "col": "commodity"},
+        {
+            "key": "commodities_by_desc",
+            "df": coms[["commodity", "description"]],
+            "col": "description",
+        },
+        {
+            "key": "commodities_by_sets",
+            "df": coms[["commodity", "csets"]],
+            "col": "csets",
+        },
+    ]
+
+    for entry in dict_info:
+        dictionary[entry["key"]] = df_indexed_by_col(entry["df"], entry["col"])
 
     return dictionary
 

@@ -186,22 +186,17 @@ def create_regexp(pattern):
         pattern = remove_negative_patterns(pattern)
     if len(pattern) == 0:
         return re.compile(pattern)  # matches everything
-    # escape special characters
-    # Backslash must come first
-    special = "\\.|^$+()[]{}"
-    for c in special:
-        pattern = pattern.replace(c, "\\" + c)
     # Handle VEDA wildcards
-    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", "|")
+    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", r"$|^")
     # Do not match substrings
-    pattern = "^" + pattern + "$"
+    pattern = rf"^{pattern}$"
     return re.compile(pattern)
 
 
 def create_negative_regexp(pattern):
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
-        pattern = "^$"  # matches nothing
+        pattern = r"^$"  # matches nothing
     return create_regexp(pattern)
 
 
