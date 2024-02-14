@@ -15,6 +15,10 @@ import time
 from typing import Any, Tuple
 import yaml
 
+# prevent excessive number of processes in Windows and high cpu-count machines
+# TODO make this a cli param or global setting?
+max_workers: int = 4 if os.name == "nt" else min(16, os.cpu_count() or 16)
+
 
 def parse_result(lastline):
     m = match(
@@ -246,9 +250,6 @@ def run_all_benchmarks(
         verbose=verbose,
     )
 
-    max_workers = (
-        1 if os.name == "nt" else None
-    )  # prevent excessive number of processes in Windwows
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         results = list(executor.map(run_a_benchmark, benchmarks))
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
@@ -305,7 +306,7 @@ def run_all_benchmarks(
             verbose=verbose,
         )
 
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor(max_workers) as executor:
             results_main = list(executor.map(run_a_benchmark, benchmarks))
 
     # Print table with combined results to make comparison easier

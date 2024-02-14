@@ -8,6 +8,8 @@ import os
 import sys
 import time
 from typing import Dict, List
+
+from utils.run_benchmarks import max_workers
 from . import datatypes
 from . import excel
 from . import transforms
@@ -31,7 +33,7 @@ def convert_xl_to_times(
 
         use_pool = True
         if use_pool:
-            with ProcessPoolExecutor() as executor:
+            with ProcessPoolExecutor(max_workers) as executor:
                 for result in executor.map(excel.extract_tables, input_files):
                     raw_tables.extend(result)
         else:

@@ -10,6 +10,8 @@ import re
 from concurrent.futures import ProcessPoolExecutor
 import time
 from functools import reduce
+
+from utils.run_benchmarks import max_workers
 from . import datatypes
 from . import utils
 
@@ -2264,5 +2266,5 @@ def expand_rows_parallel(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers) as executor:
         return list(executor.map(expand_rows, tables))
