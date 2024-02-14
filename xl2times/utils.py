@@ -31,7 +31,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         (newtag, varname) = table.tag.split(":")
         varname = varname.strip()
         df = table.dataframe.copy()
-        df["attribute"].fillna(varname, inplace=True)
+        df["attribute"] = df["attribute"].fillna(varname)
         return replace(table, tag=newtag, dataframe=df)
     else:
         return table
