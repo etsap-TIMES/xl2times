@@ -308,7 +308,7 @@ def process_flexible_import_tables(
         ),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
-        "other_indexes": {"INPUT", "OUTPUT"},
+        "other_indexes": {"INPUT", "OUTPUT", "DEMO", "DEMI"},
     }
 
     def get_colname(value):
@@ -718,6 +718,7 @@ def remove_invalid_values(
     """
     # TODO: This should be table type specific
     # TODO pull this out
+    # TODO: This should take into account whether a specific dimension is required
     # Rules for allowing entries. Each entry of the dictionary designates a rule for a
     # a given column, and the values that are allowed for that column.
     constraints = {
@@ -1083,7 +1084,7 @@ def complete_commodity_groups(
     return tables
 
 
-def generate_top_ire(
+def generate_trade(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
@@ -1136,7 +1137,42 @@ def generate_top_ire(
     top_ire.drop(columns=["region", "region2", "sets", "io"], inplace=True)
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
 
-    model.trade = top_ire
+    cols_list = ["origin", "in", "destination", "out", "process"]
+    # Include trade between internal regions
+    for table in tables:
+        if table.tag == datatypes.Tag.tradelinks_dins:
+            df = table.dataframe
+            f_links = df.rename(
+                columns={
+                    "reg1": "origin",
+                    "comm1": "in",
+                    "reg2": "destination",
+                    "comm2": "out",
+                }
+            ).copy()
+            top_ire = pd.concat([top_ire, f_links[cols_list]])
+            # Check if any of the links are bi-directional
+            if "b" in df["tradelink"].str.lower().unique():
+                b_links = (
+                    df[df["tradelink"].str.lower() == "b"]
+                    .rename(
+                        columns={
+                            "reg1": "destination",
+                            "comm1": "out",
+                            "reg2": "origin",
+                            "comm2": "in",
+                        }
+                    )
+                    .copy()
+                )
+                top_ire = pd.concat([top_ire, b_links[cols_list]])
+
+    filter_regions = model.internal_regions.union({"IMPEXP", "MINRNW"})
+    i = top_ire["origin"].isin(filter_regions) & top_ire["destination"].isin(
+        filter_regions
+    )
+
+    model.trade = top_ire[i].reset_index()
 
     return tables
 
@@ -1186,7 +1222,7 @@ def fill_in_missing_pcgs(
                     "sets",
                     "region",
                     "process",
-                    "techdesc",
+                    "description",
                     "tact",
                     "tcap",
                     "tslvl",
@@ -1444,7 +1480,7 @@ def generate_dummy_processes(
 
         process_declarations = pd.DataFrame(
             dummy_processes,
-            columns=["sets", "process", "techdesc", "tact", "tcap", "primarycg"],
+            columns=["sets", "process", "description", "tact", "tcap", "primarycg"],
         )
 
         tables.append(
@@ -1458,7 +1494,7 @@ def generate_dummy_processes(
             )
         )
 
-        process_data_specs = process_declarations[["process", "techdesc"]].copy()
+        process_data_specs = process_declarations[["process", "description"]].copy()
         # Use this as default activity cost for dummy processes
         # TODO: Should this be included in settings instead?
         process_data_specs["ACTCOST"] = 1111
@@ -1475,6 +1511,84 @@ def generate_dummy_processes(
         )
 
     return tables
+
+
+def process_tradelinks(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Transform tradelinks to tradelinks_dins
+    """
+
+    result = []
+    for table in tables:
+        if table.tag == datatypes.Tag.tradelinks:
+            df = table.dataframe
+            sheetname = table.sheetname.lower()
+            comm = df.columns[0]
+            destinations = [c for c in df.columns if c != comm]
+            df.rename(columns={comm: "origin"}, inplace=True)
+            df = pd.melt(
+                df, id_vars=["origin"], value_vars=destinations, var_name="destination"
+            )
+            df = df[df["value"] == 1].drop(columns=["value"])
+            df["destination"] = df["destination"].str.upper()
+            df.drop_duplicates(keep="first", inplace=True)
+
+            if sheetname == "uni":
+                df["tradelink"] = "u"
+            elif sheetname == "bi":
+                df["tradelink"] = "b"
+            else:
+                df["tradelink"] = 1
+                # Determine whether a trade link is bi- or unidirectional
+                td_type = (
+                    df.groupby(["regions"])["tradelink"].agg("count").reset_index()
+                )
+                td_type.replace({"tradelink": {1: "u", 2: "b"}}, inplace=True)
+                df.drop(columns=["tradelink"], inplace=True)
+                df = df.merge(td_type, how="inner", on="regions")
+
+            # Add a column containing linked regions (directionless for bidirectional links)
+            df["regions"] = df.apply(
+                lambda row: tuple(sorted([row["origin"], row["destination"]]))
+                if row["tradelink"] == "b"
+                else tuple([row["origin"], row["destination"]]),
+                axis=1,
+            )
+
+            # Drop tradelink (bidirectional) duplicates
+            df.drop_duplicates(
+                subset=["regions", "tradelink"], keep="last", inplace=True
+            )
+            df.drop(columns=["regions"], inplace=True)
+            df["comm"] = comm.upper()
+            df["comm1"] = df["comm"]
+            df["comm2"] = df["comm"]
+            df.rename(columns={"origin": "reg1", "destination": "reg2"}, inplace=True)
+            # Use Veda approach to naming of trade processes
+            df["process"] = df.apply(
+                lambda row: "T"
+                + "_".join(
+                    [
+                        row["tradelink"].upper(),
+                        row["comm"],
+                        row["reg1"],
+                        row["reg2"],
+                        "01",
+                    ]
+                ),
+                axis=1,
+            )
+            result.append(
+                replace(table, dataframe=df, tag=datatypes.Tag.tradelinks_dins)
+            )
+        else:
+            result.append(table)
+
+    return result
 
 
 def process_transform_insert_variants(
@@ -1505,20 +1619,16 @@ def process_transform_insert_variants(
             # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
             df = table.dataframe
             if "year" in df.columns:
-                raise ValueError(f"TFM_INS-AT table already has Year column: {table}")
-            # TODO can we remove this hacky shortcut?
-            if (
-                table.tag == datatypes.Tag.tfm_ins_ts
-                and set(df.columns) & query_columns == {"cset_cn"}
-                and has_no_wildcards(df["cset_cn"])
+                raise ValueError(f"TFM_INS-TS table already has Year column: {table}")
+            # TODO: can we remove this hacky shortcut? Or should it be also applied to the AT variant?
+            if set(df.columns) & query_columns == {"cset_cn"} and has_no_wildcards(
+                df["cset_cn"]
             ):
                 df.rename(columns={"cset_cn": "commodity"}, inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
                 continue
-            elif (
-                table.tag == datatypes.Tag.tfm_ins_ts
-                and set(df.columns) & query_columns == {"pset_pn"}
-                and has_no_wildcards(df["pset_pn"])
+            elif set(df.columns) & query_columns == {"pset_pn"} and has_no_wildcards(
+                df["pset_pn"]
             ):
                 df.rename(columns={"pset_pn": "process"}, inplace=True)
                 result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
@@ -1538,7 +1648,7 @@ def process_transform_insert_variants(
             df["year"] = df["year"].astype("int")
             result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
         elif table.tag == datatypes.Tag.tfm_ins_at:
-            # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribue" column
+            # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribute" column
             df = table.dataframe
             if "attribute" in df.columns:
                 raise ValueError(
@@ -1722,7 +1832,7 @@ def get_matching_processes(row, dictionary):
     ]:
         if row[col] is not None:
             matching_processes = intersect(
-                matching_processes, filter_by_pattern(dictionary[key], row[col])
+                matching_processes, filter_by_pattern(dictionary[key], row[col].upper())
             )
     if matching_processes is not None and any(matching_processes.duplicated()):
         raise ValueError("duplicated")
@@ -1738,9 +1848,21 @@ def get_matching_commodities(row, dictionary):
     ]:
         if row[col] is not None:
             matching_commodities = intersect(
-                matching_commodities, filter_by_pattern(dictionary[key], row[col])
+                matching_commodities,
+                filter_by_pattern(dictionary[key], row[col].upper()),
             )
     return matching_commodities
+
+
+def df_indexed_by_col(df, col):
+    # Set df index using an existing column; make index is uppercase
+    df = df.dropna().drop_duplicates()
+    index = df[col].str.upper()
+    df = df.set_index(index).rename_axis("index")
+
+    if len(df.columns) > 1:
+        df = df.drop(columns=col)
+    return df
 
 
 def generate_topology_dictionary(
@@ -1750,58 +1872,43 @@ def generate_topology_dictionary(
     # So we construct tables whose indices are names, etc. and use pd.filter
 
     dictionary = dict()
+    pros = model.processes
+    coms = model.commodities
+    pros_and_coms = tables[datatypes.Tag.fi_t]
 
-    dictionary["processes_by_name"] = (
-        model.processes[["process"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("process", drop=False)
-        .rename_axis("index")
-    )
-    dictionary["processes_by_desc"] = (
-        model.processes[["process", "techdesc"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("techdesc")
-    )
-    dictionary["processes_by_sets"] = (
-        model.processes[["process", "sets"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("sets")
-    )
-    processes_and_commodities = tables[datatypes.Tag.fi_t]
-    dictionary["processes_by_comm_in"] = (
-        processes_and_commodities[["process", "commodity-in"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("commodity-in")
-    )
-    dictionary["processes_by_comm_out"] = (
-        processes_and_commodities[["process", "commodity-out"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("commodity-out")
-    )
-    dictionary["commodities_by_name"] = (
-        model.commodities[["commodity"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("commodity", drop=False)
-        .rename_axis("index")
-    )
-    dictionary["commodities_by_desc"] = (
-        model.commodities[["commodity", "commdesc"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("commdesc")
-    )
-    dictionary["commodities_by_sets"] = (
-        model.commodities[["commodity", "csets"]]
-        .dropna()
-        .drop_duplicates()
-        .set_index("csets")
-    )
+    dict_info = [
+        {"key": "processes_by_name", "df": pros[["process"]], "col": "process"},
+        {
+            "key": "processes_by_desc",
+            "df": pros[["process", "description"]],
+            "col": "description",
+        },
+        {"key": "processes_by_sets", "df": pros[["process", "sets"]], "col": "sets"},
+        {
+            "key": "processes_by_comm_in",
+            "df": pros_and_coms[["process", "commodity-in"]],
+            "col": "commodity-in",
+        },
+        {
+            "key": "processes_by_comm_out",
+            "df": pros_and_coms[["process", "commodity-out"]],
+            "col": "commodity-out",
+        },
+        {"key": "commodities_by_name", "df": coms[["commodity"]], "col": "commodity"},
+        {
+            "key": "commodities_by_desc",
+            "df": coms[["commodity", "description"]],
+            "col": "description",
+        },
+        {
+            "key": "commodities_by_sets",
+            "df": coms[["commodity", "csets"]],
+            "col": "csets",
+        },
+    ]
+
+    for entry in dict_info:
+        dictionary[entry["key"]] = df_indexed_by_col(entry["df"], entry["col"])
 
     return dictionary
 
@@ -2188,6 +2295,64 @@ def fix_topology(
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
     model.topology.replace({"io": mapping}, inplace=True)
+
+    return tables
+
+
+def complete_processes(
+    config: datatypes.Config,
+    tables: Dict[str, DataFrame],
+    model: datatypes.TimesModel,
+) -> Dict[str, DataFrame]:
+    # Generate processes based on trade links
+
+    trade_processes = pd.concat(
+        [
+            model.trade.loc[:, ["origin", "process", "in"]].rename(
+                columns={"origin": "region", "in": "commodity"}
+            ),
+            model.trade.loc[:, ["destination", "process", "out"]].rename(
+                columns={"destination": "region", "out": "commodity"}
+            ),
+        ],
+        ignore_index=True,
+        sort=False,
+    )
+
+    undeclared_td = trade_processes.merge(
+        model.processes.loc[:, ["region", "process"]], how="left", indicator=True
+    )
+    undeclared_td = undeclared_td.loc[
+        (
+            undeclared_td["region"].isin(model.internal_regions)
+            & (undeclared_td["_merge"] == "left_only")
+        ),
+        ["region", "process", "commodity"],
+    ]
+
+    undeclared_td = undeclared_td.merge(
+        model.commodities.loc[:, ["region", "commodity", "csets", "ctslvl", "unit"]],
+        how="left",
+    )
+    undeclared_td.drop(columns=["commodity"], inplace=True)
+    undeclared_td.rename(
+        columns={"csets": "primarycg", "ctslvl": "tslvl", "unit": "tact"}, inplace=True
+    )
+    undeclared_td["sets"] = "IRE"
+    undeclared_td.drop_duplicates(keep="last", inplace=True)
+
+    # TODO: Handle possible duplicates
+    for i in ["primarycg", "tslvl", "tact"]:
+        duplicates = undeclared_td.loc[:, ["region", "process", i]].duplicated(
+            keep=False
+        )
+        if any(duplicates):
+            duplicates = undeclared_td.loc[duplicates, ["region", "process", i]]
+            processes = duplicates["process"].unique()
+            regions = duplicates["region"].unique()
+            print(f"WARNING: Multiple possible {i} for {processes} in {regions}")
+
+    model.processes = pd.concat([model.processes, undeclared_td], ignore_index=True)
 
     return tables
 
