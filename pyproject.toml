@@ -14,22 +14,28 @@ requires-python = ">=3.10"
 license = { file = "LICENSE" }
 keywords = []
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
 ]
 dependencies = [
-  "GitPython >= 3.1.31, < 3.2",
-  "more-itertools",
-  "openpyxl >= 3.0, < 3.1",
-  "pandas >= 2.1",
-  "pyarrow",
-  "tqdm"
+    "GitPython >= 3.1.31, < 3.2",
+    "more-itertools",
+    "openpyxl >= 3.0, < 3.1",
+    "pandas >= 2.1",
+    "pyarrow",
+    "tqdm",
 ]
 
 [project.optional-dependencies]
-dev = ["black", "pre-commit", "tabulate"]
+dev = [
+    "black",
+    "pre-commit",
+    "tabulate",
+    "pytest",
+    "pytest-cov"
+]
 
 [project.urls]
 Documentation = "https://github.com/etsap-TIMES/xl2times#readme"
@@ -38,3 +44,9 @@ Source = "https://github.com/etsap-TIMES/xl2times"
 
 [project.scripts]
 xl2times = "xl2times.__main__:main"
+
+[tool.pytest.ini_options]
+# don't print runtime warnings
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning", "ignore::FutureWarning"]
+# show output, print test coverage report
+addopts = '-s --durations=0 --durations-min=5.0 --tb=native --cov-report term --cov-report html --cov=xl2times --cov=utils'
