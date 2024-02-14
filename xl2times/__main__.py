@@ -309,6 +309,10 @@ def write_dd_files(
 
     def convert_set(df: DataFrame):
         has_description = "TEXT" in df.columns
+        # Remove duplicate rows, ignoring text column
+        if has_description:
+            query_columns = [c for c in df.columns if c != "TEXT"]
+            df = df.drop_duplicates(subset=query_columns, keep="last")
         for row in df.itertuples(index=False):
             row_str = "'.'".join(
                 (str(x) for k, x in row._asdict().items() if k != "TEXT")
