@@ -73,6 +73,7 @@ def convert_xl_to_times(
         transforms.process_time_slices,
         transforms.process_transform_insert_variants,
         transforms.process_transform_tables,
+        transforms.process_tradelinks,
         transforms.process_processes,
         transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
@@ -88,9 +89,10 @@ def convert_xl_to_times(
         transforms.apply_fixups,
         transforms.generate_commodity_groups,
         transforms.fill_in_missing_pcgs,
-        transforms.generate_top_ire,
+        transforms.generate_trade,
         transforms.include_tables_source,
         transforms.merge_tables,
+        transforms.complete_processes,
         transforms.apply_more_fixups,
         transforms.process_units,
         transforms.process_years,
@@ -116,7 +118,7 @@ def convert_xl_to_times(
         end_time = time.time()
         sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
         print(
-            f"{sep}transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
+            f"{sep}transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
         if verbose:
             if isinstance(output, list):
@@ -389,8 +391,10 @@ def dump_tables(tables: List, filename: str) -> List:
 def run(args) -> str | None:
     """
     Runs the xl2times conversion.
-    :param args: pre-parsed command line arguments
-    :return comparison with ground-truth string if `ground_truth_dir` is provided, else None.
+    Args:
+         args: pre-parsed command line arguments
+    Returns:
+         comparison with ground-truth string if `ground_truth_dir` is provided, else None.
     """
     config = datatypes.Config(
         "times_mapping.txt",
@@ -446,9 +450,13 @@ def run(args) -> str | None:
 
 
 def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
-    """Parse command line arguments
-    :param arg_list: list of command line arguments.  Uses sys.argv (default argpasrse behaviour) if `None`.
-    :return parsed arguments
+    """Parses command line arguments.
+
+    Args:
+        arg_list: List of command line arguments. Uses sys.argv (default argparse behaviour) if `None`.
+
+    Returns:
+        argparse.Namespace: Parsed arguments.
     """
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
@@ -489,7 +497,8 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
 
 def main(arg_list: None | list[str] = None) -> None:
     """Main entry point for the xl2times package
-    :return: None.
+    Returns:
+        None.
     """
     args = parse_args(arg_list)
     run(args)

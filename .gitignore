@@ -17,3 +17,5 @@ speedscope.json
 benchmarks/
 .idea/
 .python-version
+docs/_build/
+docs/api/
