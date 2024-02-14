@@ -73,24 +73,29 @@ def extract_table(
     sheetname: str,
     filename: str,
 ) -> datatypes.EmbeddedXlTable:
-    """
-    For each individual table tag found in a worksheet, this function aims to extract
-    the associated table. We recognise several types of tables:
-    - Single cell tables:   Tables with only one value, either below or to the right of
-                            the table tag. We interpret these as a single data item with
-                            a column name VALUE.
-    - Multiple cell tables: Tables with multiple values, possibly extending accross
-                            several rows and columns. We delimitate them using empty
-                            spaces around them and the column names are determined by the
-                            values in the row immediately below the table tag
+    """For each individual table tag found in a worksheet, this function aims to extract
+    the associated table.
 
-    :param tag_row:         Row number for the tag designating the table to be extracted
-    :param tag_col:         Column number for the tag designating the table to be extracted
-    :param uc_sets:         Sets (regions and timeslices) for user constraints
-    :param df:              Dataframe object containing all values for the worksheet being evaluated
-    :param sheetname:       Name of the worksheet being evaluated
-    :param filename:        Path to the excel file being evaluated.
-    :return:                Table object in the EmbeddedXlTable format.
+    We recognise several types of tables:
+
+    - Single cell tables: Tables with only one value, either below or to the right of
+      the table tag. We interpret these as a single data item with
+      a column name VALUE.
+    - Multiple cell tables: Tables with multiple values, possibly extending accross
+      several rows and columns. We delimitate them using empty
+      spaces around them and the column names are determined by the
+      values in the row immediately below the table tag
+
+    Args:
+        tag_row:         Row number for the tag designating the table to be extracted
+        tag_col:         Column number for the tag designating the table to be extracted
+        uc_sets:         Sets (regions and timeslices) for user constraints
+        df:              Dataframe object containing all values for the worksheet being evaluated
+        sheetname:       Name of the worksheet being evaluated
+        filename:        Path to the excel file being evaluated.
+
+    Returns:
+       Table object in the EmbeddedXlTable format.
     """
     # If the cell to the right is not empty then we read a scalar from it
     # Otherwise the row below is the header
