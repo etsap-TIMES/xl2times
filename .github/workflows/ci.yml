@@ -87,13 +87,11 @@ jobs:
       # ---------- Run tool, check for regressions
 
       - name: Run tool on all benchmarks
-        if: secrets.GAMS_LICENSE
+        if: ${{ secrets.GAMS_LICENSE }} != ''
         working-directory: xl2times
         # Use tee to also save the output to out.txt so that the summary table can be
         # printed again in the next step.
         # Save the return code to retcode.txt so that the next step can fail the action
-        # if run_benchmarks.py failed.
-        #
         run: |
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
@@ -106,7 +104,7 @@ jobs:
       - name: Run CSV-only regression tests (no GAMS license)
         # Run without --dd flag GAMS license secret doesn't exist to see if we're just missing a GAMS license.
         # Build will fail without GAMS in final step, but we get CSV-only regression test results here - useful for testing in repo forks.
-        if: secrets.GAMS_LICENSE == ''
+        if: ${{ secrets.GAMS_LICENSE }} == ''
         run: |
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
