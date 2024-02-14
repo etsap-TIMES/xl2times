@@ -106,19 +106,20 @@ jobs:
             echo ${PIPESTATUS[0]} > retcode.txt)
 
       - name: Run CSV-only regression tests (no GAMS license)
-        # Run without --dd flag GAMS license secret doesn't exist to see if we're just missing a GAMS license.
-        # Build will fail without GAMS in final step, but we get CSV-only regression test results here - useful for testing in repo forks.
         env:
           GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
         if: ${{ env.GAMS_LICENSE == '' }}
         working-directory: xl2times
+        # Run without --dd flag GAMS license secret doesn't exist to see if we're just missing a GAMS license.
+        # This way we still run CSV-only regression tests without GAMS - useful for testing in forks before creating PRs.
         run: |
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
           (python utils/run_benchmarks.py benchmarks.yml \
               --times_dir $GITHUB_WORKSPACE/TIMES_model \
               --verbose \
-              | tee out.txt; )
+              | tee out.txt; \
+          echo ${PIPESTATUS[0]} > retcode.txt)
           echo 'Note: Pipeline will fail in final step due to missing GAMS license'
 
       - name: Print summary
