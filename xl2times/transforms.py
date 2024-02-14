@@ -11,7 +11,7 @@ from concurrent.futures import ProcessPoolExecutor
 import time
 from functools import reduce
 
-from utils.run_benchmarks import max_workers
+from .utils import max_workers
 from . import datatypes
 from . import utils
 

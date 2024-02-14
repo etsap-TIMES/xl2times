@@ -9,7 +9,7 @@ import sys
 import time
 from typing import Dict, List
 
-from utils.run_benchmarks import max_workers
+from xl2times.utils import max_workers
 from . import datatypes
 from . import excel
 from . import transforms

@@ -15,9 +15,7 @@ import time
 from typing import Any, Tuple
 import yaml
 
-# prevent excessive number of processes in Windows and high cpu-count machines
-# TODO make this a cli param or global setting?
-max_workers: int = 4 if os.name == "nt" else min(16, os.cpu_count() or 16)
+from xl2times.utils import max_workers
 
 
 def parse_result(lastline):
@@ -343,7 +341,7 @@ def run_all_benchmarks(
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
 
     runtime_change = df["Time (s)"].sum() - df["M Time (s)"].sum()
-    print(f"Change in runtime: {runtime_change:+.2f}")
+    print(f"Change in runtime: {runtime_change:+.2f} s")
     correct_change = df["Correct"].sum() - df["M Correct"].sum()
     print(f"Change in correct rows: {correct_change:+d}")
     additional_change = df["Additional"].sum() - df["M Additional"].sum()
