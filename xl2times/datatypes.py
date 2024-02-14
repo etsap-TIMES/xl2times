@@ -154,6 +154,7 @@ class TimesModel:
     trade: DataFrame = field(default_factory=DataFrame)
     attributes: DataFrame = field(default_factory=DataFrame)
     user_constraints: DataFrame = field(default_factory=DataFrame)
+    uc_attributes: DataFrame = field(default_factory=DataFrame)
     ts_tslvl: DataFrame = field(default_factory=DataFrame)
     ts_map: DataFrame = field(default_factory=DataFrame)
     time_periods: DataFrame = field(default_factory=DataFrame)
@@ -251,8 +252,12 @@ class Config:
             times_cols = entity["indexes"] + ["VALUE"]
             xl_cols = entity["mapping"] + ["value"]  # TODO map in json
             col_map = dict(zip(times_cols, xl_cols))
-            # If tag starts with UC, then the data is in UC_T, else FI_T
-            xl_name = Tag.uc_t if entity["name"].lower().startswith("uc") else Tag.fi_t
+            # If tag starts with UC, then the data is in UCAttributes, else Attributes
+            xl_name = (
+                "UCAttributes"
+                if entity["name"].lower().startswith("uc")
+                else "Attributes"
+            )
             return TimesXlMap(
                 times_name=entity["name"],
                 times_cols=times_cols,
