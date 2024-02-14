@@ -150,8 +150,6 @@ def run_benchmark(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                # windows needs this for subprocess to inherit venv when calling python directly:
-                shell=True if os.name == "nt" else False,
             )
             if res.returncode != 0:
                 # Remove partial outputs
@@ -160,7 +158,7 @@ def run_benchmark(
                 print(f"ERROR: dd_to_csv failed on {benchmark['name']}")
                 sys.exit(5)
         else:
-            # subprocesses use too much RAM in windows, just use function call in current process instead
+            # If debug option is set, run as a function call to allow stepping with a debugger.
             from utils.dd_to_csv import main
 
             main([dd_folder, csv_folder])
@@ -203,14 +201,14 @@ def run_benchmark(
 
     runtime = time.time() - start
 
-    if verbose and res is not None:
+    if verbose:
         line = "-" * 80
         print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
         print(res.stderr if res.stderr is not None else "")
     else:
         print(".", end="", flush=True)
 
-    if res is not None and res.returncode != 0:
+    if res.returncode != 0:
         print(res.stdout)
         print(f"ERROR: tool failed on {benchmark['name']}")
         sys.exit(7)

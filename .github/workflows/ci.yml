@@ -110,8 +110,8 @@ jobs:
           GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
         if: ${{ env.GAMS_LICENSE == '' }}
         working-directory: xl2times
-        # Run without --dd flag GAMS license secret doesn't exist to see if we're just missing a GAMS license.
-        # This way we still run CSV-only regression tests without GAMS - useful for testing in forks before creating PRs.
+        # Run without --dd flag if GAMS license secret doesn't exist.
+        # Useful for testing for (CSV) regressions in forks before creating PRs.
         run: |
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
@@ -120,7 +120,6 @@ jobs:
               --verbose \
               | tee out.txt; \
           echo ${PIPESTATUS[0]} > retcode.txt)
-          echo 'Note: Pipeline will fail in final step due to missing GAMS license'
 
       - name: Print summary
         working-directory: xl2times

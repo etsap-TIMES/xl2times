@@ -387,6 +387,11 @@ def dump_tables(tables: List, filename: str) -> List:
 
 
 def run(args) -> str | None:
+    """
+    Runs the xl2times conversion.
+    :param args: pre-parsed command line arguments
+    :return comparison with ground-truth string if `ground_truth_dir` is provided, else None.
+    """
     config = datatypes.Config(
         "times_mapping.txt",
         "times-info.json",
@@ -441,6 +446,10 @@ def run(args) -> str | None:
 
 
 def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
+    """Parse command line arguments
+    :param arg_list: list of command line arguments.  Uses sys.argv (default argpasrse behaviour) if `None`.
+    :return parsed arguments
+    """
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         "input",
@@ -478,11 +487,14 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
     return args
 
 
-def main(arg_list: None | list[str] = None):
+def main(arg_list: None | list[str] = None) -> None:
+    """Main entry point for the xl2times package
+    :return: None.
+    """
     args = parse_args(arg_list)
     run(args)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
     sys.exit(0)

@@ -16,3 +16,4 @@ speedscope.json
 .venv*/
 benchmarks/
 .idea/
+.python-version

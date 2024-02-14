@@ -53,7 +53,7 @@ If you want to skip these pre-commit steps for a particular commit, if for insta
 git commit --no-verify
 ```
 
-### Publishing the Tool
+## Publishing the Tool
 
 To publish a new version of the tool on PyPI, update the version number in `pyproject.toml`, and then run:
 ```bash
@@ -87,6 +87,7 @@ Note that this assumes you have access to all these repositories (some are priva
 you'll have to request access) - if not, comment out the inaccessible benchmarks from `benchmakrs.yml` before running.
 
 ```bash
+mkdir benchmarks
 # Get VEDA example models and reference DD files
 # XLSX files are in private repo for licensing reasons, please request access or replace with your own licensed VEDA example files.
 git clone git@github.com:olejandro/demos-xlsx.git benchmarks/xlsx/
@@ -99,7 +100,7 @@ git clone git@github.com:esma-cgep/tim-gams.git benchmarks/dd/Ireland
 Then to run the benchmarks:
 ```bash
 # Run a only a single benchmark by name (see benchmarks.yml for name list)
-python utils/run_benchmarks.py benchmarks.yml --verbose --run DemoS_001-all
+python utils/run_benchmarks.py benchmarks.yml --verbose --run DemoS_001-all | tee out.txt
 
 # Run all benchmarks (without GAMS run, just comparing CSV data)
 python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt
