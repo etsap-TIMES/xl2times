@@ -82,6 +82,44 @@ VS Code will highlight the changes in the two files, which should correspond to 
 
 See our GitHub Actions CI `.github/workflows/ci.yml` and the utility script `utils/run_benchmarks.py` to see how to run the tool on the DemoS models.
 
+In summary, use the commands below to clone the benchmarks data into your local `benchmarks` dir.
+Note that this assumes you have access to all these repositories (some are private and
+you'll have to request access) - if not, comment out the inaccessible benchmarks from `benchmakrs.yml` before running.
+
+```bash
+# Get VEDA example models and reference DD files
+# XLSX files are in private repo for licensing reasons, please request access or replace with your own licensed VEDA example files.
+git clone git@github.com:olejandro/demos-xlsx.git benchmarks/xlsx/
+git clone git@github.com:olejandro/demos-dd.git benchmarks/dd/
+
+# Get Ireland model and reference DD files
+git clone git@github.com:esma-cgep/tim.git benchmarks/xlsx/Ireland
+git clone git@github.com:esma-cgep/tim-gams.git benchmarks/dd/Ireland
+```
+Then to run the benchmarks:
+```bash
+# Run a only a single benchmark by name (see benchmarks.yml for name list)
+python utils/run_benchmarks.py benchmarks.yml --verbose --run DemoS_001-all
+
+# Run all benchmarks (without GAMS run, just comparing CSV data)
+python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt
+
+
+# Run benchmarks with regression tests vs main branch
+git branch feature/your_new_changes --checkout
+# ... make your code changes here ...
+git commit -a -m "your commit message" # code must be committed for comparison to `main` branch to run.
+python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt
+```
+At this point, if you haven't broken anything you should see something like:
+```
+Change in runtime: +2.97s
+Change in correct rows: +0
+Change in additional rows: +0
+No regressions. You're awesome!
+```
+If you have a large increase in runtime, a decrease in correct rows or fewer rows being produced, then you've broken something and will need to figure out how to fix it.
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
