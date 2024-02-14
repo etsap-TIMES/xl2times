@@ -73,11 +73,13 @@ def convert_xl_to_times(
         transforms.process_time_slices,
         transforms.process_transform_insert_variants,
         transforms.process_transform_tables,
+        transforms.process_tradelinks,
         transforms.process_processes,
         transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
+        transforms.generate_uc_properties,
         transforms.process_commodities,
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
@@ -88,9 +90,10 @@ def convert_xl_to_times(
         transforms.apply_fixups,
         transforms.generate_commodity_groups,
         transforms.fill_in_missing_pcgs,
-        transforms.generate_top_ire,
+        transforms.generate_trade,
         transforms.include_tables_source,
         transforms.merge_tables,
+        transforms.complete_processes,
         transforms.apply_more_fixups,
         transforms.process_units,
         transforms.process_years,
@@ -244,7 +247,7 @@ def produce_times_tables(
     for mapping in config.times_xl_maps:
         if not mapping.xl_name in input:
             print(
-                f"WARNING: Cannot produce table {mapping.times_name} because input table"
+                f"WARNING: Cannot produce table {mapping.times_name} because"
                 f" {mapping.xl_name} does not exist"
             )
         else:
@@ -254,8 +257,8 @@ def produce_times_tables(
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
                     print(
-                        f"WARNING: Cannot produce table {mapping.times_name} because input"
-                        f" table {mapping.xl_name} does not contain column {filter_col}"
+                        f"WARNING: Cannot produce table {mapping.times_name} because"
+                        f" {mapping.xl_name} does not contain column {filter_col}"
                     )
                     # TODO break this loop and continue outer loop?
                 filter = set(x.lower() for x in {filter_val})
@@ -267,8 +270,8 @@ def produce_times_tables(
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols) - set(df.columns)
                 print(
-                    f"WARNING: Cannot produce table {mapping.times_name} because input"
-                    f" table {mapping.xl_name} does not contain the required columns"
+                    f"WARNING: Cannot produce table {mapping.times_name} because"
+                    f" {mapping.xl_name} does not contain the required columns"
                     f" - {', '.join(missing)}"
                 )
             else:
