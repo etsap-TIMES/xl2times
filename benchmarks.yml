@@ -7,167 +7,167 @@
 
 benchmarks_folder: benchmarks/
 benchmarks:
-#  - name: DemoS_001-all
-#    input_folder: DemoS_001
-#    dd_folder: DemoS_001-all
-#    dd_files:
-#      - "base"
-#      - "syssettings"
-#  - name: DemoS_002-all
-#    input_folder: DemoS_002
-#    dd_folder: DemoS_002-all
-#    dd_files:
-#      - "base"
-#      - "syssettings"
-#  - name: DemoS_003-all
-#    input_folder: DemoS_003
-#    dd_folder: DemoS_003-all
-#    dd_files:
-#      - "base"
-#      - "syssettings"
-#  - name: DemoS_004
-#    input_folder: DemoS_004
-#    inputs:
-#      - "BY_Trans.xlsx"
-#      - "Sets-DemoModels.xlsx"
-#      - "SysSettings.xlsx"
-#      - "VT_REG_PRI_V04.xlsx"
-#    dd_folder: DemoS_004
-#    dd_files:
-#      - "base"
-#      - "syssettings"
-#  - name: DemoS_004a
-#    input_folder: DemoS_004
-#    inputs:
-#      - "BY_Trans.xlsx"
-#      - "Sets-DemoModels.xlsx"
-#      - "SysSettings.xlsx"
-#      - "SuppXLS/Scen_Peak_RSV.xlsx"
-#      - "VT_REG_PRI_V04.xlsx"
-#    dd_folder: DemoS_004a
-#    dd_files:
-#      - "base"
-#      - "syssettings"
-#      - "peak_rsv"
-#  - name: DemoS_004b
-#    input_folder: DemoS_004
-#    inputs:
-#      - "BY_Trans.xlsx"
-#      - "Sets-DemoModels.xlsx"
-#      - "SysSettings.xlsx"
-#      - "SuppXLS/Scen_Peak_RSV-FLX.xlsx"
-#      - "VT_REG_PRI_V04.xlsx"
-#    dd_folder: DemoS_004b
-#    dd_files:
-#      - "base"
-#      - "syssettings"
-#      - "peak_rsv-flx"
-#  - name: DemoS_004-all
-#    input_folder: DemoS_004
-#    dd_folder: DemoS_004-all
-#    dd_files:
-#      - "base"
-#      - "syssettings"
-#      - "peak_rsv"
-#      - "peak_rsv-flx"
-#  - name: DemoS_005-all
-#    input_folder: DemoS_005
-#    dd_folder: DemoS_005-all
-#    dd_files:
-#      - "base"
-#      - "syssettings"
-#      - "trade_param"
-#      - "co2_tax"
-#      - "elc_co2_bound"
-#      - "peak_rsv"
-#      - "uc_co2bnd"
-#  - name: DemoS_006-all
-#    input_folder: DemoS_006
-#    dd_folder: DemoS_006-all
-#    dd_files:
-#      - "base"
-#      - "newtechs"
-#      - "syssettings"
-#      - "trade_param"
-#      - "elc_co2_bound"
-#      - "peak_rsv"
-#      - "uc_co2bnd"
-#  - name: DemoS_007-all
-#    input_folder: DemoS_007
-#    dd_folder: DemoS_007-all
-#    dd_files:
-#      - "base"
-#      - "newtechs"
-#      - "syssettings"
-#      - "trade_param"
-#      - "demproj_dtcar"
-#      - "elasticdem"
-#      - "elc_co2_bound"
-#      - "peak_rsv"
-#      - "refinery"
-#      - "tra_co2_bound"
-#      - "uc_co2bnd"
-#      - "uc_growth"
-#  - name: DemoS_008-all
-#    input_folder: DemoS_008
-#    dd_folder: DemoS_008-all
-#    dd_files:
-#      - "base"
-#      - "newtechs"
-#      - "syssettings"
-#      - "trade_param"
-#      - "demproj_dtcar"
-#      - "elasticdem"
-#      - "elc_co2_bound"
-#      - "peak_rsv"
-#      - "refinery"
-#      - "tra_co2_bound"
-#      - "uc_co2bnd"
-#      - "uc_growth"
-#      - "uc_nuc_maxcap"
-#  - name: DemoS_009-all
-#    input_folder: DemoS_009
-#    dd_folder: DemoS_009-all
-#    dd_files:
-#      - "base"
-#      - "new-chp-dh"
-#      - "new-ind"
-#      - "newtechs"
-#      - "syssettings"
-#      - "trade_param"
-#      - "demproj_dtcar"
-#      - "elasticdem"
-#      - "elc_co2_bound"
-#      - "ind_newres"
-#      - "peak_rsv"
-#      - "refinery"
-#      - "tra_co2_bound"
-#      - "uc_co2bnd"
-#      - "uc_dh_minprod"
-#      - "uc_growth"
-#      - "uc_nuc_maxcap"
-#  - name: DemoS_010-all
-#    input_folder: DemoS_010
-#    dd_folder: DemoS_010-all
-#    dd_files:
-#      - "base"
-#      - "new-chp-dh"
-#      - "new-ind"
-#      - "newtechs"
-#      - "syssettings"
-#      - "dem_ref"
-#      - "trade_param"
-#      - "demproj_dtcar"
-#      - "elasticdem"
-#      - "elc_co2_bound"
-#      - "ind_newres"
-#      - "peak_rsv"
-#      - "refinery"
-#      - "tra_co2_bound"
-#      - "uc_co2bnd"
-#      - "uc_dh_minprod"
-#      - "uc_growth"
-#      - "uc_nuc_maxcap"
+  - name: DemoS_001-all
+    input_folder: DemoS_001
+    dd_folder: DemoS_001-all
+    dd_files:
+      - "base"
+      - "syssettings"
+  - name: DemoS_002-all
+    input_folder: DemoS_002
+    dd_folder: DemoS_002-all
+    dd_files:
+      - "base"
+      - "syssettings"
+  - name: DemoS_003-all
+    input_folder: DemoS_003
+    dd_folder: DemoS_003-all
+    dd_files:
+      - "base"
+      - "syssettings"
+  - name: DemoS_004
+    input_folder: DemoS_004
+    inputs:
+      - "BY_Trans.xlsx"
+      - "Sets-DemoModels.xlsx"
+      - "SysSettings.xlsx"
+      - "VT_REG_PRI_V04.xlsx"
+    dd_folder: DemoS_004
+    dd_files:
+      - "base"
+      - "syssettings"
+  - name: DemoS_004a
+    input_folder: DemoS_004
+    inputs:
+      - "BY_Trans.xlsx"
+      - "Sets-DemoModels.xlsx"
+      - "SysSettings.xlsx"
+      - "SuppXLS/Scen_Peak_RSV.xlsx"
+      - "VT_REG_PRI_V04.xlsx"
+    dd_folder: DemoS_004a
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "peak_rsv"
+  - name: DemoS_004b
+    input_folder: DemoS_004
+    inputs:
+      - "BY_Trans.xlsx"
+      - "Sets-DemoModels.xlsx"
+      - "SysSettings.xlsx"
+      - "SuppXLS/Scen_Peak_RSV-FLX.xlsx"
+      - "VT_REG_PRI_V04.xlsx"
+    dd_folder: DemoS_004b
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "peak_rsv-flx"
+  - name: DemoS_004-all
+    input_folder: DemoS_004
+    dd_folder: DemoS_004-all
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "peak_rsv"
+      - "peak_rsv-flx"
+  - name: DemoS_005-all
+    input_folder: DemoS_005
+    dd_folder: DemoS_005-all
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "trade_param"
+      - "co2_tax"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "uc_co2bnd"
+  - name: DemoS_006-all
+    input_folder: DemoS_006
+    dd_folder: DemoS_006-all
+    dd_files:
+      - "base"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "uc_co2bnd"
+  - name: DemoS_007-all
+    input_folder: DemoS_007
+    dd_folder: DemoS_007-all
+    dd_files:
+      - "base"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_growth"
+  - name: DemoS_008-all
+    input_folder: DemoS_008
+    dd_folder: DemoS_008-all
+    dd_files:
+      - "base"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_growth"
+      - "uc_nuc_maxcap"
+  - name: DemoS_009-all
+    input_folder: DemoS_009
+    dd_folder: DemoS_009-all
+    dd_files:
+      - "base"
+      - "new-chp-dh"
+      - "new-ind"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "ind_newres"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_dh_minprod"
+      - "uc_growth"
+      - "uc_nuc_maxcap"
+  - name: DemoS_010-all
+    input_folder: DemoS_010
+    dd_folder: DemoS_010-all
+    dd_files:
+      - "base"
+      - "new-chp-dh"
+      - "new-ind"
+      - "newtechs"
+      - "syssettings"
+      - "dem_ref"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "ind_newres"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_dh_minprod"
+      - "uc_growth"
+      - "uc_nuc_maxcap"
   - name: DemoS_011-all
     input_folder: DemoS_011
     dd_folder: DemoS_011-all

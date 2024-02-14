@@ -246,7 +246,10 @@ def run_all_benchmarks(
         verbose=verbose,
     )
 
-    with ProcessPoolExecutor() as executor:
+    max_workers = (
+        1 if os.name == "nt" else None
+    )  # prevent excessive number of processes in Windwows
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
         results = list(executor.map(run_a_benchmark, benchmarks))
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
 
