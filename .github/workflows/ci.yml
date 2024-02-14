@@ -92,6 +92,9 @@ jobs:
         # printed again in the next step.
         # Save the return code to retcode.txt so that the next step can fail the action
         # if run_benchmarks.py failed.
+        #
+        # If it fails, try again without the --dd flag, to see if we're just missing a GAMS license.
+        # Build still fails without GAMS in final step, but we get CSV-only regression test results here - useful for testing in repo forks.
         run: |
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
@@ -100,6 +103,14 @@ jobs:
               --verbose \
               | tee out.txt; \
             echo ${PIPESTATUS[0]} > retcode.txt)
+            if [ $(cat retcode.txt) -ne 0 ]; then
+              echo "Retrying without GAMS to check CSV regressions..."
+              (python utils/run_benchmarks.py benchmarks.yml \
+                --times_dir $GITHUB_WORKSPACE/TIMES_model \
+                --verbose \
+                | tee out.txt\
+              echo ${PIPESTATUS[0]} > retcode.txt)
+            fi
 
       - name: Print summary
         working-directory: xl2times
