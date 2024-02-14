@@ -12,7 +12,7 @@ import subprocess
 import sys
 from tabulate import tabulate
 import time
-from typing import Any, Tuple, NamedTuple
+from typing import Any, Tuple
 import yaml
 
 
@@ -194,7 +194,9 @@ def run_benchmark(
         from xl2times.__main__ import main
 
         summary = main(args)
-        # TODO this is a hack to make the return value look like it's from a subprocess. Replace subprocess calls above with function calls?
+
+        # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
+        # TODO Replace subprocess calls above with function calls?
         res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
 
     runtime = time.time() - start
