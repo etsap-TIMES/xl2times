@@ -69,6 +69,9 @@ jobs:
       # ---------- Install GAMS
 
       - name: Install GAMS
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE != '' }}
         run: |
           curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
           chmod +x linux_x64_64_sfx.exe
@@ -81,15 +84,14 @@ jobs:
           mkdir -p $HOME/.local/share/GAMS
           echo "$GAMS_LICENSE" > $HOME/.local/share/GAMS/gamslice.txt
           ls -l $HOME/.local/share/GAMS/
-        env:
-          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+
 
       # ---------- Run tool, check for regressions
 
       - name: Run tool on all benchmarks
         env:
-          gams_license: ${{ secrets.GAMS_LICENSE }}
-        if: ${{ env.gams_license != '' }}
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE != '' }}
         working-directory: xl2times
         # Use tee to also save the output to out.txt so that the summary table can be
         # printed again in the next step.
@@ -107,8 +109,9 @@ jobs:
         # Run without --dd flag GAMS license secret doesn't exist to see if we're just missing a GAMS license.
         # Build will fail without GAMS in final step, but we get CSV-only regression test results here - useful for testing in repo forks.
         env:
-          gams_license: ${{ secrets.GAMS_LICENSE }}
-        if: ${{ env.gams_license == '' }}
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE == '' }}
+        working-directory: xl2times
         run: |
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
