@@ -341,12 +341,28 @@ def run_all_benchmarks(
     addi_regressions = df[df["Additional"] > df["M Additional"]]["Benchmark"]
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
 
-    runtime_change = df["Time (s)"].sum() - df["M Time (s)"].sum()
-    print(f"Change in runtime: {runtime_change:+.2f} s")
-    correct_change = df["Correct"].sum() - df["M Correct"].sum()
-    print(f"Change in correct rows: {correct_change:+d}")
-    additional_change = df["Additional"].sum() - df["M Additional"].sum()
-    print(f"Change in additional rows: {additional_change:+d}")
+    our_time = df["Time (s)"].sum()
+    main_time = df["M Time (s)"].sum()
+    runtime_change = our_time - main_time
+
+    print(f"Total runtime: {our_time:.2f}s (main: {main_time:.2f}s)")
+    print(
+        f"Change in runtime (negative == faster): {runtime_change:+.2f}s ({100*runtime_change/main_time:+.1f}%)"
+    )
+
+    our_correct = df["Correct"].sum()
+    main_correct = df["M Correct"].sum()
+    correct_change = our_correct - main_correct
+    print(
+        f"Change in correct rows (higher == better): {correct_change:+d} ({100*correct_change/main_correct:+.1f}%)"
+    )
+
+    our_additional_rows = df["Additional"].sum()
+    main_additional_rows = df["M Additional"].sum()
+    additional_change = our_additional_rows - main_additional_rows
+    print(
+        f"Change in additional rows: {additional_change:+d} ({100*additional_change/main_additional_rows:+.1f}%)"
+    )
 
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
         print()
