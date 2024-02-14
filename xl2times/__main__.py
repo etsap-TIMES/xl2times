@@ -157,7 +157,7 @@ def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
 
 def compare(
     data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame], output_dir: str
-):
+) -> str:
     print(
         f"Ground truth contains {len(ground_truth)} tables,"
         f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
@@ -220,12 +220,14 @@ def compare(
                     os.path.join(output_dir, table_name + "_missing.csv"),
                     index=False,
                 )
-
-    print(
+    result = (
         f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
         f" in output ({total_correct_rows}/{total_gt_rows})"
         f", {total_additional_rows} additional rows"
     )
+
+    print(result)
+    return result
 
 
 def produce_times_tables(
@@ -382,7 +384,7 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
-def main():
+def main(arg_list: None | list[str] = None) -> str:
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         "input",
@@ -416,7 +418,7 @@ def main():
         action="store_true",
         help="Verbose mode: print tables after every transform",
     )
-    args = args_parser.parse_args()
+    args = args_parser.parse_args(arg_list)
 
     config = datatypes.Config(
         "times_mapping.txt",
@@ -465,7 +467,9 @@ def main():
 
     if args.ground_truth_dir:
         ground_truth = read_csv_tables(args.ground_truth_dir)
-        compare(tables, ground_truth, args.output_dir)
+        comparison = compare(tables, ground_truth, args.output_dir)
+        return comparison
+    return ""
 
 
 if __name__ == "__main__":

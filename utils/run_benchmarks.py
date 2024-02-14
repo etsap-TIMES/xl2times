@@ -1,4 +1,6 @@
 import argparse
+import os
+from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import git
@@ -10,7 +12,7 @@ import subprocess
 import sys
 from tabulate import tabulate
 import time
-from typing import Any, Tuple
+from typing import Any, Tuple, NamedTuple
 import yaml
 
 
@@ -134,23 +136,32 @@ def run_benchmark(
     # First convert ground truth DD to csv
     if not skip_csv:
         shutil.rmtree(csv_folder, ignore_errors=True)
-        res = subprocess.run(
-            [
-                "python",
-                "utils/dd_to_csv.py",
-                dd_folder,
-                csv_folder,
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-        if res.returncode != 0:
-            # Remove partial outputs
-            shutil.rmtree(csv_folder, ignore_errors=True)
-            print(res.stdout)
-            print(f"ERROR: dd_to_csv failed on {benchmark['name']}")
-            sys.exit(1)
+        if os.name != "nt":
+            res = subprocess.run(
+                [
+                    "python",
+                    "utils/dd_to_csv.py",
+                    dd_folder,
+                    csv_folder,
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                # windows needs this for subprocess to inherit venv:
+                shell=True if os.name == "nt" else False,
+            )
+            if res.returncode != 0:
+                # Remove partial outputs
+                shutil.rmtree(csv_folder, ignore_errors=True)
+                print(res.stdout)
+                print(f"ERROR: dd_to_csv failed on {benchmark['name']}")
+                sys.exit(1)
+        else:
+            # subprocesses use too much RAM in windows, just use function call in current process instead
+            from utils.dd_to_csv import main
+
+            main([dd_folder, csv_folder])
+
     elif not path.exists(csv_folder):
         print(f"ERROR: --skip_csv is true but {csv_folder} does not exist")
         sys.exit(1)
@@ -170,22 +181,32 @@ def run_benchmark(
     else:
         args.append(xl_folder)
     start = time.time()
-    res = subprocess.run(
-        ["xl2times"] + args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
+    res = None
+    if os.name != "nt":
+        res = subprocess.run(
+            ["xl2times"] + args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+    else:
+        # Subprocesses are heavyweight in windows use too much RAM, use function calls instead
+        from xl2times.__main__ import main
+
+        summary = main(args)
+        # TODO this is a hack to make the return value look like it's from a subprocess. Replace subprocess calls above with function calls?
+        res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
+
     runtime = time.time() - start
 
-    if verbose:
+    if verbose and res is not None:
         line = "-" * 80
         print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
         print(res.stderr if res.stderr is not None else "")
     else:
         print(".", end="", flush=True)
 
-    if res.returncode != 0:
+    if res is not None and res.returncode != 0:
         print(res.stdout)
         print(f"ERROR: tool failed on {benchmark['name']}")
         sys.exit(1)

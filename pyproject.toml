@@ -24,6 +24,7 @@ dependencies = [
   "more-itertools",
   "openpyxl >= 3.0, < 3.1",
   "pandas >= 2.1",
+  "pyarrow"
 ]
 
 [project.optional-dependencies]

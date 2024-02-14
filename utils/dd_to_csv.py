@@ -216,7 +216,7 @@ def convert_dd_to_tabular(
     return
 
 
-if __name__ == "__main__":
+def main(arg_list: None | list[str] = None):
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         "input_dir", type=str, help="Input directory containing .dd files."
@@ -224,5 +224,9 @@ if __name__ == "__main__":
     args_parser.add_argument(
         "output_dir", type=str, help="Output directory to save the .csv files in."
     )
-    args = args_parser.parse_args()
+    args = args_parser.parse_args(arg_list)
     convert_dd_to_tabular(args.input_dir, args.output_dir, generate_headers_by_attr())
+
+
+if __name__ == "__main__":
+    main()
