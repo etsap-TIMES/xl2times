@@ -386,42 +386,7 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
-def main(arg_list: None | list[str] = None) -> str:
-    args_parser = argparse.ArgumentParser()
-    args_parser.add_argument(
-        "input",
-        nargs="*",
-        help="Either an input directory, or a list of input xlsx/xlsm files to process",
-    )
-    args_parser.add_argument(
-        "--regions",
-        type=str,
-        default="",
-        help="Comma-separated list of regions to include in the model",
-    )
-    args_parser.add_argument(
-        "--output_dir", type=str, default="output", help="Output directory"
-    )
-    args_parser.add_argument(
-        "--ground_truth_dir",
-        type=str,
-        help="Ground truth directory to compare with output",
-    )
-    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
-    args_parser.add_argument(
-        "--only_read",
-        action="store_true",
-        help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
-    )
-    args_parser.add_argument("--use_pkl", action="store_true")
-    args_parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Verbose mode: print tables after every transform",
-    )
-    args = args_parser.parse_args(arg_list)
-
+def run(args) -> str | None:
     config = datatypes.Config(
         "times_mapping.txt",
         "times-info.json",
@@ -434,7 +399,7 @@ def main(arg_list: None | list[str] = None) -> str:
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         print(f"ERROR: expected at least 1 input. Got {args.input}")
-        sys.exit(1)
+        sys.exit(-1)
     elif len(args.input) == 1:
         assert os.path.isdir(args.input[0])
         input_files = [
@@ -471,8 +436,53 @@ def main(arg_list: None | list[str] = None) -> str:
         ground_truth = read_csv_tables(args.ground_truth_dir)
         comparison = compare(tables, ground_truth, args.output_dir)
         return comparison
-    return ""
+    else:
+        return None
+
+
+def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "input",
+        nargs="*",
+        help="Either an input directory, or a list of input xlsx/xlsm files to process",
+    )
+    args_parser.add_argument(
+        "--regions",
+        type=str,
+        default="",
+        help="Comma-separated list of regions to include in the model",
+    )
+    args_parser.add_argument(
+        "--output_dir", type=str, default="output", help="Output directory"
+    )
+    args_parser.add_argument(
+        "--ground_truth_dir",
+        type=str,
+        help="Ground truth directory to compare with output",
+    )
+    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
+    args_parser.add_argument(
+        "--only_read",
+        action="store_true",
+        help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
+    )
+    args_parser.add_argument("--use_pkl", action="store_true")
+    args_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose mode: print tables after every transform",
+    )
+    args = args_parser.parse_args(arg_list)
+    return args
+
+
+def main(arg_list: None | list[str] = None):
+    args = parse_args(arg_list)
+    run(args)
 
 
 if __name__ == "__main__":
     main()
+    sys.exit(0)

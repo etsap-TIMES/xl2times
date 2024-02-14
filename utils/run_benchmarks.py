@@ -26,7 +26,7 @@ def parse_result(lastline):
     )
     if not m:
         print(f"ERROR: could not parse output of run:\n{lastline}")
-        sys.exit(1)
+        sys.exit(2)
     # return (accuracy, num_correct_rows, num_additional_rows)
     return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
 
@@ -62,7 +62,7 @@ def run_gams_gdxdiff(
         print(res.stdout)
         print(res.stderr if res.stderr is not None else "")
         print(f"ERROR: GAMS failed on {benchmark['name']}")
-        sys.exit(1)
+        sys.exit(3)
     if "error" in res.stdout.lower():
         print(res.stdout)
         print(f"ERROR: GAMS errored on {benchmark['name']}")
@@ -93,7 +93,7 @@ def run_gams_gdxdiff(
         print(res.stdout)
         print(res.stderr if res.stderr is not None else "")
         print(f"ERROR: GAMS failed on {benchmark['name']} ground truth")
-        sys.exit(1)
+        sys.exit(4)
     if "error" in res.stdout.lower():
         print(res.stdout)
         print(f"ERROR: GAMS errored on {benchmark['name']}")
@@ -129,6 +129,7 @@ def run_benchmark(
     skip_csv: bool = False,
     out_folder: str = "out",
     verbose: bool = False,
+    debug: bool = False,
 ) -> Tuple[str, float, str, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
     dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
@@ -149,7 +150,7 @@ def run_benchmark(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                # windows needs this for subprocess to inherit venv:
+                # windows needs this for subprocess to inherit venv when calling python directly:
                 shell=True if os.name == "nt" else False,
             )
             if res.returncode != 0:
@@ -157,7 +158,7 @@ def run_benchmark(
                 shutil.rmtree(csv_folder, ignore_errors=True)
                 print(res.stdout)
                 print(f"ERROR: dd_to_csv failed on {benchmark['name']}")
-                sys.exit(1)
+                sys.exit(5)
         else:
             # subprocesses use too much RAM in windows, just use function call in current process instead
             from utils.dd_to_csv import main
@@ -166,7 +167,7 @@ def run_benchmark(
 
     elif not path.exists(csv_folder):
         print(f"ERROR: --skip_csv is true but {csv_folder} does not exist")
-        sys.exit(1)
+        sys.exit(6)
 
     # Then run the tool
     args = [
@@ -184,7 +185,7 @@ def run_benchmark(
         args.append(xl_folder)
     start = time.time()
     res = None
-    if os.name != "nt":
+    if not debug:
         res = subprocess.run(
             ["xl2times"] + args,
             stdout=subprocess.PIPE,
@@ -192,13 +193,12 @@ def run_benchmark(
             text=True,
         )
     else:
-        # Subprocesses are heavyweight in windows use too much RAM, use function calls instead
-        from xl2times.__main__ import main
+        # If debug option is set, run as a function call to allow stepping with a debugger.
+        from xl2times.__main__ import run, parse_args
 
-        summary = main(args)
+        summary = run(parse_args(args))
 
         # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
-        # TODO Replace subprocess calls above with function calls?
         res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
 
     runtime = time.time() - start
@@ -213,7 +213,7 @@ def run_benchmark(
     if res is not None and res.returncode != 0:
         print(res.stdout)
         print(f"ERROR: tool failed on {benchmark['name']}")
-        sys.exit(1)
+        sys.exit(7)
     with open(path.join(out_folder, "stdout"), "w") as f:
         f.write(res.stdout)
 
@@ -236,6 +236,7 @@ def run_all_benchmarks(
     skip_main=False,
     skip_regression=False,
     verbose=False,
+    debug: bool = False,
 ):
     print("Running benchmarks", end="", flush=True)
     headers = ["Benchmark", "Time (s)", "GDX Diff", "Accuracy", "Correct", "Additional"]
@@ -246,6 +247,7 @@ def run_all_benchmarks(
         skip_csv=skip_csv,
         run_gams=run_gams,
         verbose=verbose,
+        debug=debug,
     )
 
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -289,7 +291,7 @@ def run_all_benchmarks(
     else:
         if repo.is_dirty():
             print("Your working directory is not clean. Skipping regression tests.")
-            sys.exit(1)
+            sys.exit(8)
 
         # Re-run benchmarks on main
         repo.heads.main.checkout()
@@ -302,6 +304,7 @@ def run_all_benchmarks(
             run_gams=run_gams,
             out_folder="out-main",
             verbose=verbose,
+            debug=debug,
         )
 
         with ProcessPoolExecutor(max_workers) as executor:
@@ -335,7 +338,7 @@ def run_all_benchmarks(
     )
     if df.isna().values.any():
         print(f"ERROR: number of benchmarks changed:\n{df}")
-        sys.exit(1)
+        sys.exit(9)
     accu_regressions = df[df["Correct"] < df["M Correct"]]["Benchmark"]
     addi_regressions = df[df["Additional"] > df["M Additional"]]["Benchmark"]
     time_regressions = df[df["Time (s)"] > 2 * df["M Time (s)"]]["Benchmark"]
@@ -355,7 +358,7 @@ def run_all_benchmarks(
             print(f"ERROR: additional rows regressed on: {', '.join(addi_regressions)}")
         if not time_regressions.empty:
             print(f"ERROR: runtime regressed on: {', '.join(time_regressions)}")
-        sys.exit(1)
+        sys.exit(10)
     # TODO also check if any new tables are missing?
 
     print("No regressions. You're awesome!")
@@ -410,6 +413,12 @@ if __name__ == "__main__":
         default=False,
         help="Print output of run on each benchmark",
     )
+    args_parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Run each benchmark as a function call to allow a debugger to stop at breakpoints in benchmark runs.",
+    )
     args = args_parser.parse_args()
 
     spec = yaml.safe_load(open(args.benchmarks_yaml))
@@ -417,17 +426,17 @@ if __name__ == "__main__":
     benchmark_names = [b["name"] for b in spec["benchmarks"]]
     if len(set(benchmark_names)) != len(benchmark_names):
         print("ERROR: Found duplicate name in benchmarks YAML file")
-        sys.exit(1)
+        sys.exit(11)
 
     if args.dd and args.times_dir is None:
         print("ERROR: --times_dir is required when using --dd")
-        sys.exit(1)
+        sys.exit(12)
 
     if args.run is not None:
         benchmark = next((b for b in spec["benchmarks"] if b["name"] == args.run), None)
         if benchmark is None:
             print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
-            sys.exit(1)
+            sys.exit(13)
 
         _, runtime, gms, acc, cor, add = run_benchmark(
             benchmark,
@@ -436,6 +445,7 @@ if __name__ == "__main__":
             run_gams=args.dd,
             skip_csv=args.skip_csv,
             verbose=args.verbose,
+            debug=args.debug,
         )
         print(
             f"Ran {args.run} in {runtime:.2f}s. {acc}% ({cor} correct, {add} additional).\n"
@@ -451,4 +461,5 @@ if __name__ == "__main__":
             skip_main=args.skip_main,
             skip_regression=args.skip_regression,
             verbose=args.verbose,
+            debug=args.debug,
         )
