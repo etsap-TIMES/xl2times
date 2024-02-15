@@ -10,6 +10,10 @@ import re
 from concurrent.futures import ProcessPoolExecutor
 import time
 from functools import reduce
+
+from tqdm import tqdm
+
+from .utils import max_workers
 from . import datatypes
 from . import utils
 
@@ -594,6 +598,76 @@ def process_user_constraint_tables(
     return [process_user_constraint_table(t) for t in tables]
 
 
+def generate_uc_properties(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Generate a dataframe containing User Constraint properties
+    """
+
+    uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
+    columns = ["uc_n", "uc_desc", "region", "reg_action", "ts_action"]
+    user_constraints = pd.DataFrame(columns=columns)
+    # Create df_list to hold DataFrames that will be concatenated later on
+    df_list = list()
+    for uc_table in uc_tables:
+        # Single-column DataFrame with unique UC names
+        df = uc_table.dataframe.loc[:, ["uc_n"]].drop_duplicates(keep="first")
+        # Supplement UC names with descriptions, if they exist
+        df = df.merge(
+            uc_table.dataframe.loc[:, ["uc_n", "uc_desc"]]
+            .drop_duplicates(keep="first")
+            .dropna(),
+            how="left",
+        )
+        # Add info on how regions and timeslices should be treated by the UCs
+        for key in uc_table.uc_sets.keys():
+            if key.startswith("R_"):
+                df["reg_action"] = key
+                df["region"] = uc_table.uc_sets[key].upper().strip()
+            elif key.startswith("T_"):
+                df["ts_action"] = key
+
+        df_list.append(df)
+    # Do further processing if df_list is not empty
+    if df_list:
+        # Create a single DataFrame with all UCs
+        user_constraints = pd.concat(df_list, ignore_index=True)
+
+        # Use name to populate description if it is missing
+        index = user_constraints["uc_desc"].isna()
+        if any(index):
+            user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
+
+        # TODO: Can this (until user_constraints.explode) become a utility function?
+        # Handle allregions by substituting it with a list of internal regions
+        index = user_constraints["region"].str.lower() == "allregions"
+        if any(index):
+            user_constraints["region"][index] = [model.internal_regions]
+
+        # Handle comma-separated regions
+        index = user_constraints["region"].str.contains(",").fillna(value=False)
+        if any(index):
+            user_constraints["region"][index] = user_constraints.apply(
+                lambda row: [
+                    region
+                    for region in str(row["region"]).split(",")
+                    if region in model.internal_regions
+                ],
+                axis=1,
+            )
+        # Explode regions
+        user_constraints = user_constraints.explode("region", ignore_index=True)
+
+    model.user_constraints = user_constraints.rename(
+        columns={"uc_n": "name", "uc_desc": "description"}
+    )
+
+    return tables
+
+
 def fill_in_missing_values(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -671,15 +745,15 @@ def fill_in_missing_values(
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
-                        df.fillna({colname: ",".join(vt_regions[book])}, inplace=True)
+                        df = df.fillna({colname: ",".join(vt_regions[book])})
                     else:
                         print(f"WARNING: book name {book} not in BookRegions_Map")
                 else:
-                    df.fillna({colname: ",".join(model.internal_regions)}, inplace=True)
+                    df = df.fillna({colname: ",".join(model.internal_regions)})
             elif colname == "year":
-                df.fillna({colname: start_year}, inplace=True)
+                df = df.fillna({colname: start_year})
             elif colname == "currency":
-                df.fillna({colname: currency}, inplace=True)
+                df = df.fillna({colname: currency})
 
         return replace(table, dataframe=df)
 
@@ -869,9 +943,11 @@ def complete_dictionary(
         "TimeSlices": model.ts_tslvl,
         "TimeSliceMap": model.ts_map,
         "UserConstraints": model.user_constraints,
+        "UCAttributes": model.uc_attributes,
         "Units": model.units,
     }.items():
-        tables[k] = v
+        if not v.empty:
+            tables[k] = v
 
     return tables
 
@@ -1005,19 +1081,9 @@ def generate_commodity_groups(
 
     # Commodity groups by process, region and commodity
     comm_groups = pd.merge(prc_top, comm_set, on=["region", "commodity"])
-    comm_groups["commoditygroup"] = 0
-    # Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup
-    for region in comm_groups["region"].unique():
-        i_reg = comm_groups["region"] == region
-        for process in comm_groups[i_reg]["process"].unique():
-            i_reg_prc = i_reg & (comm_groups["process"] == process)
-            for cset in comm_groups[i_reg_prc]["csets"].unique():
-                i_reg_prc_cset = i_reg_prc & (comm_groups["csets"] == cset)
-                for io in ["IN", "OUT"]:
-                    i_reg_prc_cset_io = i_reg_prc_cset & (comm_groups["io"] == io)
-                    comm_groups.loc[i_reg_prc_cset_io, "commoditygroup"] = sum(
-                        i_reg_prc_cset_io
-                    )
+
+    # Add columns for the number of IN/OUT commodities of each type
+    _count_comm_group_vectorised(comm_groups)
 
     def name_comm_group(df):
         """
@@ -1034,24 +1100,8 @@ def generate_commodity_groups(
     # Replace commodity group member count with the name
     comm_groups["commoditygroup"] = comm_groups.apply(name_comm_group, axis=1)
 
-    # Determine default PCG according to Veda
-    comm_groups["DefaultVedaPCG"] = None
-    for region in comm_groups["region"].unique():
-        i_reg = comm_groups["region"] == region
-        for process in comm_groups[i_reg]["process"]:
-            i_reg_prc = i_reg & (comm_groups["process"] == process)
-            default_set = False
-            for io in ["OUT", "IN"]:
-                if default_set:
-                    break
-                i_reg_prc_io = i_reg_prc & (comm_groups["io"] == io)
-                for cset in csets_ordered_for_pcg:
-                    i_reg_prc_io_cset = i_reg_prc_io & (comm_groups["csets"] == cset)
-                    df = comm_groups[i_reg_prc_io_cset]
-                    if not df.empty:
-                        comm_groups.loc[i_reg_prc_io_cset, "DefaultVedaPCG"] = True
-                        default_set = True
-                        break
+    # Determine default PCG according to Veda's logic
+    comm_groups = _process_comm_groups_vectorised(comm_groups, csets_ordered_for_pcg)
 
     # Add standard Veda PCGS named contrary to name_comm_group
     if reg_prc_veda_pcg.shape[0]:
@@ -1083,6 +1133,62 @@ def generate_commodity_groups(
     model.com_gmap = comm_groups.loc[i, ["region", "commoditygroup", "commodity"]]
 
     return tables
+
+
+def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
+    """
+    Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup.
+    `comm_groups` is modified in-place
+    Args:
+        comm_groups: 'Process' DataFrame with additional columns "commoditygroup"
+    """
+    comm_groups["commoditygroup"] = 0
+
+    comm_groups["commoditygroup"] = (
+        comm_groups.groupby(["region", "process", "csets", "io"]).transform("count")
+    )["commoditygroup"]
+    # set comoditygroup to 0 for io rows that aren't IN or OUT
+    comm_groups.loc[~comm_groups["io"].isin(["IN", "OUT"]), "commoditygroup"] = 0
+
+
+def _process_comm_groups_vectorised(
+    comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]
+) -> pd.DataFrame:
+    """Sets the first commodity group in the list of csets_ordered_for_pcg as the default pcg for each region/process/io combination,
+    but setting the io="OUT" subset as default before "IN".
+
+    See:
+        Section 3.7.2.2, pg 80. of `TIMES Documentation PART IV` for details.
+    Args:
+        comm_groups: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
+        csets_ordered_for_pcg: List of csets in the order they should be considered for default pcg
+    Returns:
+        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in each region/process/io combination.
+    """
+
+    def _set_default_veda_pcg(group):
+        """For a given [region, process] group, default group is set as the first cset in the `csets_ordered_for_pcg` list, which is an output, if
+        one exists, otherwise the first input."""
+        if not group["csets"].isin(csets_ordered_for_pcg).all():
+            return group
+
+        for io in ["OUT", "IN"]:
+            for cset in csets_ordered_for_pcg:
+                group.loc[
+                    (group["io"] == io) & (group["csets"] == cset), "DefaultVedaPCG"
+                ] = True
+                if group["DefaultVedaPCG"].any():
+                    break
+        return group
+
+    comm_groups["DefaultVedaPCG"] = None
+    comm_groups_subset = comm_groups.groupby(
+        ["region", "process"], sort=False, as_index=False
+    ).apply(_set_default_veda_pcg)
+    comm_groups_subset = comm_groups_subset.reset_index(
+        level=0, drop=True
+    ).sort_index()  # back to the original index and row order
+    return comm_groups_subset
 
 
 def complete_commodity_groups(
@@ -2288,7 +2394,7 @@ def convert_aliases(
     # TODO: do this earlier
     model.attributes = tables[datatypes.Tag.fi_t]
     if datatypes.Tag.uc_t in tables.keys():
-        model.user_constraints = tables[datatypes.Tag.uc_t]
+        model.uc_attributes = tables[datatypes.Tag.uc_t]
 
     return tables
 
@@ -2432,19 +2538,6 @@ def apply_more_fixups(
                 )
         tables[datatypes.Tag.fi_t] = df
 
-    df = tables.get(datatypes.Tag.uc_t)
-    if df is not None:
-        # TODO: Handle defaults in a general way.
-        # Use uc_n value if uc_desc is missing
-        for uc_n in df["uc_n"].unique():
-            index = df["uc_n"] == uc_n
-            if all(df["uc_desc"][index].isna()):
-                # Populate the first row only
-                if any(index):
-                    df.at[list(index).index(True), "uc_desc"] = uc_n
-
-        tables[datatypes.Tag.uc_t] = df
-
     return tables
 
 
@@ -2453,5 +2546,5 @@ def expand_rows_parallel(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers) as executor:
         return list(executor.map(expand_rows, tables))

@@ -1,3 +1,4 @@
+import os
 import re
 from dataclasses import replace
 from math import log10, floor
@@ -9,6 +10,10 @@ from more_itertools import one
 from pandas.core.frame import DataFrame
 
 from . import datatypes
+
+# prevent excessive number of processes in Windows and high cpu-count machines
+# TODO make this a cli param or global setting?
+max_workers: int = 4 if os.name == "nt" else min(16, os.cpu_count() or 16)
 
 
 def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
@@ -31,7 +36,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         (newtag, varname) = table.tag.split(":")
         varname = varname.strip()
         df = table.dataframe.copy()
-        df["attribute"].fillna(varname, inplace=True)
+        df["attribute"] = df["attribute"].fillna(varname)
         return replace(table, tag=newtag, dataframe=df)
     else:
         return table
