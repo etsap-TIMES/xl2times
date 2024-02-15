@@ -72,7 +72,7 @@ git commit --no-verify
 
 See our GitHub Actions CI `.github/workflows/ci.yml` and the utility script `utils/run_benchmarks.py` to see how to run the tool on the DemoS models.
 
-In summary, use the commands below to clone the benchmarks data into your local `benchmarks` dir.
+In short, use the commands below to clone the benchmarks data into your local `benchmarks` dir.
 Note that this assumes you have access to all these repositories (some are private and
 you'll have to request access) - if not, comment out the inaccessible benchmarks from `benchmakrs.yml` before running.
 
