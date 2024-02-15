@@ -111,7 +111,6 @@ No regressions. You're awesome!
 ```
 If you have a large increase in runtime, a decrease in correct rows or fewer rows being produced, then you've broken something and will need to figure out how to fix it.
 
-
 ### Debugging Regressions
 
 If your change is causing regressions on one of the benchmarks, a useful way to debug and find the difference is to run the tool in verbose mode and compare the intermediate tables. For example, if your branch has regressions on Demo 1:
@@ -136,6 +135,7 @@ rm -rf dist
 python -m build
 python -m twine upload dist/*
 ```
+
 
 ## Contributing
 

@@ -19,3 +19,5 @@ benchmarks/
 .python-version
 docs/_build/
 docs/api/
+.coverage
+/out.txt
