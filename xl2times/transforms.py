@@ -1128,7 +1128,7 @@ def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
 
 
 def _process_comm_groups_vectorised(
-    comm_groups_test: pd.DataFrame, csets_ordered_for_pcg: list[str]
+    comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]
 ) -> pd.DataFrame:
     """Sets the first commodity group in the list of csets_ordered_for_pcg as the default pcg for each region/process/io combination,
     but setting the io="OUT" subset as default before "IN".
@@ -1136,7 +1136,7 @@ def _process_comm_groups_vectorised(
     See:
         Section 3.7.2.2, pg 80. of `TIMES Documentation PART IV` for details.
     Args:
-        comm_groups_test: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
+        comm_groups: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
         csets_ordered_for_pcg: List of csets in the order they should be considered for default pcg
     Returns:
         Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in each region/process/io combination.
@@ -1157,8 +1157,8 @@ def _process_comm_groups_vectorised(
                     break
         return group
 
-    comm_groups_test["DefaultVedaPCG"] = None
-    comm_groups_subset = comm_groups_test.groupby(
+    comm_groups["DefaultVedaPCG"] = None
+    comm_groups_subset = comm_groups.groupby(
         ["region", "process"], sort=False, as_index=False
     ).apply(_set_default_veda_pcg)
     comm_groups_subset = comm_groups_subset.reset_index(
