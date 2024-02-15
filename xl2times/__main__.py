@@ -67,6 +67,7 @@ def convert_xl_to_times(
             transforms.remove_comment_rows(config, t, model) for t in tables
         ],
         transforms.process_regions,
+        transforms.remove_exreg_cols,
         transforms.generate_dummy_processes,
         transforms.process_time_slices,
         transforms.process_transform_insert_variants,

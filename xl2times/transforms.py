@@ -107,6 +107,49 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     return replace(table, dataframe=df)
 
 
+def remove_exreg_cols(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Remove external region columns from the all tables except tradelinks.
+    """
+
+    external_regions = model.external_regions()
+
+    def remove_table_exreg_cols(
+        table: datatypes.EmbeddedXlTable,
+    ) -> datatypes.EmbeddedXlTable:
+        """
+        Return a modified copy of 'table' where columns that are external regions
+        have been removed.
+        """
+
+        exreg_cols = [
+            colname
+            for colname in table.dataframe.columns
+            if colname.upper() in external_regions
+        ]
+
+        if exreg_cols:
+            df = table.dataframe.drop(exreg_cols, axis=1)
+            return replace(table, dataframe=df)
+
+        else:
+            return table
+
+    # Do not do anything if external_reagions is empty
+    if not external_regions:
+        return tables
+    # Otherwise remove external region column from the relevant tables
+    else:
+        return [
+            remove_table_exreg_cols(t) if t.tag != datatypes.Tag.tradelinks else t
+            for t in tables
+        ]
+
+
 def remove_tables_with_formulas(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
