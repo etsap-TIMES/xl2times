@@ -13,7 +13,9 @@ ground_truth/*
 *.pyproj.*
 speedscope.json
 *.pkl
-.venv/
+.venv*/
 benchmarks/
+.idea/
+.python-version
 docs/_build/
 docs/api/
