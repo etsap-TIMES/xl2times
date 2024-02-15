@@ -571,6 +571,7 @@ def process_user_constraint_tables(
         table = replace(table, dataframe=df)
 
         # Fill missing regions using defaults (if specified)
+        # TODO: This assumes several regions lists may be present. Handle overwritting?
         regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R")]
         if regions_lists and table.uc_sets[regions_lists[-1]] != "":
             regions = table.uc_sets[regions_lists[-1]]
@@ -828,16 +829,22 @@ def remove_invalid_values(
     """
     # TODO: This should be table type specific
     # TODO pull this out
-    # TODO: This should take into account whether a specific dimension is required
     # Rules for allowing entries. Each entry of the dictionary designates a rule for a
     # a given column, and the values that are allowed for that column.
     constraints = {
         "csets": csets_ordered_for_pcg,
-        "region": model.all_regions,
+        "region": model.internal_regions,
     }
 
-    result = []
-    for table in tables:
+    # TODO: FI_T and UC_T should take into account whether a specific dimension is required
+    skip_tags = {datatypes.Tag.uc_t}
+
+    def remove_table_invalid_values(
+        table: datatypes.EmbeddedXlTable,
+    ) -> datatypes.EmbeddedXlTable:
+        """
+        Remove invalid entries in a table dataframe.
+        """
         df = table.dataframe.copy()
         is_valid_list = [
             df[colname].isin(values)
@@ -848,8 +855,12 @@ def remove_invalid_values(
             is_valid = reduce(lambda a, b: a & b, is_valid_list)
             df = df[is_valid]
             df.reset_index(drop=True, inplace=True)
-        result.append(replace(table, dataframe=df))
-    return result
+        table = replace(table, dataframe=df)
+        return table
+
+    return [
+        remove_table_invalid_values(t) if t.tag not in skip_tags else t for t in tables
+    ]
 
 
 def process_units(
@@ -1431,6 +1442,10 @@ def process_commodities(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Process commodities.
+    """
+
     regions = ",".join(model.internal_regions)
 
     result = []
@@ -1486,6 +1501,10 @@ def process_processes(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Process processes.
+    """
+
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
 
@@ -1812,6 +1831,9 @@ def process_transform_tables(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Process transform tables.
+    """
     regions = model.internal_regions
     tfm_tags = [
         datatypes.Tag.tfm_ins,
@@ -1842,6 +1864,7 @@ def process_transform_tables(
             known_columns = config.known_columns[table.tag] | query_columns
 
             # Handle Regions:
+            # Check whether allregions or any of model regions are among columns
             if set(df.columns).isdisjoint(
                 {x.lower() for x in regions} | {"allregions"}
             ):

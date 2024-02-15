@@ -421,7 +421,8 @@
         "aliases": [],
         "use_name": "region",
         "row_ignore_symbol": [
-          "\\I:"
+          "\\I:",
+          "*"
         ]
       },
       {

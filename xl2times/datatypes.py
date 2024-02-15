@@ -400,9 +400,10 @@ class Config:
 
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
-                        row_comment_chars[tag_name][field_name] = valid_field[
-                            "row_ignore_symbol"
-                        ]
+
+                    row_comment_chars[tag_name][field_name] = valid_field[
+                        "row_ignore_symbol"
+                    ]
 
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
