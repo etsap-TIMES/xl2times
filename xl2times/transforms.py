@@ -1058,9 +1058,7 @@ def generate_commodity_groups(
     # Commodity groups by process, region and commodity
     comm_groups = pd.merge(prc_top, comm_set, on=["region", "commodity"])
 
-    # Original logic, slow for large tables
-    # _count_comm_group_looped()
-    # Much faster vectorised version
+    # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)
 
     def name_comm_group(df):
@@ -1078,10 +1076,7 @@ def generate_commodity_groups(
     # Replace commodity group member count with the name
     comm_groups["commoditygroup"] = comm_groups.apply(name_comm_group, axis=1)
 
-    # Determine default PCG according to Veda
-    # original logic, slow for large tables
-    # comm_groups = pcg_looped(comm_groups, csets_ordered_for_pcg)
-    # vectorised logic, much faster
+    # Determine default PCG according to Veda's logic
     comm_groups = _process_comm_groups_vectorised(comm_groups, csets_ordered_for_pcg)
 
     # Add standard Veda PCGS named contrary to name_comm_group
@@ -1135,7 +1130,7 @@ def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
 def _process_comm_groups_vectorised(
     comm_groups_test: pd.DataFrame, csets_ordered_for_pcg: list[str]
 ) -> pd.DataFrame:
-    """Dets the first commodity group in the list of csets_ordered_for_pcg as the default pcg for each region/process/io combination,
+    """Sets the first commodity group in the list of csets_ordered_for_pcg as the default pcg for each region/process/io combination,
     but setting the io="OUT" subset as default before "IN".
 
     See:
