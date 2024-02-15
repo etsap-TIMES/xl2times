@@ -8,6 +8,8 @@ import os
 import sys
 import time
 from typing import Dict, List
+
+from xl2times.utils import max_workers
 from . import datatypes
 from . import excel
 from . import transforms
@@ -31,7 +33,7 @@ def convert_xl_to_times(
 
         use_pool = True
         if use_pool:
-            with ProcessPoolExecutor() as executor:
+            with ProcessPoolExecutor(max_workers) as executor:
                 for result in executor.map(excel.extract_tables, input_files):
                     raw_tables.extend(result)
         else:
@@ -118,7 +120,7 @@ def convert_xl_to_times(
         end_time = time.time()
         sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
         print(
-            f"{sep}transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
+            f"{sep}transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
         if verbose:
             if isinstance(output, list):
@@ -161,7 +163,7 @@ def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
 
 def compare(
     data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame], output_dir: str
-):
+) -> str:
     print(
         f"Ground truth contains {len(ground_truth)} tables,"
         f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
@@ -224,12 +226,14 @@ def compare(
                     os.path.join(output_dir, table_name + "_missing.csv"),
                     index=False,
                 )
-
-    print(
+    result = (
         f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
         f" in output ({total_correct_rows}/{total_gt_rows})"
         f", {total_additional_rows} additional rows"
     )
+
+    print(result)
+    return result
 
 
 def produce_times_tables(
@@ -386,42 +390,14 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
-def main():
-    args_parser = argparse.ArgumentParser()
-    args_parser.add_argument(
-        "input",
-        nargs="*",
-        help="Either an input directory, or a list of input xlsx/xlsm files to process",
-    )
-    args_parser.add_argument(
-        "--regions",
-        type=str,
-        default="",
-        help="Comma-separated list of regions to include in the model",
-    )
-    args_parser.add_argument(
-        "--output_dir", type=str, default="output", help="Output directory"
-    )
-    args_parser.add_argument(
-        "--ground_truth_dir",
-        type=str,
-        help="Ground truth directory to compare with output",
-    )
-    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
-    args_parser.add_argument(
-        "--only_read",
-        action="store_true",
-        help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
-    )
-    args_parser.add_argument("--use_pkl", action="store_true")
-    args_parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Verbose mode: print tables after every transform",
-    )
-    args = args_parser.parse_args()
-
+def run(args) -> str | None:
+    """
+    Runs the xl2times conversion.
+    Args:
+         args: pre-parsed command line arguments
+    Returns:
+         comparison with ground-truth string if `ground_truth_dir` is provided, else None.
+    """
     config = datatypes.Config(
         "times_mapping.txt",
         "times-info.json",
@@ -434,7 +410,7 @@ def main():
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         print(f"ERROR: expected at least 1 input. Got {args.input}")
-        sys.exit(1)
+        sys.exit(-1)
     elif len(args.input) == 1:
         assert os.path.isdir(args.input[0])
         input_files = [
@@ -471,8 +447,67 @@ def main():
 
     if args.ground_truth_dir:
         ground_truth = read_csv_tables(args.ground_truth_dir)
-        compare(tables, ground_truth, args.output_dir)
+        comparison = compare(tables, ground_truth, args.output_dir)
+        return comparison
+    else:
+        return None
+
+
+def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
+    """Parses command line arguments.
+
+    Args:
+        arg_list: List of command line arguments. Uses sys.argv (default argparse behaviour) if `None`.
+
+    Returns:
+        argparse.Namespace: Parsed arguments.
+    """
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "input",
+        nargs="*",
+        help="Either an input directory, or a list of input xlsx/xlsm files to process",
+    )
+    args_parser.add_argument(
+        "--regions",
+        type=str,
+        default="",
+        help="Comma-separated list of regions to include in the model",
+    )
+    args_parser.add_argument(
+        "--output_dir", type=str, default="output", help="Output directory"
+    )
+    args_parser.add_argument(
+        "--ground_truth_dir",
+        type=str,
+        help="Ground truth directory to compare with output",
+    )
+    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
+    args_parser.add_argument(
+        "--only_read",
+        action="store_true",
+        help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
+    )
+    args_parser.add_argument("--use_pkl", action="store_true")
+    args_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose mode: print tables after every transform",
+    )
+    args = args_parser.parse_args(arg_list)
+    return args
+
+
+def main(arg_list: None | list[str] = None) -> None:
+    """Main entry point for the xl2times package
+    Returns:
+        None.
+    """
+    args = parse_args(arg_list)
+    run(args)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
+    sys.exit(0)
