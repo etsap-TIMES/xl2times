@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["xl2times", "utils"]
+packages = ["xl2times"]
 
 [project]
 name = "xl2times"

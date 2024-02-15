@@ -20,3 +20,4 @@ benchmarks/
 docs/_build/
 docs/api/
 .coverage
+/out.txt

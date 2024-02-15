@@ -1,4 +1,5 @@
 import argparse
+import sys
 from collections import defaultdict
 import json
 import os
@@ -229,4 +230,4 @@ def main(arg_list: None | list[str] = None):
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

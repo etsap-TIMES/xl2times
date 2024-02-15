@@ -159,7 +159,7 @@ def run_benchmark(
                 sys.exit(5)
         else:
             # If debug option is set, run as a function call to allow stepping with a debugger.
-            from utils.dd_to_csv import main
+            from dd_to_csv import main
 
             main([dd_folder, csv_folder])
 
@@ -259,7 +259,9 @@ def run_all_benchmarks(
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
     repo = git.Repo(".")  # pyright: ignore
-    origin = repo.remotes.origin
+    origin = (
+        repo.remotes.origin if "origin" in repo.remotes else repo.remotes[0]
+    )  # don't assume remote is called 'origin'
     origin.fetch("main")
     if "main" not in repo.heads:
         repo.create_head("main", origin.refs.main).set_tracking_branch(origin.refs.main)
