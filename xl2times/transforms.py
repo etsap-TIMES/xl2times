@@ -576,6 +576,10 @@ def process_user_constraint_tables(
         if regions_lists and table.uc_sets[regions_lists[-1]] != "":
             regions = table.uc_sets[regions_lists[-1]]
             if regions.lower() != "allregions":
+                regions = model.internal_regions.intersection(
+                    set(regions.upper().split(","))
+                )
+                regions = ",".join(regions)
                 df["region"] = df["region"].fillna(regions)
 
         # TODO: detect RHS correctly
