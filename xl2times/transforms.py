@@ -572,6 +572,76 @@ def process_user_constraint_tables(
     return [process_user_constraint_table(t) for t in tables]
 
 
+def generate_uc_properties(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Generate a dataframe containing User Constraint properties
+    """
+
+    uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
+    columns = ["uc_n", "uc_desc", "region", "reg_action", "ts_action"]
+    user_constraints = pd.DataFrame(columns=columns)
+    # Create df_list to hold DataFrames that will be concatenated later on
+    df_list = list()
+    for uc_table in uc_tables:
+        # Single-column DataFrame with unique UC names
+        df = uc_table.dataframe.loc[:, ["uc_n"]].drop_duplicates(keep="first")
+        # Supplement UC names with descriptions, if they exist
+        df = df.merge(
+            uc_table.dataframe.loc[:, ["uc_n", "uc_desc"]]
+            .drop_duplicates(keep="first")
+            .dropna(),
+            how="left",
+        )
+        # Add info on how regions and timeslices should be treated by the UCs
+        for key in uc_table.uc_sets.keys():
+            if key.startswith("R_"):
+                df["reg_action"] = key
+                df["region"] = uc_table.uc_sets[key].upper().strip()
+            elif key.startswith("T_"):
+                df["ts_action"] = key
+
+        df_list.append(df)
+    # Do further processing if df_list is not empty
+    if df_list:
+        # Create a single DataFrame with all UCs
+        user_constraints = pd.concat(df_list, ignore_index=True)
+
+        # Use name to populate description if it is missing
+        index = user_constraints["uc_desc"].isna()
+        if any(index):
+            user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
+
+        # TODO: Can this (until user_constraints.explode) become a utility function?
+        # Handle allregions by substituting it with a list of internal regions
+        index = user_constraints["region"].str.lower() == "allregions"
+        if any(index):
+            user_constraints["region"][index] = [model.internal_regions]
+
+        # Handle comma-separated regions
+        index = user_constraints["region"].str.contains(",").fillna(value=False)
+        if any(index):
+            user_constraints["region"][index] = user_constraints.apply(
+                lambda row: [
+                    region
+                    for region in str(row["region"]).split(",")
+                    if region in model.internal_regions
+                ],
+                axis=1,
+            )
+        # Explode regions
+        user_constraints = user_constraints.explode("region", ignore_index=True)
+
+    model.user_constraints = user_constraints.rename(
+        columns={"uc_n": "name", "uc_desc": "description"}
+    )
+
+    return tables
+
+
 def fill_in_missing_values(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -649,15 +719,15 @@ def fill_in_missing_values(
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
-                        df.fillna({colname: ",".join(vt_regions[book])}, inplace=True)
+                        df = df.fillna({colname: ",".join(vt_regions[book])})
                     else:
                         print(f"WARNING: book name {book} not in BookRegions_Map")
                 else:
-                    df.fillna({colname: ",".join(model.internal_regions)}, inplace=True)
+                    df = df.fillna({colname: ",".join(model.internal_regions)})
             elif colname == "year":
-                df.fillna({colname: start_year}, inplace=True)
+                df = df.fillna({colname: start_year})
             elif colname == "currency":
-                df.fillna({colname: currency}, inplace=True)
+                df = df.fillna({colname: currency})
 
         return replace(table, dataframe=df)
 
@@ -847,9 +917,11 @@ def complete_dictionary(
         "TimeSlices": model.ts_tslvl,
         "TimeSliceMap": model.ts_map,
         "UserConstraints": model.user_constraints,
+        "UCAttributes": model.uc_attributes,
         "Units": model.units,
     }.items():
-        tables[k] = v
+        if not v.empty:
+            tables[k] = v
 
     return tables
 
@@ -2266,7 +2338,7 @@ def convert_aliases(
     # TODO: do this earlier
     model.attributes = tables[datatypes.Tag.fi_t]
     if datatypes.Tag.uc_t in tables.keys():
-        model.user_constraints = tables[datatypes.Tag.uc_t]
+        model.uc_attributes = tables[datatypes.Tag.uc_t]
 
     return tables
 
@@ -2409,19 +2481,6 @@ def apply_more_fixups(
                     ]
                 )
         tables[datatypes.Tag.fi_t] = df
-
-    df = tables.get(datatypes.Tag.uc_t)
-    if df is not None:
-        # TODO: Handle defaults in a general way.
-        # Use uc_n value if uc_desc is missing
-        for uc_n in df["uc_n"].unique():
-            index = df["uc_n"] == uc_n
-            if all(df["uc_desc"][index].isna()):
-                # Populate the first row only
-                if any(index):
-                    df.at[list(index).index(True), "uc_desc"] = uc_n
-
-        tables[datatypes.Tag.uc_t] = df
 
     return tables
 
