@@ -117,7 +117,7 @@ def remove_exreg_cols(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Remove external region columns from the all tables except tradelinks.
+    Remove external region columns from all the tables except tradelinks.
     """
 
     external_regions = model.external_regions()
@@ -938,16 +938,16 @@ def process_regions(
         .drop_duplicates(ignore_index=True)
     )
     # Update model.all_regions
-    model.all_regions.update(region_def["region"].to_list())
+    model.all_regions.update(region_def["region"])
     # Determine model.internal_regions
-    booknames = set(region_def["bookname"].to_list())
+    booknames = set(region_def["bookname"])
     valid_booknames = {
         b
         for b in booknames
         if any(re.match(rf"^VT_{b}_", file, re.IGNORECASE) for file in model.files)
     }
     model.internal_regions.update(
-        region_def["region"][region_def["bookname"].isin(valid_booknames)].to_list()
+        region_def["region"][region_def["bookname"].isin(valid_booknames)]
     )
 
     # Print a warning for any region treated as external
