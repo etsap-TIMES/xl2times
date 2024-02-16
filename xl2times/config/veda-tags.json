@@ -4276,7 +4276,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
-        "query_field": false,
+        "query_field": true,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
         "remove_any_row_if_absent": false
@@ -4294,7 +4294,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
-        "query_field": false,
+        "query_field": true,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
         "remove_any_row_if_absent": false
@@ -4309,7 +4309,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
-        "query_field": false,
+        "query_field": true,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
         "remove_any_row_if_absent": false
@@ -4371,7 +4371,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
-        "query_field": false,
+        "query_field": true,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
         "remove_any_row_if_absent": false
@@ -4386,7 +4386,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
-        "query_field": false,
+        "query_field": true,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
         "remove_any_row_if_absent": false
@@ -4401,7 +4401,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
-        "query_field": false,
+        "query_field": true,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
         "remove_any_row_if_absent": false
@@ -4419,7 +4419,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
-        "query_field": false,
+        "query_field": true,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
         "remove_any_row_if_absent": false
@@ -4434,7 +4434,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
-        "query_field": false,
+        "query_field": true,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
         "remove_any_row_if_absent": false
