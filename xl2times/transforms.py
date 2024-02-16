@@ -584,7 +584,7 @@ def generate_uc_properties(
     """
 
     uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
-    columns = ["uc_n", "uc_desc", "region", "reg_action", "ts_action"]
+    columns = ["uc_n", "description", "region", "reg_action", "ts_action"]
     user_constraints = pd.DataFrame(columns=columns)
     # Create df_list to hold DataFrames that will be concatenated later on
     df_list = list()
@@ -593,7 +593,7 @@ def generate_uc_properties(
         df = uc_table.dataframe.loc[:, ["uc_n"]].drop_duplicates(keep="first")
         # Supplement UC names with descriptions, if they exist
         df = df.merge(
-            uc_table.dataframe.loc[:, ["uc_n", "uc_desc"]]
+            uc_table.dataframe.loc[:, ["uc_n", "description"]]
             .drop_duplicates(keep="first")
             .dropna(),
             how="left",
@@ -613,9 +613,9 @@ def generate_uc_properties(
         user_constraints = pd.concat(df_list, ignore_index=True)
 
         # Use name to populate description if it is missing
-        index = user_constraints["uc_desc"].isna()
+        index = user_constraints["description"].isna()
         if any(index):
-            user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
+            user_constraints["description"][index] = user_constraints["uc_n"][index]
 
         # TODO: Can this (until user_constraints.explode) become a utility function?
         # Handle allregions by substituting it with a list of internal regions
@@ -637,9 +637,7 @@ def generate_uc_properties(
         # Explode regions
         user_constraints = user_constraints.explode("region", ignore_index=True)
 
-    model.user_constraints = user_constraints.rename(
-        columns={"uc_n": "name", "uc_desc": "description"}
-    )
+    model.user_constraints = user_constraints.rename(columns={"uc_n": "name"})
 
     return tables
 
