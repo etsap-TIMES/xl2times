@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -63,17 +64,19 @@ log_conf = {
 logger.configure(**log_conf)
 
 
-def parse_result(lastline):
-    m = match(
-        r"(\d+\.\d)\% of ground truth rows present in output \((\d+)/(\d+)\)"
-        r", (\d+) additional rows",
-        lastline,
+def parse_result(output: str) -> Tuple[float, int, int]:
+    # find pattern in multiline string
+    m = re.findall(
+        r"(\d+\.\d)\% of ground truth rows present in output \((\d+)/(\d+)\), (\d+) additional rows",
+        output,
+        flags=re.MULTILINE,
     )
-    if not m:
-        print(f"ERROR: could not parse output of run:\n{lastline}")
+    if not m or len(m) == 0:
+        print(f"ERROR: could not parse output of run:\n{output}")
         sys.exit(2)
     # return (accuracy, num_correct_rows, num_additional_rows)
-    return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
+    m = m[0]
+    return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[2]))
 
 
 def run_gams_gdxdiff(
@@ -260,7 +263,7 @@ def run_benchmark(
     with open(path.join(out_folder, "stdout"), "w") as f:
         f.write(res.stdout)
 
-    (accuracy, num_correct, num_additional) = parse_result(res.stdout.splitlines()[-1])
+    (accuracy, num_correct, num_additional) = parse_result(res.stdout)
 
     if run_gams:
         dd_res = run_gams_gdxdiff(benchmark, times_folder, dd_folder, out_folder)
