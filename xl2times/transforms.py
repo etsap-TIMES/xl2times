@@ -267,17 +267,23 @@ def merge_tables(
 
     for key, value in groupby(sorted(tables, key=lambda t: t.tag), lambda t: t.tag):
         group = list(value)
-        if not all(
-            set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group
-        ):
-            cols = [(",".join(g.dataframe.columns), g) for g in group]
-            print(
-                f"WARNING: Cannot merge tables with tag {key} as their columns are not identical"
-            )
-            for c, table in cols:
-                print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
-        else:
-            df = pd.concat([table.dataframe for table in group], ignore_index=True)
+
+        if len(group) == 0:
+            continue
+
+        df = pd.concat([table.dataframe for table in group], ignore_index=True)
+        result[key] = df
+
+        # VEDA appears to support merging tables where come columns are optional, e.g. ctslvl and ctype from ~FI_COMM.
+        # So just print detailed warning if we find tables with fewer columns than the concat'ed table.
+        concat_cols = set(df.columns)
+        missing_cols = [concat_cols - set(t.dataframe.columns) for t in group]
+
+        if any([len(m) for m in missing_cols]):
+            err = f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual table(s), see details below:"
+            for table in group:
+                err += f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, {table.filename}"
+            logger.warning(err)
 
             match key:
                 case datatypes.Tag.fi_comm:
@@ -662,7 +668,6 @@ def generate_uc_properties(
     model.user_constraints = user_constraints.rename(
         columns={"uc_n": "name", "uc_desc": "description"}
     )
-
     return tables
 
 
