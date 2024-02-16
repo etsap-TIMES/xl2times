@@ -163,6 +163,7 @@ class TimesModel:
     data_years: Tuple[int] = field(default_factory=tuple)
     model_years: Tuple[int] = field(default_factory=tuple)
     past_years: Tuple[int] = field(default_factory=tuple)
+    files: Set[str] = field(default_factory=set)
 
     def external_regions(self) -> Set[str]:
         return self.all_regions.difference(self.internal_regions)
@@ -209,6 +210,7 @@ class Config:
             self.column_aliases,
             self.row_comment_chars,
             self.discard_if_empty,
+            self.query_columns,
             self.known_columns,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
@@ -366,6 +368,7 @@ class Config:
         Dict[Tag, Dict[str, list]],
         Iterable[Tag],
         Dict[Tag, Set[str]],
+        Dict[Tag, Set[str]],
     ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
@@ -386,6 +389,7 @@ class Config:
         valid_column_names = {}
         row_comment_chars = {}
         discard_if_empty = []
+        query_cols = defaultdict(set)
         known_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
@@ -407,13 +411,16 @@ class Config:
                     else:
                         field_name = valid_field["name"]
 
+                    if valid_field["query_field"]:
+                        query_cols[tag_name].add(field_name)
                     known_cols[tag_name].add(field_name)
 
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
-                        row_comment_chars[tag_name][field_name] = valid_field[
-                            "row_ignore_symbol"
-                        ]
+
+                    row_comment_chars[tag_name][field_name] = valid_field[
+                        "row_ignore_symbol"
+                    ]
 
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
@@ -423,10 +430,18 @@ class Config:
                     discard_if_empty.append(tag_name)
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
+                if base_tag in query_cols:
+                    query_cols[tag_name] = query_cols[base_tag]
                 if base_tag in known_cols:
                     known_cols[tag_name] = known_cols[base_tag]
 
-        return valid_column_names, row_comment_chars, discard_if_empty, known_cols
+        return (
+            valid_column_names,
+            row_comment_chars,
+            discard_if_empty,
+            query_cols,
+            known_cols,
+        )
 
     @staticmethod
     def _read_veda_attr_defaults(
