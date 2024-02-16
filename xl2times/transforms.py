@@ -100,6 +100,49 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     return replace(table, dataframe=df)
 
 
+def remove_exreg_cols(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Remove external region columns from all the tables except tradelinks.
+    """
+
+    external_regions = model.external_regions()
+
+    def remove_table_exreg_cols(
+        table: datatypes.EmbeddedXlTable,
+    ) -> datatypes.EmbeddedXlTable:
+        """
+        Return a modified copy of 'table' where columns that are external regions
+        have been removed.
+        """
+
+        exreg_cols = [
+            colname
+            for colname in table.dataframe.columns
+            if colname.upper() in external_regions
+        ]
+
+        if exreg_cols:
+            df = table.dataframe.drop(exreg_cols, axis=1)
+            return replace(table, dataframe=df)
+
+        else:
+            return table
+
+    # Do not do anything if external_reagions is empty
+    if not external_regions:
+        return tables
+    # Otherwise remove external region column from the relevant tables
+    else:
+        return [
+            remove_table_exreg_cols(t) if t.tag != datatypes.Tag.tradelinks else t
+            for t in tables
+        ]
+
+
 def remove_tables_with_formulas(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -521,10 +564,15 @@ def process_user_constraint_tables(
         table = replace(table, dataframe=df)
 
         # Fill missing regions using defaults (if specified)
+        # TODO: This assumes several regions lists may be present. Handle overwritting?
         regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R")]
         if regions_lists and table.uc_sets[regions_lists[-1]] != "":
             regions = table.uc_sets[regions_lists[-1]]
             if regions.lower() != "allregions":
+                regions = model.internal_regions.intersection(
+                    set(regions.upper().split(","))
+                )
+                regions = ",".join(regions)
                 df["region"] = df["region"].fillna(regions)
 
         # TODO: detect RHS correctly
@@ -651,7 +699,6 @@ def fill_in_missing_values(
     # The default regions for VT_* files is given by ~BookRegions_Map:
     vt_regions = defaultdict(list)
     brm = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
-    utils.missing_value_inherit(brm, "bookname")
     for _, row in brm.iterrows():
         if row["region"] in model.internal_regions:
             vt_regions[row["bookname"]].append(row["region"])
@@ -665,7 +712,7 @@ def fill_in_missing_values(
         for colname in df.columns:
             # TODO make this more declarative
             if colname in ["sets", "csets", "process"]:
-                utils.missing_value_inherit(df, colname)
+                df[colname] = df[colname].ffill()
             elif colname == "limtype" and table.tag == datatypes.Tag.fi_comm and False:
                 isna = df[colname].isna()
                 ismat = df["csets"] == "MAT"
@@ -704,7 +751,7 @@ def fill_in_missing_values(
                 df.loc[isna & ~isele, colname] = "ANNUAL"
             elif colname == "region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
-                matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).name)
+                matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).stem)
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
@@ -780,16 +827,22 @@ def remove_invalid_values(
     """
     # TODO: This should be table type specific
     # TODO pull this out
-    # TODO: This should take into account whether a specific dimension is required
     # Rules for allowing entries. Each entry of the dictionary designates a rule for a
     # a given column, and the values that are allowed for that column.
     constraints = {
         "csets": csets_ordered_for_pcg,
-        "region": model.all_regions,
+        "region": model.internal_regions,
     }
 
-    result = []
-    for table in tables:
+    # TODO: FI_T and UC_T should take into account whether a specific dimension is required
+    skip_tags = {datatypes.Tag.uc_t}
+
+    def remove_table_invalid_values(
+        table: datatypes.EmbeddedXlTable,
+    ) -> datatypes.EmbeddedXlTable:
+        """
+        Remove invalid entries in a table dataframe.
+        """
         df = table.dataframe.copy()
         is_valid_list = [
             df[colname].isin(values)
@@ -800,8 +853,12 @@ def remove_invalid_values(
             is_valid = reduce(lambda a, b: a & b, is_valid_list)
             df = df[is_valid]
             df.reset_index(drop=True, inplace=True)
-        result.append(replace(table, dataframe=df))
-    return result
+        table = replace(table, dataframe=df)
+        return table
+
+    return [
+        remove_table_invalid_values(t) if t.tag not in skip_tags else t for t in tables
+    ]
 
 
 def process_units(
@@ -856,15 +913,39 @@ def process_regions(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Include IMPEXP and MINRNW together with the user-defined regions in the AllRegions set.
-    IMPEXP and MINRNW are external regions that are defined by default by Veda.
+    Read model regions and update model.internal_regions and model.all_regions.
+    Include IMPEXP and MINRNW in model.all_regions (defined by default by Veda).
     """
 
     model.all_regions.update((["IMPEXP", "MINRNW"]))
-    model.internal_regions.update(
-        utils.single_column(tables, datatypes.Tag.book_regions_map, "region")
+    # Read region settings
+    region_def = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
+    # Harmonise the dataframe
+    region_def["bookname"] = region_def[["bookname"]].ffill()
+    region_def = (
+        region_def.dropna(how="any")
+        .apply(lambda x: x.str.upper())
+        .drop_duplicates(ignore_index=True)
     )
-    model.all_regions.update(model.internal_regions)
+    # Update model.all_regions
+    model.all_regions.update(region_def["region"])
+    # Determine model.internal_regions
+    booknames = set(region_def["bookname"])
+    valid_booknames = {
+        b
+        for b in booknames
+        if any(re.match(rf"^VT_{b}_", file, re.IGNORECASE) for file in model.files)
+    }
+    model.internal_regions.update(
+        region_def["region"][region_def["bookname"].isin(valid_booknames)]
+    )
+
+    # Print a warning for any region treated as external
+    for bookname in booknames.difference(valid_booknames):
+        external = region_def["region"][region_def["bookname"] == bookname].to_list()
+        print(
+            f"WARNING: VT_{bookname}_* is not in model files. Treated {external} as external regions."
+        )
 
     # Apply regions filter
     if config.filter_regions:
@@ -1260,12 +1341,10 @@ def generate_trade(
                     .copy()
                 )
                 top_ire = pd.concat([top_ire, b_links[cols_list]])
-
-    filter_regions = model.internal_regions.union({"IMPEXP", "MINRNW"})
-    i = top_ire["origin"].isin(filter_regions) & top_ire["destination"].isin(
-        filter_regions
+    # Discard tradelinks if none of the regions is internal
+    i = top_ire["origin"].isin(model.internal_regions) | top_ire["destination"].isin(
+        model.internal_regions
     )
-
     model.trade = top_ire[i].reset_index()
 
     return tables
@@ -1391,6 +1470,10 @@ def process_commodities(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Process commodities.
+    """
+
     regions = ",".join(model.internal_regions)
 
     result = []
@@ -1446,6 +1529,10 @@ def process_processes(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Process processes.
+    """
+
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
 
@@ -1773,6 +1860,9 @@ def process_transform_tables(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Process transform tables.
+    """
     regions = model.internal_regions
     tfm_tags = [
         datatypes.Tag.tfm_ins,
@@ -1805,6 +1895,7 @@ def process_transform_tables(
             )
 
             # Handle Regions:
+            # Check whether allregions or any of model regions are among columns
             if set(df.columns).isdisjoint(
                 {x.lower() for x in regions} | {"allregions"}
             ):
@@ -2403,8 +2494,11 @@ def complete_processes(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    # Generate processes based on trade links
+    """
+    Generate processes based on trade links if not defined elsewhere
+    """
 
+    # Dataframe with region, process and commodity columns (no trade direction)
     trade_processes = pd.concat(
         [
             model.trade.loc[:, ["origin", "process", "in"]].rename(
@@ -2418,9 +2512,11 @@ def complete_processes(
         sort=False,
     )
 
+    # Determine undeclared trade process
     undeclared_td = trade_processes.merge(
         model.processes.loc[:, ["region", "process"]], how="left", indicator=True
     )
+    # Keep only those undeclared processes that are in internal regions
     undeclared_td = undeclared_td.loc[
         (
             undeclared_td["region"].isin(model.internal_regions)
@@ -2428,19 +2524,23 @@ def complete_processes(
         ),
         ["region", "process", "commodity"],
     ]
-
+    # Include additional info from model.commodities
     undeclared_td = undeclared_td.merge(
         model.commodities.loc[:, ["region", "commodity", "csets", "ctslvl", "unit"]],
         how="left",
     )
+    # Remove unnecessary columns
     undeclared_td.drop(columns=["commodity"], inplace=True)
+    # Rename to match columns in model.processes
     undeclared_td.rename(
         columns={"csets": "primarycg", "ctslvl": "tslvl", "unit": "tact"}, inplace=True
     )
+    # Specify expected set
     undeclared_td["sets"] = "IRE"
+    # Remove full duplicates in case generated
     undeclared_td.drop_duplicates(keep="last", inplace=True)
-
-    # TODO: Handle possible duplicates
+    # TODO: Handle possible confilicting input
+    # Print warnings in case of conflicting input data
     for i in ["primarycg", "tslvl", "tact"]:
         duplicates = undeclared_td.loc[:, ["region", "process", i]].duplicated(
             keep=False
