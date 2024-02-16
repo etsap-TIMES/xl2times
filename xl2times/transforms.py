@@ -3,7 +3,7 @@ from pandas.core.frame import DataFrame
 from pathlib import Path
 import pandas as pd
 from dataclasses import replace
-from typing import Dict, List
+from typing import Dict, List, Set
 from more_itertools import locate, one
 from itertools import groupby
 import re
@@ -16,17 +16,6 @@ from tqdm import tqdm
 from .utils import max_workers
 from . import datatypes
 from . import utils
-
-query_columns = {
-    "pset_set",
-    "pset_pn",
-    "pset_pd",
-    "pset_ci",
-    "pset_co",
-    "cset_set",
-    "cset_cn",
-    "cset_cd",
-}
 
 csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
 default_pcg_suffixes = [
@@ -584,7 +573,7 @@ def generate_uc_properties(
     """
 
     uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
-    columns = ["uc_n", "uc_desc", "region", "reg_action", "ts_action"]
+    columns = ["uc_n", "description", "region", "reg_action", "ts_action"]
     user_constraints = pd.DataFrame(columns=columns)
     # Create df_list to hold DataFrames that will be concatenated later on
     df_list = list()
@@ -593,7 +582,7 @@ def generate_uc_properties(
         df = uc_table.dataframe.loc[:, ["uc_n"]].drop_duplicates(keep="first")
         # Supplement UC names with descriptions, if they exist
         df = df.merge(
-            uc_table.dataframe.loc[:, ["uc_n", "uc_desc"]]
+            uc_table.dataframe.loc[:, ["uc_n", "description"]]
             .drop_duplicates(keep="first")
             .dropna(),
             how="left",
@@ -613,9 +602,9 @@ def generate_uc_properties(
         user_constraints = pd.concat(df_list, ignore_index=True)
 
         # Use name to populate description if it is missing
-        index = user_constraints["uc_desc"].isna()
+        index = user_constraints["description"].isna()
         if any(index):
-            user_constraints["uc_desc"][index] = user_constraints["uc_n"][index]
+            user_constraints["description"][index] = user_constraints["uc_n"][index]
 
         # TODO: Can this (until user_constraints.explode) become a utility function?
         # Handle allregions by substituting it with a list of internal regions
@@ -637,9 +626,7 @@ def generate_uc_properties(
         # Explode regions
         user_constraints = user_constraints.explode("region", ignore_index=True)
 
-    model.user_constraints = user_constraints.rename(
-        columns={"uc_n": "name", "uc_desc": "description"}
-    )
+    model.user_constraints = user_constraints.rename(columns={"uc_n": "name"})
 
     return tables
 
@@ -742,13 +729,16 @@ def fill_in_missing_values(
     return result
 
 
-def expand_rows(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
+def expand_rows(
+    query_columns: Set[str], table: datatypes.EmbeddedXlTable
+) -> datatypes.EmbeddedXlTable:
     """
     Expand entries with commas into separate entries in the same column. Do this
     for all tables except transformation update tables.
 
-    :param table:       Table in EmbeddedXlTable format.
-    :return:            Table in EmbeddedXlTable format with expanded comma entries.
+    :param query_columns: List of query column names.
+    :param table:         Table in EmbeddedXlTable format.
+    :return:              Table in EmbeddedXlTable format with expanded comma entries.
     """
 
     def has_comma(s):
@@ -1722,6 +1712,7 @@ def process_transform_insert_variants(
         if table.tag == datatypes.Tag.tfm_ins_ts:
             # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
             df = table.dataframe
+            query_columns = config.query_columns[datatypes.Tag(table.tag)]
             if "year" in df.columns:
                 raise ValueError(f"TFM_INS-TS table already has Year column: {table}")
             # TODO: can we remove this hacky shortcut? Or should it be also applied to the AT variant?
@@ -1809,7 +1800,9 @@ def process_transform_tables(
             df = table.dataframe.copy()
 
             # Standardize column names
-            known_columns = config.known_columns[table.tag] | query_columns
+            known_columns = (
+                config.known_columns[table.tag] | config.query_columns[table.tag]
+            )
 
             # Handle Regions:
             if set(df.columns).isdisjoint(
@@ -2034,6 +2027,7 @@ def process_uc_wildcards(
     if tag in tables:
         start_time = time.time()
         df = tables[tag]
+        query_columns = config.query_columns[tag]
         dictionary = generate_topology_dictionary(tables, model)
 
         df["process"] = df.apply(
@@ -2046,6 +2040,7 @@ def process_uc_wildcards(
         cols_to_drop = [col for col in df.columns if col in query_columns]
 
         df = expand_rows(
+            query_columns,
             datatypes.EmbeddedXlTable(
                 tag="",
                 uc_sets={},
@@ -2053,7 +2048,7 @@ def process_uc_wildcards(
                 range="",
                 filename="",
                 dataframe=df.drop(columns=cols_to_drop),
-            )
+            ),
         ).dataframe
 
         tables[tag] = df
@@ -2522,5 +2517,11 @@ def expand_rows_parallel(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    query_columns_lists = [
+        config.query_columns[datatypes.Tag(table.tag)]
+        if datatypes.Tag.has_tag(table.tag)
+        else set()
+        for table in tables
+    ]
     with ProcessPoolExecutor(max_workers) as executor:
-        return list(executor.map(expand_rows, tables))
+        return list(executor.map(expand_rows, query_columns_lists, tables))
