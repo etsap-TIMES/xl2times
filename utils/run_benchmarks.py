@@ -1,21 +1,66 @@
 import argparse
+import logging
 import os
-from collections import namedtuple
-from concurrent.futures import ProcessPoolExecutor
-from functools import partial
-import git
-from os import path, symlink
-import pandas as pd
-from re import match
 import shutil
 import subprocess
 import sys
-from tabulate import tabulate
 import time
+from collections import namedtuple
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
+from logging.handlers import RotatingFileHandler
+from logging import StreamHandler
+from os import path, symlink
+from re import match
 from typing import Any, Tuple
+
+import git
+import pandas as pd
 import yaml
+from tabulate import tabulate
 
 from xl2times.utils import max_workers
+
+# configure logger
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(filename)s:%(lineno)d",
+#     handlers=[StreamHandler(), RotatingFileHandler("xl2times.log", maxBytes=1000000, backupCount=5)],
+#     force=True,
+#     datefmt="%Y-%m-%d %H:%M:%S",
+# )
+# logger = logging.getLogger("xl2times")
+# logger.info("Logger!")
+
+from loguru import logger
+
+# set global log level via env var.  Set to INFO if not already set.
+if os.getenv("LOGURU_LEVEL") is None:
+    os.environ["LOGURU_LEVEL"] = "INFO"
+
+log_conf = {
+    "handlers": [
+        {
+            "sink": sys.stdout,
+            "diagnose": False,
+            "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level> (<cyan>{name}:{"
+            'thread.name}:pid-{process}</cyan> "<cyan>{'
+            'file.path}</cyan>:<cyan>{line}</cyan>")',
+        },
+        {
+            "sink": "./xl2times.log",
+            "enqueue": True,
+            "mode": "a+",
+            "level": "DEBUG",
+            "colorize": False,
+            "serialize": False,
+            "diagnose": False,
+            "rotation": "20 MB",
+            "compression": "zip",
+        },
+    ],
+}
+logger.configure(**log_conf)
 
 
 def parse_result(lastline):
@@ -349,21 +394,21 @@ def run_all_benchmarks(
 
     print(f"Total runtime: {our_time:.2f}s (main: {main_time:.2f}s)")
     print(
-        f"Change in runtime (negative == faster): {runtime_change:+.2f}s ({100*runtime_change/main_time:+.1f}%)"
+        f"Change in runtime (negative == faster): {runtime_change:+.2f}s ({100 * runtime_change / main_time:+.1f}%)"
     )
 
     our_correct = df["Correct"].sum()
     main_correct = df["M Correct"].sum()
     correct_change = our_correct - main_correct
     print(
-        f"Change in correct rows (higher == better): {correct_change:+d} ({100*correct_change/main_correct:+.1f}%)"
+        f"Change in correct rows (higher == better): {correct_change:+d} ({100 * correct_change / main_correct:+.1f}%)"
     )
 
     our_additional_rows = df["Additional"].sum()
     main_additional_rows = df["M Additional"].sum()
     additional_change = our_additional_rows - main_additional_rows
     print(
-        f"Change in additional rows: {additional_change:+d} ({100*additional_change/main_additional_rows:+.1f}%)"
+        f"Change in additional rows: {additional_change:+d} ({100 * additional_change / main_additional_rows:+.1f}%)"
     )
 
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
