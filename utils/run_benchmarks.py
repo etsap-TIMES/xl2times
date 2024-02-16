@@ -76,7 +76,7 @@ def parse_result(output: str) -> Tuple[float, int, int]:
         sys.exit(2)
     # return (accuracy, num_correct_rows, num_additional_rows)
     m = m[0]
-    return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[2]))
+    return (float(m[0]), int(m[1]), int(m[2]))
 
 
 def run_gams_gdxdiff(
