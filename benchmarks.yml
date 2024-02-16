@@ -108,6 +108,39 @@ benchmarks:
       - "tra_co2_bound"
       - "uc_co2bnd"
       - "uc_growth"
+  - name: DemoS_007-all-1r
+    input_folder: DemoS_007
+    inputs:
+      - "BY_Trans.xlsx"
+      - "Sets-DemoModels.xlsx"
+      - "SysSettings.xlsx"
+      - "SubRES_TMPL/SubRES_NewTechs.xlsx"
+      - "SubRES_TMPL/SubRES_NewTechs_Trans.xlsx"
+      - "SuppXLS/Scen_DemProj_DTCAR.xlsx"
+      - "SuppXLS/Scen_ElasticDem.xlsx"
+      - "SuppXLS/Scen_ELC_CO2_BOUND.xlsx"
+      - "SuppXLS/Scen_Peak_RSV.xlsx"
+      - "SuppXLS/Scen_Refinery.xlsx"
+      - "SuppXLS/Scen_TRA_CO2_BOUND.xlsx"
+      - "SuppXLS/Scen_UC_CO2BND.xlsx"
+      - "SuppXLS/Scen_UC_Growth.xlsx"
+      - "SuppXLS/Trades/ScenTrade__Trade_Links.xlsx"
+      - "SuppXLS/Trades/ScenTrade_TRADE_PARAM.xlsx"
+      - "VT_REG1_PRI_V07.xlsx"
+    dd_folder: DemoS_007-all-1r
+    dd_files:
+      - "base"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_growth"
   - name: DemoS_008-all
     input_folder: DemoS_008
     dd_folder: DemoS_008-all
@@ -248,8 +281,8 @@ benchmarks:
       - "SubRES_TMPL/SubRES_SRV_NewTechs_Trans.xlsx"
       - "SubRES_TMPL/SubRES_SUP_BioRefineries.xlsx"
       - "SubRES_TMPL/SubRES_SUP_BioRefineries_Trans.xlsx"
-      - "SubRES_TMPL/SubRES_SUP_Hydrogen.xlsx"
-      - "SubRES_TMPL/SubRES_SUP_Hydrogen_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_SUP_H2NewTechs.xlsx"
+      - "SubRES_TMPL/SubRES_SUP_H2NewTechs_Trans.xlsx"
       - "SubRES_TMPL/SubRES_SYS_OtherNewTechs.xlsx"
       - "SubRES_TMPL/SubRES_SYS_OtherNewTechs_Trans.xlsx"
       - "SubRES_TMPL/SubRES_TRA_NewVehicles.xlsx"

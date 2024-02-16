@@ -8,6 +8,8 @@ import os
 import sys
 import time
 from typing import Dict, List
+
+from xl2times.utils import max_workers
 from . import datatypes
 from . import excel
 from . import transforms
@@ -31,7 +33,7 @@ def convert_xl_to_times(
 
         use_pool = True
         if use_pool:
-            with ProcessPoolExecutor() as executor:
+            with ProcessPoolExecutor(max_workers) as executor:
                 for result in executor.map(excel.extract_tables, input_files):
                     raw_tables.extend(result)
         else:
@@ -57,27 +59,30 @@ def convert_xl_to_times(
     transform_list = [
         transforms.normalize_tags_columns,
         transforms.remove_fill_tables,
-        transforms.validate_input_tables,
         lambda config, tables, model: [
             transforms.remove_comment_cols(t) for t in tables
         ],
+        transforms.validate_input_tables,
         transforms.remove_tables_with_formulas,  # slow
         transforms.normalize_column_aliases,
         lambda config, tables, model: [
             transforms.remove_comment_rows(config, t, model) for t in tables
         ],
         transforms.process_regions,
+        transforms.remove_exreg_cols,
         transforms.generate_dummy_processes,
+        transforms.process_time_slices,
         transforms.process_transform_insert_variants,
-        transforms.process_transform_insert,
+        transforms.process_transform_tables,
+        transforms.process_tradelinks,
         transforms.process_processes,
         transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
+        transforms.generate_uc_properties,
         transforms.process_commodities,
         transforms.process_transform_availability,
-        transforms.process_time_slices,
         transforms.fill_in_missing_values,
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
@@ -86,9 +91,10 @@ def convert_xl_to_times(
         transforms.apply_fixups,
         transforms.generate_commodity_groups,
         transforms.fill_in_missing_pcgs,
-        transforms.generate_top_ire,
+        transforms.generate_trade,
         transforms.include_tables_source,
         transforms.merge_tables,
+        transforms.complete_processes,
         transforms.apply_more_fixups,
         transforms.process_units,
         transforms.process_years,
@@ -98,6 +104,7 @@ def convert_xl_to_times(
         transforms.convert_aliases,
         transforms.rename_cgs,
         transforms.fix_topology,
+        transforms.complete_dictionary,
         transforms.convert_to_string,
         lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
@@ -113,7 +120,7 @@ def convert_xl_to_times(
         end_time = time.time()
         sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
         print(
-            f"{sep}transform {transform.__code__.co_name} took {end_time-start_time:.2f} seconds"
+            f"{sep}transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
         if verbose:
             if isinstance(output, list):
@@ -156,7 +163,7 @@ def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
 
 def compare(
     data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame], output_dir: str
-):
+) -> str:
     print(
         f"Ground truth contains {len(ground_truth)} tables,"
         f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
@@ -183,14 +190,12 @@ def compare(
     for table_name, gt_table in sorted(
         ground_truth.items(), reverse=True, key=lambda t: len(t[1])
     ):
-        total_gt_rows += len(gt_table)
         if table_name in data:
             data_table = data[table_name]
 
             # Remove .integer suffix added to duplicate column names by CSV reader (mangle_dupe_cols=False not supported)
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
             data_cols = list(data_table.columns)
-
             if transformed_gt_cols != data_cols:
                 print(
                     f"WARNING: Table {table_name} header incorrect, was"
@@ -200,6 +205,7 @@ def compare(
             # both are in string form so can be compared without any issues
             gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
             data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
+            total_gt_rows += len(gt_rows)
             total_correct_rows += len(gt_rows.intersection(data_rows))
             additional = data_rows - gt_rows
             total_additional_rows += len(additional)
@@ -220,12 +226,14 @@ def compare(
                     os.path.join(output_dir, table_name + "_missing.csv"),
                     index=False,
                 )
-
-    print(
+    result = (
         f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
         f" in output ({total_correct_rows}/{total_gt_rows})"
         f", {total_additional_rows} additional rows"
     )
+
+    print(result)
+    return result
 
 
 def produce_times_tables(
@@ -240,7 +248,7 @@ def produce_times_tables(
     for mapping in config.times_xl_maps:
         if not mapping.xl_name in input:
             print(
-                f"WARNING: Cannot produce table {mapping.times_name} because input table"
+                f"WARNING: Cannot produce table {mapping.times_name} because"
                 f" {mapping.xl_name} does not exist"
             )
         else:
@@ -250,8 +258,8 @@ def produce_times_tables(
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
                     print(
-                        f"WARNING: Cannot produce table {mapping.times_name} because input"
-                        f" table {mapping.xl_name} does not contain column {filter_col}"
+                        f"WARNING: Cannot produce table {mapping.times_name} because"
+                        f" {mapping.xl_name} does not contain column {filter_col}"
                     )
                     # TODO break this loop and continue outer loop?
                 filter = set(x.lower() for x in {filter_val})
@@ -263,8 +271,8 @@ def produce_times_tables(
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols) - set(df.columns)
                 print(
-                    f"WARNING: Cannot produce table {mapping.times_name} because input"
-                    f" table {mapping.xl_name} does not contain the required columns"
+                    f"WARNING: Cannot produce table {mapping.times_name} because"
+                    f" {mapping.xl_name} does not contain the required columns"
                     f" - {', '.join(missing)}"
                 )
             else:
@@ -317,6 +325,9 @@ def write_dd_files(
     def convert_parameter(tablename: str, df: DataFrame):
         if "VALUE" not in df.columns:
             raise KeyError(f"Unable to find VALUE column in parameter {tablename}")
+        # Remove duplicate rows, ignoring value column
+        query_columns = [c for c in df.columns if c != "VALUE"] or None
+        df = df.drop_duplicates(subset=query_columns, keep="last")
         for row in df.itertuples(index=False):
             val = row.VALUE
             row_str = "'.'".join(
@@ -379,42 +390,14 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
-def main():
-    args_parser = argparse.ArgumentParser()
-    args_parser.add_argument(
-        "input",
-        nargs="*",
-        help="Either an input directory, or a list of input xlsx files to process",
-    )
-    args_parser.add_argument(
-        "--regions",
-        type=str,
-        default="",
-        help="Comma-separated list of regions to include in the model",
-    )
-    args_parser.add_argument(
-        "--output_dir", type=str, default="output", help="Output directory"
-    )
-    args_parser.add_argument(
-        "--ground_truth_dir",
-        type=str,
-        help="Ground truth directory to compare with output",
-    )
-    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
-    args_parser.add_argument(
-        "--only_read",
-        action="store_true",
-        help="Read xlsx files and stop after outputting raw_tables.txt",
-    )
-    args_parser.add_argument("--use_pkl", action="store_true")
-    args_parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Verbose mode: print tables after every transform",
-    )
-    args = args_parser.parse_args()
-
+def run(args) -> str | None:
+    """
+    Runs the xl2times conversion.
+    Args:
+         args: pre-parsed command line arguments
+    Returns:
+         comparison with ground-truth string if `ground_truth_dir` is provided, else None.
+    """
     config = datatypes.Config(
         "times_mapping.txt",
         "times-info.json",
@@ -427,17 +410,19 @@ def main():
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         print(f"ERROR: expected at least 1 input. Got {args.input}")
-        sys.exit(1)
+        sys.exit(-1)
     elif len(args.input) == 1:
         assert os.path.isdir(args.input[0])
         input_files = [
             str(path)
-            for path in Path(args.input[0]).rglob("*.xlsx")
-            if not path.name.startswith("~")
+            for path in Path(args.input[0]).rglob("*")
+            if path.suffix in [".xlsx", ".xlsm"] and not path.name.startswith("~")
         ]
         print(f"Loading {len(input_files)} files from {args.input[0]}")
     else:
         input_files = args.input
+
+    model.files.update([Path(path).stem for path in input_files])
 
     if args.only_read:
         tables = convert_xl_to_times(
@@ -462,8 +447,67 @@ def main():
 
     if args.ground_truth_dir:
         ground_truth = read_csv_tables(args.ground_truth_dir)
-        compare(tables, ground_truth, args.output_dir)
+        comparison = compare(tables, ground_truth, args.output_dir)
+        return comparison
+    else:
+        return None
+
+
+def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
+    """Parses command line arguments.
+
+    Args:
+        arg_list: List of command line arguments. Uses sys.argv (default argparse behaviour) if `None`.
+
+    Returns:
+        argparse.Namespace: Parsed arguments.
+    """
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "input",
+        nargs="*",
+        help="Either an input directory, or a list of input xlsx/xlsm files to process",
+    )
+    args_parser.add_argument(
+        "--regions",
+        type=str,
+        default="",
+        help="Comma-separated list of regions to include in the model",
+    )
+    args_parser.add_argument(
+        "--output_dir", type=str, default="output", help="Output directory"
+    )
+    args_parser.add_argument(
+        "--ground_truth_dir",
+        type=str,
+        help="Ground truth directory to compare with output",
+    )
+    args_parser.add_argument("--dd", action="store_true", help="Output DD files")
+    args_parser.add_argument(
+        "--only_read",
+        action="store_true",
+        help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
+    )
+    args_parser.add_argument("--use_pkl", action="store_true")
+    args_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose mode: print tables after every transform",
+    )
+    args = args_parser.parse_args(arg_list)
+    return args
+
+
+def main(arg_list: None | list[str] = None) -> None:
+    """Main entry point for the xl2times package
+    Returns:
+        None.
+    """
+    args = parse_args(arg_list)
+    run(args)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
+    sys.exit(0)

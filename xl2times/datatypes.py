@@ -146,6 +146,24 @@ class TimesModel:
 
     internal_regions: Set[str] = field(default_factory=set)
     all_regions: Set[str] = field(default_factory=set)
+    processes: DataFrame = field(default_factory=DataFrame)
+    commodities: DataFrame = field(default_factory=DataFrame)
+    com_gmap: DataFrame = field(default_factory=DataFrame)
+    commodity_groups: DataFrame = field(default_factory=DataFrame)
+    topology: DataFrame = field(default_factory=DataFrame)
+    trade: DataFrame = field(default_factory=DataFrame)
+    attributes: DataFrame = field(default_factory=DataFrame)
+    user_constraints: DataFrame = field(default_factory=DataFrame)
+    uc_attributes: DataFrame = field(default_factory=DataFrame)
+    ts_tslvl: DataFrame = field(default_factory=DataFrame)
+    ts_map: DataFrame = field(default_factory=DataFrame)
+    time_periods: DataFrame = field(default_factory=DataFrame)
+    units: DataFrame = field(default_factory=DataFrame)
+    start_year: int = field(default_factory=int)
+    data_years: Tuple[int] = field(default_factory=tuple)
+    model_years: Tuple[int] = field(default_factory=tuple)
+    past_years: Tuple[int] = field(default_factory=tuple)
+    files: Set[str] = field(default_factory=set)
 
     def external_regions(self) -> Set[str]:
         return self.all_regions.difference(self.internal_regions)
@@ -190,6 +208,7 @@ class Config:
             self.column_aliases,
             self.row_comment_chars,
             self.discard_if_empty,
+            self.query_columns,
             self.known_columns,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
@@ -234,8 +253,12 @@ class Config:
             times_cols = entity["indexes"] + ["VALUE"]
             xl_cols = entity["mapping"] + ["value"]  # TODO map in json
             col_map = dict(zip(times_cols, xl_cols))
-            # If tag starts with UC, then the data is in UC_T, else FI_T
-            xl_name = Tag.uc_t if entity["name"].lower().startswith("uc") else Tag.fi_t
+            # If tag starts with UC, then the data is in UCAttributes, else Attributes
+            xl_name = (
+                "UCAttributes"
+                if entity["name"].lower().startswith("uc")
+                else "Attributes"
+            )
             return TimesXlMap(
                 times_name=entity["name"],
                 times_cols=times_cols,
@@ -333,6 +356,7 @@ class Config:
         Dict[Tag, Dict[str, list]],
         Iterable[Tag],
         Dict[Tag, Set[str]],
+        Dict[Tag, Set[str]],
     ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
@@ -353,6 +377,7 @@ class Config:
         valid_column_names = {}
         row_comment_chars = {}
         discard_if_empty = []
+        query_cols = defaultdict(set)
         known_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
@@ -374,13 +399,16 @@ class Config:
                     else:
                         field_name = valid_field["name"]
 
+                    if valid_field["query_field"]:
+                        query_cols[tag_name].add(field_name)
                     known_cols[tag_name].add(field_name)
 
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
-                        row_comment_chars[tag_name][field_name] = valid_field[
-                            "row_ignore_symbol"
-                        ]
+
+                    row_comment_chars[tag_name][field_name] = valid_field[
+                        "row_ignore_symbol"
+                    ]
 
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
@@ -390,8 +418,18 @@ class Config:
                     discard_if_empty.append(tag_name)
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
+                if base_tag in query_cols:
+                    query_cols[tag_name] = query_cols[base_tag]
+                if base_tag in known_cols:
+                    known_cols[tag_name] = known_cols[base_tag]
 
-        return valid_column_names, row_comment_chars, discard_if_empty, known_cols
+        return (
+            valid_column_names,
+            row_comment_chars,
+            discard_if_empty,
+            query_cols,
+            known_cols,
+        )
 
     @staticmethod
     def _read_veda_attr_defaults(

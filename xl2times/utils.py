@@ -1,3 +1,4 @@
+import os
 import re
 from dataclasses import replace
 from math import log10, floor
@@ -9,6 +10,10 @@ from more_itertools import one
 from pandas.core.frame import DataFrame
 
 from . import datatypes
+
+# prevent excessive number of processes in Windows and high cpu-count machines
+# TODO make this a cli param or global setting?
+max_workers: int = 4 if os.name == "nt" else min(16, os.cpu_count() or 16)
 
 
 def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
@@ -31,7 +36,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         (newtag, varname) = table.tag.split(":")
         varname = varname.strip()
         df = table.dataframe.copy()
-        df["attribute"].fillna(varname, inplace=True)
+        df["attribute"] = df["attribute"].fillna(varname)
         return replace(table, tag=newtag, dataframe=df)
     else:
         return table
@@ -63,23 +68,6 @@ def explode(df, data_columns):
     df = df[index]
     names = names[index]
     return df, names
-
-
-def extract_timeslices(tables: List[datatypes.EmbeddedXlTable]):
-    """
-    Given a list of tables with a unique table with a time slice tag, return a list
-    with all the column names of that table + "ANNUAL".
-
-    :param tables:          List of tables in EmbeddedXlTable format.
-    :return:                List of column names of the unique time slice table.
-    """
-    # TODO merge with other timeslice code - should we delete this def or move the other one here?
-
-    # No idea why casing of Weekly is special
-    cols = single_table(tables, datatypes.Tag.time_slices).dataframe.columns
-    timeslices = [col if col == "Weekly" else col.upper() for col in cols]
-    timeslices.insert(0, "ANNUAL")
-    return timeslices
 
 
 def single_table(tables: List[datatypes.EmbeddedXlTable], tag: str):
@@ -203,22 +191,17 @@ def create_regexp(pattern):
         pattern = remove_negative_patterns(pattern)
     if len(pattern) == 0:
         return re.compile(pattern)  # matches everything
-    # escape special characters
-    # Backslash must come first
-    special = "\\.|^$+()[]{}"
-    for c in special:
-        pattern = pattern.replace(c, "\\" + c)
     # Handle VEDA wildcards
-    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", "|")
+    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", r"$|^")
     # Do not match substrings
-    pattern = "^" + pattern + "$"
+    pattern = rf"^{pattern}$"
     return re.compile(pattern)
 
 
 def create_negative_regexp(pattern):
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
-        pattern = "^$"  # matches nothing
+        pattern = r"^$"  # matches nothing
     return create_regexp(pattern)
 
 
