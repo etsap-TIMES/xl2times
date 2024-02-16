@@ -404,6 +404,7 @@ def run(args) -> str | None:
     config = datatypes.Config(
         "times_mapping.txt",
         "times-info.json",
+        "times-sets.json",
         "veda-tags.json",
         "veda-attr-defaults.json",
         args.regions,

@@ -277,18 +277,7 @@ def merge_tables(
                     model.commodities = df
                 case datatypes.Tag.fi_process:
                     # TODO: Find a better place for this (both info and processing)
-                    times_prc_sets = {
-                        "DMD",
-                        "CHP",
-                        "ELE",
-                        "HPL",
-                        "IRE",
-                        "NST",
-                        "PRE",
-                        "STG",
-                        "STK",
-                        "STS",
-                    }
+                    times_prc_sets = set(config.times_sets["PRC_GRP"])
                     # Index of rows with TIMES process sets
                     index = df["sets"].str.upper().isin(times_prc_sets)
                     # Print a warning if non-TIMES sets are present
