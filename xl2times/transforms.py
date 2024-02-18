@@ -285,13 +285,14 @@ def merge_tables(
                 err += f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, {table.filename}"
             logger.warning(err)
 
-            match key:
-                case datatypes.Tag.fi_comm:
-                    model.commodities = df
-                case datatypes.Tag.fi_process:
-                    model.processes = df
-                case _:
-                    result[key] = df
+        match key:
+            case datatypes.Tag.fi_comm:
+                model.commodities = df
+            case datatypes.Tag.fi_process:
+                model.processes = df
+            case _:
+                result[key] = df
+
     return result
 
 
