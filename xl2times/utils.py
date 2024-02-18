@@ -6,6 +6,7 @@ from math import log10, floor
 from pathlib import Path
 from typing import Iterable, List
 
+import loguru
 import numpy
 import pandas as pd
 from more_itertools import one
@@ -218,7 +219,7 @@ default_log_name = Path(sys.argv[0]).stem
 default_log_name = "log" if default_log_name == "" else default_log_name
 
 
-def get_logger(log_name: str = default_log_name, log_dir: str = "."):
+def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.Logger:
     """Return a configured loguru logger.
 
     Call this once from entrypoints to set up a new logger.
