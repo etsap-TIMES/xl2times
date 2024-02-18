@@ -1,7 +1,9 @@
 import os
 import re
+import sys
 from dataclasses import replace
 from math import log10, floor
+from pathlib import Path
 from typing import Iterable, List
 
 import numpy
@@ -209,3 +211,57 @@ def round_sig(x, sig_figs):
     if x == 0.0:
         return 0.0
     return round(x, -int(floor(log10(abs(x)))) + sig_figs - 1)
+
+
+# Get entry point file name as default log name
+default_log_name = Path(sys.argv[0]).stem
+default_log_name = "log" if default_log_name == "" else default_log_name
+
+
+def get_logger(log_name: str = default_log_name, log_dir: str = "."):
+    """Return a configured loguru logger.
+
+    Call this once from entrypoints to set up a new logger.
+    In non-entrypoint modules, just use `from loguru import logger` directly.
+
+    To set the log level, use the `LOGURU_LEVEL` environment variable before or during runtime. E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
+    Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `INFO`.
+
+    Log file will be written to `f"{log_dir}/{log_name}.log"`
+
+    Parameters:
+        log_name (str): Name of the log. Corresponding log file will be called {log_name}.log in the .
+        log_dir (str): Directory to write the log file to. Default is the current working directory.
+    Returns:
+        Logger: A configured loguru logger.
+    """
+    from loguru import logger
+
+    # set global log level via env var.  Set to INFO if not already set.
+    if os.getenv("LOGURU_LEVEL") is None:
+        os.environ["LOGURU_LEVEL"] = "INFO"
+
+    log_conf = {
+        "handlers": [
+            {
+                "sink": sys.stdout,
+                "diagnose": False,
+                "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level> (<cyan>{name}:{"
+                'thread.name}:pid-{process}</cyan> "<cyan>{'
+                'file.path}</cyan>:<cyan>{line}</cyan>")',
+            },
+            {
+                "sink": f"{log_dir}/{log_name}.log",
+                "enqueue": True,
+                "mode": "a+",
+                "level": "DEBUG",
+                "colorize": False,
+                "serialize": False,
+                "diagnose": False,
+                "rotation": "20 MB",
+                "compression": "zip",
+            },
+        ],
+    }
+    logger.configure(**log_conf)
+    return logger

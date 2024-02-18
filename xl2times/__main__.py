@@ -10,9 +10,11 @@ import time
 from typing import Dict, List
 
 from xl2times.utils import max_workers
-from . import datatypes
+from . import datatypes, utils
 from . import excel
 from . import transforms
+
+logger = utils.get_logger()
 
 
 def convert_xl_to_times(

@@ -169,7 +169,7 @@ def remove_tables_with_formulas(
     def has_formulas(table):
         has = table.dataframe.map(is_formula).any(axis=None)
         if has:
-            print(f"WARNING: Excluding table {table.tag} because it has formulas")
+            logger.warning(f"Excluding table {table.tag} because it has formulas")
         return has
 
     return [table for table in tables if not has_formulas(table)]
@@ -189,7 +189,7 @@ def validate_input_tables(
         if table.tag in config.discard_if_empty:
             return not table.dataframe.shape[0]
         elif table.tag == datatypes.Tag.unitconversion:
-            print("Dropping ~UNITCONVERSION table")
+            logger.info("Dropping ~UNITCONVERSION table")
             return True
         else:
             return False
@@ -197,7 +197,7 @@ def validate_input_tables(
     result = []
     for table in tables:
         if not datatypes.Tag.has_tag(table.tag.split(":")[0]):
-            print(f"WARNING: Dropping table with unrecognized tag {table.tag}")
+            logger.warning(f"Dropping table with unrecognized tag {table.tag}")
             continue
         if discard(table):
             continue
@@ -205,8 +205,8 @@ def validate_input_tables(
         seen = set()
         dupes = [x for x in table.dataframe.columns if x in seen or seen.add(x)]
         if len(dupes) > 0:
-            print(
-                f"WARNING: Duplicate columns in {table.range}, {table.sheetname},"
+            logger.warning(
+                f"Duplicate columns in {table.range}, {table.sheetname},"
                 f" {table.filename}: {','.join(dupes)}"
             )
         result.append(table)
@@ -257,7 +257,7 @@ def normalize_column_aliases(
                 columns=config.column_aliases[tag], errors="ignore"
             )
         else:
-            print(f"WARNING: could not find {table.tag} in config.column_aliases")
+            logger.warning(f"could not find {table.tag} in config.column_aliases")
         if len(set(table.dataframe.columns)) > len(table.dataframe.columns):
             raise ValueError(
                 f"Table has duplicate column names (after normalization): {table}"
@@ -303,11 +303,13 @@ def merge_tables(
             set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group
         ):
             cols = [(",".join(g.dataframe.columns), g) for g in group]
-            print(
-                f"WARNING: Cannot merge tables with tag {key} as their columns are not identical"
+            logger.warning(
+                f"Cannot merge tables with tag {key} as their columns are not identical"
             )
             for c, table in cols:
-                print(f"  {c} from {table.range}, {table.sheetname}, {table.filename}")
+                logger.info(
+                    f"  {c} from {table.range}, {table.sheetname}, {table.filename}"
+                )
         else:
             df = pd.concat([table.dataframe for table in group], ignore_index=True)
 
@@ -477,8 +479,8 @@ def process_flexible_import_tables(
                     veda_process_set[0]
                 ]
             else:
-                print(
-                    f"WARNING: COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
+                logger.warning(
+                    f"COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
                 )
 
         # Use CommName to store the active commodity for EXP / IMP
@@ -779,7 +781,7 @@ def fill_in_missing_values(
                     if book in vt_regions:
                         df = df.fillna({colname: ",".join(vt_regions[book])})
                     else:
-                        print(f"WARNING: book name {book} not in BookRegions_Map")
+                        logger.warning(f"book name {book} not in BookRegions_Map")
                 else:
                     df = df.fillna({colname: ",".join(model.internal_regions)})
             elif colname == "year":
@@ -965,8 +967,8 @@ def process_regions(
     # Print a warning for any region treated as external
     for bookname in booknames.difference(valid_booknames):
         external = region_def["region"][region_def["bookname"] == bookname].to_list()
-        print(
-            f"WARNING: VT_{bookname}_* is not in model files. Treated {external} as external regions."
+        logger.warning(
+            f"VT_{bookname}_* is not in model files. Treated {external} as external regions."
         )
 
     # Apply regions filter
@@ -975,7 +977,7 @@ def process_regions(
         if keep_regions:
             model.internal_regions = keep_regions
         else:
-            print("WARNING: Regions filter not applied; no valid entries found. ")
+            logger.warning("Regions filter not applied; no valid entries found.")
 
     return tables
 
@@ -1980,9 +1982,8 @@ def process_transform_tables(
             )
         ]
         for key, group in by_tag:
-            print(
-                f"WARNING: Dropped {len(group)} transform tables ({key})"
-                f" rather than processing them"
+            logger.warning(
+                f"Dropped {len(group)} transform tables ({key}) rather than processing them"
             )
 
     return result
@@ -2010,8 +2011,8 @@ def process_transform_availability(
             )
         ]
         for key, group in by_tag:
-            print(
-                f"WARNING: Dropped {len(group)} transform availability tables ({key})"
+            logger.warning(
+                f"Dropped {len(group)} transform availability tables ({key})"
                 f" rather than processing them"
             )
 
@@ -2166,7 +2167,7 @@ def process_uc_wildcards(
 
         tables[tag] = df
 
-        print(
+        logger.info(
             f"  process_uc_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
         )
 
@@ -2189,7 +2190,7 @@ def process_wildcards(
             matching_commodities is None or len(matching_commodities) == 0
         ):  # TODO is this necessary? Try without?
             # TODO debug these
-            print(f"WARNING: a row matched no processes or commodities")
+            logger.warning(f"a row matched no processes or commodities")
             return None
         return matching_processes, matching_commodities
 
@@ -2279,7 +2280,7 @@ def process_wildcards(
         for _, row in updates.iterrows():
             match = match_wildcards(row)
             if match is None:
-                print(f"WARNING: TFM_INS-TXT row matched neither commodity nor process")
+                logger.warning(f"TFM_INS-TXT row matched neither commodity nor process")
                 continue
             processes, commodities = match
             if commodities is not None:
@@ -2571,7 +2572,7 @@ def complete_processes(
             duplicates = undeclared_td.loc[duplicates, ["region", "process", i]]
             processes = duplicates["process"].unique()
             regions = duplicates["region"].unique()
-            print(f"WARNING: Multiple possible {i} for {processes} in {regions}")
+            logger.warning(f"Multiple possible {i} for {processes} in {regions}")
 
     model.processes = pd.concat([model.processes, undeclared_td], ignore_index=True)
 
