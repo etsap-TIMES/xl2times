@@ -1,3 +1,7 @@
+from __future__ import (
+    annotations,
+)  # see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
+
 import os
 import re
 import sys
