@@ -59,16 +59,17 @@ def convert_xl_to_times(
     transform_list = [
         transforms.normalize_tags_columns,
         transforms.remove_fill_tables,
-        transforms.validate_input_tables,
         lambda config, tables, model: [
             transforms.remove_comment_cols(t) for t in tables
         ],
+        transforms.validate_input_tables,
         transforms.remove_tables_with_formulas,  # slow
         transforms.normalize_column_aliases,
         lambda config, tables, model: [
             transforms.remove_comment_rows(config, t, model) for t in tables
         ],
         transforms.process_regions,
+        transforms.remove_exreg_cols,
         transforms.generate_dummy_processes,
         transforms.process_time_slices,
         transforms.process_transform_insert_variants,
@@ -420,6 +421,8 @@ def run(args) -> str | None:
         print(f"Loading {len(input_files)} files from {args.input[0]}")
     else:
         input_files = args.input
+
+    model.files.update([Path(path).stem for path in input_files])
 
     if args.only_read:
         tables = convert_xl_to_times(
