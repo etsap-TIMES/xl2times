@@ -390,7 +390,7 @@ def run_all_benchmarks(
         sys.exit(10)
     # TODO also check if any new tables are missing?
 
-    logger.info("No regressions. You're awesome!")
+    logger.success("No regressions. You're awesome!")
 
 
 if __name__ == "__main__":
