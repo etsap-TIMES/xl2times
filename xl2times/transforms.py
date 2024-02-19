@@ -414,21 +414,6 @@ def process_flexible_import_tables(
 
         attribute = "attribute"
         if table.tag != datatypes.Tag.tfm_upd:
-
-            # Check for duplicate DF columns
-            duplicated_cols = [
-                item
-                for item, count in collections.Counter(data_columns).items()
-                if count > 1
-            ]
-            if len(duplicated_cols) > 0:
-                logger.warning(
-                    f"Duplicate data columns in table: {duplicated_cols}.  Dropping first duplicated column. Table: \n{repr(table)}"
-                )
-                # drop duplicate Df columns
-                df = df.loc[:, ~df.columns.duplicated(keep="last")]
-                data_columns = pd.unique(data_columns).tolist()
-
             df, attribute_suffix = utils.explode(df, data_columns)
 
             # Append the data column name to the Attribute column values
