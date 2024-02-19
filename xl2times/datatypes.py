@@ -148,7 +148,6 @@ class TimesModel:
     all_regions: Set[str] = field(default_factory=set)
     processes: DataFrame = field(default_factory=DataFrame)
     commodities: DataFrame = field(default_factory=DataFrame)
-    com_gmap: DataFrame = field(default_factory=DataFrame)
     commodity_groups: DataFrame = field(default_factory=DataFrame)
     topology: DataFrame = field(default_factory=DataFrame)
     trade: DataFrame = field(default_factory=DataFrame)

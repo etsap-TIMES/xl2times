@@ -982,7 +982,6 @@ def complete_dictionary(
         "Attributes": model.attributes,
         "Commodities": model.commodities,
         "CommodityGroups": model.commodity_groups,
-        "CommodityGroupMap": model.com_gmap,
         "Processes": model.processes,
         "Topology": model.topology,
         "Trade": model.trade,
@@ -1177,7 +1176,6 @@ def generate_commodity_groups(
     i = comm_groups["commoditygroup"] != comm_groups["commodity"]
 
     model.topology = comm_groups
-    model.com_gmap = comm_groups.loc[i, ["region", "commoditygroup", "commodity"]]
 
     return tables
 
@@ -1247,14 +1245,23 @@ def complete_commodity_groups(
     Complete the list of commodity groups
     """
 
-    commodities = generate_topology_dictionary(tables, model)[
-        "commodities_by_name"
-    ].rename(columns={"commodity": "commoditygroup"})
-    cgs_in_top = model.topology["commoditygroup"].to_frame()
-    commodity_groups = pd.concat([commodities, cgs_in_top])
-    model.commodity_groups = commodity_groups.drop_duplicates(
-        keep="first"
-    ).reset_index()
+    # Single member CGs i.e., CG and commodity are the same
+    single_cgs = (
+        model.commodities[["region", "commodity"]]
+        .drop_duplicates(ignore_index=True)
+        .copy()
+    )
+    single_cgs["commoditygroup"] = single_cgs["commodity"]
+    # Commodity groups from topology
+    top_cgs = (
+        model.topology[["region", "commodity", "commoditygroup"]]
+        .drop_duplicates(ignore_index=True)
+        .copy()
+    )
+    commodity_groups = pd.concat([single_cgs, top_cgs], ignore_index=True)
+    model.commodity_groups = commodity_groups.dropna().drop_duplicates(
+        ignore_index=True
+    )
 
     return tables
 
