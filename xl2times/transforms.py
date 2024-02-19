@@ -1258,10 +1258,9 @@ def complete_commodity_groups(
         .drop_duplicates(ignore_index=True)
         .copy()
     )
-    commodity_groups = pd.concat([single_cgs, top_cgs], ignore_index=True)
-    model.commodity_groups = commodity_groups.dropna().drop_duplicates(
-        ignore_index=True
-    )
+    cgs = pd.concat([single_cgs, top_cgs], ignore_index=True)
+    cgs["gmap"] = cgs["commoditygroup"] != cgs["commodity"]
+    model.commodity_groups = cgs.dropna().drop_duplicates(ignore_index=True)
 
     return tables
 
