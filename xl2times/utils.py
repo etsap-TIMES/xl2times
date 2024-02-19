@@ -1,3 +1,4 @@
+import functools
 import os
 import re
 from dataclasses import replace
@@ -185,6 +186,7 @@ def remove_positive_patterns(pattern):
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
+@functools.cache
 def create_regexp(pattern):
     # exclude negative patterns
     if has_negative_patterns(pattern):
@@ -198,6 +200,7 @@ def create_regexp(pattern):
     return re.compile(pattern)
 
 
+@functools.cache
 def create_negative_regexp(pattern):
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:

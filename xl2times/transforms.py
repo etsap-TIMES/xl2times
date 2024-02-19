@@ -1,4 +1,5 @@
 import collections
+import functools
 from collections import defaultdict
 from pandas.core.frame import DataFrame
 from pathlib import Path
@@ -17,12 +18,13 @@ from tqdm import tqdm
 import logging
 import logging.config
 
-logger = logging.getLogger(__name__)
-
 
 from .utils import max_workers
 from . import datatypes
 from . import utils
+
+logger = logging.getLogger(__name__)
+
 
 query_columns = {
     "pset_set",
@@ -547,7 +549,8 @@ def process_user_constraint_tables(
         # TODO: apply table.uc_sets
 
         # Fill in UC_N blank cells with value from above
-        df["uc_n"] = df["uc_n"].ffill()
+        if "uc_n" in df.columns:
+            df["uc_n"] = df["uc_n"].ffill()
 
         data_columns = [
             x for x in df.columns if x not in config.known_columns[datatypes.Tag.uc_t]
@@ -2059,10 +2062,17 @@ def process_uc_wildcards(
         else:
             return None
 
-    if tag in tables:
+    if tag in tqdm(tables, desc=f"Processing uc_wildcards on tables"):
         start_time = time.time()
         df = tables[tag]
         dictionary = generate_topology_dictionary(tables, model)
+        # set year column dtype to str
+        # df["year"] = df["year"].astype(str)
+        df.to_parquet("tests/data/process_uc_wildcards_austimes_data.parquet")
+        import pickle
+
+        with open("tests/data/process_uc_wildcards_austimes_dict.pkl", "wb") as f:
+            pickle.dump(dictionary, f)
 
         df["process"] = df.apply(
             lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
@@ -2153,7 +2163,11 @@ def process_wildcards(
         # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
         # evaluate the update formula, and add new rows to FI_T
         # TODO perf: collect all updates and go through FI_T only once?
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_upd}",
+        ):
             if row["value"] is None:  # TODO is this really needed?
                 continue
             match = match_wildcards(row)
@@ -2176,7 +2190,11 @@ def process_wildcards(
         new_tables = []
 
         # TFM_INS: expand each row by wildcards, then add to FI_T
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins}",
+        ):
             match = match_wildcards(row)
             # TODO perf: add matched procs/comms into column and use explode?
             new_rows = pd.DataFrame([row.filter(table.columns)])
@@ -2196,7 +2214,11 @@ def process_wildcards(
 
         # TFM_INS-TXT: expand row by wildcards, query FI_PROC/COMM for matching rows,
         # evaluate the update formula, and inplace update the rows
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins_txt}",
+        ):
             match = match_wildcards(row)
             if match is None:
                 print(f"WARNING: TFM_INS-TXT row matched neither commodity nor process")
@@ -2221,7 +2243,11 @@ def process_wildcards(
         table = tables[datatypes.Tag.fi_t]
         new_tables = []
 
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_mig}",
+        ):
             match = match_wildcards(row)
             processes, commodities = match if match is not None else (None, None)
             # TODO should we also query on limtype?
