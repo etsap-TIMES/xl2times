@@ -5,7 +5,7 @@ from pandas.core.frame import DataFrame
 from pathlib import Path
 import pandas as pd
 from dataclasses import replace
-from typing import Dict, List
+from typing import Dict, List, Callable
 from more_itertools import locate, one
 from itertools import groupby
 import re
@@ -18,13 +18,11 @@ from tqdm import tqdm
 import logging
 import logging.config
 
-
 from .utils import max_workers
 from . import datatypes
 from . import utils
 
 logger = logging.getLogger(__name__)
-
 
 query_columns = {
     "pset_set",
@@ -49,6 +47,20 @@ attr_prop = {
     "PRC_PCG": "primarycg",
     "PRC_TSL": "tslvl",
     "PRC_VINT": "vintage",
+}
+
+process_map = {
+    "pset_pn": "processes_by_name",
+    "pset_pd": "processes_by_desc",
+    "pset_set": "processes_by_sets",
+    "pset_ci": "processes_by_comm_in",
+    "pset_co": "processes_by_comm_out",
+}
+
+commodity_map = {
+    "cset_cn": "commodities_by_name",
+    "cset_cd": "commodities_by_desc",
+    "cset_set": "commodities_by_sets",
 }
 
 
@@ -1943,7 +1955,7 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df, pattern):
+def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
     # Duplicates can be created when a process has multiple commodities that match the pattern
     df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
     exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
@@ -1966,9 +1978,11 @@ def get_matching_processes(row, dictionary):
         ("pset_co", "processes_by_comm_out"),
     ]:
         if row[col] is not None:
-            matching_processes = intersect(
-                matching_processes, filter_by_pattern(dictionary[key], row[col].upper())
-            )
+            proc_set = dictionary[key]
+            pattern = row[col].upper()
+            filtered = filter_by_pattern(proc_set, pattern)
+            matching_processes = intersect(matching_processes, filtered)
+
     if matching_processes is not None and any(matching_processes.duplicated()):
         raise ValueError("duplicated")
     return matching_processes
@@ -2055,44 +2069,17 @@ def process_uc_wildcards(
 ) -> Dict[str, DataFrame]:
     tag = datatypes.Tag.uc_t
 
-    def make_str(df):
-        if df is not None and len(df) != 0:
-            list_from_df = df.iloc[:, 0].unique()
-            return ",".join(list_from_df)
-        else:
-            return None
-
     if tag in tqdm(tables, desc=f"Processing uc_wildcards on tables"):
         start_time = time.time()
         df = tables[tag]
         dictionary = generate_topology_dictionary(tables, model)
-        # set year column dtype to str
-        # df["year"] = df["year"].astype(str)
-        df.to_parquet("tests/data/process_uc_wildcards_austimes_data.parquet")
-        import pickle
 
-        with open("tests/data/process_uc_wildcards_austimes_dict.pkl", "wb") as f:
-            pickle.dump(dictionary, f)
-
-        df["process"] = df.apply(
-            lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
+        df = _match_uc_wildcards(
+            df, process_map, dictionary, get_matching_processes, "process"
         )
-        df["commodity"] = df.apply(
-            lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
+        df = _match_uc_wildcards(
+            df, commodity_map, dictionary, get_matching_commodities, "commodity"
         )
-
-        cols_to_drop = [col for col in df.columns if col in query_columns]
-
-        df = expand_rows(
-            datatypes.EmbeddedXlTable(
-                tag="",
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=df.drop(columns=cols_to_drop),
-            )
-        ).dataframe
 
         tables[tag] = df
 
@@ -2101,6 +2088,53 @@ def process_uc_wildcards(
         )
 
     return tables
+
+
+def _match_uc_wildcards(
+    table: pd.DataFrame,
+    process_map: dict[str, str],
+    dictionary: dict[str, pd.DataFrame],
+    matcher: Callable,
+    result_col: str,
+) -> pd.DataFrame:
+    """
+    Match wildcards in the given table using the given process map and dictionary.
+
+    Args:
+        table: Table to match wildcards in.
+        process_map: Mapping of column names to process sets.
+        dictionary: Dictionary of process sets to match against.
+        matcher: Matching function to use, e.g. get_matching_processes or get_matching_commodities.
+        result_col: Name of the column to store the matche results in.
+
+    Returns:
+        The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
+    """
+
+    proc_cols = list(process_map.keys())
+
+    # most of the speedup happens here - we drop duplicate sets of wildcard columns to save repeated (slow) regex matching
+    unique_filters = table[proc_cols].drop_duplicates()
+
+    matches = unique_filters.apply(
+        lambda row: matcher(row, dictionary), axis=1
+    ).to_list()
+    matches = [
+        df.iloc[:, 0].to_list() if df is not None and len(df) != 0 else None
+        for df in matches
+    ]
+    filter_matches = unique_filters.reset_index(drop=True).merge(
+        pd.DataFrame(matches, columns=[result_col]), left_index=True, right_index=True
+    )
+
+    # Then we merge the matches back into the original table, re-duplicating the results where the wildcard sets are repeated.
+    table = (
+        table.merge(filter_matches, left_on=proc_cols, right_on=proc_cols, how="left")
+        .explode(result_col)
+        .reset_index(drop=True)
+        .drop(columns=proc_cols)
+    )
+    return table
 
 
 def process_wildcards(

@@ -174,14 +174,17 @@ def get_scalar(table_tag: str, tables: List[datatypes.EmbeddedXlTable]):
     return table.dataframe["value"].values[0]
 
 
+@functools.cache
 def has_negative_patterns(pattern):
     return pattern[0] == "-" or ",-" in pattern
 
 
+@functools.cache
 def remove_negative_patterns(pattern):
     return ",".join([word for word in pattern.split(",") if word[0] != "-"])
 
 
+@functools.cache
 def remove_positive_patterns(pattern):
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 

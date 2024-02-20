@@ -1,21 +1,22 @@
-import re
 from datetime import datetime
-from re import Pattern
+from typing import Callable
 
 import pandas as pd
-from pandas.core.common import flatten
 
-from xl2times import transforms, datatypes
+from xl2times import transforms, utils, datatypes
 from xl2times.transforms import (
     _process_comm_groups_vectorised,
     _count_comm_group_vectorised,
-    get_matching_commodities,
     intersect,
-    filter_by_pattern,
     expand_rows,
+    get_matching_commodities,
+    filter_by_pattern,
+    get_matching_processes,
     query_columns,
+    _match_uc_wildcards,
+    process_map,
+    commodity_map,
 )
-from xl2times.utils import create_regexp, create_negative_regexp
 
 pd.set_option(
     "display.max_rows",
@@ -31,29 +32,51 @@ pd.set_option(
 )
 
 
-def get_matching_processes(row, dictionary):
-    matching_processes = None
-    for col, key in [
-        ("pset_pn", "processes_by_name"),
-        ("pset_pd", "processes_by_desc"),
-        ("pset_set", "processes_by_sets"),
-        ("pset_ci", "processes_by_comm_in"),
-        ("pset_co", "processes_by_comm_out"),
-    ]:
-        if row[col] is not None:
-            matching_processes = intersect(
-                matching_processes,
-                filter_by_pattern(
-                    dictionary[key], row[col].upper()
-                ),  # 20% of runtime here.  Avoid regex if no wildcard chars in string?
-            )
-    if matching_processes is not None and any(matching_processes.duplicated()):
-        raise ValueError("duplicated")
-    return matching_processes
+def _match_uc_wildcards_old(
+    df: pd.DataFrame, dictionary: dict[str, pd.DataFrame]
+) -> pd.DataFrame:
+    """Old version of the process_uc_wildcards matching logic, for comparison with the new vectorised version.
+    TODO remove this function once validated.
+    """
+
+    def make_str(df):
+        if df is not None and len(df) != 0:
+            list_from_df = df.iloc[:, 0].unique()
+            return ",".join(list_from_df)
+        else:
+            return None
+
+    df["process"] = df.apply(
+        lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
+    )
+    df["commodity"] = df.apply(
+        lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
+    )
+
+    cols_to_drop = [col for col in df.columns if col in query_columns]
+
+    df = expand_rows(
+        datatypes.EmbeddedXlTable(
+            tag="",
+            uc_sets={},
+            sheetname="",
+            range="",
+            filename="",
+            dataframe=df.drop(columns=cols_to_drop),
+        )
+    ).dataframe
+    return df
 
 
 class TestTransforms:
     def test_uc_wildcards(self):
+        """
+        Tests logic that matches wildcards in the process_uc_wildcards transform .
+
+            Old method took 0:01:35.823996 seconds
+            New method took 0:00:04.622714 seconds, speedup: 20.7x
+
+        """
         import pickle
 
         dfo = pd.read_parquet("tests/data/process_uc_wildcards_austimes_data.parquet")
@@ -62,113 +85,37 @@ class TestTransforms:
 
         df = dfo.query("region in ['ACT']")
 
-        # df = dfo.query("region in ['NSW']")
-        # row count per region
-
-        def make_str(df):
-            if df is not None and len(df) != 0:
-                list_from_df = df.iloc[:, 0].unique()  # 60% of runtime here
-                return ",".join(list_from_df)
-            else:
-                return None
-
-        wildcard_map = {
-            "pset_pn": "processes_by_name",
-            "pset_pd": "processes_by_desc",
-            "pset_set": "processes_by_sets",
-            "pset_ci": "processes_by_comm_in",
-            "pset_co": "processes_by_comm_out",
-        }
-
-        commodity_map = {
-            "cset_cn": "commodities_by_name",
-            "cset_cd": "commodities_by_desc",
-            "cset_set": "commodities_by_sets",
-        }
-
         t0 = datetime.now()
 
-        # This apply() just gets matches the wildcards of process names in the tables against the list of all process names
-        # Then because there can be multiple matches per table row, `expand_rows` melts the result into long format.
-        # We can probably do this a lot faster by building a list of all wildcard matches first (avoiding duplicate lookups) as a dataframe
-        # and then doing an outer-join with the original dataframe.
-
-        match_dfs = []
-        for pname_short, pname_long in wildcard_map.items():
-            wildcards = df[pname_short].dropna().unique()
-            processes = dictionary[pname_long]
-            matches = {
-                w: filter_by_pattern(processes, wildcards[0].upper())[
-                    "process"
-                ].to_list()
-                for w in wildcards
-            }
-
-            proc_match_df = pd.DataFrame(
-                matches.items(), columns=["wildcard", "matches"]
-            )
-            proc_match_df["pname_short"] = pname_short
-            match_dfs.append(proc_match_df)
-        wildcard_matches = pd.concat(match_dfs).explode("matches")
-
-        # now cross-join wildcard_matches with df
-        df2 = df.copy()
-        df2["process"] = None
-        for pname_short in wildcard_map.keys():
-            if pname_short in df2.columns and any(
-                pname_short == wildcard_matches["pname_short"]
-            ):
-                wild = wildcard_matches[wildcard_matches["pname_short"] == pname_short]
-                df2 = df2.merge(
-                    wild, left_on=pname_short, right_on="wildcard", how="left"
-                ).drop(columns=["wildcard", "pname_short"])
-                # update process column with matches for pname_short rows
-                df2["process"].update(df2["matches"])
-                df2 = df2.drop(columns=["matches"])
-        # df2 = df2.drop(columns=wildcard_map.keys())
-        # df2 = df2.drop(columns=commodity_map.keys())
-
-        df["process"] = df.apply(
-            lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
+        df_new = _match_uc_wildcards(
+            df, process_map, dictionary, get_matching_processes, "process"
         )
-
+        df_new = _match_uc_wildcards(
+            df_new, commodity_map, dictionary, get_matching_commodities, "commodity"
+        )
         t1 = datetime.now()
-        print(f"get_matching_processes took {t1 - t0} seconds")
+        df_old = _match_uc_wildcards_old(df, dictionary)
+        t2 = datetime.now()
 
-        # df["commodity"] = df.apply(
-        #     lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
-        # )
-        # t2 = datetime.now()
-        # print(f"get_matching_commodities took {t2 - t1} seconds")
-
-        cols_to_drop = [col for col in df.columns if col in query_columns]
-
-        dfe = expand_rows(
-            datatypes.EmbeddedXlTable(
-                tag="",
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=df,  # .drop(columns=cols_to_drop),
-            )
-        ).dataframe
-        assert len(set(dfe.columns).symmetric_difference(set(df2.columns))) == 0
-
-        assert all(
-            dfe.query(
-                "`pset_ci`=='ELCHYD,ELCSOL,ELCWIN,Wind01,Solar01,Hydro01'"
-            ).process
-            == df2.query(
-                "`pset_ci`=='ELCHYD,ELCSOL,ELCWIN,Wind01,Solar01,Hydro01'"
-            ).process
+        print(f"Old method took {t2 - t1} seconds")
+        print(
+            f"New method took {t1 - t0} seconds, speedup: {((t2 - t1) / (t1 - t0)):.1f}x"
         )
-        # set column order the same
-        df2 = df2[dfe.columns]
 
-        assert (dfe.reset_index(drop=True) == df2.reset_index(drop=True)).all().all()
+        # find first row where df_old and df_new are different
+        for i, (row_old, row_new) in enumerate(
+            zip(df_old.itertuples(), df_new.itertuples())
+        ):
+            if row_old != row_new:
+                print(f"First difference at row {i}")
+                print(f"Old:\n{df_old.iloc[i - 10: i + 10]}")
+                print(f"New:\n{df_new.iloc[i - 10: i + 10]}")
+                break
 
-        print(dfe)
+        assert len(set(df_new.columns).symmetric_difference(set(df_old.columns))) == 0
+        assert df_new.fillna(-1).equals(
+            df_old.fillna(-1)
+        ), "Dataframes should be equal (ignoring Nones and NaNs)"
 
     def test_generate_commodity_groups(self):
         """
