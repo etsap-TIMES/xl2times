@@ -90,9 +90,7 @@ def run_gams_gdxdiff(
         return "Error: dd_files not in benchmark"
 
     # Copy GAMS scaffolding
-    scaffolding_folder = path.join(
-        path.dirname(path.realpath(__file__)), "..", "xl2times", "gams_scaffold"
-    )
+    scaffolding_folder = path.join(path.dirname(path.realpath(__file__)), "..", "xl2times", "gams_scaffold")
     shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
     # Create link to TIMES source
     if not path.exists(path.join(out_folder, "source")):
@@ -307,9 +305,7 @@ def run_all_benchmarks(
     # The rest of this script checks regressions against main
     # so skip it if we're already on main
     repo = git.Repo(".")  # pyright: ignore
-    origin = (
-        repo.remotes.origin if "origin" in repo.remotes else repo.remotes[0]
-    )  # don't assume remote is called 'origin'
+    origin = repo.remotes.origin if "origin" in repo.remotes else repo.remotes[0]  # don't assume remote is called 'origin'
     origin.fetch("main")
     if "main" not in repo.heads:
         repo.create_head("main", origin.refs.main).set_tracking_branch(origin.refs.main)
@@ -332,9 +328,7 @@ def run_all_benchmarks(
                 result = parse_result(f.readlines()[-1])
             # Use a fake runtime and GAMS result
             results_main.append((benchmark["name"], 999, "--", *result))
-        print(
-            f"Skipped running on main. Using results from {path.join(benchmarks_folder, 'out-main')}"
-        )
+        print(f"Skipped running on main. Using results from {path.join(benchmarks_folder, 'out-main')}")
 
     else:
         if repo.is_dirty():
@@ -396,23 +390,17 @@ def run_all_benchmarks(
     runtime_change = our_time - main_time
 
     print(f"Total runtime: {our_time:.2f}s (main: {main_time:.2f}s)")
-    print(
-        f"Change in runtime (negative == faster): {runtime_change:+.2f}s ({100 * runtime_change / main_time:+.1f}%)"
-    )
+    print(f"Change in runtime (negative == faster): {runtime_change:+.2f}s ({100 * runtime_change / main_time:+.1f}%)")
 
     our_correct = df["Correct"].sum()
     main_correct = df["M Correct"].sum()
     correct_change = our_correct - main_correct
-    print(
-        f"Change in correct rows (higher == better): {correct_change:+d} ({100 * correct_change / main_correct:+.1f}%)"
-    )
+    print(f"Change in correct rows (higher == better): {correct_change:+d} ({100 * correct_change / main_correct:+.1f}%)")
 
     our_additional_rows = df["Additional"].sum()
     main_additional_rows = df["M Additional"].sum()
     additional_change = our_additional_rows - main_additional_rows
-    print(
-        f"Change in additional rows: {additional_change:+d} ({100 * additional_change / main_additional_rows:+.1f}%)"
-    )
+    print(f"Change in additional rows: {additional_change:+d} ({100 * additional_change / main_additional_rows:+.1f}%)")
 
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
         print()
@@ -511,10 +499,7 @@ if __name__ == "__main__":
             verbose=args.verbose,
             debug=args.debug,
         )
-        print(
-            f"Ran {args.run} in {runtime:.2f}s. {acc}% ({cor} correct, {add} additional).\n"
-            f"GAMS: {gms}"
-        )
+        print(f"Ran {args.run} in {runtime:.2f}s. {acc}% ({cor} correct, {add} additional).\n" f"GAMS: {gms}")
     else:
         run_all_benchmarks(
             benchmarks_folder,

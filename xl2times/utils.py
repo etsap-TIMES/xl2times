@@ -54,9 +54,7 @@ def explode(df, data_columns):
                             column name for each value in each new row.
     """
     data = df[data_columns].values.tolist()
-    other_columns = [
-        colname for colname in df.columns.values if colname not in data_columns
-    ]
+    other_columns = [colname for colname in df.columns.values if colname not in data_columns]
     df = df[other_columns]
     value_column = "value"
     df = df.assign(value=data)
@@ -110,9 +108,7 @@ def merge_columns(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: st
     return numpy.concatenate(columns)
 
 
-def apply_wildcards(
-    df: DataFrame, candidates: Iterable[str], wildcard_col: str, output_col: str
-):
+def apply_wildcards(df: DataFrame, candidates: Iterable[str], wildcard_col: str, output_col: str):
     """
     Apply wildcards values to a list of candidates. Wildcards are values containing '*'. For example,
     a value containing '*SOLID*' would include all the values in 'candidates' containing 'SOLID' in the middle.
