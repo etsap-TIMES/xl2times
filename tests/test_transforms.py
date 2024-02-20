@@ -32,9 +32,7 @@ pd.set_option(
 )
 
 
-def _match_uc_wildcards_old(
-    df: pd.DataFrame, dictionary: dict[str, pd.DataFrame]
-) -> pd.DataFrame:
+def _match_uc_wildcards_old(df: pd.DataFrame, dictionary: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Old version of the process_uc_wildcards matching logic, for comparison with the new vectorised version.
     TODO remove this function once validated.
     """
@@ -46,12 +44,8 @@ def _match_uc_wildcards_old(
         else:
             return None
 
-    df["process"] = df.apply(
-        lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
-    )
-    df["commodity"] = df.apply(
-        lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
-    )
+    df["process"] = df.apply(lambda row: make_str(get_matching_processes(row, dictionary)), axis=1)
+    df["commodity"] = df.apply(lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1)
 
     cols_to_drop = [col for col in df.columns if col in query_columns]
 
@@ -73,49 +67,48 @@ class TestTransforms:
         """
         Tests logic that matches wildcards in the process_uc_wildcards transform .
 
-            Old method took 0:01:35.823996 seconds
-            New method took 0:00:04.622714 seconds, speedup: 20.7x
-
+        Results on Ireland model:
+            Old method took 0:00:08.42 seconds
+            New method took 0:00:00.18 seconds, speedup: 46.5x
         """
         import pickle
 
-        dfo = pd.read_parquet("tests/data/process_uc_wildcards_austimes_data.parquet")
+        df_in = pd.read_parquet("tests/data/process_uc_wildcards_ireland_data.parquet")
+        with open("tests/data/process_uc_wildcards_ireland_dict.pkl", "rb") as f:
+            dictionary = pickle.load(f)
+        df = df_in.copy()
+
+        df_in = pd.read_parquet("tests/data/process_uc_wildcards_austimes_data.parquet")
         with open("tests/data/process_uc_wildcards_austimes_dict.pkl", "rb") as f:
             dictionary = pickle.load(f)
-
-        df = dfo.query("region in ['ACT']")
+        df = df_in.query()
 
         t0 = datetime.now()
 
-        df_new = _match_uc_wildcards(
-            df, process_map, dictionary, get_matching_processes, "process"
-        )
-        df_new = _match_uc_wildcards(
-            df_new, commodity_map, dictionary, get_matching_commodities, "commodity"
-        )
+        # optimised functions
+        df_new = _match_uc_wildcards(df, process_map, dictionary, get_matching_processes, "process")
+        df_new = _match_uc_wildcards(df_new, commodity_map, dictionary, get_matching_commodities, "commodity")
+
         t1 = datetime.now()
+
+        # Unoptimised function
         df_old = _match_uc_wildcards_old(df, dictionary)
+
         t2 = datetime.now()
 
         print(f"Old method took {t2 - t1} seconds")
-        print(
-            f"New method took {t1 - t0} seconds, speedup: {((t2 - t1) / (t1 - t0)):.1f}x"
-        )
+        print(f"New method took {t1 - t0} seconds, speedup: {((t2 - t1) / (t1 - t0)):.1f}x")
 
-        # find first row where df_old and df_new are different
-        for i, (row_old, row_new) in enumerate(
-            zip(df_old.itertuples(), df_new.itertuples())
-        ):
-            if row_old != row_new:
-                print(f"First difference at row {i}")
-                print(f"Old:\n{df_old.iloc[i - 10: i + 10]}")
-                print(f"New:\n{df_new.iloc[i - 10: i + 10]}")
-                break
+        # unit tests
+        assert df_new is not None and not df_new.empty
+        assert df_new.shape[0] >= df_in.shape[0], "should have more rows after processing uc_wildcards"
+        assert df_new.shape[1] < df_in.shape[1], "should have fewer columns after processing uc_wildcards"
+        assert "process" in df_new.columns, "should have added process column"
+        assert "commodity" in df_new.columns, "should have added commodity column"
 
+        # consistency checks with old method
         assert len(set(df_new.columns).symmetric_difference(set(df_old.columns))) == 0
-        assert df_new.fillna(-1).equals(
-            df_old.fillna(-1)
-        ), "Dataframes should be equal (ignoring Nones and NaNs)"
+        assert df_new.fillna(-1).equals(df_old.fillna(-1)), "Dataframes should be equal (ignoring Nones and NaNs)"
 
     def test_generate_commodity_groups(self):
         """
@@ -126,9 +119,7 @@ class TestTransforms:
             43958x speedup
         """
         # data extracted immediately before the original for loops
-        comm_groups = pd.read_parquet(
-            "tests/data/comm_groups_austimes_test_data.parquet"
-        ).drop(columns=["commoditygroup"])
+        comm_groups = pd.read_parquet("tests/data/comm_groups_austimes_test_data.parquet").drop(columns=["commoditygroup"])
 
         # filter data so test runs faster
         comm_groups = comm_groups.query("region in ['ACT', 'NSW']")
@@ -149,9 +140,7 @@ class TestTransforms:
         comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.parquet")
 
         comm_groups = comm_groups[(comm_groups["region"].isin(["ACT", "NT"]))]
-        comm_groups2 = _process_comm_groups_vectorised(
-            comm_groups.copy(), transforms.csets_ordered_for_pcg
-        )
+        comm_groups2 = _process_comm_groups_vectorised(comm_groups.copy(), transforms.csets_ordered_for_pcg)
         assert comm_groups2 is not None and not comm_groups2.empty
         assert comm_groups2.shape == (comm_groups.shape[0], comm_groups.shape[1] + 1)
         assert comm_groups2.drop(columns=["DefaultVedaPCG"]).equals(comm_groups)

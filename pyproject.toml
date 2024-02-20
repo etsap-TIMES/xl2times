@@ -53,6 +53,9 @@ filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning", "ignore::
 # show output, print test coverage report
 addopts = '-s --durations=0 --durations-min=5.0 --tb=native'
 
+[tool.black]
+line-length = 150  # increase default line wrap length for legibility
+
 [tool.poe.tasks]
 # Automation of common dev tasks etc.
 # Run with: `poe <target>`, e,g. `poe lint` or `poe benchmark Ireland`.
