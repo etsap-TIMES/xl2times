@@ -1098,11 +1098,13 @@ def generate_commodity_groups(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Generate commodity groups.
+    """
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
     commodity_tables = [t for t in tables if t.tag == datatypes.Tag.fi_comm]
 
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
-
     columns = ["region", "process", "primarycg"]
     reg_prc_pcg = pd.DataFrame(columns=columns)
     for process_table in process_tables:
@@ -1133,7 +1135,7 @@ def generate_commodity_groups(
 
     def name_comm_group(df):
         """
-        Return the name of a commodity group based on the member count
+        Return the name of a commodity group based on the member count.
         """
 
         if df["commoditygroup"] > 1:
@@ -1173,8 +1175,6 @@ def generate_commodity_groups(
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
-    i = comm_groups["commoditygroup"] != comm_groups["commodity"]
-
     model.topology = comm_groups
 
     return tables
@@ -1183,7 +1183,7 @@ def generate_commodity_groups(
 def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
     """
     Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup.
-    `comm_groups` is modified in-place
+    `comm_groups` is modified in-place.
     Args:
         comm_groups: 'Process' DataFrame with additional columns "commoditygroup"
     """
@@ -1199,8 +1199,8 @@ def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
 def _process_comm_groups_vectorised(
     comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]
 ) -> pd.DataFrame:
-    """Sets the first commodity group in the list of csets_ordered_for_pcg as the default pcg for each region/process/io combination,
-    but setting the io="OUT" subset as default before "IN".
+    """Sets the first commodity group in the list of csets_ordered_for_pcg as the default
+    pcg for each region/process/io combination, but setting the io="OUT" subset as default before "IN".
 
     See:
         Section 3.7.2.2, pg 80. of `TIMES Documentation PART IV` for details.
@@ -1208,12 +1208,12 @@ def _process_comm_groups_vectorised(
         comm_groups: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
         csets_ordered_for_pcg: List of csets in the order they should be considered for default pcg
     Returns:
-        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in each region/process/io combination.
+        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in eachregion/process/io combination.
     """
 
     def _set_default_veda_pcg(group):
-        """For a given [region, process] group, default group is set as the first cset in the `csets_ordered_for_pcg` list, which is an output, if
-        one exists, otherwise the first input."""
+        """For a given [region, process] group, default group is set as the first cset in the `csets_ordered_for_pcg`
+        list, which is an output, if one exists, otherwise the first input."""
         if not group["csets"].isin(csets_ordered_for_pcg).all():
             return group
 
@@ -1242,7 +1242,7 @@ def complete_commodity_groups(
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
     """
-    Complete the list of commodity groups
+    Complete the list of commodity groups.
     """
 
     # Single member CGs i.e., CG and commodity are the same
@@ -1396,17 +1396,9 @@ def fill_in_missing_pcgs(
                 how="right",
             )
             df = pd.concat([df, default_pcgs])
+            # Keep last if a row appears more than once (disregard primarycg)
             df.drop_duplicates(
-                subset=[
-                    "sets",
-                    "region",
-                    "process",
-                    "description",
-                    "tact",
-                    "tcap",
-                    "tslvl",
-                    "vintage",
-                ],
+                subset=[c for c in df.columns if c != "primarycg"],
                 keep="last",
                 inplace=True,
             )
@@ -1588,7 +1580,7 @@ def process_topology(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Create topology
+    Create topology.
     """
 
     fit_tables = [t for t in tables if t.tag.startswith(datatypes.Tag.fi_t)]
@@ -2472,13 +2464,14 @@ def rename_cgs(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    df = tables.get(datatypes.Tag.fi_t)
-    if df is not None:
-        i = df["other_indexes"].isin(default_pcg_suffixes)
-        df.loc[i, "other_indexes"] = (
-            df["process"].astype(str) + "_" + df["other_indexes"].astype(str)
+
+    if not model.attributes.empty:
+        i = model.attributes["other_indexes"].isin(default_pcg_suffixes)
+        model.attributes.loc[i, "other_indexes"] = (
+            model.attributes["process"].astype(str)
+            + "_"
+            + model.attributes["other_indexes"].astype(str)
         )
-        tables[datatypes.Tag.fi_t] = df
 
     return tables
 
