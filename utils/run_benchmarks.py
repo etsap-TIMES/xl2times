@@ -1,5 +1,4 @@
 import argparse
-import logging
 import os
 import re
 import shutil
@@ -9,20 +8,18 @@ import time
 from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
-from logging.handlers import RotatingFileHandler
-from logging import StreamHandler
 from os import path, symlink
-from re import match
 from typing import Any, Tuple
 
 import git
 import pandas as pd
 import yaml
+from loguru import logger
 from tabulate import tabulate
 
+from dd_to_csv import main
+from xl2times.__main__ import run, parse_args
 from xl2times.utils import max_workers
-
-from loguru import logger
 
 # set global log level via env var.  Set to INFO if not already set.
 if os.getenv("LOGURU_LEVEL") is None:
@@ -174,7 +171,7 @@ def run_benchmark(
     # First convert ground truth DD to csv
     if not skip_csv:
         shutil.rmtree(csv_folder, ignore_errors=True)
-        if os.name != "nt":
+        if debug:
             res = subprocess.run(
                 [
                     "python",
@@ -194,9 +191,12 @@ def run_benchmark(
                 sys.exit(5)
         else:
             # If debug option is set, run as a function call to allow stepping with a debugger.
-            from dd_to_csv import main
-
-            main([dd_folder, csv_folder])
+            try:
+                main([dd_folder, csv_folder])
+            except Exception:
+                logger.exception(f"dd_to_csv failed on {benchmark['name']}")
+                shutil.rmtree(csv_folder, ignore_errors=True)
+                sys.exit(5)
 
     elif not path.exists(csv_folder):
         print(f"ERROR: --skip_csv is true but {csv_folder} does not exist")
@@ -217,22 +217,12 @@ def run_benchmark(
     else:
         args.append(xl_folder)
     start = time.time()
-    res = None
-    if not debug:
-        res = subprocess.run(
-            ["xl2times"] + args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-    else:
-        # If debug option is set, run as a function call to allow stepping with a debugger.
-        from xl2times.__main__ import run, parse_args
 
-        summary = run(parse_args(args))
+    # Call the conversion function directly
+    summary = run(parse_args(args))
 
-        # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
-        res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
+    # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
+    res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
 
     runtime = time.time() - start
 
@@ -283,8 +273,13 @@ def run_all_benchmarks(
         debug=debug,
     )
 
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        results = list(executor.map(run_a_benchmark, benchmarks))
+    if debug:
+        # bypass process pool and call benchmarks directly if --debug is set.
+        results = [run_a_benchmark(b) for b in benchmarks]
+    else:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(run_a_benchmark, benchmarks))
+
     print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
 
     if skip_regression:
@@ -324,8 +319,9 @@ def run_all_benchmarks(
             print("Your working directory is not clean. Skipping regression tests.")
             sys.exit(8)
 
-        # Re-run benchmarks on main
+        # Re-run benchmarks on main - check it out and pull
         repo.heads.main.checkout()
+        origin.pull("main")  # if main already exists, make sure it's up to date
         print("Running benchmarks on main", end="", flush=True)
         run_a_benchmark = partial(
             run_benchmark,
