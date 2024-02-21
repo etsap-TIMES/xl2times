@@ -1,4 +1,5 @@
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -159,7 +160,7 @@ def run_benchmark(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                shell=True,
+                shell=True if os.name == "nt" else False,
             )
             if res.returncode != 0:
                 # Remove partial outputs

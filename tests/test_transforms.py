@@ -88,11 +88,6 @@ class TestTransforms:
             dictionary = pickle.load(f)
         df = df_in.copy()
 
-        # df_in = pd.read_parquet("tests/data/process_uc_wildcards_austimes_data.parquet")
-        # with open("tests/data/process_uc_wildcards_austimes_dict.pkl", "rb") as f:
-        #     dictionary = pickle.load(f)
-        # df = df_in.query("region in ['ACT', 'NSW']")
-
         t0 = datetime.now()
 
         # optimised functions
