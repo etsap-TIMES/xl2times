@@ -147,7 +147,8 @@ def run_benchmark(
     # First convert ground truth DD to csv
     if not skip_csv:
         shutil.rmtree(csv_folder, ignore_errors=True)
-        if debug:
+        if not debug:
+            # run as subprocess if not in --debug mode
             res = subprocess.run(
                 [
                     "python",
