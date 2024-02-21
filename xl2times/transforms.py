@@ -2017,7 +2017,7 @@ def get_matching_processes(row, dictionary):
         ("pset_ci", "processes_by_comm_in"),
         ("pset_co", "processes_by_comm_out"),
     ]:
-        if row[col] is not None:
+        if col in row.index and row[col] is not None:
             matching_processes = intersect(
                 matching_processes, filter_by_pattern(dictionary[key], row[col].upper())
             )
@@ -2033,7 +2033,7 @@ def get_matching_commodities(row, dictionary):
         ("cset_cd", "commodities_by_desc"),
         ("cset_set", "commodities_by_sets"),
     ]:
-        if row[col] is not None:
+        if col in row.index and row[col] is not None:
             matching_commodities = intersect(
                 matching_commodities,
                 filter_by_pattern(dictionary[key], row[col].upper()),
@@ -2155,13 +2155,21 @@ def process_wildcards(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
+    """
+    Process wildcards specified int TFM tables.
+    """
+
     topology = generate_topology_dictionary(tables, model)
 
     def match_wildcards(
         row: pd.Series,
     ) -> tuple[DataFrame | None, DataFrame | None] | None:
+        """
+        Return matching processes and commodities
+        """
         matching_processes = get_matching_processes(row, topology)
         matching_commodities = get_matching_commodities(row, topology)
+
         if (matching_processes is None or len(matching_processes) == 0) and (
             matching_commodities is None or len(matching_commodities) == 0
         ):  # TODO is this necessary? Try without?
@@ -2297,6 +2305,33 @@ def process_wildcards(
         # Add new rows to table
         new_tables.append(tables[datatypes.Tag.fi_t])
         tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+
+    if datatypes.Tag.tfm_comgrp in tables:
+        updates = tables[datatypes.Tag.tfm_comgrp]
+        table = model.commodity_groups
+        new_tables = []
+
+        # Expand each row by wildcards, then add to model.commodity_groups
+        for _, row in updates.iterrows():
+            match = match_wildcards(row)
+            # Convert serie to dataframe; keep only relevant columns
+            new_rows = pd.DataFrame([row.filter(table.columns)])
+            # Match returns both processes and commodities, but only latter is relevant here
+            processes, commodities = match if match is not None else (None, None)
+            if commodities is None:
+                logger.warning(f"TFM_COMGRP row did not match any commodity")
+            else:
+                new_rows = commodities.merge(new_rows, how="cross")
+                new_tables.append(new_rows)
+
+        # Expand model.commodity_groups with user-defined commodity groups
+        if new_tables:
+            new_tables.append(model.commodity_groups)
+            commodity_groups = pd.concat(
+                new_tables, ignore_index=True
+            ).drop_duplicates()
+            commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
+            model.commodity_groups = commodity_groups.dropna()
 
     return tables
 

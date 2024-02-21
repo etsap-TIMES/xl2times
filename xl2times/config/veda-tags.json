@@ -782,7 +782,7 @@
       {
         "name": "name",
         "aliases": [],
-        "use_name": "name",
+        "use_name": "commoditygroup",
         "row_ignore_symbol": [
           "\\I:",
           "*"
