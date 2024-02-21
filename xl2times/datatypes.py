@@ -6,6 +6,8 @@ import json
 import re
 from typing import Dict, Iterable, List, Set, Tuple
 from enum import Enum
+
+from loguru import logger
 from pandas.core.frame import DataFrame
 
 # ============================================================================
@@ -234,7 +236,7 @@ class Config:
             cat_to_tables[item["gams-cat"]].append(item["name"])
         unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
         if unknown_cats:
-            print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
+            logger.warning(f"Unknown categories in times-info.json: {unknown_cats}")
         dd_table_order = chain.from_iterable(
             (sorted(cat_to_tables[c]) for c in categories)
         )
@@ -306,9 +308,9 @@ class Config:
                     break
                 (times, xl) = line.split(" = ")
                 (times_name, times_cols_str) = list(
-                    filter(None, re.split("\[|\]", times))
+                    filter(None, re.split(r"\[|\]", times))
                 )
-                (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
+                (xl_name, xl_cols_str) = list(filter(None, re.split(r"\(|\)", xl)))
                 times_cols = times_cols_str.split(",")
                 xl_cols = xl_cols_str.split(",")
                 filter_rows = {}
@@ -342,8 +344,8 @@ class Config:
                     dropped.append(line)
 
         if len(dropped) > 0:
-            print(
-                f"WARNING: Dropping {len(dropped)} mappings that are not yet complete"
+            logger.warning(
+                f"Dropping {len(dropped)} mappings that are not yet complete"
             )
         return mappings
 
@@ -369,8 +371,8 @@ class Config:
         tags = {to_tag(tag_info["tag_name"]) for tag_info in veda_tags_info}
         for tag in Tag:
             if tag not in tags:
-                print(
-                    f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
+                logger.warning(
+                    f"datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
                 )
 
         valid_column_names = {}

@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 
 def parse_parameter_values_from_file(
@@ -179,7 +180,7 @@ def convert_dd_to_tabular(
     all_sets = defaultdict(list)
     all_parameters = defaultdict(list)
     for path in dd_files:
-        print(f"Processing path: {path}")
+        logger.info(f"Processing path: {path}")
         local_param_values, local_sets = parse_parameter_values_from_file(path)
 
         # merge params from file into global collection
