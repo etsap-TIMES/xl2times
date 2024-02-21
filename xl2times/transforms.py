@@ -1,14 +1,3 @@
-import collections
-import functools
-import pickle
-from collections import defaultdict
-from pandas.core.frame import DataFrame
-from pathlib import Path
-import pandas as pd
-from dataclasses import replace
-from typing import Dict, List, Callable
-from more_itertools import locate, one
-from itertools import groupby
 import re
 import time
 from collections import defaultdict
@@ -17,23 +6,18 @@ from dataclasses import replace
 from functools import reduce
 from itertools import groupby
 from pathlib import Path
+from typing import Callable
 from typing import Dict, List, Set
 
 import pandas as pd
 from loguru import logger
 from more_itertools import locate, one
 from pandas.core.frame import DataFrame
-
-import logging
-import logging.config
-
 from tqdm import tqdm
 
-from .utils import max_workers
 from . import datatypes
 from . import utils
-
-logger = logging.getLogger(__name__)
+from .utils import max_workers
 
 query_columns = {
     "pset_set",
@@ -2175,7 +2159,7 @@ def process_uc_wildcards(
 
         tables[tag] = df
 
-        print(
+        logger.info(
             f"  process_uc_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
         )
 
@@ -2208,9 +2192,13 @@ def _match_uc_wildcards(
     unique_filters = df[proc_cols].drop_duplicates().dropna(axis="rows", how="all")
 
     # match all the wildcards columns against the dictionary names
-    matches = unique_filters.apply(
-        lambda row: matcher(row, dictionary), axis=1
-    ).to_list()
+    matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
+    # FIXME: work-around for matchers occasionally DataFrame or a Series
+    matches = (
+        matches.iloc[:, 0].to_list()
+        if isinstance(matches, pd.DataFrame)
+        else matches.to_list()
+    )
     matches = [
         df.iloc[:, 0].to_list() if df is not None and len(df) != 0 else None
         for df in matches

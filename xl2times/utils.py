@@ -268,7 +268,7 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
                 "level": "DEBUG",
                 "colorize": False,
                 "serialize": False,
-                "diagnose": False,
+                "diagnose": True,
                 "rotation": "20 MB",
                 "compression": "zip",
             },

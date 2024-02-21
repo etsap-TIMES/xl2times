@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 import time
-from __main__ import parse_args, run
 from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
@@ -19,6 +18,7 @@ from tabulate import tabulate
 
 from utils.dd_to_csv import main
 from xl2times import utils
+from xl2times.__main__ import parse_args, run
 from xl2times.utils import max_workers
 
 logger = utils.get_logger()
@@ -158,6 +158,7 @@ def run_benchmark(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                shell=True,
             )
             if res.returncode != 0:
                 # Remove partial outputs
