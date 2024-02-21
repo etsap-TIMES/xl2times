@@ -1,34 +1,41 @@
 import argparse
 import os
-from collections import namedtuple
-from concurrent.futures import ProcessPoolExecutor
-from functools import partial
-import git
-from os import path, symlink
-import pandas as pd
-from re import match
+import re
 import shutil
 import subprocess
 import sys
-from tabulate import tabulate
 import time
+from collections import namedtuple
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
+from os import path, symlink
 from typing import Any, Tuple
-import yaml
 
+import git
+import pandas as pd
+import yaml
+from loguru import logger
+from tabulate import tabulate
+
+from xl2times import utils
 from xl2times.utils import max_workers
 
+logger = utils.get_logger()
 
-def parse_result(lastline):
-    m = match(
-        r"(\d+\.\d)\% of ground truth rows present in output \((\d+)/(\d+)\)"
-        r", (\d+) additional rows",
-        lastline,
+
+def parse_result(output: str) -> Tuple[float, int, int]:
+    # find pattern in multiline string
+    m = re.findall(
+        r"(\d+\.\d)% of ground truth rows present in output \((\d+)/(\d+)\), (\d+) additional rows",
+        output,
+        flags=re.MULTILINE,
     )
-    if not m:
-        print(f"ERROR: could not parse output of run:\n{lastline}")
+    if not m or len(m) == 0:
+        logger.error(f"could not parse output of run:\n{output}")
         sys.exit(2)
     # return (accuracy, num_correct_rows, num_additional_rows)
-    return (float(m.groups()[0]), int(m.groups()[1]), int(m.groups()[3]))
+    m = m[0]
+    return (float(m[0]), int(m[1]), int(m[2]))
 
 
 def run_gams_gdxdiff(
@@ -59,13 +66,13 @@ def run_gams_gdxdiff(
         text=True,
     )
     if res.returncode != 0:
-        print(res.stdout)
-        print(res.stderr if res.stderr is not None else "")
-        print(f"ERROR: GAMS failed on {benchmark['name']}")
+        logger.info(res.stdout)
+        logger.info(res.stderr if res.stderr is not None else "")
+        logger.error(f"GAMS failed on {benchmark['name']}")
         sys.exit(3)
     if "error" in res.stdout.lower():
-        print(res.stdout)
-        print(f"ERROR: GAMS errored on {benchmark['name']}")
+        logger.info(res.stdout)
+        logger.error(f"GAMS errored on {benchmark['name']}")
         return "Error running GAMS"
 
     # Run GAMS on ground truth:
@@ -90,13 +97,13 @@ def run_gams_gdxdiff(
         text=True,
     )
     if res.returncode != 0:
-        print(res.stdout)
-        print(res.stderr if res.stderr is not None else "")
-        print(f"ERROR: GAMS failed on {benchmark['name']} ground truth")
+        logger.info(res.stdout)
+        logger.info(res.stderr if res.stderr is not None else "")
+        logger.error(f"GAMS failed on {benchmark['name']} ground truth")
         sys.exit(4)
     if "error" in res.stdout.lower():
-        print(res.stdout)
-        print(f"ERROR: GAMS errored on {benchmark['name']}")
+        logger.info(res.stdout)
+        logger.error(f"GAMS errored on {benchmark['name']}")
         return "Error running GAMS on ground truth"
 
     # Run gdxdiff to compare
@@ -113,8 +120,8 @@ def run_gams_gdxdiff(
         text=True,
     )
     if verbose:
-        print(res.stdout)
-        print(res.stderr if res.stderr is not None else "")
+        logger.info(res.stdout)
+        logger.info(res.stderr if res.stderr is not None else "")
     if res.returncode != 0:
         return f"Diff ({len(res.stdout.splitlines())})"
 
@@ -154,8 +161,8 @@ def run_benchmark(
             if res.returncode != 0:
                 # Remove partial outputs
                 shutil.rmtree(csv_folder, ignore_errors=True)
-                print(res.stdout)
-                print(f"ERROR: dd_to_csv failed on {benchmark['name']}")
+                logger.info(res.stdout)
+                logger.error(f"dd_to_csv failed on {benchmark['name']}")
                 sys.exit(5)
         else:
             # If debug option is set, run as a function call to allow stepping with a debugger.
@@ -164,7 +171,7 @@ def run_benchmark(
             main([dd_folder, csv_folder])
 
     elif not path.exists(csv_folder):
-        print(f"ERROR: --skip_csv is true but {csv_folder} does not exist")
+        logger.error(f"--skip_csv is true but {csv_folder} does not exist")
         sys.exit(6)
 
     # Then run the tool
@@ -203,19 +210,19 @@ def run_benchmark(
 
     if verbose:
         line = "-" * 80
-        print(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
-        print(res.stderr if res.stderr is not None else "")
+        logger.info(f"\n{line}\n{benchmark['name']}\n{line}\n\n{res.stdout}")
+        logger.info(res.stderr if res.stderr is not None else "")
     else:
-        print(".", end="", flush=True)
+        logger.info(".", end="", flush=True)
 
     if res.returncode != 0:
-        print(res.stdout)
-        print(f"ERROR: tool failed on {benchmark['name']}")
+        logger.info(res.stdout)
+        logger.error(f"tool failed on {benchmark['name']}")
         sys.exit(7)
     with open(path.join(out_folder, "stdout"), "w") as f:
         f.write(res.stdout)
 
-    (accuracy, num_correct, num_additional) = parse_result(res.stdout.splitlines()[-1])
+    (accuracy, num_correct, num_additional) = parse_result(res.stdout)
 
     if run_gams:
         dd_res = run_gams_gdxdiff(benchmark, times_folder, dd_folder, out_folder)
@@ -236,7 +243,7 @@ def run_all_benchmarks(
     verbose=False,
     debug: bool = False,
 ):
-    print("Running benchmarks", end="", flush=True)
+    logger.info("Running benchmarks", end="", flush=True)
     headers = ["Benchmark", "Time (s)", "GDX Diff", "Accuracy", "Correct", "Additional"]
     run_a_benchmark = partial(
         run_benchmark,
@@ -250,10 +257,10 @@ def run_all_benchmarks(
 
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         results = list(executor.map(run_a_benchmark, benchmarks))
-    print("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
+    logger.info("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
 
     if skip_regression:
-        print("Skipping regression tests.")
+        logger.info("Skipping regression tests.")
         sys.exit(0)
 
     # The rest of this script checks regressions against main
@@ -271,7 +278,7 @@ def run_all_benchmarks(
         mybranch = repo.create_head("mybranch")
 
     if mybranch.name == "main":
-        print("Skipping regression tests as we're on main branch. Goodbye!")
+        logger.info("Skipping regression tests as we're on main branch. Goodbye!")
         sys.exit(0)
 
     if skip_main:
@@ -284,18 +291,20 @@ def run_all_benchmarks(
                 result = parse_result(f.readlines()[-1])
             # Use a fake runtime and GAMS result
             results_main.append((benchmark["name"], 999, "--", *result))
-        print(
+        logger.info(
             f"Skipped running on main. Using results from {path.join(benchmarks_folder, 'out-main')}"
         )
 
     else:
         if repo.is_dirty():
-            print("Your working directory is not clean. Skipping regression tests.")
+            logger.info(
+                "Your working directory is not clean. Skipping regression tests."
+            )
             sys.exit(8)
 
         # Re-run benchmarks on main
         repo.heads.main.checkout()
-        print("Running benchmarks on main", end="", flush=True)
+        logger.info("Running benchmarks on main", end="", flush=True)
         run_a_benchmark = partial(
             run_benchmark,
             benchmarks_folder=benchmarks_folder,
@@ -323,7 +332,7 @@ def run_all_benchmarks(
         )
         for ((b, t, f, a, c, d), (_, t0, f0, a0, c0, d0)) in zip(results, results_main)
     ]
-    print("\n\n" + tabulate(combined_results, headers, stralign="right") + "\n")
+    logger.info("\n\n" + tabulate(combined_results, headers, stralign="right") + "\n")
 
     # Checkout back to branch
     mybranch.checkout()
@@ -337,7 +346,7 @@ def run_all_benchmarks(
         how="outer",
     )
     if df.isna().values.any():
-        print(f"ERROR: number of benchmarks changed:\n{df}")
+        logger.error(f"number of benchmarks changed:\n{df}")
         sys.exit(9)
     accu_regressions = df[df["Correct"] < df["M Correct"]]["Benchmark"]
     addi_regressions = df[df["Additional"] > df["M Additional"]]["Benchmark"]
@@ -347,37 +356,36 @@ def run_all_benchmarks(
     main_time = df["M Time (s)"].sum()
     runtime_change = our_time - main_time
 
-    print(f"Total runtime: {our_time:.2f}s (main: {main_time:.2f}s)")
-    print(
-        f"Change in runtime (negative == faster): {runtime_change:+.2f}s ({100*runtime_change/main_time:+.1f}%)"
+    logger.info(f"Total runtime: {our_time:.2f}s (main: {main_time:.2f}s)")
+    logger.info(
+        f"Change in runtime (negative == faster): {runtime_change:+.2f}s ({100 * runtime_change / main_time:+.1f}%)"
     )
 
     our_correct = df["Correct"].sum()
     main_correct = df["M Correct"].sum()
     correct_change = our_correct - main_correct
-    print(
-        f"Change in correct rows (higher == better): {correct_change:+d} ({100*correct_change/main_correct:+.1f}%)"
+    logger.info(
+        f"Change in correct rows (higher == better): {correct_change:+d} ({100 * correct_change / main_correct:+.1f}%)"
     )
 
     our_additional_rows = df["Additional"].sum()
     main_additional_rows = df["M Additional"].sum()
     additional_change = our_additional_rows - main_additional_rows
-    print(
-        f"Change in additional rows: {additional_change:+d} ({100*additional_change/main_additional_rows:+.1f}%)"
+    logger.info(
+        f"Change in additional rows: {additional_change:+d} ({100 * additional_change / main_additional_rows:+.1f}%)"
     )
 
     if len(accu_regressions) + len(addi_regressions) + len(time_regressions) > 0:
-        print()
         if not accu_regressions.empty:
-            print(f"ERROR: correct rows regressed on: {', '.join(accu_regressions)}")
+            logger.error(f"correct rows regressed on: {', '.join(accu_regressions)}")
         if not addi_regressions.empty:
-            print(f"ERROR: additional rows regressed on: {', '.join(addi_regressions)}")
+            logger.error(f"additional rows regressed on: {', '.join(addi_regressions)}")
         if not time_regressions.empty:
-            print(f"ERROR: runtime regressed on: {', '.join(time_regressions)}")
+            logger.error(f"runtime regressed on: {', '.join(time_regressions)}")
         sys.exit(10)
     # TODO also check if any new tables are missing?
 
-    print("No regressions. You're awesome!")
+    logger.success("No regressions. You're awesome!")
 
 
 if __name__ == "__main__":
@@ -441,17 +449,17 @@ if __name__ == "__main__":
     benchmarks_folder = spec["benchmarks_folder"]
     benchmark_names = [b["name"] for b in spec["benchmarks"]]
     if len(set(benchmark_names)) != len(benchmark_names):
-        print("ERROR: Found duplicate name in benchmarks YAML file")
+        logger.error(f"Found duplicate name in benchmarks YAML file")
         sys.exit(11)
 
     if args.dd and args.times_dir is None:
-        print("ERROR: --times_dir is required when using --dd")
+        logger.error(f"--times_dir is required when using --dd")
         sys.exit(12)
 
     if args.run is not None:
         benchmark = next((b for b in spec["benchmarks"] if b["name"] == args.run), None)
         if benchmark is None:
-            print(f"ERROR: could not find {args.run} in {args.benchmarks_yaml}")
+            logger.error(f"could not find {args.run} in {args.benchmarks_yaml}")
             sys.exit(13)
 
         _, runtime, gms, acc, cor, add = run_benchmark(
@@ -463,7 +471,7 @@ if __name__ == "__main__":
             verbose=args.verbose,
             debug=args.debug,
         )
-        print(
+        logger.info(
             f"Ran {args.run} in {runtime:.2f}s. {acc}% ({cor} correct, {add} additional).\n"
             f"GAMS: {gms}"
         )
