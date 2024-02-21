@@ -22,17 +22,6 @@ from tabulate import tabulate
 
 from xl2times.utils import max_workers
 
-# configure logger
-# logging.basicConfig(
-#     level=logging.DEBUG,
-#     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(filename)s:%(lineno)d",
-#     handlers=[StreamHandler(), RotatingFileHandler("xl2times.log", maxBytes=1000000, backupCount=5)],
-#     force=True,
-#     datefmt="%Y-%m-%d %H:%M:%S",
-# )
-# logger = logging.getLogger("xl2times")
-# logger.info("Logger!")
-
 from loguru import logger
 
 # set global log level via env var.  Set to INFO if not already set.
