@@ -1,5 +1,4 @@
 import argparse
-import logging
 import os
 import re
 import shutil
@@ -9,21 +8,17 @@ import time
 from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
-from logging.handlers import RotatingFileHandler
-from logging import StreamHandler
 from os import path, symlink
-from re import match
 from typing import Any, Tuple
 
 import git
 import pandas as pd
 import yaml
+from loguru import logger
 from tabulate import tabulate
 
 from xl2times import utils
 from xl2times.utils import max_workers
-
-from loguru import logger
 
 logger = utils.get_logger()
 

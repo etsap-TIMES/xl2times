@@ -1,28 +1,21 @@
-import collections
-from collections import defaultdict
-from pandas.core.frame import DataFrame
-from pathlib import Path
-import pandas as pd
-from dataclasses import replace
-from typing import Dict, List, Set
-from more_itertools import locate, one
-from itertools import groupby
 import re
-from concurrent.futures import ProcessPoolExecutor
 import time
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import replace
 from functools import reduce
+from itertools import groupby
+from pathlib import Path
+from typing import Dict, List, Set
 
-from tqdm import tqdm
+import pandas as pd
+from loguru import logger
+from more_itertools import locate, one
+from pandas.core.frame import DataFrame
 
-import logging
-import logging.config
-
-logger = logging.getLogger(__name__)
-
-
-from .utils import max_workers
 from . import datatypes
 from . import utils
+from .utils import max_workers
 
 csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
 default_pcg_suffixes = [
