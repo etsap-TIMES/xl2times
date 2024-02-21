@@ -10,9 +10,11 @@ import time
 from typing import Dict, List
 
 from xl2times.utils import max_workers
-from . import datatypes
+from . import datatypes, utils
 from . import excel
 from . import transforms
+
+logger = utils.get_logger()
 
 
 def convert_xl_to_times(
@@ -27,7 +29,7 @@ def convert_xl_to_times(
     pickle_file = "raw_tables.pkl"
     if use_pkl and os.path.isfile(pickle_file):
         raw_tables = pickle.load(open(pickle_file, "rb"))
-        print(f"WARNING: Using pickled data not xlsx")
+        logger.warning(f"Using pickled data not xlsx")
     else:
         raw_tables = []
 
@@ -41,7 +43,7 @@ def convert_xl_to_times(
                 result = excel.extract_tables(f)
                 raw_tables.extend(result)
         pickle.dump(raw_tables, open(pickle_file, "wb"))
-    print(
+    logger.info(
         f"Extracted {len(raw_tables)} tables,"
         f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
     )
@@ -119,7 +121,7 @@ def convert_xl_to_times(
         output = transform(config, input, model)
         end_time = time.time()
         sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
-        print(
+        logger.info(
             f"{sep}transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
         if verbose:
@@ -127,15 +129,15 @@ def convert_xl_to_times(
                 for table in sorted(
                     output, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
                 ):
-                    print(table)
+                    logger.info(table)
             elif isinstance(output, dict):
                 for tag, df in output.items():
                     df_str = df.to_csv(index=False, lineterminator="\n")
-                    print(f"{tag}\n{df_str}{df.shape}\n")
+                    logger.info(f"{tag}\n{df_str}{df.shape}\n")
         input = output
     assert isinstance(output, dict)
 
-    print(
+    logger.info(
         f"Conversion complete, {len(output)} tables produced,"
         f" {sum(df.shape[0] for df in output.values())} rows"
     )
@@ -164,7 +166,7 @@ def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
 def compare(
     data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame], output_dir: str
 ) -> str:
-    print(
+    logger.info(
         f"Ground truth contains {len(ground_truth)} tables,"
         f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
     )
@@ -174,14 +176,14 @@ def compare(
         [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
     )
     if len(missing) > 0:
-        print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
+        logger.warning(f"Missing {len(missing)} tables: {missing_str}")
 
     additional_tables = set(data.keys()) - set(ground_truth.keys())
     additional_str = ", ".join(
         [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
     )
     if len(additional_tables) > 0:
-        print(f"WARNING: {len(additional_tables)} additional tables: {additional_str}")
+        logger.warning(f"{len(additional_tables)} additional tables: {additional_str}")
     # Additional rows starts as the sum of lengths of additional tables produced
     total_additional_rows = sum(len(data[x]) for x in additional_tables)
 
@@ -197,8 +199,8 @@ def compare(
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
             data_cols = list(data_table.columns)
             if transformed_gt_cols != data_cols:
-                print(
-                    f"WARNING: Table {table_name} header incorrect, was"
+                logger.warning(
+                    f"Table {table_name} header incorrect, was"
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
 
@@ -211,8 +213,8 @@ def compare(
             total_additional_rows += len(additional)
             missing = gt_rows - data_rows
             if len(additional) != 0 or len(missing) != 0:
-                print(
-                    f"WARNING: Table {table_name} ({data_table.shape[0]} rows,"
+                logger.warning(
+                    f"Table {table_name} ({data_table.shape[0]} rows,"
                     f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
                     f" additional rows and is missing {len(missing)} rows"
                 )
@@ -232,14 +234,14 @@ def compare(
         f", {total_additional_rows} additional rows"
     )
 
-    print(result)
+    logger.info(result)
     return result
 
 
 def produce_times_tables(
     config: datatypes.Config, input: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    print(
+    logger.info(
         f"produce_times_tables: {len(input)} tables incoming,"
         f" {sum(len(value) for (_, value) in input.items())} rows"
     )
@@ -247,8 +249,8 @@ def produce_times_tables(
     used_tables = set()
     for mapping in config.times_xl_maps:
         if not mapping.xl_name in input:
-            print(
-                f"WARNING: Cannot produce table {mapping.times_name} because"
+            logger.warning(
+                f"Cannot produce table {mapping.times_name} because"
                 f" {mapping.xl_name} does not exist"
             )
         else:
@@ -257,8 +259,8 @@ def produce_times_tables(
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
-                    print(
-                        f"WARNING: Cannot produce table {mapping.times_name} because"
+                    logger.warning(
+                        f"Cannot produce table {mapping.times_name} because"
                         f" {mapping.xl_name} does not contain column {filter_col}"
                     )
                     # TODO break this loop and continue outer loop?
@@ -270,8 +272,8 @@ def produce_times_tables(
                 df["techgroup"] = df["techname"]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols) - set(df.columns)
-                print(
-                    f"WARNING: Cannot produce table {mapping.times_name} because"
+                logger.warning(
+                    f"Cannot produce table {mapping.times_name} because"
                     f" {mapping.xl_name} does not contain the required columns"
                     f" - {', '.join(missing)}"
                 )
@@ -298,8 +300,8 @@ def produce_times_tables(
 
     unused_tables = set(input.keys()) - used_tables
     if len(unused_tables) > 0:
-        print(
-            f"WARNING: {len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
+        logger.warning(
+            f"{len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
         )
 
     return result
@@ -414,7 +416,7 @@ def run(args) -> str | None:
     model = datatypes.TimesModel()
 
     if not isinstance(args.input, list) or len(args.input) < 1:
-        print(f"ERROR: expected at least 1 input. Got {args.input}")
+        logger.critical(f"expected at least 1 input. Got {args.input}")
         sys.exit(-1)
     elif len(args.input) == 1:
         assert os.path.isdir(args.input[0])
@@ -423,7 +425,7 @@ def run(args) -> str | None:
             for path in Path(args.input[0]).rglob("*")
             if path.suffix in [".xlsx", ".xlsm"] and not path.name.startswith("~")
         ]
-        print(f"Loading {len(input_files)} files from {args.input[0]}")
+        logger.info(f"Loading {len(input_files)} files from {args.input[0]}")
     else:
         input_files = args.input
 
