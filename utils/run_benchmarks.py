@@ -16,7 +16,7 @@ import yaml
 from loguru import logger
 from tabulate import tabulate
 
-from utils.dd_to_csv import main
+from dd_to_csv import main
 from xl2times import utils
 from xl2times.__main__ import parse_args, run
 from xl2times.utils import max_workers
