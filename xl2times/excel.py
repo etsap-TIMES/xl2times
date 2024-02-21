@@ -1,3 +1,4 @@
+from loguru import logger
 from openpyxl import load_workbook
 from openpyxl.worksheet.cell_range import CellRange
 from typing import Dict, List
@@ -34,16 +35,24 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
             for colname in df.columns:
                 value = str(row[colname])
                 if value.startswith("~"):
-                    match = re.match(f"{datatypes.Tag.uc_sets.value}:(.*)", value, re.IGNORECASE)
+                    match = re.match(
+                        f"{datatypes.Tag.uc_sets.value}:(.*)", value, re.IGNORECASE
+                    )
                     if match:
                         parts = match.group(1).split(":")
                         if len(parts) == 2:
                             uc_sets[parts[0].strip()] = parts[1].strip()
                         else:
-                            print(f"WARNING: Malformed UC_SET in {sheet.title}, {filename}")
+                            logger.info(
+                                f"WARNING: Malformed UC_SET in {sheet.title}, {filename}"
+                            )
                     else:
                         col_index = df.columns.get_loc(colname)
-                        sheet_tables.append(extract_table(row_index, col_index, uc_sets, df, sheet.title, filename))
+                        sheet_tables.append(
+                            extract_table(
+                                row_index, col_index, uc_sets, df, sheet.title, filename
+                            )
+                        )
 
         for sheet_table in sheet_tables:
             sheet_table.uc_sets = uc_sets
@@ -52,7 +61,7 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
 
     end_time = time.time()
     if end_time - start_time > 2:
-        print(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
+        logger.info(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
 
     return tables
 
@@ -115,7 +124,9 @@ def extract_table(
             end_col += 1
 
         end_row = header_row
-        while end_row < df.shape[0] and not are_cells_all_empty(df, end_row, start_col, end_col):
+        while end_row < df.shape[0] and not are_cells_all_empty(
+            df, end_row, start_col, end_col
+        ):
             end_row += 1
 
         # Excel cell numbering starts at 1, while pandas starts at 0
@@ -180,4 +191,8 @@ def cell_is_empty(value) -> bool:
     :param value:           Cell value.
     :return:                Boolean indicating if the cells are empty.
     """
-    return value is None or (isinstance(value, numpy.floating) and numpy.isnan(value)) or (isinstance(value, str) and len(value.strip()) == 0)
+    return (
+        value is None
+        or (isinstance(value, numpy.floating) and numpy.isnan(value))
+        or (isinstance(value, str) and len(value.strip()) == 0)
+    )

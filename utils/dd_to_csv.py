@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 
 def parse_parameter_values_from_file(
@@ -47,7 +48,9 @@ def parse_parameter_values_from_file(
             while data[index].strip() == "":
                 index += 1
 
-            param_name = data[index].replace(" ' '/", "")  # param_name is followed by this pattern
+            param_name = data[index].replace(
+                " ' '/", ""
+            )  # param_name is followed by this pattern
 
             index += 1
             param_data = []
@@ -62,7 +65,9 @@ def parse_parameter_values_from_file(
                     attributes = words[0].split(".")
                     attributes = [a if " " in a else a.strip("'") for a in attributes]
                 else:
-                    raise ValueError(f"Unexpected number of spaces in parameter value setting: {data[index]}")
+                    raise ValueError(
+                        f"Unexpected number of spaces in parameter value setting: {data[index]}"
+                    )
 
                 value = words[-1]
                 param_data.append([*attributes, value])
@@ -102,7 +107,9 @@ def parse_parameter_values_from_file(
                     text = words[1]
                     set_data.add(tuple([*attributes, text]))
                 else:
-                    raise ValueError(f"Unexpected number of spaces in set value setting: {data[index]}")
+                    raise ValueError(
+                        f"Unexpected number of spaces in set value setting: {data[index]}"
+                    )
 
                 index += 1
 
@@ -134,11 +141,17 @@ def save_data_with_headers(
         try:
             columns = headers_data[param_name]
         except KeyError:
-            raise ValueError(f"Could not find mapping for {param_name} in mapping file.")
+            raise ValueError(
+                f"Could not find mapping for {param_name} in mapping file."
+            )
         for row in param_data:
             if len(row) != len(columns):
-                raise ValueError(f"Mismatched number of columns for param {param_name} between data ({len(row)}) and mapping ({len(columns)})")
-        df = pd.DataFrame(data=np.asarray(param_data)[:, 0 : len(columns)], columns=columns)
+                raise ValueError(
+                    f"Mismatched number of columns for param {param_name} between data ({len(row)}) and mapping ({len(columns)})"
+                )
+        df = pd.DataFrame(
+            data=np.asarray(param_data)[:, 0 : len(columns)], columns=columns
+        )
         df.to_csv(os.path.join(save_dir, param_name + ".csv"), index=False)
 
     return
@@ -159,13 +172,15 @@ def generate_headers_by_attr() -> Dict[str, List[str]]:
     return headers_by_attr
 
 
-def convert_dd_to_tabular(basedir: str, output_dir: str, headers_by_attr: Dict[str, List[str]]) -> None:
+def convert_dd_to_tabular(
+    basedir: str, output_dir: str, headers_by_attr: Dict[str, List[str]]
+) -> None:
     dd_files = [p for p in Path(basedir).rglob("*.dd")]
 
     all_sets = defaultdict(list)
     all_parameters = defaultdict(list)
     for path in dd_files:
-        print(f"Processing path: {path}")
+        logger.info(f"Processing path: {path}")
         local_param_values, local_sets = parse_parameter_values_from_file(path)
 
         # merge params from file into global collection
@@ -205,8 +220,12 @@ def convert_dd_to_tabular(basedir: str, output_dir: str, headers_by_attr: Dict[s
 
 def main(arg_list: None | list[str] = None):
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument("input_dir", type=str, help="Input directory containing .dd files.")
-    args_parser.add_argument("output_dir", type=str, help="Output directory to save the .csv files in.")
+    args_parser.add_argument(
+        "input_dir", type=str, help="Input directory containing .dd files."
+    )
+    args_parser.add_argument(
+        "output_dir", type=str, help="Output directory to save the .csv files in."
+    )
     args = args_parser.parse_args(arg_list)
     convert_dd_to_tabular(args.input_dir, args.output_dir, generate_headers_by_attr())
 

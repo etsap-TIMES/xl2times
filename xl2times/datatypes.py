@@ -6,6 +6,8 @@ import json
 import re
 from typing import Dict, Iterable, List, Set, Tuple
 from enum import Enum
+
+from loguru import logger
 from pandas.core.frame import DataFrame
 
 # ============================================================================
@@ -101,7 +103,9 @@ class EmbeddedXlTable:
             and self.dataframe.shape == o.dataframe.shape
             and (
                 len(self.dataframe) == 0  # Empty tables don't affect our output
-                or self.dataframe.sort_index(axis=1).equals(o.dataframe.sort_index(axis=1))
+                or self.dataframe.sort_index(axis=1).equals(
+                    o.dataframe.sort_index(axis=1)
+                )
             )
         )
 
@@ -161,6 +165,7 @@ class TimesModel:
     data_years: Tuple[int] = field(default_factory=tuple)
     model_years: Tuple[int] = field(default_factory=tuple)
     past_years: Tuple[int] = field(default_factory=tuple)
+    files: Set[str] = field(default_factory=set)
 
     def external_regions(self) -> Set[str]:
         return self.all_regions.difference(self.internal_regions)
@@ -205,9 +210,12 @@ class Config:
             self.column_aliases,
             self.row_comment_chars,
             self.discard_if_empty,
+            self.query_columns,
             self.known_columns,
         ) = Config._read_veda_tags_info(veda_tags_file)
-        self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(veda_attr_defaults_file)
+        self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
+            veda_attr_defaults_file
+        )
         # Migration in progress: use parameter mappings from times_info_file for now
         name_to_map = {m.times_name: m for m in self.times_xl_maps}
         for m in param_mappings:
@@ -229,11 +237,17 @@ class Config:
             cat_to_tables[item["gams-cat"]].append(item["name"])
         unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
         if unknown_cats:
-            print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
-        dd_table_order = chain.from_iterable((sorted(cat_to_tables[c]) for c in categories))
+            logger.warning(f"Unknown categories in times-info.json: {unknown_cats}")
+        dd_table_order = chain.from_iterable(
+            (sorted(cat_to_tables[c]) for c in categories)
+        )
 
         # Compute the set of all attributes, i.e. all entities with category = parameter
-        attributes = {item["name"].lower() for item in table_info if item["gams-cat"] == "parameter"}
+        attributes = {
+            item["name"].lower()
+            for item in table_info
+            if item["gams-cat"] == "parameter"
+        }
 
         # Compute the mapping for attributes / parameters:
         def create_mapping(entity):
@@ -242,7 +256,11 @@ class Config:
             xl_cols = entity["mapping"] + ["value"]  # TODO map in json
             col_map = dict(zip(times_cols, xl_cols))
             # If tag starts with UC, then the data is in UCAttributes, else Attributes
-            xl_name = "UCAttributes" if entity["name"].lower().startswith("uc") else "Attributes"
+            xl_name = (
+                "UCAttributes"
+                if entity["name"].lower().startswith("uc")
+                else "Attributes"
+            )
             return TimesXlMap(
                 times_name=entity["name"],
                 times_cols=times_cols,
@@ -253,7 +271,10 @@ class Config:
             )
 
         param_mappings = [
-            create_mapping(x) for x in table_info if x["gams-cat"] == "parameter" and "type" not in x  # TODO Generalise derived parameters?
+            create_mapping(x)
+            for x in table_info
+            if x["gams-cat"] == "parameter"
+            and "type" not in x  # TODO Generalise derived parameters?
         ]
 
         return dd_table_order, attributes, param_mappings
@@ -287,8 +308,10 @@ class Config:
                 if line == "":
                     break
                 (times, xl) = line.split(" = ")
-                (times_name, times_cols_str) = list(filter(None, re.split("\[|\]", times)))
-                (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
+                (times_name, times_cols_str) = list(
+                    filter(None, re.split(r"\[|\]", times))
+                )
+                (xl_name, xl_cols_str) = list(filter(None, re.split(r"\(|\)", xl)))
                 times_cols = times_cols_str.split(",")
                 xl_cols = xl_cols_str.split(",")
                 filter_rows = {}
@@ -299,7 +322,9 @@ class Config:
                 xl_cols = [s.lower() for s in xl_cols if ":" not in s]
 
                 # TODO remove: Filter out mappings that are not yet finished
-                if xl_name != "~TODO" and not any(c.startswith("TODO") for c in xl_cols):
+                if xl_name != "~TODO" and not any(
+                    c.startswith("TODO") for c in xl_cols
+                ):
                     col_map = {}
                     assert len(times_cols) <= len(xl_cols)
                     for index, value in enumerate(times_cols):
@@ -320,13 +345,21 @@ class Config:
                     dropped.append(line)
 
         if len(dropped) > 0:
-            print(f"WARNING: Dropping {len(dropped)} mappings that are not yet complete")
+            logger.warning(
+                f"Dropping {len(dropped)} mappings that are not yet complete"
+            )
         return mappings
 
     @staticmethod
     def _read_veda_tags_info(
         veda_tags_file: str,
-    ) -> Tuple[Dict[Tag, Dict[str, str]], Dict[Tag, Dict[str, list]], Iterable[Tag], Dict[Tag, Set[str]],]:
+    ) -> Tuple[
+        Dict[Tag, Dict[str, str]],
+        Dict[Tag, Dict[str, list]],
+        Iterable[Tag],
+        Dict[Tag, Set[str]],
+        Dict[Tag, Set[str]],
+    ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
             return Tag("~" + s.upper())
@@ -339,11 +372,14 @@ class Config:
         tags = {to_tag(tag_info["tag_name"]) for tag_info in veda_tags_info}
         for tag in Tag:
             if tag not in tags:
-                print(f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}")
+                logger.warning(
+                    f"datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
+                )
 
         valid_column_names = {}
         row_comment_chars = {}
         discard_if_empty = []
+        query_cols = defaultdict(set)
         known_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
@@ -356,17 +392,25 @@ class Config:
                 # Process column aliases and comment chars:
                 for valid_field in tag_info["valid_fields"]:
                     valid_field_names = valid_field["aliases"]
-                    if "use_name" in valid_field and valid_field["use_name"] != valid_field["name"]:
+                    if (
+                        "use_name" in valid_field
+                        and valid_field["use_name"] != valid_field["name"]
+                    ):
                         field_name = valid_field["use_name"]
                         valid_field_names.append(valid_field["name"])
                     else:
                         field_name = valid_field["name"]
 
+                    if valid_field["query_field"]:
+                        query_cols[tag_name].add(field_name)
                     known_cols[tag_name].add(field_name)
 
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
-                        row_comment_chars[tag_name][field_name] = valid_field["row_ignore_symbol"]
+
+                    row_comment_chars[tag_name][field_name] = valid_field[
+                        "row_ignore_symbol"
+                    ]
 
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
@@ -376,10 +420,18 @@ class Config:
                     discard_if_empty.append(tag_name)
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
+                if base_tag in query_cols:
+                    query_cols[tag_name] = query_cols[base_tag]
                 if base_tag in known_cols:
                     known_cols[tag_name] = known_cols[base_tag]
 
-        return valid_column_names, row_comment_chars, discard_if_empty, known_cols
+        return (
+            valid_column_names,
+            row_comment_chars,
+            discard_if_empty,
+            query_cols,
+            known_cols,
+        )
 
     @staticmethod
     def _read_veda_attr_defaults(
@@ -396,7 +448,9 @@ class Config:
             "tslvl": {"DAYNITE": [], "ANNUAL": []},
         }
 
-        attr_aliases = {attr for attr in defaults if "times-attribute" in defaults[attr]}
+        attr_aliases = {
+            attr for attr in defaults if "times-attribute" in defaults[attr]
+        }
 
         for attr, attr_info in defaults.items():
             # Populate aliases by attribute dictionary
