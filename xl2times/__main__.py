@@ -104,8 +104,8 @@ def convert_xl_to_times(
         transforms.process_uc_wildcards,
         transforms.process_wildcards,
         transforms.convert_aliases,
-        transforms.rename_cgs,
         transforms.fix_topology,
+        transforms.resolve_remaining_cgs,
         transforms.complete_dictionary,
         transforms.convert_to_string,
         lambda config, tables, model: dump_tables(

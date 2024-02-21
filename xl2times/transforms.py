@@ -2460,19 +2460,56 @@ def convert_aliases(
     return tables
 
 
-def rename_cgs(
+def resolve_remaining_cgs(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
+    """
+    Resolve commodity group names in model.attributes specified as commodity type.
+    Supplement model.commodity_groups with resolved commodity groups.
+    """
 
     if not model.attributes.empty:
         i = model.attributes["other_indexes"].isin(default_pcg_suffixes)
-        model.attributes.loc[i, "other_indexes"] = (
-            model.attributes["process"].astype(str)
-            + "_"
-            + model.attributes["other_indexes"].astype(str)
-        )
+        if any(i):
+            # Store processes with unresolved commodity groups
+            check_cgs = (
+                model.attributes.loc[i, ["region", "process", "other_indexes"]]
+                .drop_duplicates(ignore_index=True)
+                .copy()
+            )
+            # Resolve commodity group names in model.attribues
+            model.attributes.loc[i, "other_indexes"] = (
+                model.attributes["process"].astype(str)
+                + "_"
+                + model.attributes["other_indexes"].astype(str)
+            )
+            # TODO: Combine with above to avoid repetition
+            check_cgs["commoditygroup"] = (
+                check_cgs["process"].astype(str)
+                + "_"
+                + check_cgs["other_indexes"].astype(str)
+            )
+            check_cgs["csets"] = check_cgs["other_indexes"].str[:3]
+            check_cgs["io"] = check_cgs["other_indexes"].str[3:]
+            check_cgs["io"] = check_cgs["io"].replace({"I": "IN", "O": "OUT"})
+            check_cgs.drop(columns="other_indexes", inplace=True)
+            check_cgs = check_cgs.merge(
+                model.topology[
+                    ["region", "process", "commodity", "csets", "io"]
+                ].drop_duplicates(),
+                how="left",
+            )
+            check_cgs["gmap"] = True
+            check_cgs = pd.concat(
+                [
+                    model.commodity_groups,
+                    check_cgs[["region", "commodity", "commoditygroup", "gmap"]],
+                ],
+                ignore_index=True,
+            )
+            model.commodity_groups = check_cgs.drop_duplicates().dropna()
 
     return tables
 
