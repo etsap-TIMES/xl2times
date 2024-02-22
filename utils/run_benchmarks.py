@@ -443,7 +443,8 @@ if __name__ == "__main__":
         "--debug",
         action="store_true",
         default=False,
-        help="Run each benchmark as a function call to allow a debugger to stop at breakpoints in benchmark runs.",
+        help="Run each benchmark as a direct function call (disables subprocesses) to allow a debugger to stop at breakpoints "
+        "in benchmark runs.",
     )
     args = args_parser.parse_args()
 

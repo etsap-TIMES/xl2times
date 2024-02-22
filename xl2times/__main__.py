@@ -392,7 +392,7 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
-def run(args) -> str | None:
+def run(args: argparse.Namespace) -> str | None:
     """
     Runs the xl2times conversion.
     Args:

@@ -2031,15 +2031,9 @@ def intersect(acc, df):
     return acc.merge(df)
 
 
-def get_matching_processes(row, dictionary):
+def get_matching_processes(row, dictionary) -> pd.Series:
     matching_processes = None
-    for col, key in [
-        ("pset_pn", "processes_by_name"),
-        ("pset_pd", "processes_by_desc"),
-        ("pset_set", "processes_by_sets"),
-        ("pset_ci", "processes_by_comm_in"),
-        ("pset_co", "processes_by_comm_out"),
-    ]:
+    for col, key in process_map.items():
         if row[col] is not None:
             proc_set = dictionary[key]
             pattern = row[col].upper()
@@ -2048,16 +2042,13 @@ def get_matching_processes(row, dictionary):
 
     if matching_processes is not None and any(matching_processes.duplicated()):
         raise ValueError("duplicated")
+
     return matching_processes
 
 
 def get_matching_commodities(row, dictionary):
     matching_commodities = None
-    for col, key in [
-        ("cset_cn", "commodities_by_name"),
-        ("cset_cd", "commodities_by_desc"),
-        ("cset_set", "commodities_by_sets"),
-    ]:
+    for col, key in commodity_map.items():
         if row[col] is not None:
             matching_commodities = intersect(
                 matching_commodities,
@@ -2168,7 +2159,7 @@ def _match_uc_wildcards(
         process_map: Mapping of column names to process sets.
         dictionary: Dictionary of process sets to match against.
         matcher: Matching function to use, e.g. get_matching_processes or get_matching_commodities.
-        result_col: Name of the column to store the matche results in.
+        result_col: Name of the column to store the matched results in.
 
     Returns:
         The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
@@ -2180,7 +2171,8 @@ def _match_uc_wildcards(
 
     # match all the wildcards columns against the dictionary names
     matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
-    # FIXME: work-around for matchers occasionally DataFrame or a Series
+
+    # we occasionally get a Dataframe back from  the matchers.  convert these to Series.
     matches = (
         matches.iloc[:, 0].to_list()
         if isinstance(matches, pd.DataFrame)

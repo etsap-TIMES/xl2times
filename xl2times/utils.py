@@ -181,22 +181,19 @@ def get_scalar(table_tag: str, tables: List[datatypes.EmbeddedXlTable]):
     return table.dataframe["value"].values[0]
 
 
-@functools.cache
 def has_negative_patterns(pattern):
     return pattern[0] == "-" or ",-" in pattern
 
 
-@functools.cache
 def remove_negative_patterns(pattern):
     return ",".join([word for word in pattern.split(",") if word[0] != "-"])
 
 
-@functools.cache
 def remove_positive_patterns(pattern):
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
-@functools.cache
+@functools.lru_cache(maxsize=int(1e6))
 def create_regexp(pattern):
     # exclude negative patterns
     if has_negative_patterns(pattern):
@@ -210,7 +207,7 @@ def create_regexp(pattern):
     return re.compile(pattern)
 
 
-@functools.cache
+@functools.lru_cache(maxsize=int(1e6))
 def create_negative_regexp(pattern):
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
