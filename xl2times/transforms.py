@@ -1251,14 +1251,12 @@ def complete_commodity_groups(
     single_cgs = (
         model.commodities[["region", "commodity"]]
         .drop_duplicates(ignore_index=True)
-        .copy()
     )
     single_cgs["commoditygroup"] = single_cgs["commodity"]
     # Commodity groups from topology
     top_cgs = (
         model.topology[["region", "commodity", "commoditygroup"]]
         .drop_duplicates(ignore_index=True)
-        .copy()
     )
     cgs = pd.concat([single_cgs, top_cgs], ignore_index=True)
     cgs["gmap"] = cgs["commoditygroup"] != cgs["commodity"]
@@ -2156,7 +2154,7 @@ def process_wildcards(
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
     """
-    Process wildcards specified int TFM tables.
+    Process wildcards specified in TFM tables.
     """
 
     topology = generate_topology_dictionary(tables, model)
@@ -2314,7 +2312,7 @@ def process_wildcards(
         # Expand each row by wildcards, then add to model.commodity_groups
         for _, row in updates.iterrows():
             match = match_wildcards(row)
-            # Convert serie to dataframe; keep only relevant columns
+            # Convert series to dataframe; keep only relevant columns
             new_rows = pd.DataFrame([row.filter(table.columns)])
             # Match returns both processes and commodities, but only latter is relevant here
             processes, commodities = match if match is not None else (None, None)
@@ -2512,7 +2510,6 @@ def resolve_remaining_cgs(
             check_cgs = (
                 model.attributes.loc[i, ["region", "process", "other_indexes"]]
                 .drop_duplicates(ignore_index=True)
-                .copy()
             )
             # Resolve commodity group names in model.attribues
             model.attributes.loc[i, "other_indexes"] = (
@@ -2529,7 +2526,7 @@ def resolve_remaining_cgs(
             check_cgs["csets"] = check_cgs["other_indexes"].str[:3]
             check_cgs["io"] = check_cgs["other_indexes"].str[3:]
             check_cgs["io"] = check_cgs["io"].replace({"I": "IN", "O": "OUT"})
-            check_cgs.drop(columns="other_indexes", inplace=True)
+            check_cgs = check_cgs.drop(columns="other_indexes")
             check_cgs = check_cgs.merge(
                 model.topology[
                     ["region", "process", "commodity", "csets", "io"]
