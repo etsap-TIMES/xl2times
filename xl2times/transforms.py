@@ -997,7 +997,6 @@ def complete_dictionary(
         "Attributes": model.attributes,
         "Commodities": model.commodities,
         "CommodityGroups": model.commodity_groups,
-        "CommodityGroupMap": model.com_gmap,
         "Processes": model.processes,
         "Topology": model.topology,
         "Trade": model.trade,
@@ -1114,11 +1113,13 @@ def generate_commodity_groups(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Generate commodity groups.
+    """
     process_tables = [t for t in tables if t.tag == datatypes.Tag.fi_process]
     commodity_tables = [t for t in tables if t.tag == datatypes.Tag.fi_comm]
 
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
-
     columns = ["region", "process", "primarycg"]
     reg_prc_pcg = pd.DataFrame(columns=columns)
     for process_table in process_tables:
@@ -1149,7 +1150,7 @@ def generate_commodity_groups(
 
     def name_comm_group(df):
         """
-        Return the name of a commodity group based on the member count
+        Return the name of a commodity group based on the member count.
         """
 
         if df["commoditygroup"] > 1:
@@ -1189,10 +1190,7 @@ def generate_commodity_groups(
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
-    i = comm_groups["commoditygroup"] != comm_groups["commodity"]
-
     model.topology = comm_groups
-    model.com_gmap = comm_groups.loc[i, ["region", "commoditygroup", "commodity"]]
 
     return tables
 
@@ -1200,7 +1198,7 @@ def generate_commodity_groups(
 def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
     """
     Store the number of IN/OUT commodities of the same type per Region and Process in CommodityGroup.
-    `comm_groups` is modified in-place
+    `comm_groups` is modified in-place.
     Args:
         comm_groups: 'Process' DataFrame with additional columns "commoditygroup"
     """
@@ -1216,8 +1214,8 @@ def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
 def _process_comm_groups_vectorised(
     comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]
 ) -> pd.DataFrame:
-    """Sets the first commodity group in the list of csets_ordered_for_pcg as the default pcg for each region/process/io combination,
-    but setting the io="OUT" subset as default before "IN".
+    """Sets the first commodity group in the list of csets_ordered_for_pcg as the default
+    pcg for each region/process/io combination, but setting the io="OUT" subset as default before "IN".
 
     See:
         Section 3.7.2.2, pg 80. of `TIMES Documentation PART IV` for details.
@@ -1225,12 +1223,12 @@ def _process_comm_groups_vectorised(
         comm_groups: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
         csets_ordered_for_pcg: List of csets in the order they should be considered for default pcg
     Returns:
-        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in each region/process/io combination.
+        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in eachregion/process/io combination.
     """
 
     def _set_default_veda_pcg(group):
-        """For a given [region, process] group, default group is set as the first cset in the `csets_ordered_for_pcg` list, which is an output, if
-        one exists, otherwise the first input."""
+        """For a given [region, process] group, default group is set as the first cset in the `csets_ordered_for_pcg`
+        list, which is an output, if one exists, otherwise the first input."""
         if not group["csets"].isin(csets_ordered_for_pcg).all():
             return group
 
@@ -1259,17 +1257,21 @@ def complete_commodity_groups(
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
     """
-    Complete the list of commodity groups
+    Complete the list of commodity groups.
     """
 
-    commodities = generate_topology_dictionary(tables, model)[
-        "commodities_by_name"
-    ].rename(columns={"commodity": "commoditygroup"})
-    cgs_in_top = model.topology["commoditygroup"].to_frame()
-    commodity_groups = pd.concat([commodities, cgs_in_top])
-    model.commodity_groups = commodity_groups.drop_duplicates(
-        keep="first"
-    ).reset_index()
+    # Single member CGs i.e., CG and commodity are the same
+    single_cgs = model.commodities[["region", "commodity"]].drop_duplicates(
+        ignore_index=True
+    )
+    single_cgs["commoditygroup"] = single_cgs["commodity"]
+    # Commodity groups from topology
+    top_cgs = model.topology[["region", "commodity", "commoditygroup"]].drop_duplicates(
+        ignore_index=True
+    )
+    cgs = pd.concat([single_cgs, top_cgs], ignore_index=True)
+    cgs["gmap"] = cgs["commoditygroup"] != cgs["commodity"]
+    model.commodity_groups = cgs.dropna().drop_duplicates(ignore_index=True)
 
     return tables
 
@@ -1405,17 +1407,9 @@ def fill_in_missing_pcgs(
                 how="right",
             )
             df = pd.concat([df, default_pcgs])
+            # Keep last if a row appears more than once (disregard primarycg)
             df.drop_duplicates(
-                subset=[
-                    "sets",
-                    "region",
-                    "process",
-                    "description",
-                    "tact",
-                    "tcap",
-                    "tslvl",
-                    "vintage",
-                ],
+                subset=[c for c in df.columns if c != "primarycg"],
                 keep="last",
                 inplace=True,
             )
@@ -1597,7 +1591,7 @@ def process_topology(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     """
-    Create topology
+    Create topology.
     """
 
     fit_tables = [t for t in tables if t.tag.startswith(datatypes.Tag.fi_t)]
@@ -2032,7 +2026,7 @@ def get_matching_processes(row, dictionary):
         ("pset_ci", "processes_by_comm_in"),
         ("pset_co", "processes_by_comm_out"),
     ]:
-        if row[col] is not None:
+        if col in row.index and row[col] is not None:
             matching_processes = intersect(
                 matching_processes, filter_by_pattern(dictionary[key], row[col].upper())
             )
@@ -2048,7 +2042,7 @@ def get_matching_commodities(row, dictionary):
         ("cset_cd", "commodities_by_desc"),
         ("cset_set", "commodities_by_sets"),
     ]:
-        if row[col] is not None:
+        if col in row.index and row[col] is not None:
             matching_commodities = intersect(
                 matching_commodities,
                 filter_by_pattern(dictionary[key], row[col].upper()),
@@ -2170,13 +2164,21 @@ def process_wildcards(
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
+    """
+    Process wildcards specified in TFM tables.
+    """
+
     topology = generate_topology_dictionary(tables, model)
 
     def match_wildcards(
         row: pd.Series,
     ) -> tuple[DataFrame | None, DataFrame | None] | None:
+        """
+        Return matching processes and commodities
+        """
         matching_processes = get_matching_processes(row, topology)
         matching_commodities = get_matching_commodities(row, topology)
+
         if (matching_processes is None or len(matching_processes) == 0) and (
             matching_commodities is None or len(matching_commodities) == 0
         ):  # TODO is this necessary? Try without?
@@ -2312,6 +2314,33 @@ def process_wildcards(
         # Add new rows to table
         new_tables.append(tables[datatypes.Tag.fi_t])
         tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+
+    if datatypes.Tag.tfm_comgrp in tables:
+        updates = tables[datatypes.Tag.tfm_comgrp]
+        table = model.commodity_groups
+        new_tables = []
+
+        # Expand each row by wildcards, then add to model.commodity_groups
+        for _, row in updates.iterrows():
+            match = match_wildcards(row)
+            # Convert series to dataframe; keep only relevant columns
+            new_rows = pd.DataFrame([row.filter(table.columns)])
+            # Match returns both processes and commodities, but only latter is relevant here
+            processes, commodities = match if match is not None else (None, None)
+            if commodities is None:
+                logger.warning(f"TFM_COMGRP row did not match any commodity")
+            else:
+                new_rows = commodities.merge(new_rows, how="cross")
+                new_tables.append(new_rows)
+
+        # Expand model.commodity_groups with user-defined commodity groups
+        if new_tables:
+            new_tables.append(model.commodity_groups)
+            commodity_groups = pd.concat(
+                new_tables, ignore_index=True
+            ).drop_duplicates()
+            commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
+            model.commodity_groups = commodity_groups.dropna()
 
     return tables
 
@@ -2475,18 +2504,54 @@ def convert_aliases(
     return tables
 
 
-def rename_cgs(
+def resolve_remaining_cgs(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    df = tables.get(datatypes.Tag.fi_t)
-    if df is not None:
-        i = df["other_indexes"].isin(default_pcg_suffixes)
-        df.loc[i, "other_indexes"] = (
-            df["process"].astype(str) + "_" + df["other_indexes"].astype(str)
-        )
-        tables[datatypes.Tag.fi_t] = df
+    """
+    Resolve commodity group names in model.attributes specified as commodity type.
+    Supplement model.commodity_groups with resolved commodity groups.
+    """
+
+    if not model.attributes.empty:
+        i = model.attributes["other_indexes"].isin(default_pcg_suffixes)
+        if any(i):
+            # Store processes with unresolved commodity groups
+            check_cgs = model.attributes.loc[
+                i, ["region", "process", "other_indexes"]
+            ].drop_duplicates(ignore_index=True)
+            # Resolve commodity group names in model.attribues
+            model.attributes.loc[i, "other_indexes"] = (
+                model.attributes["process"].astype(str)
+                + "_"
+                + model.attributes["other_indexes"].astype(str)
+            )
+            # TODO: Combine with above to avoid repetition
+            check_cgs["commoditygroup"] = (
+                check_cgs["process"].astype(str)
+                + "_"
+                + check_cgs["other_indexes"].astype(str)
+            )
+            check_cgs["csets"] = check_cgs["other_indexes"].str[:3]
+            check_cgs["io"] = check_cgs["other_indexes"].str[3:]
+            check_cgs["io"] = check_cgs["io"].replace({"I": "IN", "O": "OUT"})
+            check_cgs = check_cgs.drop(columns="other_indexes")
+            check_cgs = check_cgs.merge(
+                model.topology[
+                    ["region", "process", "commodity", "csets", "io"]
+                ].drop_duplicates(),
+                how="left",
+            )
+            check_cgs["gmap"] = True
+            check_cgs = pd.concat(
+                [
+                    model.commodity_groups,
+                    check_cgs[["region", "commodity", "commoditygroup", "gmap"]],
+                ],
+                ignore_index=True,
+            )
+            model.commodity_groups = check_cgs.drop_duplicates().dropna()
 
     return tables
 
