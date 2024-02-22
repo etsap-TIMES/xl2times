@@ -1248,15 +1248,13 @@ def complete_commodity_groups(
     """
 
     # Single member CGs i.e., CG and commodity are the same
-    single_cgs = (
-        model.commodities[["region", "commodity"]]
-        .drop_duplicates(ignore_index=True)
+    single_cgs = model.commodities[["region", "commodity"]].drop_duplicates(
+        ignore_index=True
     )
     single_cgs["commoditygroup"] = single_cgs["commodity"]
     # Commodity groups from topology
-    top_cgs = (
-        model.topology[["region", "commodity", "commoditygroup"]]
-        .drop_duplicates(ignore_index=True)
+    top_cgs = model.topology[["region", "commodity", "commoditygroup"]].drop_duplicates(
+        ignore_index=True
     )
     cgs = pd.concat([single_cgs, top_cgs], ignore_index=True)
     cgs["gmap"] = cgs["commoditygroup"] != cgs["commodity"]
@@ -2507,10 +2505,9 @@ def resolve_remaining_cgs(
         i = model.attributes["other_indexes"].isin(default_pcg_suffixes)
         if any(i):
             # Store processes with unresolved commodity groups
-            check_cgs = (
-                model.attributes.loc[i, ["region", "process", "other_indexes"]]
-                .drop_duplicates(ignore_index=True)
-            )
+            check_cgs = model.attributes.loc[
+                i, ["region", "process", "other_indexes"]
+            ].drop_duplicates(ignore_index=True)
             # Resolve commodity group names in model.attribues
             model.attributes.loc[i, "other_indexes"] = (
                 model.attributes["process"].astype(str)
