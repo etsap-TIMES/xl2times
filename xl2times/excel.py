@@ -4,7 +4,6 @@ from openpyxl.worksheet.cell_range import CellRange
 from typing import Dict, List
 import time
 from pandas.core.frame import DataFrame
-import pandas as pd
 import numpy
 import re
 from . import datatypes

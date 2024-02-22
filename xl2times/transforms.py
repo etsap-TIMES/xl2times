@@ -19,17 +19,6 @@ from . import datatypes
 from . import utils
 from .utils import max_workers
 
-query_columns = {
-    "pset_set",
-    "pset_pn",
-    "pset_pd",
-    "pset_ci",
-    "pset_co",
-    "cset_set",
-    "cset_cn",
-    "cset_cd",
-}
-
 csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
 default_pcg_suffixes = [
     cset + io for cset in csets_ordered_for_pcg for io in ["I", "O"]
@@ -584,8 +573,7 @@ def process_user_constraint_tables(
         # TODO: apply table.uc_sets
 
         # Fill in UC_N blank cells with value from above
-        if "uc_n" in df.columns:
-            df["uc_n"] = df["uc_n"].ffill()
+        df["uc_n"] = df["uc_n"].ffill()
 
         data_columns = [
             x for x in df.columns if x not in config.known_columns[datatypes.Tag.uc_t]
@@ -2144,10 +2132,9 @@ def process_uc_wildcards(
 ) -> Dict[str, DataFrame]:
     tag = datatypes.Tag.uc_t
 
-    if tag in tqdm(tables, desc=f"Processing uc_wildcards on tables"):
+    if tag in tqdm(tables, desc="Processing uc_wildcards on tables"):
         start_time = time.time()
         df = tables[tag]
-
         dictionary = generate_topology_dictionary(tables, model)
 
         df = _match_uc_wildcards(
@@ -2241,7 +2228,7 @@ def process_wildcards(
             matching_commodities is None or len(matching_commodities) == 0
         ):  # TODO is this necessary? Try without?
             # TODO debug these
-            logger.warning(f"a row matched no processes or commodities")
+            logger.warning("a row matched no processes or commodities")
             return None
         return matching_processes, matching_commodities
 
@@ -2343,7 +2330,7 @@ def process_wildcards(
         ):
             match = match_wildcards(row)
             if match is None:
-                logger.warning(f"TFM_INS-TXT row matched neither commodity nor process")
+                logger.warning("TFM_INS-TXT row matched neither commodity nor process")
                 continue
             processes, commodities = match
             if commodities is not None:

@@ -14,7 +14,6 @@ from typing import Any, Tuple
 import git
 import pandas as pd
 import yaml
-from loguru import logger
 from tabulate import tabulate
 
 from dd_to_csv import main
@@ -452,11 +451,11 @@ if __name__ == "__main__":
     benchmarks_folder = spec["benchmarks_folder"]
     benchmark_names = [b["name"] for b in spec["benchmarks"]]
     if len(set(benchmark_names)) != len(benchmark_names):
-        logger.error(f"Found duplicate name in benchmarks YAML file")
+        logger.error("Found duplicate name in benchmarks YAML file")
         sys.exit(11)
 
     if args.dd and args.times_dir is None:
-        logger.error(f"--times_dir is required when using --dd")
+        logger.error("--times_dir is required when using --dd")
         sys.exit(12)
 
     if args.run is not None:

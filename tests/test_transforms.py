@@ -1,19 +1,14 @@
 from datetime import datetime
-from typing import Callable
 
 import pandas as pd
-from loguru import logger
 
 from xl2times import transforms, utils, datatypes
 from xl2times.transforms import (
     _process_comm_groups_vectorised,
     _count_comm_group_vectorised,
-    intersect,
     expand_rows,
     get_matching_commodities,
-    filter_by_pattern,
     get_matching_processes,
-    query_columns,
     _match_uc_wildcards,
     process_map,
     commodity_map,
@@ -56,6 +51,7 @@ def _match_uc_wildcards_old(
         lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
     )
 
+    query_columns = transforms.process_map.keys() | transforms.commodity_map.keys()
     cols_to_drop = [col for col in df.columns if col in query_columns]
 
     df = expand_rows(

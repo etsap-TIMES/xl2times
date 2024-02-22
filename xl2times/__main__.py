@@ -29,7 +29,7 @@ def convert_xl_to_times(
     pickle_file = "raw_tables.pkl"
     if use_pkl and os.path.isfile(pickle_file):
         raw_tables = pickle.load(open(pickle_file, "rb"))
-        logger.warning(f"Using pickled data not xlsx")
+        logger.warning("Using pickled data not xlsx")
     else:
         raw_tables = []
 
@@ -248,7 +248,7 @@ def produce_times_tables(
     result = {}
     used_tables = set()
     for mapping in config.times_xl_maps:
-        if not mapping.xl_name in input:
+        if mapping.xl_name not in input:
             logger.warning(
                 f"Cannot produce table {mapping.times_name} because"
                 f" {mapping.xl_name} does not exist"
@@ -281,7 +281,7 @@ def produce_times_tables(
                 # Excel columns can be duplicated into multiple Times columns
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
-                cols_to_drop = [x for x in df.columns if not x in mapping.times_cols]
+                cols_to_drop = [x for x in df.columns if x not in mapping.times_cols]
                 df.drop(columns=cols_to_drop, inplace=True)
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
