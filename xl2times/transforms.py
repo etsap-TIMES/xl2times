@@ -2025,11 +2025,11 @@ def intersect(acc, df):
     return acc.merge(df)
 
 
-def get_matching_processes(row, dictionary) -> pd.Series:
+def get_matching_processes(row: pd.Series, topology: Dict[str, DataFrame]) -> pd.Series:
     matching_processes = None
     for col, key in process_map.items():
-        if row[col] is not None:
-            proc_set = dictionary[key]
+        if col in row.index and row[col] is not None:
+            proc_set = topology[key]
             pattern = row[col].upper()
             filtered = filter_by_pattern(proc_set, pattern)
             matching_processes = intersect(matching_processes, filtered)
@@ -2040,13 +2040,13 @@ def get_matching_processes(row, dictionary) -> pd.Series:
     return matching_processes
 
 
-def get_matching_commodities(row, dictionary):
+def get_matching_commodities(row: pd.Series, topology: Dict[str, DataFrame]):
     matching_commodities = None
     for col, key in commodity_map.items():
-        if row[col] is not None:
+        if col in row.index and row[col] is not None:
             matching_commodities = intersect(
                 matching_commodities,
-                filter_by_pattern(dictionary[key], row[col].upper()),
+                filter_by_pattern(topology[key], row[col].upper()),
             )
     return matching_commodities
 
