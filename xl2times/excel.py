@@ -4,7 +4,6 @@ from openpyxl.worksheet.cell_range import CellRange
 from typing import Dict, List
 import time
 from pandas.core.frame import DataFrame
-import pandas as pd
 import numpy
 import re
 from . import datatypes
@@ -43,8 +42,8 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
                         if len(parts) == 2:
                             uc_sets[parts[0].strip()] = parts[1].strip()
                         else:
-                            logger.info(
-                                f"WARNING: Malformed UC_SET in {sheet.title}, {filename}"
+                            logger.warning(
+                                f"Malformed UC_SET in {sheet.title}, {filename}"
                             )
                     else:
                         col_index = df.columns.get_loc(colname)

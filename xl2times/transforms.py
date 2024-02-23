@@ -6,12 +6,14 @@ from dataclasses import replace
 from functools import reduce
 from itertools import groupby
 from pathlib import Path
+from typing import Callable
 from typing import Dict, List, Set
 
 import pandas as pd
 from loguru import logger
 from more_itertools import locate, one
 from pandas.core.frame import DataFrame
+from tqdm import tqdm
 
 from . import datatypes
 from . import utils
@@ -29,6 +31,20 @@ attr_prop = {
     "PRC_PCG": "primarycg",
     "PRC_TSL": "tslvl",
     "PRC_VINT": "vintage",
+}
+
+process_map = {
+    "pset_pn": "processes_by_name",
+    "pset_pd": "processes_by_desc",
+    "pset_set": "processes_by_sets",
+    "pset_ci": "processes_by_comm_in",
+    "pset_co": "processes_by_comm_out",
+}
+
+commodity_map = {
+    "cset_cn": "commodities_by_name",
+    "cset_cd": "commodities_by_desc",
+    "cset_set": "commodities_by_sets",
 }
 
 
@@ -292,19 +308,23 @@ def merge_tables(
 
     for key, value in groupby(sorted(tables, key=lambda t: t.tag), lambda t: t.tag):
         group = list(value)
-        if not all(
-            set(t.dataframe.columns) == set(group[0].dataframe.columns) for t in group
-        ):
-            cols = [(",".join(g.dataframe.columns), g) for g in group]
-            logger.warning(
-                f"Cannot merge tables with tag {key} as their columns are not identical"
-            )
-            for c, table in cols:
-                logger.info(
-                    f"  {c} from {table.range}, {table.sheetname}, {table.filename}"
-                )
-        else:
-            df = pd.concat([table.dataframe for table in group], ignore_index=True)
+
+        if len(group) == 0:
+            continue
+
+        df = pd.concat([table.dataframe for table in group], ignore_index=True)
+        result[key] = df
+
+        # VEDA appears to support merging tables where come columns are optional, e.g. ctslvl and ctype from ~FI_COMM.
+        # So just print detailed warning if we find tables with fewer columns than the concat'ed table.
+        concat_cols = set(df.columns)
+        missing_cols = [concat_cols - set(t.dataframe.columns) for t in group]
+
+        if any([len(m) for m in missing_cols]):
+            err = f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual table(s), see details below:"
+            for table in group:
+                err += f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, {table.filename}"
+            logger.warning(err)
 
             match key:
                 case datatypes.Tag.fi_comm:
@@ -326,6 +346,7 @@ def merge_tables(
                     model.processes = df.loc[index]
                 case _:
                     result[key] = df
+
     return result
 
 
@@ -2004,7 +2025,7 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df, pattern):
+def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
     # Duplicates can be created when a process has multiple commodities that match the pattern
     df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
     exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
@@ -2017,35 +2038,28 @@ def intersect(acc, df):
     return acc.merge(df)
 
 
-def get_matching_processes(row, dictionary):
+def get_matching_processes(row: pd.Series, topology: Dict[str, DataFrame]) -> pd.Series:
     matching_processes = None
-    for col, key in [
-        ("pset_pn", "processes_by_name"),
-        ("pset_pd", "processes_by_desc"),
-        ("pset_set", "processes_by_sets"),
-        ("pset_ci", "processes_by_comm_in"),
-        ("pset_co", "processes_by_comm_out"),
-    ]:
+    for col, key in process_map.items():
         if col in row.index and row[col] is not None:
-            matching_processes = intersect(
-                matching_processes, filter_by_pattern(dictionary[key], row[col].upper())
-            )
+            proc_set = topology[key]
+            pattern = row[col].upper()
+            filtered = filter_by_pattern(proc_set, pattern)
+            matching_processes = intersect(matching_processes, filtered)
+
     if matching_processes is not None and any(matching_processes.duplicated()):
         raise ValueError("duplicated")
+
     return matching_processes
 
 
-def get_matching_commodities(row, dictionary):
+def get_matching_commodities(row: pd.Series, topology: Dict[str, DataFrame]):
     matching_commodities = None
-    for col, key in [
-        ("cset_cn", "commodities_by_name"),
-        ("cset_cd", "commodities_by_desc"),
-        ("cset_set", "commodities_by_sets"),
-    ]:
+    for col, key in commodity_map.items():
         if col in row.index and row[col] is not None:
             matching_commodities = intersect(
                 matching_commodities,
-                filter_by_pattern(dictionary[key], row[col].upper()),
+                filter_by_pattern(topology[key], row[col].upper()),
             )
     return matching_commodities
 
@@ -2116,39 +2130,17 @@ def process_uc_wildcards(
 ) -> Dict[str, DataFrame]:
     tag = datatypes.Tag.uc_t
 
-    def make_str(df):
-        if df is not None and len(df) != 0:
-            list_from_df = df.iloc[:, 0].unique()
-            return ",".join(list_from_df)
-        else:
-            return None
-
-    if tag in tables:
+    if tag in tqdm(tables, desc="Processing uc_wildcards on tables"):
         start_time = time.time()
         df = tables[tag]
-        query_columns = config.query_columns[tag]
         dictionary = generate_topology_dictionary(tables, model)
 
-        df["process"] = df.apply(
-            lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
+        df = _match_uc_wildcards(
+            df, process_map, dictionary, get_matching_processes, "process"
         )
-        df["commodity"] = df.apply(
-            lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
+        df = _match_uc_wildcards(
+            df, commodity_map, dictionary, get_matching_commodities, "commodity"
         )
-
-        cols_to_drop = [col for col in df.columns if col in query_columns]
-
-        df = expand_rows(
-            query_columns,
-            datatypes.EmbeddedXlTable(
-                tag="",
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=df.drop(columns=cols_to_drop),
-            ),
-        ).dataframe
 
         tables[tag] = df
 
@@ -2157,6 +2149,66 @@ def process_uc_wildcards(
         )
 
     return tables
+
+
+def _match_uc_wildcards(
+    df: pd.DataFrame,
+    process_map: dict[str, str],
+    dictionary: dict[str, pd.DataFrame],
+    matcher: Callable,
+    result_col: str,
+) -> pd.DataFrame:
+    """
+    Match wildcards in the given table using the given process map and dictionary.
+
+    Args:
+        df: Table to match wildcards in.
+        process_map: Mapping of column names to process sets.
+        dictionary: Dictionary of process sets to match against.
+        matcher: Matching function to use, e.g. get_matching_processes or get_matching_commodities.
+        result_col: Name of the column to store the matched results in.
+
+    Returns:
+        The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
+    """
+    proc_cols = list(process_map.keys())
+
+    # drop duplicate sets of wildcard columns to save repeated (slow) regex matching.  This makes things much faster.
+    unique_filters = df[proc_cols].drop_duplicates().dropna(axis="rows", how="all")
+
+    # match all the wildcards columns against the dictionary names
+    matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
+
+    # we occasionally get a Dataframe back from  the matchers.  convert these to Series.
+    matches = (
+        matches.iloc[:, 0].to_list()
+        if isinstance(matches, pd.DataFrame)
+        else matches.to_list()
+    )
+    matches = [
+        df.iloc[:, 0].to_list() if df is not None and len(df) != 0 else None
+        for df in matches
+    ]
+    matches = pd.DataFrame({result_col: matches})
+
+    # then join with the wildcard cols to their list of matched names so we can join them back into the table df.
+    filter_matches = unique_filters.reset_index(drop=True).merge(
+        matches, left_index=True, right_index=True
+    )
+
+    # Finally we merge the matches back into the original table. This join re-duplicates the duplicate filters dropped above for speed.
+    # And we explode any matches to multiple names to give a long-format table.
+    df = (
+        df.merge(filter_matches, left_on=proc_cols, right_on=proc_cols, how="left")
+        .explode(result_col)
+        .reset_index(drop=True)
+        .drop(columns=proc_cols)
+    )
+
+    # replace NaNs in results_col with None for consistency with older logic
+    df[result_col] = df[result_col].where(df[result_col].notna(), None)
+
+    return df
 
 
 def process_wildcards(
@@ -2183,7 +2235,7 @@ def process_wildcards(
             matching_commodities is None or len(matching_commodities) == 0
         ):  # TODO is this necessary? Try without?
             # TODO debug these
-            logger.warning(f"a row matched no processes or commodities")
+            logger.warning("a row matched no processes or commodities")
             return None
         return matching_processes, matching_commodities
 
@@ -2227,7 +2279,11 @@ def process_wildcards(
         # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
         # evaluate the update formula, and add new rows to FI_T
         # TODO perf: collect all updates and go through FI_T only once?
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_upd}",
+        ):
             if row["value"] is None:  # TODO is this really needed?
                 continue
             match = match_wildcards(row)
@@ -2250,7 +2306,11 @@ def process_wildcards(
         new_tables = []
 
         # TFM_INS: expand each row by wildcards, then add to FI_T
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins}",
+        ):
             match = match_wildcards(row)
             # TODO perf: add matched procs/comms into column and use explode?
             new_rows = pd.DataFrame([row.filter(table.columns)])
@@ -2270,10 +2330,14 @@ def process_wildcards(
 
         # TFM_INS-TXT: expand row by wildcards, query FI_PROC/COMM for matching rows,
         # evaluate the update formula, and inplace update the rows
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins_txt}",
+        ):
             match = match_wildcards(row)
             if match is None:
-                logger.warning(f"TFM_INS-TXT row matched neither commodity nor process")
+                logger.warning("TFM_INS-TXT row matched neither commodity nor process")
                 continue
             processes, commodities = match
             if commodities is not None:
@@ -2295,7 +2359,11 @@ def process_wildcards(
         table = tables[datatypes.Tag.fi_t]
         new_tables = []
 
-        for _, row in updates.iterrows():
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_mig}",
+        ):
             match = match_wildcards(row)
             processes, commodities = match if match is not None else (None, None)
             # TODO should we also query on limtype?
