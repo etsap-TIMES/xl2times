@@ -1,5 +1,7 @@
 import argparse
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
+
 from pandas.core.frame import DataFrame
 import pandas as pd
 import pickle
@@ -27,6 +29,7 @@ def convert_xl_to_times(
     stop_after_read: bool = False,
 ) -> Dict[str, DataFrame]:
     pickle_file = "raw_tables.pkl"
+    t0 = datetime.now()
     if use_pkl and os.path.isfile(pickle_file):
         raw_tables = pickle.load(open(pickle_file, "rb"))
         logger.warning("Using pickled data not xlsx")
@@ -40,12 +43,12 @@ def convert_xl_to_times(
                     raw_tables.extend(result)
         else:
             for f in input_files:
-                result = excel.extract_tables(f)
+                result = excel.extract_tables(str(Path(f).absolute()))
                 raw_tables.extend(result)
         pickle.dump(raw_tables, open(pickle_file, "wb"))
     logger.info(
         f"Extracted {len(raw_tables)} tables,"
-        f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
+        f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows in {datetime.now() - t0}"
     )
 
     if stop_after_read:
