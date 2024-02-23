@@ -326,26 +326,26 @@ def merge_tables(
                 err += f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, {table.filename}"
             logger.warning(err)
 
-            match key:
-                case datatypes.Tag.fi_comm:
-                    model.commodities = df
-                case datatypes.Tag.fi_process:
-                    # TODO: Find a better place for this (both info and processing)
-                    times_prc_sets = set(config.times_sets["PRC_GRP"])
-                    # Index of rows with TIMES process sets
-                    index = df["sets"].str.upper().isin(times_prc_sets)
-                    # Print a warning if non-TIMES sets are present
-                    if not all(index):
-                        for _, row in df[~index].iterrows():
-                            region, sets, process = row[["region", "sets", "process"]]
-                            print(
-                                f"WARNING: Unknown process set {sets} specified for process {process}"
-                                f" in region {region}. The record will be dropped."
-                            )
-                    # Exclude records with non-TIMES sets
-                    model.processes = df.loc[index]
-                case _:
-                    result[key] = df
+        match key:
+            case datatypes.Tag.fi_comm:
+                model.commodities = df
+            case datatypes.Tag.fi_process:
+                # TODO: Find a better place for this (both info and processing)
+                times_prc_sets = set(config.times_sets["PRC_GRP"])
+                # Index of rows with TIMES process sets
+                index = df["sets"].str.upper().isin(times_prc_sets)
+                # Print a warning if non-TIMES sets are present
+                if not all(index):
+                    for _, row in df[~index].iterrows():
+                        region, sets, process = row[["region", "sets", "process"]]
+                        print(
+                            f"WARNING: Unknown process set {sets} specified for process {process}"
+                            f" in region {region}. The record will be dropped."
+                        )
+                # Exclude records with non-TIMES sets
+                model.processes = df.loc[index]
+            case _:
+                result[key] = df
 
     return result
 
@@ -509,16 +509,18 @@ def process_flexible_import_tables(
             raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
         df["year2"] = df.apply(
-            lambda row: int(row["year"].split("-")[1])
-            if "-" in str(row["year"])
-            else "EOH",
+            lambda row: (
+                int(row["year"].split("-")[1]) if "-" in str(row["year"]) else "EOH"
+            ),
             axis=1,
         )
 
         df["year"] = df.apply(
-            lambda row: int(row["year"].split("-")[0])
-            if "-" in str(row["year"])
-            else (row["year"] if row["year"] != "" else "BOH"),
+            lambda row: (
+                int(row["year"].split("-")[0])
+                if "-" in str(row["year"])
+                else (row["year"] if row["year"] != "" else "BOH")
+            ),
             axis=1,
         )
 
@@ -1764,9 +1766,11 @@ def process_tradelinks(
 
             # Add a column containing linked regions (directionless for bidirectional links)
             df["regions"] = df.apply(
-                lambda row: tuple(sorted([row["origin"], row["destination"]]))
-                if row["tradelink"] == "b"
-                else tuple([row["origin"], row["destination"]]),
+                lambda row: (
+                    tuple(sorted([row["origin"], row["destination"]]))
+                    if row["tradelink"] == "b"
+                    else tuple([row["origin"], row["destination"]])
+                ),
                 axis=1,
             )
 
@@ -2765,9 +2769,11 @@ def expand_rows_parallel(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     query_columns_lists = [
-        config.query_columns[datatypes.Tag(table.tag)]
-        if datatypes.Tag.has_tag(table.tag)
-        else set()
+        (
+            config.query_columns[datatypes.Tag(table.tag)]
+            if datatypes.Tag.has_tag(table.tag)
+            else set()
+        )
         for table in tables
     ]
     with ProcessPoolExecutor(max_workers) as executor:
