@@ -3,9 +3,9 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -14,10 +14,18 @@ jobs:
   CI:
     runs-on: ubuntu-latest
 
+    env:
+      PY_VERSION: 3.10
+
     steps:
       - uses: actions/checkout@v3
         with:
           path: xl2times
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
 
       - name: Install tool and dependencies
         working-directory: xl2times
@@ -39,6 +47,14 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest
+
+      - name: Cache XLSX cache directory
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: xl2times/.cache
+          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}
+          save-always: true
 
       # ---------- Prepare ETSAP Demo models
 
@@ -90,7 +106,6 @@ jobs:
           mkdir -p $HOME/.local/share/GAMS
           echo "$GAMS_LICENSE" > $HOME/.local/share/GAMS/gamslice.txt
           ls -l $HOME/.local/share/GAMS/
-
 
       # ---------- Run tool, check for regressions
 
