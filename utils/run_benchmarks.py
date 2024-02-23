@@ -14,10 +14,11 @@ from typing import Any, Tuple
 import git
 import pandas as pd
 import yaml
-from loguru import logger
 from tabulate import tabulate
 
+from dd_to_csv import main
 from xl2times import utils
+from xl2times.__main__ import parse_args, run
 from xl2times.utils import max_workers
 
 logger = utils.get_logger()
@@ -146,7 +147,8 @@ def run_benchmark(
     # First convert ground truth DD to csv
     if not skip_csv:
         shutil.rmtree(csv_folder, ignore_errors=True)
-        if os.name != "nt":
+        if not debug:
+            # run as subprocess if not in --debug mode
             res = subprocess.run(
                 [
                     "python",
@@ -157,6 +159,7 @@ def run_benchmark(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                shell=True if os.name == "nt" else False,
             )
             if res.returncode != 0:
                 # Remove partial outputs
@@ -166,9 +169,12 @@ def run_benchmark(
                 sys.exit(5)
         else:
             # If debug option is set, run as a function call to allow stepping with a debugger.
-            from dd_to_csv import main
-
-            main([dd_folder, csv_folder])
+            try:
+                main([dd_folder, csv_folder])
+            except Exception:
+                logger.exception(f"dd_to_csv failed on {benchmark['name']}")
+                shutil.rmtree(csv_folder, ignore_errors=True)
+                sys.exit(5)
 
     elif not path.exists(csv_folder):
         logger.error(f"--skip_csv is true but {csv_folder} does not exist")
@@ -189,22 +195,12 @@ def run_benchmark(
     else:
         args.append(xl_folder)
     start = time.time()
-    res = None
-    if not debug:
-        res = subprocess.run(
-            ["xl2times"] + args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-    else:
-        # If debug option is set, run as a function call to allow stepping with a debugger.
-        from xl2times.__main__ import run, parse_args
 
-        summary = run(parse_args(args))
+    # Call the conversion function directly
+    summary = run(parse_args(args))
 
-        # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
-        res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
+    # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
+    res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
 
     runtime = time.time() - start
 
@@ -255,8 +251,13 @@ def run_all_benchmarks(
         debug=debug,
     )
 
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        results = list(executor.map(run_a_benchmark, benchmarks))
+    if debug:
+        # bypass process pool and call benchmarks directly if --debug is set.
+        results = [run_a_benchmark(b) for b in benchmarks]
+    else:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(run_a_benchmark, benchmarks))
+
     logger.info("\n\n" + tabulate(results, headers, floatfmt=".1f") + "\n")
 
     if skip_regression:
@@ -302,9 +303,10 @@ def run_all_benchmarks(
             )
             sys.exit(8)
 
-        # Re-run benchmarks on main
+        # Re-run benchmarks on main - check it out and pull
         repo.heads.main.checkout()
-        logger.info("Running benchmarks on main", end="", flush=True)
+        origin.pull("main")  # if main already exists, make sure it's up to date
+        logger.info("Running benchmarks on main")
         run_a_benchmark = partial(
             run_benchmark,
             benchmarks_folder=benchmarks_folder,
@@ -441,7 +443,8 @@ if __name__ == "__main__":
         "--debug",
         action="store_true",
         default=False,
-        help="Run each benchmark as a function call to allow a debugger to stop at breakpoints in benchmark runs.",
+        help="Run each benchmark as a direct function call (disables subprocesses) to allow a debugger to stop at breakpoints "
+        "in benchmark runs.",
     )
     args = args_parser.parse_args()
 
@@ -449,11 +452,11 @@ if __name__ == "__main__":
     benchmarks_folder = spec["benchmarks_folder"]
     benchmark_names = [b["name"] for b in spec["benchmarks"]]
     if len(set(benchmark_names)) != len(benchmark_names):
-        logger.error(f"Found duplicate name in benchmarks YAML file")
+        logger.error("Found duplicate name in benchmarks YAML file")
         sys.exit(11)
 
     if args.dd and args.times_dir is None:
-        logger.error(f"--times_dir is required when using --dd")
+        logger.error("--times_dir is required when using --dd")
         sys.exit(12)
 
     if args.run is not None:

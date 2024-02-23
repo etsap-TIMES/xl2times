@@ -2,6 +2,7 @@ from __future__ import (
     annotations,
 )  # see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
 
+import functools
 import os
 import re
 import sys
@@ -192,6 +193,7 @@ def remove_positive_patterns(pattern):
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
+@functools.lru_cache(maxsize=int(1e6))
 def create_regexp(pattern):
     # exclude negative patterns
     if has_negative_patterns(pattern):
@@ -205,6 +207,7 @@ def create_regexp(pattern):
     return re.compile(pattern)
 
 
+@functools.lru_cache(maxsize=int(1e6))
 def create_negative_regexp(pattern):
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
@@ -262,7 +265,7 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
                 "level": "DEBUG",
                 "colorize": False,
                 "serialize": False,
-                "diagnose": False,
+                "diagnose": True,
                 "rotation": "20 MB",
                 "compression": "zip",
             },

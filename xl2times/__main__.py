@@ -1,5 +1,7 @@
 import argparse
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
+
 from pandas.core.frame import DataFrame
 import pandas as pd
 import pickle
@@ -27,9 +29,10 @@ def convert_xl_to_times(
     stop_after_read: bool = False,
 ) -> Dict[str, DataFrame]:
     pickle_file = "raw_tables.pkl"
+    t0 = datetime.now()
     if use_pkl and os.path.isfile(pickle_file):
         raw_tables = pickle.load(open(pickle_file, "rb"))
-        logger.warning(f"Using pickled data not xlsx")
+        logger.warning("Using pickled data not xlsx")
     else:
         raw_tables = []
 
@@ -40,12 +43,12 @@ def convert_xl_to_times(
                     raw_tables.extend(result)
         else:
             for f in input_files:
-                result = excel.extract_tables(f)
+                result = excel.extract_tables(str(Path(f).absolute()))
                 raw_tables.extend(result)
         pickle.dump(raw_tables, open(pickle_file, "wb"))
     logger.info(
         f"Extracted {len(raw_tables)} tables,"
-        f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
+        f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows in {datetime.now() - t0}"
     )
 
     if stop_after_read:
@@ -248,7 +251,7 @@ def produce_times_tables(
     result = {}
     used_tables = set()
     for mapping in config.times_xl_maps:
-        if not mapping.xl_name in input:
+        if mapping.xl_name not in input:
             logger.warning(
                 f"Cannot produce table {mapping.times_name} because"
                 f" {mapping.xl_name} does not exist"
@@ -281,7 +284,7 @@ def produce_times_tables(
                 # Excel columns can be duplicated into multiple Times columns
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
-                cols_to_drop = [x for x in df.columns if not x in mapping.times_cols]
+                cols_to_drop = [x for x in df.columns if x not in mapping.times_cols]
                 df.drop(columns=cols_to_drop, inplace=True)
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
@@ -392,7 +395,7 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
-def run(args) -> str | None:
+def run(args: argparse.Namespace) -> str | None:
     """
     Runs the xl2times conversion.
     Args:
