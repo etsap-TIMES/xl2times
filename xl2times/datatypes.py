@@ -190,6 +190,7 @@ class Config:
     known_columns: Dict[Tag, Set[str]]
     # Names of regions to include in the model; if empty, all regions are included.
     filter_regions: Set[str]
+    times_sets: Dict[str, List[str]]
 
     def __init__(
         self,
