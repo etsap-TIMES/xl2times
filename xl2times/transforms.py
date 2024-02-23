@@ -2043,7 +2043,7 @@ def get_matching_processes(row, dictionary) -> pd.Series:
 def get_matching_commodities(row, dictionary):
     matching_commodities = None
     for col, key in commodity_map.items():
-        if row[col] is not None:
+        if col in row.index and row[col] is not None:
             matching_commodities = intersect(
                 matching_commodities,
                 filter_by_pattern(dictionary[key], row[col].upper()),
