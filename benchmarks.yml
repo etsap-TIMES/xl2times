@@ -13,3 +13,338 @@ benchmarks:
     dd_files:
       - "base"
       - "syssettings"
+  - name: DemoS_002-all
+    input_folder: DemoS_002
+    dd_folder: DemoS_002-all
+    dd_files:
+      - "base"
+      - "syssettings"
+  - name: DemoS_003-all
+    input_folder: DemoS_003
+    dd_folder: DemoS_003-all
+    dd_files:
+      - "base"
+      - "syssettings"
+  - name: DemoS_004
+    input_folder: DemoS_004
+    inputs:
+      - "BY_Trans.xlsx"
+      - "Sets-DemoModels.xlsx"
+      - "SysSettings.xlsx"
+      - "VT_REG_PRI_V04.xlsx"
+    dd_folder: DemoS_004
+    dd_files:
+      - "base"
+      - "syssettings"
+  - name: DemoS_004a
+    input_folder: DemoS_004
+    inputs:
+      - "BY_Trans.xlsx"
+      - "Sets-DemoModels.xlsx"
+      - "SysSettings.xlsx"
+      - "SuppXLS/Scen_Peak_RSV.xlsx"
+      - "VT_REG_PRI_V04.xlsx"
+    dd_folder: DemoS_004a
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "peak_rsv"
+  - name: DemoS_004b
+    input_folder: DemoS_004
+    inputs:
+      - "BY_Trans.xlsx"
+      - "Sets-DemoModels.xlsx"
+      - "SysSettings.xlsx"
+      - "SuppXLS/Scen_Peak_RSV-FLX.xlsx"
+      - "VT_REG_PRI_V04.xlsx"
+    dd_folder: DemoS_004b
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "peak_rsv-flx"
+  - name: DemoS_004-all
+    input_folder: DemoS_004
+    dd_folder: DemoS_004-all
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "peak_rsv"
+      - "peak_rsv-flx"
+  - name: DemoS_005-all
+    input_folder: DemoS_005
+    dd_folder: DemoS_005-all
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "trade_param"
+      - "co2_tax"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "uc_co2bnd"
+  - name: DemoS_006-all
+    input_folder: DemoS_006
+    dd_folder: DemoS_006-all
+    dd_files:
+      - "base"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "uc_co2bnd"
+  - name: DemoS_007-all
+    input_folder: DemoS_007
+    dd_folder: DemoS_007-all
+    dd_files:
+      - "base"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_growth"
+  - name: DemoS_007-all-1r
+    input_folder: DemoS_007
+    inputs:
+      - "BY_Trans.xlsx"
+      - "Sets-DemoModels.xlsx"
+      - "SysSettings.xlsx"
+      - "SubRES_TMPL/SubRES_NewTechs.xlsx"
+      - "SubRES_TMPL/SubRES_NewTechs_Trans.xlsx"
+      - "SuppXLS/Scen_DemProj_DTCAR.xlsx"
+      - "SuppXLS/Scen_ElasticDem.xlsx"
+      - "SuppXLS/Scen_ELC_CO2_BOUND.xlsx"
+      - "SuppXLS/Scen_Peak_RSV.xlsx"
+      - "SuppXLS/Scen_Refinery.xlsx"
+      - "SuppXLS/Scen_TRA_CO2_BOUND.xlsx"
+      - "SuppXLS/Scen_UC_CO2BND.xlsx"
+      - "SuppXLS/Scen_UC_Growth.xlsx"
+      - "SuppXLS/Trades/ScenTrade__Trade_Links.xlsx"
+      - "SuppXLS/Trades/ScenTrade_TRADE_PARAM.xlsx"
+      - "VT_REG1_PRI_V07.xlsx"
+    dd_folder: DemoS_007-all-1r
+    dd_files:
+      - "base"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_growth"
+  - name: DemoS_008-all
+    input_folder: DemoS_008
+    dd_folder: DemoS_008-all
+    dd_files:
+      - "base"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_growth"
+      - "uc_nuc_maxcap"
+  - name: DemoS_009-all
+    input_folder: DemoS_009
+    dd_folder: DemoS_009-all
+    dd_files:
+      - "base"
+      - "new-chp-dh"
+      - "new-ind"
+      - "newtechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "ind_newres"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_dh_minprod"
+      - "uc_growth"
+      - "uc_nuc_maxcap"
+  - name: DemoS_010-all
+    input_folder: DemoS_010
+    dd_folder: DemoS_010-all
+    dd_files:
+      - "base"
+      - "new-chp-dh"
+      - "new-ind"
+      - "newtechs"
+      - "syssettings"
+      - "dem_ref"
+      - "trade_param"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "ind_newres"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_dh_minprod"
+      - "uc_growth"
+      - "uc_nuc_maxcap"
+  - name: DemoS_011-all
+    input_folder: DemoS_011
+    dd_folder: DemoS_011-all
+    dd_files:
+      - "base"
+      - "new-chp-dh"
+      - "new-ind"
+      - "newtechs"
+      - "syssettings"
+      - "dem_ref"
+      - "trade_param"
+      - "bounds-uc_wsets"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "ind_newres"
+      - "peak_rsv"
+      - "refinery"
+      - "tra_co2_bound"
+      - "uc_co2bnd"
+      - "uc_dh_minprod"
+      - "uc_growth"
+      - "uc_nuc_maxcap"
+  - name: DemoS_012-all
+    input_folder: DemoS_012
+    dd_folder: DemoS_012-all
+    dd_files:
+      - "base"
+      - "new-chp-dh"
+      - "new-ind"
+      - "newtechs"
+      - "syssettings"
+      - "dem_ref"
+      - "trade_param"
+      - "bnd_ppfossil"
+      - "bounds-uc_wsets"
+      - "co2_tax"
+      - "demproj_dtcar"
+      - "elasticdem"
+      - "elc_co2_bound"
+      - "ind_newres"
+      - "nuc_dscinv"
+      - "peak_rsv"
+      - "refinery"
+      - "solar_subsidies"
+      - "tra_co2_bound"
+      - "tradsl_tax"
+      - "uc_co2_regions"
+      - "uc_co2bnd"
+      - "uc_dh_minprod"
+      - "uc_growth"
+      - "uc_nuc_maxcap"
+  - name: Ireland
+    input_folder: Ireland
+    regions: "IE"
+    inputs:
+      - "VT_IE_AGR.xlsx"
+      - "VT_IE_IND.xlsx"
+      - "VT_IE_PWR.xlsx"
+      - "VT_IE_RSD.xlsx"
+      - "VT_IE_SRV.xlsx"
+      - "VT_IE_SUP.xlsx"
+      - "VT_IE_TRA.xlsx"
+      - "BY_Trans.xlsx"
+      - "SetRules.xlsx"
+      - "SuppXLS/Trades/ScenTrade__Trade_Links.xlsx"
+      - "SubRES_TMPL/SubRES_PWR_DH.xlsx"
+      - "SubRES_TMPL/SubRES_PWR_DH_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_PWR_NewTechs.xlsx"
+      - "SubRES_TMPL/SubRES_PWR_NewTechs_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_RSD_NewTechs.xlsx"
+      - "SubRES_TMPL/SubRES_RSD_NewTechs_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_RSD-Retrofit.xlsx"
+      - "SubRES_TMPL/SubRES_RSD-Retrofit_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_SRV_DC_ExcessHeat.xlsx"
+      - "SubRES_TMPL/SubRES_SRV_DC_ExcessHeat_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_SRV_NewTechs.xlsx"
+      - "SubRES_TMPL/SubRES_SRV_NewTechs_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_SUP_BioRefineries.xlsx"
+      - "SubRES_TMPL/SubRES_SUP_BioRefineries_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_SUP_H2NewTechs.xlsx"
+      - "SubRES_TMPL/SubRES_SUP_H2NewTechs_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_SYS_OtherNewTechs.xlsx"
+      - "SubRES_TMPL/SubRES_SYS_OtherNewTechs_Trans.xlsx"
+      - "SubRES_TMPL/SubRES_TRA_NewVehicles.xlsx"
+      - "SubRES_TMPL/SubRES_TRA_NewVehicles_Trans.xlsx"
+      - "SysSettings.xlsx"
+      - "SuppXLS/Scen_A_SYS_SAD_40TS.xlsx"
+      - "SuppXLS/Scen_B_SYS_Additional_Assumptions.xlsx"
+      - "SuppXLS/Scen_B_SYS_Demands.xlsx"
+      - "SuppXLS/Scen_B_SUP_DomBioPot_Baseline.xlsx"
+      - "SuppXLS/Scen_B_IND_Emi_Proc.xlsx"
+      - "SuppXLS/Scen_B_PWR_CCS.xlsx"
+      - "SuppXLS/Scen_B_SRV_DC_EH.xlsx"
+      - "SuppXLS/Scen_B_PWR_RNW_Potentials.xlsx"
+      - "SuppXLS/Scen_B_IND_Emissions.xlsx"
+      - "SuppXLS/Scen_B_RSD_Retrofit-Ctrl.xlsx"
+      - "SuppXLS/Scen_B_RSD_UC.xlsx"
+      - "SuppXLS/Scen_B_SRV_UC.xlsx"
+      - "SuppXLS/Scen_B_PWR_SNSP_Limit.xlsx"
+      - "SuppXLS/Scen_B_SYS_Bio_DelivCost.xlsx"
+      - "SuppXLS/Scen_B_SYS_Historic_Bounds.xlsx"
+      - "SuppXLS/Scen_B_SYS_MaxGrowthRates.xlsx"
+      - "SuppXLS/Scen_B_RSD_UnitBoilers.xlsx"
+      - "SuppXLS/Scen_B_TRA_P_ModalShares.xlsx"
+      - "SuppXLS/Scen_B_TRA_NewCars_Retirement.xlsx"
+      - "SuppXLS/Scen_B_TRA_Stock_Retirement.xlsx"
+      - "SuppXLS/Scen_B_TRA_Emissions.xlsx"
+      - "SuppXLS/Scen_B_TRA_EV_Parity.xlsx"
+      - "SuppXLS/Scen_B_TRA_F_ModalShares.xlsx"
+    dd_folder: Ireland
+    dd_files:
+      - "base"
+      - "pwr_dh"
+      - "pwr_newtechs"
+      - "rsd_newtechs"
+      - "rsd-retrofit"
+      - "srv_dc_excessheat"
+      - "srv_newtechs"
+      - "sup_biorefineries"
+      - "sup_h2newtechs"
+      - "sys_othernewtechs"
+      - "tra_newvehicles"
+      - "syssettings"
+      - "a_sys_sad_40ts"
+      - "b_sys_additional_assumptions"
+      - "b_sys_demands"
+      - "b_sup_dombiopot_baseline"
+      - "b_ind_emi_proc"
+      - "b_pwr_ccs"
+      - "b_srv_dc_eh"
+      - "b_pwr_rnw_potentials"
+      - "b_ind_emissions"
+      - "b_rsd_retrofit-ctrl"
+      - "b_rsd_uc"
+      - "b_srv_uc"
+      - "b_pwr_snsp_limit"
+      - "b_sys_bio_delivcost"
+      - "b_sys_historic_bounds"
+      - "b_sys_maxgrowthrates"
+      - "b_rsd_unitboilers"
+      - "b_tra_p_modalshares"
+      - "b_tra_newcars_retirement"
+      - "b_tra_stock_retirement"
+      - "b_tra_emissions"
+      - "b_tra_ev_parity"
+      - "b_tra_f_modalshares"

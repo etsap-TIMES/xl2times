@@ -40,7 +40,7 @@ def _read_xlsx_cached(filename: str) -> List[datatypes.EmbeddedXlTable]:
         # the filename is the same:
         # TODO check modified timestamp also matches
         if filename == fname1:
-            logger.info(f"Using cached data for {filename}: {cache_dir + hsh}")
+            logger.info(f"Using cached data for {filename}")
             return tables
     # Write extracted data to cache:
     tables = excel.extract_tables(filename)
