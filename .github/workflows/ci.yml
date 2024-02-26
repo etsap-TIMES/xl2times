@@ -115,7 +115,7 @@ jobs:
         id: cache
         uses: actions/cache/restore@v4
         with:
-          path: xl2times/.cache
+          path: ${{ github.workspace }}/xl2times/.cache
           # Cache key is refs of the input xlsx repos, since that's what is cached
           key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
           # If we can't find the exact key for the TIM repo, still use the cache if the demos repo ref matches
@@ -166,5 +166,5 @@ jobs:
         # Save the cache even if the regression tests fail
         if: always() && !steps.cache-restore.outputs.cache-hit
         with:
-          path: xl2times/.cache
+          path: ${{ github.workspace }}xl2times/.cache
           key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
