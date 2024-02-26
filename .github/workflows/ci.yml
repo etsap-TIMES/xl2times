@@ -3,9 +3,9 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -14,10 +14,23 @@ jobs:
   CI:
     runs-on: ubuntu-latest
 
+    env:
+      PY_VERSION: "3.11"
+      REF_TIMES_model: "b488fb07f0899ee8b7e710c230b1a9414fa06f7d"
+      REF_demos-xlsx: "f956db07a253d4f5c60e108791ab7bb2b8136690"
+      REF_demos-dd: "2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
+      REF_tim: "e820d8002adc6b1526a3bffcc439219b28d0eed5"
+      REF_tim-gams: "703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
+
     steps:
       - uses: actions/checkout@v3
         with:
           path: xl2times
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
 
       - name: Install tool and dependencies
         working-directory: xl2times
@@ -46,16 +59,19 @@ jobs:
         with:
           repository: etsap-TIMES/TIMES_model
           path: TIMES_model
+          ref: ${{ env.REF_TIMES_model }}
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
           path: xl2times/benchmarks/dd
+          ref: ${{ env.REF_demos-dd }}
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-xlsx
           path: xl2times/benchmarks/xlsx
+          ref: ${{ env.REF_demos-xlsx }}
           token: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
       # ---------- Prepare TIMES Ireland Model
@@ -66,11 +82,13 @@ jobs:
         with:
           repository: esma-cgep/tim
           path: xl2times/benchmarks/xlsx/Ireland
+          ref: ${{ env.REF_tim }}
 
       - uses: actions/checkout@v3
         with:
           repository: esma-cgep/tim-gams
           path: xl2times/benchmarks/dd/Ireland
+          ref: ${{ env.REF_tim-gams }}
 
       # ---------- Install GAMS
 
@@ -91,8 +109,19 @@ jobs:
           echo "$GAMS_LICENSE" > $HOME/.local/share/GAMS/gamslice.txt
           ls -l $HOME/.local/share/GAMS/
 
-
       # ---------- Run tool, check for regressions
+
+      - name: Restore XLSX cache directory from cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/xl2times/xl2times/.cache
+          # Cache key is refs of the input xlsx repos, since that's what is cached
+          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
+          # If we can't find the exact key for the TIM repo, still use the cache if the demos repo ref matches
+          restore-keys: |
+            ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-
+            ${{ runner.os }}-py-${{ env.PY_VERSION }}-
 
       - name: Run tool on all benchmarks
         env:
@@ -132,3 +161,10 @@ jobs:
         run: |
           sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
           exit $(cat retcode.txt)
+
+      - uses: actions/cache/save@v4
+        # Save the cache even if the regression tests fail
+        if: always() && !steps.cache-restore.outputs.cache-hit
+        with:
+          path: ${{ github.workspace }}/xl2times/xl2times/.cache
+          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}

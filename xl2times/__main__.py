@@ -1,7 +1,7 @@
 import argparse
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
-
+import hashlib
 from pandas.core.frame import DataFrame
 import pandas as pd
 import pickle
@@ -11,6 +11,7 @@ import sys
 import time
 from typing import Dict, List
 
+from xl2times import __file__ as xl2times_file_path
 from xl2times.utils import max_workers
 from . import datatypes, utils
 from . import excel
@@ -19,36 +20,55 @@ from . import transforms
 logger = utils.get_logger()
 
 
+cache_dir = os.path.abspath(os.path.dirname(xl2times_file_path)) + "/.cache/"
+os.makedirs(cache_dir, exist_ok=True)
+
+
+def _read_xlsx_cached(filename: str) -> List[datatypes.EmbeddedXlTable]:
+    """Extract EmbeddedXlTables from xlsx file (cached).
+
+    Since excel.extract_tables is quite slow, we cache its results in `cache_dir`.
+    Each file is named by the hash of the contents of an xlsx file, and contains
+    a tuple (filename, modified timestamp, [EmbeddedXlTable]).
+    """
+    with open(filename, "rb") as f:
+        digest = hashlib.file_digest(f, "sha256")  # pyright: ignore
+    hsh = digest.hexdigest()
+    if os.path.isfile(cache_dir + hsh):
+        fname1, _timestamp, tables = pickle.load(open(cache_dir + hsh, "rb"))
+        # In the extremely unlikely event that we have a hash collision, also check that
+        # the filename is the same:
+        # TODO check modified timestamp also matches
+        if filename == fname1:
+            logger.info(f"Using cached data for {filename} from {cache_dir + hsh}")
+            return tables
+    # Write extracted data to cache:
+    tables = excel.extract_tables(filename)
+    pickle.dump((filename, "TODO ModifiedTime", tables), open(cache_dir + hsh, "wb"))
+    logger.info(f"Saved cache for {filename} to {cache_dir + hsh}")
+    return excel.extract_tables(filename)
+
+
 def convert_xl_to_times(
     input_files: List[str],
     output_dir: str,
     config: datatypes.Config,
     model: datatypes.TimesModel,
-    use_pkl: bool,
+    no_cache: bool,
     verbose: bool = False,
     stop_after_read: bool = False,
 ) -> Dict[str, DataFrame]:
-    pickle_file = "raw_tables.pkl"
-    t0 = datetime.now()
-    if use_pkl and os.path.isfile(pickle_file):
-        raw_tables = pickle.load(open(pickle_file, "rb"))
-        logger.warning("Using pickled data not xlsx")
-    else:
-        raw_tables = []
-
-        use_pool = True
-        if use_pool:
-            with ProcessPoolExecutor(max_workers) as executor:
-                for result in executor.map(excel.extract_tables, input_files):
-                    raw_tables.extend(result)
-        else:
-            for f in input_files:
-                result = excel.extract_tables(str(Path(f).absolute()))
-                raw_tables.extend(result)
-        pickle.dump(raw_tables, open(pickle_file, "wb"))
+    start_time = datetime.now()
+    with ProcessPoolExecutor(max_workers) as executor:
+        raw_tables = executor.map(
+            excel.extract_tables if no_cache else _read_xlsx_cached, input_files
+        )
+    # raw_tables is a list of lists, so flatten it:
+    raw_tables = [t for ts in raw_tables for t in ts]
     logger.info(
-        f"Extracted {len(raw_tables)} tables,"
-        f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows in {datetime.now() - t0}"
+        f"Extracted (potentially cached) {len(raw_tables)} tables,"
+        f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
+        f" in {datetime.now() - start_time}"
     )
 
     if stop_after_read:
@@ -440,14 +460,14 @@ def run(args: argparse.Namespace) -> str | None:
             args.output_dir,
             config,
             model,
-            args.use_pkl,
+            args.no_cache,
             verbose=args.verbose,
             stop_after_read=True,
         )
         sys.exit(0)
 
     tables = convert_xl_to_times(
-        input_files, args.output_dir, config, model, args.use_pkl, verbose=args.verbose
+        input_files, args.output_dir, config, model, args.no_cache, verbose=args.verbose
     )
 
     if args.dd:
@@ -498,7 +518,11 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
         action="store_true",
         help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
     )
-    args_parser.add_argument("--use_pkl", action="store_true")
+    args_parser.add_argument(
+        "--no_cache",
+        action="store_true",
+        help="Ignore cache and re-extract tables from XLSX files",
+    )
     args_parser.add_argument(
         "-v",
         "--verbose",
