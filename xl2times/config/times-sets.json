@@ -1,0 +1,45 @@
+{
+   "COM_TYPE":
+   [
+      "DEM",
+      "NRG",
+      "MAT",
+      "ENV",
+      "FIN"
+   ],
+   "PRC_GRP":
+   [
+      "CHP",
+      "CORR",
+      "DISTR",
+      "DMD",
+      "ELE",
+      "HPL",
+      "IRE",
+      "NST",
+      "MISC",
+      "REF",
+      "RENEW",
+      "PRE",
+      "PRV",
+      "PRW",
+      "STG",
+      "SGS",
+      "STK",
+      "STS",
+      "XTRACT"
+   ],
+   "NRG_TYPE": [
+      "CONSRV",
+      "FOSSIL",
+      "FRERENEW",
+      "ELC",
+      "HTHEAT",
+      "LIMRENEW",
+      "LTHEAT",
+      "NUCLR",
+      "RATE",
+      "RENEN",
+      "SYNTH"
+   ]
+}

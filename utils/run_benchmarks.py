@@ -196,11 +196,19 @@ def run_benchmark(
         args.append(xl_folder)
     start = time.time()
 
-    # Call the conversion function directly
-    summary = run(parse_args(args))
-
-    # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
-    res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
+    res = None
+    if not debug:
+        res = subprocess.run(
+            ["xl2times"] + args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+    else:
+        # If debug option is set, run as a function call to allow stepping with a debugger.
+        summary = run(parse_args(args))
+        # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
+        res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
 
     runtime = time.time() - start
 

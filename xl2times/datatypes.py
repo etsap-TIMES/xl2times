@@ -190,11 +190,13 @@ class Config:
     known_columns: Dict[Tag, Set[str]]
     # Names of regions to include in the model; if empty, all regions are included.
     filter_regions: Set[str]
+    times_sets: Dict[str, List[str]]
 
     def __init__(
         self,
         mapping_file: str,
         times_info_file: str,
+        times_sets_file: str,
         veda_tags_file: str,
         veda_attr_defaults_file: str,
         regions: str,
@@ -205,6 +207,7 @@ class Config:
             self.all_attributes,
             param_mappings,
         ) = Config._process_times_info(times_info_file)
+        self.times_sets = Config._read_times_sets(times_sets_file)
         (
             self.column_aliases,
             self.row_comment_chars,
@@ -221,6 +224,16 @@ class Config:
             name_to_map[m.times_name] = m
         self.times_xl_maps = list(name_to_map.values())
         self.filter_regions = Config._read_regions_filter(regions)
+
+    @staticmethod
+    def _read_times_sets(
+        times_sets_file: str,
+    ) -> Dict[str, List[str]]:
+        # Read times_sets_file
+        with resources.open_text("xl2times.config", times_sets_file) as f:
+            times_sets = json.load(f)
+
+        return times_sets
 
     @staticmethod
     def _process_times_info(
