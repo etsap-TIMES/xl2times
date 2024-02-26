@@ -45,6 +45,7 @@ def _read_xlsx_cached(filename: str) -> List[datatypes.EmbeddedXlTable]:
     # Write extracted data to cache:
     tables = excel.extract_tables(filename)
     pickle.dump((filename, "TODO ModifiedTime", tables), open(cache_dir + hsh, "wb"))
+    logger.info(f"Wrote cache for {filename}: {cache_dir + hsh}")
     return excel.extract_tables(filename)
 
 
