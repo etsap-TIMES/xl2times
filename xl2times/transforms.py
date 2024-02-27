@@ -1,8 +1,10 @@
+import pickle
 import re
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
+from datetime import datetime
 from functools import reduce
 from itertools import groupby
 from pathlib import Path
@@ -2187,17 +2189,18 @@ def process_uc_wildcards(
 
 def _match_uc_wildcards(
     df: pd.DataFrame,
-    process_map: dict[str, str],
+    col_name_map: dict[str, str],
     dictionary: dict[str, pd.DataFrame],
     matcher: Callable,
     result_col: str,
+    explode: bool = True,
 ) -> pd.DataFrame:
     """
     Match wildcards in the given table using the given process map and dictionary.
 
     Args:
         df: Table to match wildcards in.
-        process_map: Mapping of column names to process sets.
+        col_name_map: Mapping of column names to process sets.
         dictionary: Dictionary of process sets to match against.
         matcher: Matching function to use, e.g. get_matching_processes or get_matching_commodities.
         result_col: Name of the column to store the matched results in.
@@ -2205,6 +2208,30 @@ def _match_uc_wildcards(
     Returns:
         The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
     """
+    proc_cols = list(col_name_map.keys())
+    filter_matches = _wildcard_match(df, col_name_map, dictionary, matcher, result_col)
+
+    # Finally we merge the matches back into the original table. This join re-duplicates the duplicate filters dropped above for speed.
+    # And we explode any matches to multiple names to give a long-format table.
+    if result_col in df.columns:
+        df = df.drop(columns=[result_col])
+    df = df.merge(filter_matches, left_on=proc_cols, right_on=proc_cols, how="left")
+    if explode:
+        df = df.explode(result_col).reset_index(drop=True).drop(columns=proc_cols)
+
+    # replace NaNs in results_col with None for consistency with older logic
+    df[result_col] = df[result_col].where(df[result_col].notna(), None)
+
+    return df
+
+
+def _wildcard_match(
+    df: pd.DataFrame,
+    process_map: dict[str, str],
+    dictionary: dict[str, pd.DataFrame],
+    matcher: Callable,
+    result_col: str,
+):
     proc_cols = list(process_map.keys())
 
     # drop duplicate sets of wildcard columns to save repeated (slow) regex matching.  This makes things much faster.
@@ -2229,20 +2256,7 @@ def _match_uc_wildcards(
     filter_matches = unique_filters.reset_index(drop=True).merge(
         matches, left_index=True, right_index=True
     )
-
-    # Finally we merge the matches back into the original table. This join re-duplicates the duplicate filters dropped above for speed.
-    # And we explode any matches to multiple names to give a long-format table.
-    df = (
-        df.merge(filter_matches, left_on=proc_cols, right_on=proc_cols, how="left")
-        .explode(result_col)
-        .reset_index(drop=True)
-        .drop(columns=proc_cols)
-    )
-
-    # replace NaNs in results_col with None for consistency with older logic
-    df[result_col] = df[result_col].where(df[result_col].notna(), None)
-
-    return df
+    return filter_matches
 
 
 def process_wildcards(
@@ -2253,7 +2267,6 @@ def process_wildcards(
     """
     Process wildcards specified in TFM tables.
     """
-
     topology = generate_topology_dictionary(tables, model)
 
     def match_wildcards(
@@ -2310,23 +2323,53 @@ def process_wildcards(
         # Reset FI_T index so that queries can determine unique rows to update
         tables[datatypes.Tag.fi_t].reset_index(inplace=True)
 
+        # pre-build lookup tables of matching process and commodity wildcards to actual processes and commodities, for faster lookup below
+        # proc_matches = _wildcard_match(updates.copy(), process_map, topology, get_matching_processes, "process").fillna('').set_index(list(process_map.keys()))
+        # comm_matches = _wildcard_match(updates.copy(), commodity_map, topology, get_matching_commodities, "commodity").fillna('').set_index(list(commodity_map.keys()))
+
+        updates = _match_uc_wildcards(
+            updates,
+            process_map,
+            topology,
+            get_matching_processes,
+            "process",
+            explode=False,
+        )
+        updates = _match_uc_wildcards(
+            updates,
+            commodity_map,
+            topology,
+            get_matching_commodities,
+            "commodity",
+            explode=False,
+        )
+
         # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
         # evaluate the update formula, and add new rows to FI_T
         # TODO perf: collect all updates and go through FI_T only once?
         for _, row in tqdm(
-            updates.iterrows(),
+            updates.copy().iterrows(),
             total=len(updates),
             desc=f"Processing wildcard for {datatypes.Tag.tfm_upd}",
         ):
             if row["value"] is None:  # TODO is this really needed?
                 continue
-            match = match_wildcards(row)
-            if match is None:
-                continue
-            processes, commodities = match
+            # match = match_wildcards(row)
+            # if match is None:
+            #     continue
+            # processes, commodities = match
+
+            processes = pd.DataFrame(
+                pd.Series(row["process"]), columns=["process"]
+            ).dropna()
+            commodities = pd.DataFrame(
+                pd.Series(row["commodity"]), columns=["commodity"]
+            ).dropna()
+
             rows_to_update = query(
                 table, processes, commodities, row["attribute"], row["region"]
             )
+
             new_rows = table.loc[rows_to_update].copy()
             eval_and_update(new_rows, rows_to_update, row["value"])
             new_tables.append(new_rows)
@@ -2339,6 +2382,9 @@ def process_wildcards(
         table = tables[datatypes.Tag.fi_t]
         new_tables = []
 
+        # updates = _match_uc_wildcards(updates, process_map, topology, get_matching_processes, "process", explode=False)
+        # updates = _match_uc_wildcards(updates, commodity_map, topology, get_matching_commodities, "commodity", explode=False)
+
         # TFM_INS: expand each row by wildcards, then add to FI_T
         for _, row in tqdm(
             updates.iterrows(),
@@ -2346,6 +2392,9 @@ def process_wildcards(
             desc=f"Processing wildcard for {datatypes.Tag.tfm_ins}",
         ):
             match = match_wildcards(row)
+            # processes = pd.DataFrame(row["process"], columns=["process"])
+            # commodities = pd.DataFrame(row["commodity"], columns=["commodity"])
+
             # TODO perf: add matched procs/comms into column and use explode?
             new_rows = pd.DataFrame([row.filter(table.columns)])
             if match is not None:
