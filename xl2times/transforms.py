@@ -229,7 +229,7 @@ def revalidate_input_tables(
 ) -> List[datatypes.EmbeddedXlTable]:
     """
     Perform further validation of input tables by checking whether required columns are
-    present / non-empty. Remove tables without required columns.
+    present / non-empty. Remove tables without required columns or if they are empty.
     """
     result = []
     for table in tables:
@@ -241,8 +241,8 @@ def revalidate_input_tables(
             if not required_cols.issubset(unique_table_cols):
                 missing_cols = required_cols - unique_table_cols
                 logger.warning(
-                    f"Dropping {tag} table withing range {table.range} on sheet {table.sheetname}"
-                    f" in file {table.filename} due to missing required columns {missing_cols}"
+                    f"Dropping {tag.value} table withing range {table.range} on sheet {table.sheetname}"
+                    f" in file {table.filename} due to missing required columns: {missing_cols}"
                 )
             # Check whether any of the required columns is empty
             else:
@@ -250,8 +250,8 @@ def revalidate_input_tables(
                 empty_required_cols = {c for c in required_cols if all(df[c].isna())}
                 if empty_required_cols:
                     logger.warning(
-                        f"Dropping {tag} table withing range {table.range} on sheet {table.sheetname}"
-                        f" in file {table.filename} due to empty required columns {empty_required_cols}"
+                        f"Dropping {tag.value} table withing range {table.range} on sheet {table.sheetname}"
+                        f" in file {table.filename} due to empty required columns: {empty_required_cols}"
                     )
                 else:
                     result.append(table)
