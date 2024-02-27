@@ -65,7 +65,6 @@ def explode(df, data_columns):
             f"Dataframe has duplicated columns: {df.columns[df.columns.duplicated()]}"
         )
 
-    dfo = df.copy()
     data = df[data_columns].values.tolist()
     other_columns = [
         colname for colname in df.columns.values if colname not in data_columns
