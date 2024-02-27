@@ -22,12 +22,46 @@ pd.set_option(
     "display.max_columns",
     20,
     "display.width",
-    300,
+    150,
     "display.max_colwidth",
     75,
     "display.precision",
     3,
 )
+
+
+def test_merge_duplicate_columns():
+    """
+    Tests that this:
+    >>> df
+    ...      a    a    a  b    b  c
+    ... 0  NaN  4.0  7.0  1  4.0  1
+    ... 1  2.0  NaN  8.0  2  5.0  2
+    ... 2  3.0  6.0  NaN  3  NaN  3
+
+    Gets transformed into this:
+    >>> transforms._merge_duplicate_named_columns(df.copy())
+    ... df2
+    ...      a    b  c
+    ... 0  7.0  4.0  1
+    ... 1  8.0  5.0  2
+    ... 2  6.0  3.0  3
+    """
+    df = pd.DataFrame(
+        {
+            "a": [None, 2, 3],
+            "a2": [4, None, 6],
+            "a3": [7, 8, None],
+            "b": [1, 2, 3],
+            "b2": [4, 5, None],
+            "c": [1, 2, 3],
+        }
+    ).rename(columns={"a2": "a", "a3": "a", "b2": "b"})
+    df2 = transforms._merge_duplicate_named_columns(df.copy())
+    assert df2.columns.tolist() == ["a", "b", "c"]
+    assert df2["a"].tolist() == [7, 8, 6]
+    assert df2["b"].tolist() == [4, 5, 3]
+    assert df2["c"].tolist() == [1, 2, 3]
 
 
 def _match_uc_wildcards_old(

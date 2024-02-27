@@ -23,6 +23,19 @@ from xl2times.utils import max_workers
 
 logger = utils.get_logger()
 
+pd.set_option(
+    "display.max_rows",
+    20,
+    "display.max_columns",
+    20,
+    "display.width",
+    150,
+    "display.max_colwidth",
+    75,
+    "display.precision",
+    3,
+)
+
 
 def parse_result(output: str) -> Tuple[float, int, int]:
     # find pattern in multiline string

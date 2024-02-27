@@ -60,6 +60,12 @@ def explode(df, data_columns):
     :return:                Tuple with the exploded dataframe and a Series of the original
                             column name for each value in each new row.
     """
+    if df.columns.duplicated().any():
+        raise ValueError(
+            f"Dataframe has duplicated columns: {df.columns[df.columns.duplicated()]}"
+        )
+
+    dfo = df.copy()
     data = df[data_columns].values.tolist()
     other_columns = [
         colname for colname in df.columns.values if colname not in data_columns
@@ -75,6 +81,7 @@ def explode(df, data_columns):
     index = df[value_column].notna()
     df = df[index]
     names = names[index]
+
     return df, names
 
 

@@ -205,21 +205,50 @@ def validate_input_tables(
 
     result = []
     for table in tables:
+
         if not datatypes.Tag.has_tag(table.tag.split(":")[0]):
             logger.warning(f"Dropping table with unrecognized tag {table.tag}")
             continue
+
         if discard(table):
             continue
+
         # Check for duplicate columns:
-        seen = set()
-        dupes = [x for x in table.dataframe.columns if x in seen or seen.add(x)]
+        df = table.dataframe
+        dupes = df.columns[table.dataframe.columns.duplicated()]
+
         if len(dupes) > 0:
             logger.warning(
-                f"Duplicate columns in {table.range}, {table.sheetname},"
-                f" {table.filename}: {','.join(dupes)}"
+                f"Merging duplicate columns in {table.range}, {table.sheetname},"
+                f" {table.filename}: {dupes.to_list()}"
             )
+            table.dataframe = _merge_duplicate_named_columns(df)
+
         result.append(table)
     return result
+
+
+def _merge_duplicate_named_columns(df_in: DataFrame) -> DataFrame:
+    """Merges values in duplicate columns into a single column.
+    This is implemented as a foward-fill of missing values in the left-to-right direction, to match VEDA's behaviour.
+    So any missing values in the right-most of each set of duplicate-named columns are filled with the first non-missing value to the left.
+
+    Parameters
+        df_in : DataFrame to be processed (not modified)
+    Returns
+        DataFrame with duplicate columns merged
+    """
+    if not df_in.columns.duplicated().any():
+        return df_in
+
+    df = df_in.copy()
+    dupes = pd.unique(df.columns[df.columns.duplicated(keep="first")])
+    for dup_col in dupes:
+        df[dup_col] = df[dup_col].ffill(axis=1)
+
+    # only keep the right-most duplicate column from each duplicate set
+    df = df.iloc[:, ~df.columns.duplicated(keep="last")]
+    return df
 
 
 def normalize_tags_columns(
@@ -588,7 +617,8 @@ def process_user_constraint_tables(
         # TODO: apply table.uc_sets
 
         # Fill in UC_N blank cells with value from above
-        df["uc_n"] = df["uc_n"].ffill()
+        if "uc_n" in df.columns:
+            df["uc_n"] = df["uc_n"].ffill()
 
         data_columns = [
             x for x in df.columns if x not in config.known_columns[datatypes.Tag.uc_t]
