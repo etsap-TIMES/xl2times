@@ -188,6 +188,10 @@ class Config:
     veda_attr_defaults: Dict[str, Dict[str, list]]
     # Known columns for each tag
     known_columns: Dict[Tag, Set[str]]
+    # Query columns for each tag
+    query_columns: Dict[Tag, Set[str]]
+    # Required columns for each tag
+    required_columns: Dict[Tag, Set[str]]
     # Names of regions to include in the model; if empty, all regions are included.
     filter_regions: Set[str]
     times_sets: Dict[str, List[str]]
@@ -214,6 +218,7 @@ class Config:
             self.discard_if_empty,
             self.query_columns,
             self.known_columns,
+            self.required_columns,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
             veda_attr_defaults_file
@@ -371,6 +376,7 @@ class Config:
         Iterable[Tag],
         Dict[Tag, Set[str]],
         Dict[Tag, Set[str]],
+        Dict[Tag, Set[str]],
     ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
@@ -393,6 +399,7 @@ class Config:
         discard_if_empty = []
         query_cols = defaultdict(set)
         known_cols = defaultdict(set)
+        required_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
             tag_name = to_tag(tag_info["tag_name"])
@@ -415,6 +422,10 @@ class Config:
 
                     if valid_field["query_field"]:
                         query_cols[tag_name].add(field_name)
+
+                    if valid_field["remove_any_row_if_absent"]:
+                        required_cols[tag_name].add(field_name)
+
                     known_cols[tag_name].add(field_name)
 
                     for valid_field_name in valid_field_names:
@@ -443,6 +454,7 @@ class Config:
             discard_if_empty,
             query_cols,
             known_cols,
+            required_cols,
         )
 
     @staticmethod
