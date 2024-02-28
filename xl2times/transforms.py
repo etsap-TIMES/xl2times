@@ -50,47 +50,59 @@ commodity_map = {
 
 def remove_comment_rows(
     config: datatypes.Config,
-    table: datatypes.EmbeddedXlTable,
+    tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> datatypes.EmbeddedXlTable:
+) -> List[datatypes.EmbeddedXlTable]:
     """
-    Return a modified copy of 'table' where rows with cells starting with symbols
-    indicating a comment row in any column have been deleted. Comment row symbols
-    are column name dependant and are specified in the config.
-
-    :param table:       Table object in EmbeddedXlTable format.
-    :return:            Table object in EmbeddedXlTable format without comment rows.
+    Remove comment rows from all the tables. Assumes table dataframes are not empty.
     """
-    if table.dataframe.size == 0:
-        return table
+    result = []
 
-    df = table.dataframe.copy()
+    for table in tables:
+        tag = datatypes.Tag(table.tag.split(":")[0])
+        if tag in config.row_comment_chars:
+            df = table.dataframe
+            remove_df_comment_rows(df, config.row_comment_chars[tag])
+            # Keep the table if it stays not empty
+            if not df.empty:
+                result.append(table)
+            else:
+                continue
+        else:
+            result.append(table)
 
-    tag = table.tag.split(":")[0]
+    return result
 
-    if tag in config.row_comment_chars:
-        chars_by_colname = config.row_comment_chars[tag]
-    else:
-        return table
+
+def remove_df_comment_rows(
+    df: pd.DataFrame,
+    comment_chars: Dict[str, list],
+) -> None:
+    """
+    Modify a dataframe in-place by deleting rows with cells starting with symbols
+    indicating a comment row in any column. Comment row symbols are column name
+    dependant and are passed as an additional argument.
+
+    :param df:            Dataframe.
+    :param comment_chars: Dictionary where keys are column names and values are lists of valid comment symbols
+    """
 
     comment_rows = set()
 
     for colname in df.columns:
-        if colname in chars_by_colname.keys():
+        if colname in comment_chars.keys():
             comment_rows.update(
                 list(
                     locate(
                         df[colname],
                         lambda cell: isinstance(cell, str)
-                        and (cell.startswith(tuple(chars_by_colname[colname]))),
+                        and (cell.startswith(tuple(comment_chars[colname]))),
                     )
                 )
             )
 
     df.drop(index=list(comment_rows), inplace=True)
     df.reset_index(drop=True, inplace=True)
-
-    return replace(table, dataframe=df)
 
 
 def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
