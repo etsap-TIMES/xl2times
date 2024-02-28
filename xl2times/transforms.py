@@ -244,6 +244,8 @@ def revalidate_input_tables(
                     f"Dropping {tag.value} table withing range {table.range} on sheet {table.sheetname}"
                     f" in file {table.filename} due to missing required columns: {missing_cols}"
                 )
+                # Discard the table
+                continue
             # Check whether any of the required columns is empty
             else:
                 df = table.dataframe
@@ -253,10 +255,11 @@ def revalidate_input_tables(
                         f"Dropping {tag.value} table within range {table.range} on sheet {table.sheetname}"
                         f" in file {table.filename} due to empty required columns: {empty_required_cols}"
                     )
-                else:
-                    result.append(table)
-        else:
-            result.append(table)
+                    # Discard the table
+                    continue
+        # Append table to the list if reached this far
+        result.append(table)
+
     return result
 
 
