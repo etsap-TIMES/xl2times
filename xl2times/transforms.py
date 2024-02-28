@@ -238,8 +238,8 @@ def revalidate_input_tables(
         unique_table_cols = set(table.dataframe.columns)
         if required_cols:
             # Drop table if any column in required columns is missing
-            if not required_cols.issubset(unique_table_cols):
-                missing_cols = required_cols - unique_table_cols
+            missing_cols = required_cols - unique_table_cols
+            if missing_cols:
                 logger.warning(
                     f"Dropping {tag.value} table withing range {table.range} on sheet {table.sheetname}"
                     f" in file {table.filename} due to missing required columns: {missing_cols}"
@@ -250,7 +250,7 @@ def revalidate_input_tables(
                 empty_required_cols = {c for c in required_cols if all(df[c].isna())}
                 if empty_required_cols:
                     logger.warning(
-                        f"Dropping {tag.value} table withing range {table.range} on sheet {table.sheetname}"
+                        f"Dropping {tag.value} table within range {table.range} on sheet {table.sheetname}"
                         f" in file {table.filename} due to empty required columns: {empty_required_cols}"
                     )
                 else:
