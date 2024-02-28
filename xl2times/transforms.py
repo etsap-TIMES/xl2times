@@ -62,7 +62,7 @@ def remove_comment_rows(
         tag = datatypes.Tag(table.tag.split(":")[0])
         if tag in config.row_comment_chars:
             df = table.dataframe
-            remove_df_comment_rows(df, config.row_comment_chars[tag])
+            _remove_df_comment_rows(df, config.row_comment_chars[tag])
             # Keep the table if it stays not empty
             if not df.empty:
                 result.append(table)
@@ -74,7 +74,7 @@ def remove_comment_rows(
     return result
 
 
-def remove_df_comment_rows(
+def _remove_df_comment_rows(
     df: pd.DataFrame,
     comment_chars: Dict[str, list],
 ) -> None:
