@@ -456,6 +456,7 @@ def process_flexible_import_tables(
         known_columns = config.known_columns[datatypes.Tag.fi_t]
         data_columns = [x for x in df.columns if x not in known_columns]
 
+        # TODO: Replace this with something similar to know columns from config
         # Populate index columns
         index_columns = [
             "region",

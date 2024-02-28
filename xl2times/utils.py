@@ -60,7 +60,14 @@ def explode(df, data_columns):
     :return:                Tuple with the exploded dataframe and a Series of the original
                             column name for each value in each new row.
     """
-    data = df[data_columns].values.tolist()
+    # Handle duplicate columns (https://pandas.pydata.org/docs/user_guide/duplicates.html)
+    if len(set(data_columns)) < len(data_columns):
+        cols = df.columns.to_list()
+        data_cols_idx = [idx for idx, val in enumerate(cols) if val in data_columns]
+        data = df.iloc[:, data_cols_idx].values.tolist()
+    else:
+        data = df[data_columns].values.tolist()
+
     other_columns = [
         colname for colname in df.columns.values if colname not in data_columns
     ]
@@ -69,7 +76,6 @@ def explode(df, data_columns):
     df = df.assign(value=data)
     nrows = df.shape[0]
     df = df.explode(value_column, ignore_index=True)
-
     names = pd.Series(data_columns * nrows, index=df.index, dtype=str)
     # Remove rows with no VALUE
     index = df[value_column].notna()
