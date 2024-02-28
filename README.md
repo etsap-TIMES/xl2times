@@ -1,12 +1,14 @@
 # xl2times
 
-`xl2times` is an open source tool to convert TIMES models specified in Excel to a format ready for processing by [GAMS](https://www.gams.com/). The intention is to make it easier for anyone to reproduce research results on TIMES models.
+`xl2times` is an open source tool to convert TIMES models specified in Excel to a format ready for processing by [GAMS](https://www.gams.com/).
+The development of the tool originally started in a [Microsoft repository](https://github.com/microsoft/times-excel-reader) with an intention to make it easier for anyone to reproduce research results on TIMES models.
 
-[TIMES](https://github.com/etsap-TIMES/TIMES_model) is an energy systems model generator developed by the [Energy Technology Systems Analysis Program](https://iea-etsap.org/) (ETSAP) of the [International Energy Agency](https://www.iea.org/) (IEA) that is used around the world to inform energy policy.
+[TIMES](https://github.com/etsap-TIMES/TIMES_model) is an open source energy systems model generator developed by the [Energy Technology Systems Analysis Program](https://iea-etsap.org/) (ETSAP) of the [International Energy Agency](https://www.iea.org/) (IEA) that is used around the world to inform energy policy.
 It is fully explained in the [TIMES Model Documentation](https://iea-etsap.org/index.php/documentation).
 
-Multiple approaches to using spreadsheets for specifying TIMES models exist, e.g. [ANSWER-TIMES](https://iea-etsap.org/index.php/etsap-tools/data-handling-shells/answer) and [VEDA-TIMES](https://iea-etsap.org/index.php/etsap-tools/data-handling-shells/veda).
+Multiple approaches to using spreadsheets for specifying TIMES models have been developed, e.g. [ANSWER-TIMES](https://iea-etsap.org/index.php/etsap-tools/data-handling-shells/answer) and [VEDA-TIMES](https://iea-etsap.org/index.php/etsap-tools/data-handling-shells/veda).
 At present, xl2times implements partial support of the Veda approach described in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf) and [Veda Documentation](https://veda-documentation.readthedocs.io/en/latest/pages/VedaTags.html).
+Support of other approaches may be added over time.
 
 ## Installation and Basic Usage
 
