@@ -6,7 +6,7 @@
 It is fully explained in the [TIMES Model Documentation](https://iea-etsap.org/index.php/documentation).
 
 Multiple approaches to using spreadsheets for specifying TIMES models exist, e.g. [ANSWER-TIMES](https://iea-etsap.org/index.php/etsap-tools/data-handling-shells/answer) and [VEDA-TIMES](https://iea-etsap.org/index.php/etsap-tools/data-handling-shells/veda).
-At present, xl2times implements partial support of the Veda approach described in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf) and [Veda Documentation](https://veda-documentation.readthedocs.io/en/latest/pages/VedaTags.html).
+At present, `xl2times` implements partial support of the Veda approach described in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf) and [Veda Documentation](https://veda-documentation.readthedocs.io/en/latest/pages/VedaTags.html).
 
 ## Installation and Basic Usage
 
