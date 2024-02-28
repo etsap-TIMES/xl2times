@@ -1,5 +1,7 @@
 import argparse
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
+import hashlib
 from pandas.core.frame import DataFrame
 import pandas as pd
 import pickle
@@ -9,10 +11,42 @@ import sys
 import time
 from typing import Dict, List
 
+from xl2times import __file__ as xl2times_file_path
 from xl2times.utils import max_workers
-from . import datatypes
+from . import datatypes, utils
 from . import excel
 from . import transforms
+
+logger = utils.get_logger()
+
+
+cache_dir = os.path.abspath(os.path.dirname(xl2times_file_path)) + "/.cache/"
+os.makedirs(cache_dir, exist_ok=True)
+
+
+def _read_xlsx_cached(filename: str) -> List[datatypes.EmbeddedXlTable]:
+    """Extract EmbeddedXlTables from xlsx file (cached).
+
+    Since excel.extract_tables is quite slow, we cache its results in `cache_dir`.
+    Each file is named by the hash of the contents of an xlsx file, and contains
+    a tuple (filename, modified timestamp, [EmbeddedXlTable]).
+    """
+    with open(filename, "rb") as f:
+        digest = hashlib.file_digest(f, "sha256")  # pyright: ignore
+    hsh = digest.hexdigest()
+    if os.path.isfile(cache_dir + hsh):
+        fname1, _timestamp, tables = pickle.load(open(cache_dir + hsh, "rb"))
+        # In the extremely unlikely event that we have a hash collision, also check that
+        # the filename is the same:
+        # TODO check modified timestamp also matches
+        if filename == fname1:
+            logger.info(f"Using cached data for {filename} from {cache_dir + hsh}")
+            return tables
+    # Write extracted data to cache:
+    tables = excel.extract_tables(filename)
+    pickle.dump((filename, "TODO ModifiedTime", tables), open(cache_dir + hsh, "wb"))
+    logger.info(f"Saved cache for {filename} to {cache_dir + hsh}")
+    return excel.extract_tables(filename)
 
 
 def convert_xl_to_times(
@@ -20,30 +54,21 @@ def convert_xl_to_times(
     output_dir: str,
     config: datatypes.Config,
     model: datatypes.TimesModel,
-    use_pkl: bool,
+    no_cache: bool,
     verbose: bool = False,
     stop_after_read: bool = False,
 ) -> Dict[str, DataFrame]:
-    pickle_file = "raw_tables.pkl"
-    if use_pkl and os.path.isfile(pickle_file):
-        raw_tables = pickle.load(open(pickle_file, "rb"))
-        print(f"WARNING: Using pickled data not xlsx")
-    else:
-        raw_tables = []
-
-        use_pool = True
-        if use_pool:
-            with ProcessPoolExecutor(max_workers) as executor:
-                for result in executor.map(excel.extract_tables, input_files):
-                    raw_tables.extend(result)
-        else:
-            for f in input_files:
-                result = excel.extract_tables(f)
-                raw_tables.extend(result)
-        pickle.dump(raw_tables, open(pickle_file, "wb"))
-    print(
-        f"Extracted {len(raw_tables)} tables,"
+    start_time = datetime.now()
+    with ProcessPoolExecutor(max_workers) as executor:
+        raw_tables = executor.map(
+            excel.extract_tables if no_cache else _read_xlsx_cached, input_files
+        )
+    # raw_tables is a list of lists, so flatten it:
+    raw_tables = [t for ts in raw_tables for t in ts]
+    logger.info(
+        f"Extracted (potentially cached) {len(raw_tables)} tables,"
         f" {sum(table.dataframe.shape[0] for table in raw_tables)} rows"
+        f" in {datetime.now() - start_time}"
     )
 
     if stop_after_read:
@@ -102,8 +127,8 @@ def convert_xl_to_times(
         transforms.process_uc_wildcards,
         transforms.process_wildcards,
         transforms.convert_aliases,
-        transforms.rename_cgs,
         transforms.fix_topology,
+        transforms.resolve_remaining_cgs,
         transforms.complete_dictionary,
         transforms.convert_to_string,
         lambda config, tables, model: dump_tables(
@@ -119,7 +144,7 @@ def convert_xl_to_times(
         output = transform(config, input, model)
         end_time = time.time()
         sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
-        print(
+        logger.info(
             f"{sep}transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
         if verbose:
@@ -127,15 +152,15 @@ def convert_xl_to_times(
                 for table in sorted(
                     output, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
                 ):
-                    print(table)
+                    logger.info(table)
             elif isinstance(output, dict):
                 for tag, df in output.items():
                     df_str = df.to_csv(index=False, lineterminator="\n")
-                    print(f"{tag}\n{df_str}{df.shape}\n")
+                    logger.info(f"{tag}\n{df_str}{df.shape}\n")
         input = output
     assert isinstance(output, dict)
 
-    print(
+    logger.info(
         f"Conversion complete, {len(output)} tables produced,"
         f" {sum(df.shape[0] for df in output.values())} rows"
     )
@@ -164,7 +189,7 @@ def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
 def compare(
     data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame], output_dir: str
 ) -> str:
-    print(
+    logger.info(
         f"Ground truth contains {len(ground_truth)} tables,"
         f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
     )
@@ -174,14 +199,14 @@ def compare(
         [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
     )
     if len(missing) > 0:
-        print(f"WARNING: Missing {len(missing)} tables: {missing_str}")
+        logger.warning(f"Missing {len(missing)} tables: {missing_str}")
 
     additional_tables = set(data.keys()) - set(ground_truth.keys())
     additional_str = ", ".join(
         [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
     )
     if len(additional_tables) > 0:
-        print(f"WARNING: {len(additional_tables)} additional tables: {additional_str}")
+        logger.warning(f"{len(additional_tables)} additional tables: {additional_str}")
     # Additional rows starts as the sum of lengths of additional tables produced
     total_additional_rows = sum(len(data[x]) for x in additional_tables)
 
@@ -197,8 +222,8 @@ def compare(
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
             data_cols = list(data_table.columns)
             if transformed_gt_cols != data_cols:
-                print(
-                    f"WARNING: Table {table_name} header incorrect, was"
+                logger.warning(
+                    f"Table {table_name} header incorrect, was"
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
 
@@ -211,8 +236,8 @@ def compare(
             total_additional_rows += len(additional)
             missing = gt_rows - data_rows
             if len(additional) != 0 or len(missing) != 0:
-                print(
-                    f"WARNING: Table {table_name} ({data_table.shape[0]} rows,"
+                logger.warning(
+                    f"Table {table_name} ({data_table.shape[0]} rows,"
                     f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
                     f" additional rows and is missing {len(missing)} rows"
                 )
@@ -232,23 +257,23 @@ def compare(
         f", {total_additional_rows} additional rows"
     )
 
-    print(result)
+    logger.info(result)
     return result
 
 
 def produce_times_tables(
     config: datatypes.Config, input: Dict[str, DataFrame]
 ) -> Dict[str, DataFrame]:
-    print(
+    logger.info(
         f"produce_times_tables: {len(input)} tables incoming,"
         f" {sum(len(value) for (_, value) in input.items())} rows"
     )
     result = {}
     used_tables = set()
     for mapping in config.times_xl_maps:
-        if not mapping.xl_name in input:
-            print(
-                f"WARNING: Cannot produce table {mapping.times_name} because"
+        if mapping.xl_name not in input:
+            logger.warning(
+                f"Cannot produce table {mapping.times_name} because"
                 f" {mapping.xl_name} does not exist"
             )
         else:
@@ -257,8 +282,8 @@ def produce_times_tables(
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
-                    print(
-                        f"WARNING: Cannot produce table {mapping.times_name} because"
+                    logger.warning(
+                        f"Cannot produce table {mapping.times_name} because"
                         f" {mapping.xl_name} does not contain column {filter_col}"
                     )
                     # TODO break this loop and continue outer loop?
@@ -270,8 +295,8 @@ def produce_times_tables(
                 df["techgroup"] = df["techname"]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols) - set(df.columns)
-                print(
-                    f"WARNING: Cannot produce table {mapping.times_name} because"
+                logger.warning(
+                    f"Cannot produce table {mapping.times_name} because"
                     f" {mapping.xl_name} does not contain the required columns"
                     f" - {', '.join(missing)}"
                 )
@@ -279,7 +304,7 @@ def produce_times_tables(
                 # Excel columns can be duplicated into multiple Times columns
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
-                cols_to_drop = [x for x in df.columns if not x in mapping.times_cols]
+                cols_to_drop = [x for x in df.columns if x not in mapping.times_cols]
                 df.drop(columns=cols_to_drop, inplace=True)
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
@@ -298,8 +323,8 @@ def produce_times_tables(
 
     unused_tables = set(input.keys()) - used_tables
     if len(unused_tables) > 0:
-        print(
-            f"WARNING: {len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
+        logger.warning(
+            f"{len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
         )
 
     return result
@@ -315,6 +340,10 @@ def write_dd_files(
 
     def convert_set(df: DataFrame):
         has_description = "TEXT" in df.columns
+        # Remove duplicate rows, ignoring text column
+        if has_description:
+            query_columns = [c for c in df.columns if c != "TEXT"]
+            df = df.drop_duplicates(subset=query_columns, keep="last")
         for row in df.itertuples(index=False):
             row_str = "'.'".join(
                 (str(x) for k, x in row._asdict().items() if k != "TEXT")
@@ -390,7 +419,7 @@ def dump_tables(tables: List, filename: str) -> List:
     return tables
 
 
-def run(args) -> str | None:
+def run(args: argparse.Namespace) -> str | None:
     """
     Runs the xl2times conversion.
     Args:
@@ -401,6 +430,7 @@ def run(args) -> str | None:
     config = datatypes.Config(
         "times_mapping.txt",
         "times-info.json",
+        "times-sets.json",
         "veda-tags.json",
         "veda-attr-defaults.json",
         args.regions,
@@ -409,7 +439,7 @@ def run(args) -> str | None:
     model = datatypes.TimesModel()
 
     if not isinstance(args.input, list) or len(args.input) < 1:
-        print(f"ERROR: expected at least 1 input. Got {args.input}")
+        logger.critical(f"expected at least 1 input. Got {args.input}")
         sys.exit(-1)
     elif len(args.input) == 1:
         assert os.path.isdir(args.input[0])
@@ -418,7 +448,7 @@ def run(args) -> str | None:
             for path in Path(args.input[0]).rglob("*")
             if path.suffix in [".xlsx", ".xlsm"] and not path.name.startswith("~")
         ]
-        print(f"Loading {len(input_files)} files from {args.input[0]}")
+        logger.info(f"Loading {len(input_files)} files from {args.input[0]}")
     else:
         input_files = args.input
 
@@ -430,14 +460,14 @@ def run(args) -> str | None:
             args.output_dir,
             config,
             model,
-            args.use_pkl,
+            args.no_cache,
             verbose=args.verbose,
             stop_after_read=True,
         )
         sys.exit(0)
 
     tables = convert_xl_to_times(
-        input_files, args.output_dir, config, model, args.use_pkl, verbose=args.verbose
+        input_files, args.output_dir, config, model, args.no_cache, verbose=args.verbose
     )
 
     if args.dd:
@@ -488,7 +518,11 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
         action="store_true",
         help="Read xlsx/xlsm files and stop after outputting raw_tables.txt",
     )
-    args_parser.add_argument("--use_pkl", action="store_true")
+    args_parser.add_argument(
+        "--no_cache",
+        action="store_true",
+        help="Ignore cache and re-extract tables from XLSX files",
+    )
     args_parser.add_argument(
         "-v",
         "--verbose",

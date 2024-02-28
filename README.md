@@ -92,7 +92,8 @@ Then to run the benchmarks:
 # Run a only a single benchmark by name (see benchmarks.yml for name list)
 python utils/run_benchmarks.py benchmarks.yml --verbose --run DemoS_001-all | tee out.txt
 
-# Run all benchmarks (without GAMS run, just comparing CSV data)
+# Run all benchmarks (without GAMS run, just comparing CSV data for regressions)
+# Note: if you have multiple remotes, set etsap-TIMES/xl2times as the first one, as it is used for speed/correctness comparisons.
 python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt
 
 

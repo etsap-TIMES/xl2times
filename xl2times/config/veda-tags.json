@@ -782,14 +782,14 @@
       {
         "name": "name",
         "aliases": [],
-        "use_name": "name",
+        "use_name": "commoditygroup",
         "row_ignore_symbol": [
           "\\I:",
           "*"
         ],
         "query_field": false,
-        "inherit_above": false,
-        "remove_first_row_if_absent": false,
+        "inherit_above": true,
+        "remove_first_row_if_absent": true,
         "remove_any_row_if_absent": false
       },
       {

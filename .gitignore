@@ -21,3 +21,5 @@ docs/_build/
 docs/api/
 .coverage
 /out.txt
+*.log
+/profile.*
