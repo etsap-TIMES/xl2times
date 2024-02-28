@@ -91,6 +91,7 @@ def convert_xl_to_times(
         transforms.remove_tables_with_formulas,  # slow
         transforms.normalize_column_aliases,
         transforms.remove_comment_rows,
+        transforms.revalidate_input_tables,
         transforms.process_regions,
         transforms.remove_exreg_cols,
         transforms.generate_dummy_processes,

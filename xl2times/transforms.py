@@ -234,6 +234,47 @@ def validate_input_tables(
     return result
 
 
+def revalidate_input_tables(
+    config: datatypes.Config,
+    tables: List[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> List[datatypes.EmbeddedXlTable]:
+    """
+    Perform further validation of input tables by checking whether required columns are
+    present / non-empty. Remove tables without required columns or if they are empty.
+    """
+    result = []
+    for table in tables:
+        tag = datatypes.Tag(table.tag.split(":")[0])
+        required_cols = config.required_columns[tag]
+        unique_table_cols = set(table.dataframe.columns)
+        if required_cols:
+            # Drop table if any column in required columns is missing
+            missing_cols = required_cols - unique_table_cols
+            if missing_cols:
+                logger.warning(
+                    f"Dropping {tag.value} table withing range {table.range} on sheet {table.sheetname}"
+                    f" in file {table.filename} due to missing required columns: {missing_cols}"
+                )
+                # Discard the table
+                continue
+            # Check whether any of the required columns is empty
+            else:
+                df = table.dataframe
+                empty_required_cols = {c for c in required_cols if all(df[c].isna())}
+                if empty_required_cols:
+                    logger.warning(
+                        f"Dropping {tag.value} table within range {table.range} on sheet {table.sheetname}"
+                        f" in file {table.filename} due to empty required columns: {empty_required_cols}"
+                    )
+                    # Discard the table
+                    continue
+        # Append table to the list if reached this far
+        result.append(table)
+
+    return result
+
+
 def normalize_tags_columns(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
