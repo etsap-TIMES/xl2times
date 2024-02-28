@@ -1,13 +1,12 @@
 # xl2times
 
-**Note: this tool is a work in progress and not yet in a useful state**
+`xl2times` is an open source tool to convert TIMES models specified in Excel to a format ready for processing by [GAMS](https://www.gams.com/). The intention is to make it easier for anyone to reproduce research results on TIMES models.
 
-`xl2times` is an open source tool to convert TIMES model Excel input files to DD format ready for processing by [GAMS](https://www.gams.com/).  The intention is to make it easier for people to reproduce research results on TIMES models.
-
-[TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) is an energy systems model generator from the International Energy Agency that is used around the world to inform energy policy.
+[TIMES](https://github.com/etsap-TIMES/TIMES_model) is an energy systems model generator developed by the [Energy Technology Systems Analysis Program](https://iea-etsap.org/) (ETSAP) of the [International Energy Agency](https://www.iea.org/) (IEA) that is used around the world to inform energy policy.
 It is fully explained in the [TIMES Model Documentation](https://iea-etsap.org/index.php/documentation).
 
-The Excel input format accepted by this tool is documented in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf).  Additional table types are documented in the [VEDA support forum](https://forum.kanors-emr.org/printthread.php?tid=140).  Example inputs are available at https://github.com/kanors-emr/Model_Demo_Adv_Veda
+Multiple approaches to using spreadsheets for specifying TIMES models exist, e.g. [ANSWER-TIMES](https://iea-etsap.org/index.php/etsap-tools/data-handling-shells/answer) and [VEDA-TIMES](https://iea-etsap.org/index.php/etsap-tools/data-handling-shells/veda).
+At present, xl2times implements partial support of the Veda approach described in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf) and [Veda Documentation](https://veda-documentation.readthedocs.io/en/latest/pages/VedaTags.html).
 
 ## Installation and Basic Usage
 
@@ -78,8 +77,8 @@ you'll have to request access) - if not, comment out the inaccessible benchmarks
 
 ```bash
 mkdir benchmarks
-# Get VEDA example models and reference DD files
-# XLSX files are in private repo for licensing reasons, please request access or replace with your own licensed VEDA example files.
+# Get TIMES DemoS example models and reference DD files
+# XLSX files are in private repo for licensing reasons, please request access or replace with your own files distributed with Veda.
 git clone git@github.com:olejandro/demos-xlsx.git benchmarks/xlsx/
 git clone git@github.com:olejandro/demos-dd.git benchmarks/dd/
 
@@ -137,25 +136,6 @@ python -m build
 python -m twine upload dist/*
 ```
 
-
 ## Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
-
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
-## Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
-trademarks or logos is subject to and must follow
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
+This project welcomes contributions and suggestions.
