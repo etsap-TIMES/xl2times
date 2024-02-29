@@ -17,7 +17,7 @@ jobs:
     env:
       PY_VERSION: "3.11"
       REF_TIMES_model: "b488fb07f0899ee8b7e710c230b1a9414fa06f7d"
-      REF_demos-xlsx: "f956db07a253d4f5c60e108791ab7bb2b8136690"
+      REF_demos-xlsx: "34a2a5c044cc0bbea1357de50db2f5f02d575181"
       REF_demos-dd: "2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
       REF_tim: "e820d8002adc6b1526a3bffcc439219b28d0eed5"
       REF_tim-gams: "703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
