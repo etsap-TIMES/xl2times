@@ -2622,14 +2622,6 @@ def convert_aliases(
             df.replace({"attribute": replacement_dict}, inplace=True)
         tables[table_type] = df
 
-    # Drop duplicates generated due to renaming
-    # TODO: Clear values in irrelevant columns before doing this
-    # TODO: Do this comprehensively for all relevant tables
-    df = tables[datatypes.Tag.fi_t]
-    df = df.dropna(subset="value").drop_duplicates(
-        subset=[col for col in df.columns if col != "value"], keep="last"
-    )
-    tables[datatypes.Tag.fi_t] = df.reset_index(drop=True)
     # TODO: do this earlier
     model.attributes = tables[datatypes.Tag.fi_t]
     if datatypes.Tag.uc_t in tables.keys():
