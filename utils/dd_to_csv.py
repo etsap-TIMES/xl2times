@@ -165,9 +165,9 @@ def generate_headers_by_attr() -> Dict[str, List[str]]:
 
     for attr in attributes:
         if attr["gams-cat"] == "parameter":
-            headers_by_attr[attr["name"]] = [*attr["indexes"], "VALUE"]
+            headers_by_attr[attr["name"]] = [*attr["index_to_column"].keys(), "VALUE"]
         else:
-            headers_by_attr[attr["name"]] = attr["indexes"]
+            headers_by_attr[attr["name"]] = attr["index_to_column"].keys()
 
     return headers_by_attr
 

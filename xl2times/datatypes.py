@@ -269,9 +269,10 @@ class Config:
         # Compute the mapping for attributes / parameters:
         def create_mapping(entity):
             assert entity["gams-cat"] == "parameter"
-            times_cols = entity["indexes"] + ["VALUE"]
-            xl_cols = entity["mapping"] + ["value"]  # TODO map in json
-            col_map = dict(zip(times_cols, xl_cols))
+            entity["index_to_column"]["VALUE"] = "value"
+            # Unzip the column map:
+            times_cols, xl_cols = zip(*entity["index_to_column"].items())
+            col_map = entity["index_to_column"]
             # If tag starts with UC, then the data is in UCAttributes, else Attributes
             xl_name = (
                 "UCAttributes"
