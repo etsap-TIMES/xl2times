@@ -1439,7 +1439,7 @@ def generate_trade(
     i = top_ire["origin"].isin(model.internal_regions) | top_ire["destination"].isin(
         model.internal_regions
     )
-    model.trade = top_ire[i].reset_index()
+    model.trade = top_ire[i].reset_index(drop=True)
 
     return tables
 
@@ -2303,6 +2303,7 @@ def process_wildcards(
         commodities: DataFrame | None,
         attribute: str | None,
         region: str | None,
+        year: int | None,
     ) -> pd.Index:
         qs = []
         if processes is not None and not processes.empty:
@@ -2313,6 +2314,8 @@ def process_wildcards(
             qs.append(f"attribute == '{attribute}'")
         if region is not None:
             qs.append(f"region == '{region}'")
+        if year is not None:
+            qs.append(f"year == {year}")
         return table.query(" and ".join(qs)).index
 
     def eval_and_update(
@@ -2332,7 +2335,7 @@ def process_wildcards(
         table = tables[datatypes.Tag.fi_t]
         new_tables = [table]
         # Reset FI_T index so that queries can determine unique rows to update
-        tables[datatypes.Tag.fi_t].reset_index(inplace=True)
+        tables[datatypes.Tag.fi_t].reset_index(inplace=True, drop=True)
 
         # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
         # evaluate the update formula, and add new rows to FI_T
@@ -2349,7 +2352,12 @@ def process_wildcards(
                 continue
             processes, commodities = match
             rows_to_update = query(
-                table, processes, commodities, row["attribute"], row["region"]
+                table,
+                processes,
+                commodities,
+                row["attribute"],
+                row["region"],
+                row["year"],
             )
             new_rows = table.loc[rows_to_update].copy()
             new_rows["source_filename"] = row["source_filename"]
@@ -2408,7 +2416,9 @@ def process_wildcards(
                 assert False  # All rows match either a commodity or a process
 
             # Query for rows with matching process/commodity and region
-            rows_to_update = query(table, processes, commodities, None, row["region"])
+            rows_to_update = query(
+                table, processes, commodities, None, row["region"], None
+            )
             # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
             # with the value from row
             # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
@@ -2428,7 +2438,12 @@ def process_wildcards(
             processes, commodities = match if match is not None else (None, None)
             # TODO should we also query on limtype?
             rows_to_update = query(
-                table, processes, commodities, row["attribute"], row["region"]
+                table,
+                processes,
+                commodities,
+                row["attribute"],
+                row["region"],
+                row["year"],
             )
             new_rows = table.loc[rows_to_update].copy()
             # Modify values in all '*2' columns
