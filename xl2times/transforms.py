@@ -2352,6 +2352,7 @@ def process_wildcards(
                 table, processes, commodities, row["attribute"], row["region"]
             )
             new_rows = table.loc[rows_to_update].copy()
+            new_rows["source_filename"] = row["source_filename"]
             eval_and_update(new_rows, rows_to_update, row["value"])
             new_tables.append(new_rows)
 
@@ -2378,6 +2379,7 @@ def process_wildcards(
                     new_rows = processes.merge(new_rows, how="cross")
                 if commodities is not None:
                     new_rows = commodities.merge(new_rows, how="cross")
+            new_rows["source_filename"] = row["source_filename"]
             new_tables.append(new_rows)
 
         new_tables.append(tables[datatypes.Tag.fi_t])
@@ -2435,6 +2437,7 @@ def process_wildcards(
                     new_rows.loc[:, c[:-1]] = v
             # Evaluate 'value' column based on existing values
             eval_and_update(new_rows, rows_to_update, row["value"])
+            new_rows["source_filename"] = row["source_filename"]
             new_tables.append(new_rows)
 
         # Add new rows to table
