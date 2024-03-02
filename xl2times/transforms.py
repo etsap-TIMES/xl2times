@@ -718,14 +718,11 @@ def generate_uc_properties(
     # Create df_list to hold DataFrames that will be concatenated later on
     df_list = list()
     for uc_table in uc_tables:
-        # Single-column DataFrame with unique UC names
-        df = uc_table.dataframe.loc[:, ["uc_n"]].drop_duplicates(keep="first")
-        # Supplement UC names with descriptions, if they exist
-        df = df.merge(
+        # DataFrame with unique UC names and descriptions if they exist:
+        df = (
             uc_table.dataframe.loc[:, ["uc_n", "description"]]
-            .drop_duplicates(keep="first")
-            .dropna(),
-            how="left",
+            .groupby("uc_n", sort=False)
+            .first()
         )
         # Add info on how regions and timeslices should be treated by the UCs
         for key in uc_table.uc_sets.keys():
@@ -739,7 +736,7 @@ def generate_uc_properties(
     # Do further processing if df_list is not empty
     if df_list:
         # Create a single DataFrame with all UCs
-        user_constraints = pd.concat(df_list, ignore_index=True)
+        user_constraints = pd.concat(df_list).reset_index()
 
         # Use name to populate description if it is missing
         index = user_constraints["description"].isna()
