@@ -29,33 +29,51 @@ class TestUtils:
         data_cols1 = ["act_bnd", "actbnd", "act_bnd"]
         data_cols2 = ["act_bnd", "actbnd"]
 
-        correct_result1 = pd.DataFrame(
-            [
-                ("PRC1", "act_bnd", 100),
-                ("PRC1", "act_bnd", 200),
-                ("PRC2", "act_bnd", 100),
-                ("PRC2", "actbnd", 150),
-                ("PRC3", "actbnd", 150),
-                ("PRC3", "act_bnd", 200),
-            ],
-            columns=["process", "attribute", "value"],
+        correct_index1 = [0, 2, 3, 4, 7, 8]
+        correct_index2 = [0, 2, 3, 5]
+
+        correct_result1 = (
+            pd.DataFrame(
+                [
+                    ("PRC1", 100),
+                    ("PRC1", 200),
+                    ("PRC2", 100),
+                    ("PRC2", 150),
+                    ("PRC3", 150),
+                    ("PRC3", 200),
+                ],
+                columns=["process", "value"],
+                index=correct_index1,
+                dtype=object,
+            ),
+            pd.Series(
+                ["act_bnd", "act_bnd", "act_bnd", "actbnd", "actbnd", "act_bnd"],
+                index=correct_index1,
+            ),
         )
 
-        correct_result2 = pd.DataFrame(
-            [
-                ("PRC1", "act_bnd", 100),
-                ("PRC2", "act_bnd", 100),
-                ("PRC2", "actbnd", 150),
-                ("PRC3", "actbnd", 150),
-            ],
-            columns=["process", "attribute", "value"],
+        correct_result2 = (
+            pd.DataFrame(
+                [
+                    ("PRC1", 100),
+                    ("PRC2", 100),
+                    ("PRC2", 150),
+                    ("PRC3", 150),
+                ],
+                columns=["process", "value"],
+                index=correct_index2,
+                dtype=object,
+            ),
+            pd.Series(["act_bnd", "act_bnd", "actbnd", "actbnd"], index=correct_index2),
         )
 
-        output_df1, _ = utils.explode(input_df1, data_cols1)
-        output_df2, _ = utils.explode(input_df2, data_cols2)
+        output1 = utils.explode(input_df1, data_cols1)
+        output2 = utils.explode(input_df2, data_cols2)
 
-        assert output_df1.equals(correct_result1), "Dataframes should be equal"
-        assert output_df2.equals(correct_result2), "Dataframes should be equal"
+        assert output1[0].equals(correct_result1[0]), "Dataframes should be equal"
+        assert output1[1].equals(correct_result1[1]), "Series should be equal"
+        assert output2[0].equals(correct_result2[0]), "Dataframes should be equal"
+        assert output2[1].equals(correct_result2[1]), "Series should be equal"
 
 
 if __name__ == "__main__":
