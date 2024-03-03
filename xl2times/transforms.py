@@ -749,7 +749,7 @@ def generate_uc_properties(
         # Handle allregions by substituting it with a list of internal regions
         index = user_constraints["region"].str.lower() == "allregions"
         if any(index):
-            user_constraints.loc[index, ["region"]] = list(model.internal_regions)
+            user_constraints.loc[index, ["region"]] = ",".join(model.internal_regions)
 
         # Handle comma-separated regions
         index = user_constraints["region"].str.contains(",")
