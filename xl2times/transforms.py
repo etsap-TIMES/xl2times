@@ -782,7 +782,6 @@ def fill_in_missing_values(
     :return:            List of tables in EmbeddedXlTable format with empty values filled in.
     """
     result = []
-    start_year = one(utils.single_column(tables, datatypes.Tag.start_year, "value"))
     # TODO there are multiple currencies
     currency = utils.single_column(tables, datatypes.Tag.currencies, "currency")[0]
     # The default regions for VT_* files is given by ~BookRegions_Map:
@@ -841,18 +840,19 @@ def fill_in_missing_values(
             elif colname == "region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
                 matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).stem)
+                isna = df[colname].isna()
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
-                        df = df.fillna({colname: ",".join(vt_regions[book])})
+                        df.loc[isna, [colname]] = ",".join(vt_regions[book])
                     else:
                         logger.warning(f"book name {book} not in BookRegions_Map")
                 else:
-                    df = df.fillna({colname: ",".join(model.internal_regions)})
+                    df.loc[isna, [colname]] = ",".join(model.internal_regions)
             elif colname == "year":
-                df = df.fillna({colname: start_year})
+                df.loc[df[colname].isna(), [colname]] = model.start_year
             elif colname == "currency":
-                df = df.fillna({colname: currency})
+                df.loc[df[colname].isna(), [colname]] = currency
 
         return replace(table, dataframe=df)
 
@@ -1595,14 +1595,17 @@ def process_years(
     model.past_years = datayears.where(lambda x: x < model.start_year).dropna()
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
-    model.model_years = (
-        pd.concat(
-            [model.past_years, model.time_periods["m"]],
-            ignore_index=True,
+    if not model.past_years.empty:
+        model.model_years = (
+            pd.concat(
+                [model.past_years, model.time_periods["m"]],
+                ignore_index=True,
+            )
+            .drop_duplicates()
+            .sort_values()
         )
-        .drop_duplicates()
-        .sort_values()
-    )
+    else:
+        model.model_years = model.time_periods["m"]
 
     return tables
 
