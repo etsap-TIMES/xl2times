@@ -665,7 +665,7 @@ def process_user_constraint_tables(
                     set(regions.upper().split(","))
                 )
                 regions = ",".join(regions)
-                df["region"] = df["region"].fillna(regions)
+                df.loc[df["region"].isna(), ["region"]] = regions
 
         # TODO: detect RHS correctly
         i = df["side"].isna()
@@ -741,18 +741,20 @@ def generate_uc_properties(
         # Use name to populate description if it is missing
         index = user_constraints["description"].isna()
         if any(index):
-            user_constraints["description"][index] = user_constraints["uc_n"][index]
+            user_constraints.loc[index, ["description"]] = user_constraints["uc_n"][
+                index
+            ]
 
         # TODO: Can this (until user_constraints.explode) become a utility function?
         # Handle allregions by substituting it with a list of internal regions
         index = user_constraints["region"].str.lower() == "allregions"
         if any(index):
-            user_constraints["region"][index] = [model.internal_regions]
+            user_constraints.loc[index, ["region"]] = list(model.internal_regions)
 
         # Handle comma-separated regions
-        index = user_constraints["region"].str.contains(",").fillna(value=False)
+        index = user_constraints["region"].str.contains(",")
         if any(index):
-            user_constraints["region"][index] = user_constraints.apply(
+            user_constraints.loc[index, ["region"]] = user_constraints.apply(
                 lambda row: [
                     region
                     for region in str(row["region"]).split(",")

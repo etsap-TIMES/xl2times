@@ -105,10 +105,10 @@ def convert_xl_to_times(
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
-        transforms.generate_uc_properties,
         transforms.process_commodities,
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
+        transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
         transforms.capitalise_some_values,
