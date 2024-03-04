@@ -181,7 +181,7 @@ def missing_value_inherit(df: DataFrame, colname: str):
 
 
 def get_scalar(table_tag: str, tables: List[datatypes.EmbeddedXlTable]):
-    table = next(filter(lambda t: t.tag == table_tag, tables))
+    table = one(filter(lambda t: t.tag == table_tag, tables))
     if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
         raise ValueError("Not scalar table")
     return table.dataframe["value"].values[0]

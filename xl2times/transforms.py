@@ -665,7 +665,7 @@ def process_user_constraint_tables(
                     set(regions.upper().split(","))
                 )
                 regions = ",".join(regions)
-                df["region"] = df["region"].fillna(regions)
+                df.loc[df["region"].isna(), ["region"]] = regions
 
         # TODO: detect RHS correctly
         i = df["side"].isna()
@@ -741,18 +741,20 @@ def generate_uc_properties(
         # Use name to populate description if it is missing
         index = user_constraints["description"].isna()
         if any(index):
-            user_constraints["description"][index] = user_constraints["uc_n"][index]
+            user_constraints.loc[index, ["description"]] = user_constraints["uc_n"][
+                index
+            ]
 
         # TODO: Can this (until user_constraints.explode) become a utility function?
         # Handle allregions by substituting it with a list of internal regions
         index = user_constraints["region"].str.lower() == "allregions"
         if any(index):
-            user_constraints["region"][index] = [model.internal_regions]
+            user_constraints.loc[index, ["region"]] = ",".join(model.internal_regions)
 
         # Handle comma-separated regions
-        index = user_constraints["region"].str.contains(",").fillna(value=False)
+        index = user_constraints["region"].str.contains(",")
         if any(index):
-            user_constraints["region"][index] = user_constraints.apply(
+            user_constraints.loc[index, ["region"]] = user_constraints.apply(
                 lambda row: [
                     region
                     for region in str(row["region"]).split(",")
@@ -782,7 +784,6 @@ def fill_in_missing_values(
     :return:            List of tables in EmbeddedXlTable format with empty values filled in.
     """
     result = []
-    start_year = one(utils.single_column(tables, datatypes.Tag.start_year, "value"))
     # TODO there are multiple currencies
     currency = utils.single_column(tables, datatypes.Tag.currencies, "currency")[0]
     # The default regions for VT_* files is given by ~BookRegions_Map:
@@ -841,18 +842,19 @@ def fill_in_missing_values(
             elif colname == "region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
                 matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).stem)
+                isna = df[colname].isna()
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
-                        df = df.fillna({colname: ",".join(vt_regions[book])})
+                        df.loc[isna, [colname]] = ",".join(vt_regions[book])
                     else:
                         logger.warning(f"book name {book} not in BookRegions_Map")
                 else:
-                    df = df.fillna({colname: ",".join(model.internal_regions)})
+                    df.loc[isna, [colname]] = ",".join(model.internal_regions)
             elif colname == "year":
-                df = df.fillna({colname: start_year})
+                df.loc[df[colname].isna(), [colname]] = model.start_year
             elif colname == "currency":
-                df = df.fillna({colname: currency})
+                df.loc[df[colname].isna(), [colname]] = currency
 
         return replace(table, dataframe=df)
 
@@ -1436,7 +1438,7 @@ def generate_trade(
     i = top_ire["origin"].isin(model.internal_regions) | top_ire["destination"].isin(
         model.internal_regions
     )
-    model.trade = top_ire[i].reset_index()
+    model.trade = top_ire[i].reset_index(drop=True)
 
     return tables
 
@@ -1595,14 +1597,17 @@ def process_years(
     model.past_years = datayears.where(lambda x: x < model.start_year).dropna()
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
-    model.model_years = (
-        pd.concat(
-            [model.past_years, model.time_periods["m"]],
-            ignore_index=True,
+    if not model.past_years.empty:
+        model.model_years = (
+            pd.concat(
+                [model.past_years, model.time_periods["m"]],
+                ignore_index=True,
+            )
+            .drop_duplicates()
+            .sort_values()
         )
-        .drop_duplicates()
-        .sort_values()
-    )
+    else:
+        model.model_years = model.time_periods["m"]
 
     return tables
 
@@ -2300,6 +2305,7 @@ def process_wildcards(
         commodities: DataFrame | None,
         attribute: str | None,
         region: str | None,
+        year: int | None,
     ) -> pd.Index:
         qs = []
         if processes is not None and not processes.empty:
@@ -2310,6 +2316,8 @@ def process_wildcards(
             qs.append(f"attribute == '{attribute}'")
         if region is not None:
             qs.append(f"region == '{region}'")
+        if year is not None:
+            qs.append(f"year == {year}")
         return table.query(" and ".join(qs)).index
 
     def eval_and_update(
@@ -2329,7 +2337,7 @@ def process_wildcards(
         table = tables[datatypes.Tag.fi_t]
         new_tables = [table]
         # Reset FI_T index so that queries can determine unique rows to update
-        tables[datatypes.Tag.fi_t].reset_index(inplace=True)
+        tables[datatypes.Tag.fi_t].reset_index(inplace=True, drop=True)
 
         # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
         # evaluate the update formula, and add new rows to FI_T
@@ -2346,9 +2354,15 @@ def process_wildcards(
                 continue
             processes, commodities = match
             rows_to_update = query(
-                table, processes, commodities, row["attribute"], row["region"]
+                table,
+                processes,
+                commodities,
+                row["attribute"],
+                row["region"],
+                row["year"],
             )
             new_rows = table.loc[rows_to_update].copy()
+            new_rows["source_filename"] = row["source_filename"]
             eval_and_update(new_rows, rows_to_update, row["value"])
             new_tables.append(new_rows)
 
@@ -2375,6 +2389,7 @@ def process_wildcards(
                     new_rows = processes.merge(new_rows, how="cross")
                 if commodities is not None:
                     new_rows = commodities.merge(new_rows, how="cross")
+            new_rows["source_filename"] = row["source_filename"]
             new_tables.append(new_rows)
 
         new_tables.append(tables[datatypes.Tag.fi_t])
@@ -2403,7 +2418,9 @@ def process_wildcards(
                 assert False  # All rows match either a commodity or a process
 
             # Query for rows with matching process/commodity and region
-            rows_to_update = query(table, processes, commodities, None, row["region"])
+            rows_to_update = query(
+                table, processes, commodities, None, row["region"], None
+            )
             # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
             # with the value from row
             # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
@@ -2423,7 +2440,12 @@ def process_wildcards(
             processes, commodities = match if match is not None else (None, None)
             # TODO should we also query on limtype?
             rows_to_update = query(
-                table, processes, commodities, row["attribute"], row["region"]
+                table,
+                processes,
+                commodities,
+                row["attribute"],
+                row["region"],
+                row["year"],
             )
             new_rows = table.loc[rows_to_update].copy()
             # Modify values in all '*2' columns
@@ -2432,6 +2454,7 @@ def process_wildcards(
                     new_rows.loc[:, c[:-1]] = v
             # Evaluate 'value' column based on existing values
             eval_and_update(new_rows, rows_to_update, row["value"])
+            new_rows["source_filename"] = row["source_filename"]
             new_tables.append(new_rows)
 
         # Add new rows to table
@@ -2619,6 +2642,14 @@ def convert_aliases(
             df.replace({"attribute": replacement_dict}, inplace=True)
         tables[table_type] = df
 
+    # Drop duplicates generated due to renaming
+    # TODO: Clear values in irrelevant columns before doing this
+    # TODO: Do this comprehensively for all relevant tables
+    df = tables[datatypes.Tag.fi_t]
+    df = df.dropna(subset="value").drop_duplicates(
+        subset=[col for col in df.columns if col != "value"], keep="last"
+    )
+    tables[datatypes.Tag.fi_t] = df.reset_index(drop=True)
     # TODO: do this earlier
     model.attributes = tables[datatypes.Tag.fi_t]
     if datatypes.Tag.uc_t in tables.keys():
