@@ -1,14 +1,27 @@
+from __future__ import (
+    annotations,
+)  # see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
+
+import functools
+import os
 import re
+import sys
 from dataclasses import replace
 from math import log10, floor
+from pathlib import Path
 from typing import Iterable, List
 
+import loguru
 import numpy
 import pandas as pd
 from more_itertools import one
 from pandas.core.frame import DataFrame
 
 from . import datatypes
+
+# prevent excessive number of processes in Windows and high cpu-count machines
+# TODO make this a cli param or global setting?
+max_workers: int = 4 if os.name == "nt" else min(16, os.cpu_count() or 16)
 
 
 def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
@@ -31,7 +44,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         (newtag, varname) = table.tag.split(":")
         varname = varname.strip()
         df = table.dataframe.copy()
-        df["attribute"].fillna(varname, inplace=True)
+        df["attribute"] = df["attribute"].fillna(varname)
         return replace(table, tag=newtag, dataframe=df)
     else:
         return table
@@ -47,7 +60,14 @@ def explode(df, data_columns):
     :return:                Tuple with the exploded dataframe and a Series of the original
                             column name for each value in each new row.
     """
-    data = df[data_columns].values.tolist()
+    # Handle duplicate columns (https://pandas.pydata.org/docs/user_guide/duplicates.html)
+    if len(set(data_columns)) < len(data_columns):
+        cols = df.columns.to_list()
+        data_cols_idx = [idx for idx, val in enumerate(cols) if val in data_columns]
+        data = df.iloc[:, data_cols_idx].values.tolist()
+    else:
+        data = df[data_columns].values.tolist()
+
     other_columns = [
         colname for colname in df.columns.values if colname not in data_columns
     ]
@@ -56,30 +76,12 @@ def explode(df, data_columns):
     df = df.assign(value=data)
     nrows = df.shape[0]
     df = df.explode(value_column, ignore_index=True)
-
     names = pd.Series(data_columns * nrows, index=df.index, dtype=str)
     # Remove rows with no VALUE
     index = df[value_column].notna()
     df = df[index]
     names = names[index]
     return df, names
-
-
-def extract_timeslices(tables: List[datatypes.EmbeddedXlTable]):
-    """
-    Given a list of tables with a unique table with a time slice tag, return a list
-    with all the column names of that table + "ANNUAL".
-
-    :param tables:          List of tables in EmbeddedXlTable format.
-    :return:                List of column names of the unique time slice table.
-    """
-    # TODO merge with other timeslice code - should we delete this def or move the other one here?
-
-    # No idea why casing of Weekly is special
-    cols = single_table(tables, datatypes.Tag.time_slices).dataframe.columns
-    timeslices = [col if col == "Weekly" else col.upper() for col in cols]
-    timeslices.insert(0, "ANNUAL")
-    return timeslices
 
 
 def single_table(tables: List[datatypes.EmbeddedXlTable], tag: str):
@@ -179,7 +181,7 @@ def missing_value_inherit(df: DataFrame, colname: str):
 
 
 def get_scalar(table_tag: str, tables: List[datatypes.EmbeddedXlTable]):
-    table = next(filter(lambda t: t.tag == table_tag, tables))
+    table = one(filter(lambda t: t.tag == table_tag, tables))
     if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
         raise ValueError("Not scalar table")
     return table.dataframe["value"].values[0]
@@ -197,28 +199,25 @@ def remove_positive_patterns(pattern):
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
+@functools.lru_cache(maxsize=int(1e6))
 def create_regexp(pattern):
     # exclude negative patterns
     if has_negative_patterns(pattern):
         pattern = remove_negative_patterns(pattern)
     if len(pattern) == 0:
         return re.compile(pattern)  # matches everything
-    # escape special characters
-    # Backslash must come first
-    special = "\\.|^$+()[]{}"
-    for c in special:
-        pattern = pattern.replace(c, "\\" + c)
     # Handle VEDA wildcards
-    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", "|")
+    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", r"$|^")
     # Do not match substrings
-    pattern = "^" + pattern + "$"
+    pattern = rf"^{pattern}$"
     return re.compile(pattern)
 
 
+@functools.lru_cache(maxsize=int(1e6))
 def create_negative_regexp(pattern):
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
-        pattern = "^$"  # matches nothing
+        pattern = r"^$"  # matches nothing
     return create_regexp(pattern)
 
 
@@ -226,3 +225,57 @@ def round_sig(x, sig_figs):
     if x == 0.0:
         return 0.0
     return round(x, -int(floor(log10(abs(x)))) + sig_figs - 1)
+
+
+# Get entry point file name as default log name
+default_log_name = Path(sys.argv[0]).stem
+default_log_name = "log" if default_log_name == "" else default_log_name
+
+
+def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.Logger:
+    """Return a configured loguru logger.
+
+    Call this once from entrypoints to set up a new logger.
+    In non-entrypoint modules, just use `from loguru import logger` directly.
+
+    To set the log level, use the `LOGURU_LEVEL` environment variable before or during runtime. E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
+    Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `INFO`.
+
+    Log file will be written to `f"{log_dir}/{log_name}.log"`
+
+    Parameters:
+        log_name (str): Name of the log. Corresponding log file will be called {log_name}.log in the .
+        log_dir (str): Directory to write the log file to. Default is the current working directory.
+    Returns:
+        Logger: A configured loguru logger.
+    """
+    from loguru import logger
+
+    # set global log level via env var.  Set to INFO if not already set.
+    if os.getenv("LOGURU_LEVEL") is None:
+        os.environ["LOGURU_LEVEL"] = "INFO"
+
+    log_conf = {
+        "handlers": [
+            {
+                "sink": sys.stdout,
+                "diagnose": False,
+                "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level> (<cyan>{name}:{"
+                'thread.name}:pid-{process}</cyan> "<cyan>{'
+                'file.path}</cyan>:<cyan>{line}</cyan>")',
+            },
+            {
+                "sink": f"{log_dir}/{log_name}.log",
+                "enqueue": True,
+                "mode": "a+",
+                "level": "DEBUG",
+                "colorize": False,
+                "serialize": False,
+                "diagnose": True,
+                "rotation": "20 MB",
+                "compression": "zip",
+            },
+        ],
+    }
+    logger.configure(**log_conf)
+    return logger
