@@ -2359,7 +2359,7 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_upd}",
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_upd.value}",
         ):
             if row["value"] is None:  # TODO is this really needed?
                 continue
@@ -2392,7 +2392,7 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins}",
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins.value}",
         ):
             match = match_wildcards(row)
             # TODO perf: add matched procs/comms into column and use explode?
@@ -2411,8 +2411,8 @@ def process_wildcards(
 
     # TODO: Move this somewhere else (i.e. no wildcard processing)?
     if datatypes.Tag.tfm_dins in tables:
-        updates = tables[datatypes.Tag.tfm_dins]
         table = tables[datatypes.Tag.fi_t]
+        updates = tables[datatypes.Tag.tfm_dins].filter(table.columns, axis=1)
         tables[datatypes.Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
 
     if datatypes.Tag.tfm_ins_txt in tables:
@@ -2423,7 +2423,7 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins_txt}",
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins_txt.value}",
         ):
             match = match_wildcards(row)
             if match is None:
@@ -2454,7 +2454,7 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_mig}",
+            desc=f"Processing wildcard for {datatypes.Tag.tfm_mig.value}",
         ):
             match = match_wildcards(row)
             processes, commodities = match if match is not None else (None, None)
