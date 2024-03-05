@@ -1862,7 +1862,7 @@ def process_tradelinks(
     return result
 
 
-def process_transform_insert_variants(
+def process_transform_table_variants(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
@@ -1886,7 +1886,12 @@ def process_transform_insert_variants(
 
     result = []
     for table in tables:
-        if table.tag == datatypes.Tag.tfm_ins_ts:
+        tag = datatypes.Tag(table.tag.split(":")[0])
+        if tag in [
+            datatypes.Tag.tfm_dins_ts,
+            datatypes.Tag.tfm_ins_ts,
+            datatypes.Tag.tfm_upd_ts,
+        ]:
             # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
             df = table.dataframe
             query_columns = config.query_columns[datatypes.Tag(table.tag)]
@@ -1918,8 +1923,14 @@ def process_transform_insert_variants(
             )
             # Convert the year column to integer
             df["year"] = df["year"].astype("int")
-            result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
-        elif table.tag == datatypes.Tag.tfm_ins_at:
+            result.append(
+                replace(table, dataframe=df, tag=datatypes.Tag(tag.value.split("-")[0]))
+            )
+        elif tag in [
+            datatypes.Tag.tfm_dins_at,
+            datatypes.Tag.tfm_ins_at,
+            datatypes.Tag.tfm_upd_at,
+        ]:
             # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribute" column
             df = table.dataframe
             if "attribute" in df.columns:
@@ -1938,7 +1949,9 @@ def process_transform_insert_variants(
                 value_name="value",
                 ignore_index=False,
             )
-            result.append(replace(table, dataframe=df, tag=datatypes.Tag.tfm_ins))
+            result.append(
+                replace(table, dataframe=df, tag=datatypes.Tag(tag.value.split("-")[0]))
+            )
         else:
             result.append(table)
 
@@ -1955,9 +1968,9 @@ def process_transform_tables(
     """
     regions = model.internal_regions
     tfm_tags = [
+        datatypes.Tag.tfm_dins,
         datatypes.Tag.tfm_ins,
         datatypes.Tag.tfm_ins_txt,
-        datatypes.Tag.tfm_dins,
         datatypes.Tag.tfm_topins,
         datatypes.Tag.tfm_upd,
         datatypes.Tag.tfm_mig,
@@ -1971,6 +1984,7 @@ def process_transform_tables(
             result.append(table)
 
         elif table.tag in [
+            datatypes.Tag.tfm_dins,
             datatypes.Tag.tfm_ins,
             datatypes.Tag.tfm_ins_txt,
             datatypes.Tag.tfm_upd,
@@ -2394,6 +2408,12 @@ def process_wildcards(
 
         new_tables.append(tables[datatypes.Tag.fi_t])
         tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+
+    # TODO: Move this somewhere else (i.e. no wildcard processing)?
+    if datatypes.Tag.tfm_dins in tables:
+        updates = tables[datatypes.Tag.tfm_dins]
+        table = tables[datatypes.Tag.fi_t]
+        tables[datatypes.Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
 
     if datatypes.Tag.tfm_ins_txt in tables:
         updates = tables[datatypes.Tag.tfm_ins_txt]
