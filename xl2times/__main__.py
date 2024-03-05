@@ -332,6 +332,7 @@ def produce_times_tables(
 def write_dd_files(
     tables: Dict[str, DataFrame], config: datatypes.Config, output_dir: str
 ):
+    encoding = "utf-8"
     os.makedirs(output_dir, exist_ok=True)
     for item in os.listdir(output_dir):
         if item.endswith(".dd"):
@@ -373,7 +374,7 @@ def write_dd_files(
     }
 
     for fname, tablenames in tables_in_file.items():
-        with open(os.path.join(output_dir, fname), "w") as fout:
+        with open(os.path.join(output_dir, fname), "w", encoding=encoding) as fout:
             for tablename in [t for t in tablenames if t in tables]:
                 df = tables[tablename]
                 if tablename in sets:
