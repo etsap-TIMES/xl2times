@@ -370,7 +370,9 @@ def write_dd_files(
     tables_in_file = {
         "ts.dd": ["ALL_TS"],
         "milestonyr.dd": ["MILESTONYR"],
-        "output.dd": [t for t in config.dd_table_order if t != "ALL_TS"],
+        "output.dd": [
+            t for t in config.dd_table_order if t not in ["ALL_TS", "MILESTONYR"]
+        ],
     }
 
     for fname, tablenames in tables_in_file.items():
