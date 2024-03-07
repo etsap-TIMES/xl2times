@@ -1592,7 +1592,12 @@ def process_years(
     model.data_years = datayears.drop_duplicates().sort_values()
 
     # Pastyears is the set of all years before ~StartYear
-    model.past_years = datayears.where(lambda x: x < model.start_year).dropna()
+    model.past_years = (
+        datayears.where(lambda x: x < model.start_year)
+        .dropna()
+        .drop_duplicates()
+        .sort_values()
+    )
 
     # Modelyears is the union of pastyears and the representative years of the model (middleyears)
     if not model.past_years.empty:
