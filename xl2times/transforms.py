@@ -1091,9 +1091,6 @@ def apply_fixups(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    reg_com_flows = utils.single_table(tables, "ProcessTopology").dataframe.copy()
-    reg_com_flows.drop(columns="io", inplace=True)
-
     def apply_fixups_table(table: datatypes.EmbeddedXlTable):
         if not table.tag.startswith(datatypes.Tag.fi_t):
             return table
@@ -1132,22 +1129,6 @@ def apply_fixups(
         # FLO_EMIS
         i = df["attribute"].isin({"ENV_ACT", "ENVACT"})
         df.loc[i, "other_indexes"] = "ACT"
-
-        # Fill CommName for COST (alias of IRE_PRICE) if missing
-        if "attribute" in df.columns and "COST" in df["attribute"].unique():
-            i = (df["attribute"] == "COST") & df["commodity"].isna()
-            if any(i):
-                df.loc[i, "commodity"] = df[i].apply(
-                    lambda row: ",".join(
-                        reg_com_flows.loc[
-                            (reg_com_flows["region"] == row["region"])
-                            & (reg_com_flows["process"] == row["process"]),
-                            "commodity",
-                        ].unique()
-                    ),
-                    axis=1,
-                )
-                # TODO: Expand rows if multiple comma-separated commodities are included
 
         return replace(table, dataframe=df)
 
@@ -2744,34 +2725,51 @@ def apply_final_fixup(
 ) -> Dict[str, DataFrame]:
 
     veda_process_sets = tables["VedaProcessSets"]
+    reg_com_flows = tables["ProcessTopology"].drop(columns="io")
     df = tables[datatypes.Tag.fi_t]
 
     # Fill other_indexes for COST
     cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
     i = (df["attribute"] == "COST") & df["process"].notna()
-    for process in df[i]["process"].unique():
-        veda_process_set = (
-            veda_process_sets["sets"]
-            .loc[veda_process_sets["process"] == process]
-            .unique()
-        )
-        if veda_process_set.shape[0]:
-            df.loc[i & (df["process"] == process), "other_indexes"] = cost_mapping[
-                veda_process_set[0]
-            ]
-        else:
-            logger.warning(
-                f"COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
+    if any(i):
+        for process in df[i]["process"].unique():
+            veda_process_set = (
+                veda_process_sets["sets"]
+                .loc[veda_process_sets["process"] == process]
+                .unique()
             )
+            if veda_process_set.shape[0]:
+                df.loc[i & (df["process"] == process), "other_indexes"] = cost_mapping[
+                    veda_process_set[0]
+                ]
+            else:
+                logger.warning(
+                    f"COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
+                )
 
-        # Use CommName to store the active commodity for EXP / IMP
-        i = df["attribute"].isin({"COST", "IRE_PRICE"})
+    # Use CommName to store the active commodity for EXP / IMP
+    i = df["attribute"].isin({"COST", "IRE_PRICE"})
+    if any(i):
         i_exp = i & (df["other_indexes"] == "EXP")
         df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
         i_imp = i & (df["other_indexes"] == "IMP")
         df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
 
-        tables[datatypes.Tag.fi_t] = df
+    # Fill CommName for COST (alias of IRE_PRICE) if missing
+    i = (df["attribute"] == "COST") & df["commodity"].isna()
+    if any(i):
+        df.loc[i, "commodity"] = df[i].apply(
+            lambda row: ",".join(
+                reg_com_flows.loc[
+                    (reg_com_flows["region"] == row["region"])
+                    & (reg_com_flows["process"] == row["process"]),
+                    "commodity",
+                ].unique()
+            ),
+            axis=1,
+        )
+
+    tables[datatypes.Tag.fi_t] = df
 
     return tables
 
