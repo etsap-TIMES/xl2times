@@ -2219,6 +2219,9 @@ def process_wildcards(
 
             tables[tag] = df
 
+            # TODO: Should the tool alert about the following?
+            # logger.warning("a row matched no processes or commodities")
+
             logger.info(
                 f"  process_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
             )
@@ -2293,7 +2296,7 @@ def _match_wildcards(
     return df
 
 
-def include_transformation_table_data(
+def apply_transforms(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
@@ -2303,23 +2306,6 @@ def include_transformation_table_data(
     """
 
     topology = generate_topology_dictionary(tables, model)
-
-    def match_wildcards(
-        row: pd.Series,
-    ) -> tuple[DataFrame | None, DataFrame | None] | None:
-        """
-        Return matching processes and commodities
-        """
-        matching_processes = get_matching_processes(row, topology)
-        matching_commodities = get_matching_commodities(row, topology)
-
-        if (matching_processes is None or len(matching_processes) == 0) and (
-            matching_commodities is None or len(matching_commodities) == 0
-        ):  # TODO is this necessary? Try without?
-            # TODO debug these
-            logger.warning("a row matched no processes or commodities")
-            return None
-        return matching_processes, matching_commodities
 
     def query(
         table: DataFrame,
@@ -2377,6 +2363,13 @@ def include_transformation_table_data(
                 row["region"],
                 row["year"],
             )
+
+            if not any(rows_to_update):
+                logger.info(
+                    f"A {datatypes.Tag.tfm_upd.value} row generated no records."
+                )
+                continue
+
             new_rows = table.loc[rows_to_update].copy()
             new_rows["source_filename"] = row["source_filename"]
             eval_and_update(new_rows, rows_to_update, row["value"])
@@ -2440,6 +2433,13 @@ def include_transformation_table_data(
                 row["region"],
                 row["year"],
             )
+
+            if not any(rows_to_update):
+                logger.info(
+                    f"A {datatypes.Tag.tfm_mig.value} row generated no records."
+                )
+                continue
+
             new_rows = table.loc[rows_to_update].copy()
             # Modify values in all '*2' columns
             for c, v in row.items():

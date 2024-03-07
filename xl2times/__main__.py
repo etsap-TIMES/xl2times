@@ -124,7 +124,7 @@ def convert_xl_to_times(
         transforms.process_years,
         transforms.complete_commodity_groups,
         transforms.process_wildcards,
-        transforms.include_transformation_table_data,
+        transforms.apply_transforms,
         transforms.convert_aliases,
         transforms.fix_topology,
         transforms.resolve_remaining_cgs,
