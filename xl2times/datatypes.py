@@ -173,12 +173,15 @@ class TimesModel:
         """
         data_years = set()
         for attributes in [self.attributes, self.uc_attributes]:
-            data_years = data_years | set(
-                attributes["year"]
-                .apply(lambda x: x if (x is not str) and x >= 1000 else None)
-                .dropna()
-                .values
-            )
+            if not attributes.empty:
+                data_years.update(
+                    set(
+                        attributes["year"]
+                        .apply(lambda x: x if (x is not str) and x >= 1000 else None)
+                        .dropna()
+                        .values
+                    )
+                )
 
         return data_years
 
