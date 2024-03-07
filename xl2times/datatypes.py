@@ -177,7 +177,8 @@ class TimesModel:
                 data_years.update(
                     set(
                         attributes["year"]
-                        .apply(lambda x: x if (x is not str) and x >= 1000 else None)
+                        .astype(int)
+                        .apply(lambda x: x if x >= 1000 else None)
                         .dropna()
                         .values
                     )
