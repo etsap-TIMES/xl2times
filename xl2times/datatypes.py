@@ -6,7 +6,6 @@ import json
 import re
 from typing import Dict, Iterable, List, Set, Tuple
 from enum import Enum
-
 from loguru import logger
 from pandas.core.frame import DataFrame
 
@@ -161,13 +160,41 @@ class TimesModel:
     time_periods: DataFrame = field(default_factory=DataFrame)
     units: DataFrame = field(default_factory=DataFrame)
     start_year: int = field(default_factory=int)
-    data_years: Tuple[int] = field(default_factory=tuple)
-    model_years: Tuple[int] = field(default_factory=tuple)
-    past_years: Tuple[int] = field(default_factory=tuple)
     files: Set[str] = field(default_factory=set)
 
+    @property
     def external_regions(self) -> Set[str]:
         return self.all_regions.difference(self.internal_regions)
+
+    @property
+    def data_years(self) -> Set[int]:
+        """
+        data_years are years for which there is data specified.
+        """
+        data_years = set()
+        for attributes in [self.attributes, self.uc_attributes]:
+            data_years = data_years | set(
+                attributes["year"]
+                .apply(lambda x: x if (x is not str) and x >= 1000 else None)
+                .dropna()
+                .values
+            )
+
+        return data_years
+
+    @property
+    def past_years(self) -> Set[int]:
+        """
+        Pastyears is the set of all years before start_year.
+        """
+        return {x for x in self.data_years if x < self.start_year}
+
+    @property
+    def model_years(self) -> Set[int]:
+        """
+        model_years is the union of past_years and the representative years of the model (middleyears).
+        """
+        return self.past_years | set(self.time_periods["m"].values)
 
 
 class Config:

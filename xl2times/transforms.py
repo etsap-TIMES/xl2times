@@ -137,7 +137,7 @@ def remove_exreg_cols(
     Remove external region columns from all the tables except tradelinks.
     """
 
-    external_regions = model.external_regions()
+    external_regions = model.external_regions
 
     def remove_table_exreg_cols(
         table: datatypes.EmbeddedXlTable,
@@ -1526,46 +1526,6 @@ def process_commodities(
             result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_comm))
 
     return result
-
-
-def process_years(
-    config: datatypes.Config,
-    tables: Dict[str, DataFrame],
-    model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
-    # Datayears is the set of all years in ~FI_T's Year column
-    # We ignore values < 1000 because those signify interpolation/extrapolation rules
-    # (see Table 8 of Part IV of the Times Documentation)
-
-    datayears = (
-        tables[datatypes.Tag.fi_t]["year"]
-        .apply(lambda x: x if (x is not str) and x >= 1000 else None)
-        .dropna()
-    )
-    model.data_years = datayears.drop_duplicates().sort_values()
-
-    # Pastyears is the set of all years before ~StartYear
-    model.past_years = (
-        datayears.where(lambda x: x < model.start_year)
-        .dropna()
-        .drop_duplicates()
-        .sort_values()
-    )
-
-    # Modelyears is the union of pastyears and the representative years of the model (middleyears)
-    if not model.past_years.empty:
-        model.model_years = (
-            pd.concat(
-                [model.past_years, model.time_periods["m"]],
-                ignore_index=True,
-            )
-            .drop_duplicates()
-            .sort_values()
-        )
-    else:
-        model.model_years = model.time_periods["m"]
-
-    return tables
 
 
 def process_processes(
