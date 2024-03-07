@@ -492,15 +492,14 @@ def process_flexible_import_tables(
         df = table.dataframe
 
         attribute = "attribute"
-        if table.tag != datatypes.Tag.tfm_upd:
-            df, attribute_suffix = utils.explode(df, data_columns)
+        df, attribute_suffix = utils.explode(df, data_columns)
 
-            # Append the data column name to the Attribute column values
-            if nrows > 0:
-                i = df[attribute].notna()
-                df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
-                i = df[attribute].isna()
-                df.loc[i, attribute] = attribute_suffix[i]
+        # Append the data column name to the Attribute column values
+        if nrows > 0:
+            i = df[attribute].notna()
+            df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
+            i = df[attribute].isna()
+            df.loc[i, attribute] = attribute_suffix[i]
 
         # Capitalise all attributes, unless column type float
         if df[attribute].dtype != float:
@@ -530,9 +529,7 @@ def process_flexible_import_tables(
         df = df.reset_index(drop=True)
 
         # Should have all index_columns and VALUE
-        if table.tag == datatypes.Tag.fi_t and len(df.columns) != (
-            len(index_columns) + 1
-        ):
+        if len(df.columns) != (len(index_columns) + 1):
             raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
         df["year2"] = df.apply(
