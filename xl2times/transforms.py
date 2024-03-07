@@ -529,31 +529,6 @@ def process_flexible_import_tables(
 
         df = df.reset_index(drop=True)
 
-        # Fill other_indexes for COST
-        cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-        i = (df[attribute] == "COST") & df["process"]
-        for process in df[i]["process"].unique():
-            veda_process_set = (
-                veda_process_sets["sets"]
-                .loc[veda_process_sets["process"] == process]
-                .unique()
-            )
-            if veda_process_set.shape[0]:
-                df.loc[i & (df["process"] == process), other] = cost_mapping[
-                    veda_process_set[0]
-                ]
-            else:
-                logger.warning(
-                    f"COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
-                )
-
-        # Use CommName to store the active commodity for EXP / IMP
-        i = df[attribute].isin({"COST", "IRE_PRICE"})
-        i_exp = i & (df[other] == "EXP")
-        df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
-        i_imp = i & (df[other] == "IMP")
-        df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
-
         # Should have all index_columns and VALUE
         if table.tag == datatypes.Tag.fi_t and len(df.columns) != (
             len(index_columns) + 1
@@ -2761,6 +2736,45 @@ def complete_processes(
             logger.warning(f"Multiple possible {i} for {processes} in {regions}")
 
     model.processes = pd.concat([model.processes, undeclared_td], ignore_index=True)
+
+    return tables
+
+
+def apply_final_fixup(
+    config: datatypes.Config,
+    tables: Dict[str, DataFrame],
+    model: datatypes.TimesModel,
+) -> Dict[str, DataFrame]:
+
+    veda_process_sets = tables["VedaProcessSets"]
+    df = tables[datatypes.Tag.fi_t]
+
+    # Fill other_indexes for COST
+    cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
+    i = (df["attribute"] == "COST") & df["process"].notna()
+    for process in df[i]["process"].unique():
+        veda_process_set = (
+            veda_process_sets["sets"]
+            .loc[veda_process_sets["process"] == process]
+            .unique()
+        )
+        if veda_process_set.shape[0]:
+            df.loc[i & (df["process"] == process), "other_indexes"] = cost_mapping[
+                veda_process_set[0]
+            ]
+        else:
+            logger.warning(
+                f"COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
+            )
+
+        # Use CommName to store the active commodity for EXP / IMP
+        i = df["attribute"].isin({"COST", "IRE_PRICE"})
+        i_exp = i & (df["other_indexes"] == "EXP")
+        df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
+        i_imp = i & (df["other_indexes"] == "IMP")
+        df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
+
+        tables[datatypes.Tag.fi_t] = df
 
     return tables
 

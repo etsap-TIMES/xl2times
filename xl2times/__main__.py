@@ -125,6 +125,7 @@ def convert_xl_to_times(
         transforms.complete_commodity_groups,
         transforms.process_wildcards,
         transforms.apply_transforms,
+        transforms.apply_final_fixup,
         transforms.convert_aliases,
         transforms.fix_topology,
         transforms.resolve_remaining_cgs,
