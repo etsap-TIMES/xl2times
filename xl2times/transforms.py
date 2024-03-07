@@ -451,9 +451,7 @@ def process_flexible_import_tables(
         table: datatypes.EmbeddedXlTable, veda_process_sets: DataFrame
     ) -> datatypes.EmbeddedXlTable:
         # Make sure it's a flexible import table, and return the table untouched if not
-        if not table.tag.startswith(datatypes.Tag.fi_t) and table.tag not in {
-            datatypes.Tag.tfm_upd,
-        }:
+        if not table.tag.startswith(datatypes.Tag.fi_t):
             return table
 
         # Rename, add and remove specific columns if the circumstances are right
@@ -1897,19 +1895,6 @@ def process_transform_table_variants(
             query_columns = config.query_columns[datatypes.Tag(table.tag)]
             if "year" in df.columns:
                 raise ValueError(f"TFM_INS-TS table already has Year column: {table}")
-            # TODO: can we remove this hacky shortcut? Or should it be also applied to the AT variant?
-            if set(df.columns) & query_columns == {"cset_cn"} and has_no_wildcards(
-                df["cset_cn"]
-            ):
-                df.rename(columns={"cset_cn": "commodity"}, inplace=True)
-                result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-                continue
-            elif set(df.columns) & query_columns == {"pset_pn"} and has_no_wildcards(
-                df["pset_pn"]
-            ):
-                df.rename(columns={"pset_pn": "process"}, inplace=True)
-                result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-                continue
 
             other_columns = [
                 col_name for col_name in df.columns if not is_year(col_name)
@@ -2197,37 +2182,48 @@ def generate_topology_dictionary(
     return dictionary
 
 
-def process_uc_wildcards(
+def process_wildcards(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    tag = datatypes.Tag.uc_t
+    tags = [
+        datatypes.Tag.tfm_comgrp,
+        datatypes.Tag.tfm_ins,
+        datatypes.Tag.tfm_ins_txt,
+        datatypes.Tag.tfm_mig,
+        datatypes.Tag.tfm_upd,
+        datatypes.Tag.uc_t,
+    ]
 
-    if tag in tqdm(tables, desc="Processing uc_wildcards on tables"):
-        start_time = time.time()
-        df = tables[tag]
-        dictionary = generate_topology_dictionary(tables, model)
+    for tag in tags:
 
-        df = _match_uc_wildcards(
-            df, process_map, dictionary, get_matching_processes, "process"
-        )
-        df = _match_uc_wildcards(
-            df, commodity_map, dictionary, get_matching_commodities, "commodity"
-        )
+        if tag in tqdm(tables, desc=f"Processing wildcards in {tag.value} tables"):
+            start_time = time.time()
+            df = tables[tag]
+            dictionary = generate_topology_dictionary(tables, model)
 
-        tables[tag] = df
+            if set(df.columns).intersection(set(process_map.keys())):
+                df = _match_wildcards(
+                    df, process_map, dictionary, get_matching_processes, "process"
+                )
+            if set(df.columns).intersection(set(commodity_map.keys())):
+                df = _match_wildcards(
+                    df, commodity_map, dictionary, get_matching_commodities, "commodity"
+                )
 
-        logger.info(
-            f"  process_uc_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
-        )
+            tables[tag] = df
+
+            logger.info(
+                f"  process_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
+            )
 
     return tables
 
 
-def _match_uc_wildcards(
+def _match_wildcards(
     df: pd.DataFrame,
-    process_map: dict[str, str],
+    col_map: dict[str, str],
     dictionary: dict[str, pd.DataFrame],
     matcher: Callable,
     result_col: str,
@@ -2237,7 +2233,7 @@ def _match_uc_wildcards(
 
     Args:
         df: Table to match wildcards in.
-        process_map: Mapping of column names to process sets.
+        col_map: Mapping of column names to sets.
         dictionary: Dictionary of process sets to match against.
         matcher: Matching function to use, e.g. get_matching_processes or get_matching_commodities.
         result_col: Name of the column to store the matched results in.
@@ -2245,10 +2241,10 @@ def _match_uc_wildcards(
     Returns:
         The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
     """
-    proc_cols = list(process_map.keys())
+    wild_cols = list(col_map.keys())
 
     # drop duplicate sets of wildcard columns to save repeated (slow) regex matching.  This makes things much faster.
-    unique_filters = df[proc_cols].drop_duplicates().dropna(axis="rows", how="all")
+    unique_filters = df[wild_cols].drop_duplicates().dropna(axis="rows", how="all")
 
     # match all the wildcards columns against the dictionary names
     matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
@@ -2270,28 +2266,35 @@ def _match_uc_wildcards(
         matches, left_index=True, right_index=True
     )
 
-    # Finally we merge the matches back into the original table. This join re-duplicates the duplicate filters dropped above for speed.
-    # And we explode any matches to multiple names to give a long-format table.
+    # Finally we merge the matches back into the original table.
+    # This join re-duplicates the duplicate filters dropped above for speed.
     df = (
-        df.merge(filter_matches, left_on=proc_cols, right_on=proc_cols, how="left")
-        .explode(result_col)
+        df.merge(filter_matches, on=wild_cols, how="left")
         .reset_index(drop=True)
-        .drop(columns=proc_cols)
+        .drop(columns=wild_cols)
     )
 
-    # replace NaNs in results_col with None for consistency with older logic
-    df[result_col] = df[result_col].where(df[result_col].notna(), None)
+    # And we explode any matches to multiple names to give a long-format table.
+    if result_col in df.columns:
+        df = df.explode(result_col, ignore_index=True)
+    else:
+        df[result_col] = None
+
+    # replace NaNs in results_col with None (expected downstream)
+    if df[result_col].dtype != object:
+        df[result_col] = df[result_col].astype(object)
+    df.loc[df[result_col].isna(), [result_col]] = None
 
     return df
 
 
-def process_wildcards(
+def include_transformation_table_data(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
     """
-    Process wildcards specified in TFM tables.
+    Include data from transformation tables.
     """
 
     topology = generate_topology_dictionary(tables, model)
@@ -2315,17 +2318,17 @@ def process_wildcards(
 
     def query(
         table: DataFrame,
-        processes: DataFrame | None,
-        commodities: DataFrame | None,
+        process: str | None,
+        commodity: str | None,
         attribute: str | None,
         region: str | None,
         year: int | None,
     ) -> pd.Index:
         qs = []
-        if processes is not None and not processes.empty:
-            qs.append(f"process in [{','.join(map(repr, processes['process']))}]")
-        if commodities is not None and not commodities.empty:
-            qs.append(f"commodity in [{','.join(map(repr, commodities['commodity']))}]")
+        if process is not None:
+            qs.append(f"process in ['{process}']")
+        if commodity is not None:
+            qs.append(f"commodity in ['{commodity}']")
         if attribute is not None:
             qs.append(f"attribute == '{attribute}'")
         if region is not None:
@@ -2359,18 +2362,12 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_upd.value}",
+            desc=f"Processing info for {datatypes.Tag.tfm_upd.value}",
         ):
-            if row["value"] is None:  # TODO is this really needed?
-                continue
-            match = match_wildcards(row)
-            if match is None:
-                continue
-            processes, commodities = match
             rows_to_update = query(
                 table,
-                processes,
-                commodities,
+                row["process"],
+                row["commodity"],
                 row["attribute"],
                 row["region"],
                 row["year"],
@@ -2384,32 +2381,10 @@ def process_wildcards(
         tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
 
     if datatypes.Tag.tfm_ins in tables:
-        updates = tables[datatypes.Tag.tfm_ins]
         table = tables[datatypes.Tag.fi_t]
-        new_tables = []
+        updates = tables[datatypes.Tag.tfm_ins].filter(table.columns, axis=1)
+        tables[datatypes.Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
 
-        # TFM_INS: expand each row by wildcards, then add to FI_T
-        for _, row in tqdm(
-            updates.iterrows(),
-            total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins.value}",
-        ):
-            match = match_wildcards(row)
-            # TODO perf: add matched procs/comms into column and use explode?
-            new_rows = pd.DataFrame([row.filter(table.columns)])
-            if match is not None:
-                processes, commodities = match
-                if processes is not None:
-                    new_rows = processes.merge(new_rows, how="cross")
-                if commodities is not None:
-                    new_rows = commodities.merge(new_rows, how="cross")
-            new_rows["source_filename"] = row["source_filename"]
-            new_tables.append(new_rows)
-
-        new_tables.append(tables[datatypes.Tag.fi_t])
-        tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
-
-    # TODO: Move this somewhere else (i.e. no wildcard processing)?
     if datatypes.Tag.tfm_dins in tables:
         table = tables[datatypes.Tag.fi_t]
         updates = tables[datatypes.Tag.tfm_dins].filter(table.columns, axis=1)
@@ -2425,21 +2400,16 @@ def process_wildcards(
             total=len(updates),
             desc=f"Processing wildcard for {datatypes.Tag.tfm_ins_txt.value}",
         ):
-            match = match_wildcards(row)
-            if match is None:
-                logger.warning("TFM_INS-TXT row matched neither commodity nor process")
-                continue
-            processes, commodities = match
-            if commodities is not None:
+            if row["commodity"] is not None:
                 table = model.commodities
-            elif processes is not None:
+            elif row["process"] is not None:
                 table = model.processes
             else:
                 assert False  # All rows match either a commodity or a process
 
             # Query for rows with matching process/commodity and region
             rows_to_update = query(
-                table, processes, commodities, None, row["region"], None
+                table, row["process"], row["commodity"], None, row["region"], None
             )
             # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
             # with the value from row
@@ -2454,15 +2424,13 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_mig.value}",
+            desc=f"Including info from {datatypes.Tag.tfm_mig.value}",
         ):
-            match = match_wildcards(row)
-            processes, commodities = match if match is not None else (None, None)
             # TODO should we also query on limtype?
             rows_to_update = query(
                 table,
-                processes,
-                commodities,
+                row["process"],
+                row["commodity"],
                 row["attribute"],
                 row["region"],
                 row["year"],
@@ -2482,31 +2450,14 @@ def process_wildcards(
         tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
 
     if datatypes.Tag.tfm_comgrp in tables:
-        updates = tables[datatypes.Tag.tfm_comgrp]
         table = model.commodity_groups
-        new_tables = []
+        updates = tables[datatypes.Tag.tfm_comgrp].filter(table.columns, axis=1)
 
-        # Expand each row by wildcards, then add to model.commodity_groups
-        for _, row in updates.iterrows():
-            match = match_wildcards(row)
-            # Convert series to dataframe; keep only relevant columns
-            new_rows = pd.DataFrame([row.filter(table.columns)])
-            # Match returns both processes and commodities, but only latter is relevant here
-            processes, commodities = match if match is not None else (None, None)
-            if commodities is None:
-                logger.warning(f"TFM_COMGRP row did not match any commodity")
-            else:
-                new_rows = commodities.merge(new_rows, how="cross")
-                new_tables.append(new_rows)
-
-        # Expand model.commodity_groups with user-defined commodity groups
-        if new_tables:
-            new_tables.append(model.commodity_groups)
-            commodity_groups = pd.concat(
-                new_tables, ignore_index=True
-            ).drop_duplicates()
-            commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
-            model.commodity_groups = commodity_groups.dropna()
+        commodity_groups = pd.concat(
+            [table, updates], ignore_index=True
+        ).drop_duplicates()
+        commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
+        model.commodity_groups = commodity_groups.dropna()
 
     return tables
 
