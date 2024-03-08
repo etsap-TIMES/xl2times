@@ -213,7 +213,8 @@
   },
   "CEFF": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
+        "commodity",
         "commodity-in",
         "commodity-out",
         "commodity-in-aux",
@@ -225,7 +226,8 @@
   },
   "CEFF-I": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
+        "commodity",
         "commodity-in",
         "commodity-in-aux"
       ],
@@ -235,7 +237,8 @@
   },
   "CEFF-O": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
+        "commodity",
         "commodity-out",
         "commodity-out-aux"
       ],
@@ -245,7 +248,8 @@
   },
   "CEFFICIENCY": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
+        "commodity",
         "commodity-in",
         "commodity-out",
         "commodity-in-aux",
@@ -441,12 +445,18 @@
   },
   "EFF": {
     "defaults": {
+      "other_indexes": [
+        "ACT"
+      ],
       "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
   "EFFICIENCY": {
     "defaults": {
+      "other_indexes": [
+        "ACT"
+      ],
       "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
@@ -467,6 +477,9 @@
         "commodity-in",
         "commodity-out-aux",
         "commodity-in-aux"
+      ],
+      "other_indexes": [
+        "ACT"
       ],
       "ts-level": "ANNUAL"
     },
@@ -491,6 +504,9 @@
         "commodity-in",
         "commodity-out-aux",
         "commodity-in-aux"
+      ],
+      "other_indexes": [
+        "ACT"
       ],
       "ts-level": "ANNUAL"
     },
