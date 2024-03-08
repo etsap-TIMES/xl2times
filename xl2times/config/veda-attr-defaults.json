@@ -592,7 +592,8 @@
         "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
-    }
+    },
+    "times-attribute": "FLO_EMIS"
   },
   "FLO_EMIS": {
     "defaults": {
