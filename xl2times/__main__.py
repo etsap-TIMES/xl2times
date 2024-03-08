@@ -97,7 +97,7 @@ def convert_xl_to_times(
         transforms.remove_exreg_cols,
         transforms.generate_dummy_processes,
         transforms.process_time_slices,
-        transforms.process_transform_insert_variants,
+        transforms.process_transform_table_variants,
         transforms.process_transform_tables,
         transforms.process_tradelinks,
         transforms.process_processes,
@@ -119,12 +119,11 @@ def convert_xl_to_times(
         transforms.include_tables_source,
         transforms.merge_tables,
         transforms.complete_processes,
-        transforms.apply_more_fixups,
         transforms.process_units,
-        transforms.process_years,
         transforms.complete_commodity_groups,
-        transforms.process_uc_wildcards,
         transforms.process_wildcards,
+        transforms.apply_transform_tables,
+        transforms.apply_final_fixup,
         transforms.convert_aliases,
         transforms.fix_topology,
         transforms.resolve_remaining_cgs,
@@ -332,6 +331,7 @@ def produce_times_tables(
 def write_dd_files(
     tables: Dict[str, DataFrame], config: datatypes.Config, output_dir: str
 ):
+    encoding = "utf-8"
     os.makedirs(output_dir, exist_ok=True)
     for item in os.listdir(output_dir):
         if item.endswith(".dd"):
@@ -369,11 +369,13 @@ def write_dd_files(
     tables_in_file = {
         "ts.dd": ["ALL_TS"],
         "milestonyr.dd": ["MILESTONYR"],
-        "output.dd": [t for t in config.dd_table_order if t != "ALL_TS"],
+        "output.dd": [
+            t for t in config.dd_table_order if t not in ["ALL_TS", "MILESTONYR"]
+        ],
     }
 
     for fname, tablenames in tables_in_file.items():
-        with open(os.path.join(output_dir, fname), "w") as fout:
+        with open(os.path.join(output_dir, fname), "w", encoding=encoding) as fout:
             for tablename in [t for t in tablenames if t in tables]:
                 df = tables[tablename]
                 if tablename in sets:
