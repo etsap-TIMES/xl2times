@@ -1008,7 +1008,7 @@
           "cset:cn",
           "cset: cn"
         ],
-        "use_name": "cset_cn",
+        "use_name": "commodity",
         "row_ignore_symbol": [
           "\\I:"
         ],
@@ -1072,7 +1072,7 @@
           "pset:pn",
           "pset: pn"
         ],
-        "use_name": "pset_pn",
+        "use_name": "process",
         "row_ignore_symbol": [
           "\\I:"
         ],

@@ -9,7 +9,7 @@ from xl2times.transforms import (
     expand_rows,
     get_matching_commodities,
     get_matching_processes,
-    _match_uc_wildcards,
+    _match_wildcards,
     process_map,
     commodity_map,
 )
@@ -87,10 +87,10 @@ class TestTransforms:
         t0 = datetime.now()
 
         # optimised functions
-        df_new = _match_uc_wildcards(
+        df_new = _match_wildcards(
             df, process_map, dictionary, get_matching_processes, "process"
         )
-        df_new = _match_uc_wildcards(
+        df_new = _match_wildcards(
             df_new, commodity_map, dictionary, get_matching_commodities, "commodity"
         )
 
