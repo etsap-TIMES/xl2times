@@ -701,6 +701,7 @@
   "INPUT": {
     "defaults": {
       "other_indexes": [
+        "commodity",
         "commodity-in",
         "commodity-in-aux"
       ],
@@ -805,6 +806,7 @@
   "OUTPUT": {
     "defaults": {
       "other_indexes": [
+        "commodity",
         "commodity-out",
         "commodity-out-aux"
       ],
@@ -1102,7 +1104,8 @@
   },
   "VDA_FLOP": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
+        "commodity",
         "commodity-in",
         "commodity-out",
         "commodity-in-aux",
