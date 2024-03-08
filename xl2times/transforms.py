@@ -2209,7 +2209,7 @@ def _match_wildcards(
     return df
 
 
-def apply_transforms(
+def apply_transform_tables(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
@@ -2266,7 +2266,7 @@ def apply_transforms(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing info for {datatypes.Tag.tfm_upd.value}",
+            desc=f"Applying transformations from {datatypes.Tag.tfm_upd.value}",
         ):
             rows_to_update = query(
                 table,
@@ -2309,7 +2309,7 @@ def apply_transforms(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins_txt.value}",
+            desc=f"Applying transformations from {datatypes.Tag.tfm_ins_txt.value}",
         ):
             if row["commodity"] is not None:
                 table = model.commodities
@@ -2335,7 +2335,7 @@ def apply_transforms(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Including info from {datatypes.Tag.tfm_mig.value}",
+            desc=f"Applying transformations from {datatypes.Tag.tfm_mig.value}",
         ):
             # TODO should we also query on limtype?
             rows_to_update = query(
