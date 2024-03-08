@@ -137,7 +137,7 @@ def remove_exreg_cols(
     Remove external region columns from all the tables except tradelinks.
     """
 
-    external_regions = model.external_regions()
+    external_regions = model.external_regions
 
     def remove_table_exreg_cols(
         table: datatypes.EmbeddedXlTable,
@@ -451,9 +451,7 @@ def process_flexible_import_tables(
         table: datatypes.EmbeddedXlTable, veda_process_sets: DataFrame
     ) -> datatypes.EmbeddedXlTable:
         # Make sure it's a flexible import table, and return the table untouched if not
-        if not table.tag.startswith(datatypes.Tag.fi_t) and table.tag not in {
-            datatypes.Tag.tfm_upd,
-        }:
+        if not table.tag.startswith(datatypes.Tag.fi_t):
             return table
 
         # Rename, add and remove specific columns if the circumstances are right
@@ -494,15 +492,14 @@ def process_flexible_import_tables(
         df = table.dataframe
 
         attribute = "attribute"
-        if table.tag != datatypes.Tag.tfm_upd:
-            df, attribute_suffix = utils.explode(df, data_columns)
+        df, attribute_suffix = utils.explode(df, data_columns)
 
-            # Append the data column name to the Attribute column values
-            if nrows > 0:
-                i = df[attribute].notna()
-                df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
-                i = df[attribute].isna()
-                df.loc[i, attribute] = attribute_suffix[i]
+        # Append the data column name to the Attribute column values
+        if nrows > 0:
+            i = df[attribute].notna()
+            df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
+            i = df[attribute].isna()
+            df.loc[i, attribute] = attribute_suffix[i]
 
         # Capitalise all attributes, unless column type float
         if df[attribute].dtype != float:
@@ -531,35 +528,8 @@ def process_flexible_import_tables(
 
         df = df.reset_index(drop=True)
 
-        # Fill other_indexes for COST
-        cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-        i = (df[attribute] == "COST") & df["process"]
-        for process in df[i]["process"].unique():
-            veda_process_set = (
-                veda_process_sets["sets"]
-                .loc[veda_process_sets["process"] == process]
-                .unique()
-            )
-            if veda_process_set.shape[0]:
-                df.loc[i & (df["process"] == process), other] = cost_mapping[
-                    veda_process_set[0]
-                ]
-            else:
-                logger.warning(
-                    f"COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
-                )
-
-        # Use CommName to store the active commodity for EXP / IMP
-        i = df[attribute].isin({"COST", "IRE_PRICE"})
-        i_exp = i & (df[other] == "EXP")
-        df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
-        i_imp = i & (df[other] == "IMP")
-        df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
-
         # Should have all index_columns and VALUE
-        if table.tag == datatypes.Tag.fi_t and len(df.columns) != (
-            len(index_columns) + 1
-        ):
+        if len(df.columns) != (len(index_columns) + 1):
             raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
         df["year2"] = df.apply(
@@ -1121,9 +1091,6 @@ def apply_fixups(
     tables: List[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
-    reg_com_flows = utils.single_table(tables, "ProcessTopology").dataframe.copy()
-    reg_com_flows.drop(columns="io", inplace=True)
-
     def apply_fixups_table(table: datatypes.EmbeddedXlTable):
         if not table.tag.startswith(datatypes.Tag.fi_t):
             return table
@@ -1162,22 +1129,6 @@ def apply_fixups(
         # FLO_EMIS
         i = df["attribute"].isin({"ENV_ACT", "ENVACT"})
         df.loc[i, "other_indexes"] = "ACT"
-
-        # Fill CommName for COST (alias of IRE_PRICE) if missing
-        if "attribute" in df.columns and "COST" in df["attribute"].unique():
-            i = (df["attribute"] == "COST") & df["commodity"].isna()
-            if any(i):
-                df.loc[i, "commodity"] = df[i].apply(
-                    lambda row: ",".join(
-                        reg_com_flows.loc[
-                            (reg_com_flows["region"] == row["region"])
-                            & (reg_com_flows["process"] == row["process"]),
-                            "commodity",
-                        ].unique()
-                    ),
-                    axis=1,
-                )
-                # TODO: Expand rows if multiple comma-separated commodities are included
 
         return replace(table, dataframe=df)
 
@@ -1577,41 +1528,6 @@ def process_commodities(
     return result
 
 
-def process_years(
-    config: datatypes.Config,
-    tables: Dict[str, DataFrame],
-    model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
-    # Datayears is the set of all years in ~FI_T's Year column
-    # We ignore values < 1000 because those signify interpolation/extrapolation rules
-    # (see Table 8 of Part IV of the Times Documentation)
-
-    datayears = (
-        tables[datatypes.Tag.fi_t]["year"]
-        .apply(lambda x: x if (x is not str) and x >= 1000 else None)
-        .dropna()
-    )
-    model.data_years = datayears.drop_duplicates().sort_values()
-
-    # Pastyears is the set of all years before ~StartYear
-    model.past_years = datayears.where(lambda x: x < model.start_year).dropna()
-
-    # Modelyears is the union of pastyears and the representative years of the model (middleyears)
-    if not model.past_years.empty:
-        model.model_years = (
-            pd.concat(
-                [model.past_years, model.time_periods["m"]],
-                ignore_index=True,
-            )
-            .drop_duplicates()
-            .sort_values()
-        )
-    else:
-        model.model_years = model.time_periods["m"]
-
-    return tables
-
-
 def process_processes(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
@@ -1897,19 +1813,6 @@ def process_transform_table_variants(
             query_columns = config.query_columns[datatypes.Tag(table.tag)]
             if "year" in df.columns:
                 raise ValueError(f"TFM_INS-TS table already has Year column: {table}")
-            # TODO: can we remove this hacky shortcut? Or should it be also applied to the AT variant?
-            if set(df.columns) & query_columns == {"cset_cn"} and has_no_wildcards(
-                df["cset_cn"]
-            ):
-                df.rename(columns={"cset_cn": "commodity"}, inplace=True)
-                result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-                continue
-            elif set(df.columns) & query_columns == {"pset_pn"} and has_no_wildcards(
-                df["pset_pn"]
-            ):
-                df.rename(columns={"pset_pn": "process"}, inplace=True)
-                result.append(replace(table, dataframe=df, tag=datatypes.Tag.fi_t))
-                continue
 
             other_columns = [
                 col_name for col_name in df.columns if not is_year(col_name)
@@ -2197,37 +2100,51 @@ def generate_topology_dictionary(
     return dictionary
 
 
-def process_uc_wildcards(
+def process_wildcards(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    tag = datatypes.Tag.uc_t
+    tags = [
+        datatypes.Tag.tfm_comgrp,
+        datatypes.Tag.tfm_ins,
+        datatypes.Tag.tfm_ins_txt,
+        datatypes.Tag.tfm_mig,
+        datatypes.Tag.tfm_upd,
+        datatypes.Tag.uc_t,
+    ]
 
-    if tag in tqdm(tables, desc="Processing uc_wildcards on tables"):
-        start_time = time.time()
-        df = tables[tag]
-        dictionary = generate_topology_dictionary(tables, model)
+    for tag in tags:
 
-        df = _match_uc_wildcards(
-            df, process_map, dictionary, get_matching_processes, "process"
-        )
-        df = _match_uc_wildcards(
-            df, commodity_map, dictionary, get_matching_commodities, "commodity"
-        )
+        if tag in tqdm(tables, desc=f"Processing wildcards in {tag.value} tables"):
+            start_time = time.time()
+            df = tables[tag]
+            dictionary = generate_topology_dictionary(tables, model)
 
-        tables[tag] = df
+            if set(df.columns).intersection(set(process_map.keys())):
+                df = _match_wildcards(
+                    df, process_map, dictionary, get_matching_processes, "process"
+                )
+            if set(df.columns).intersection(set(commodity_map.keys())):
+                df = _match_wildcards(
+                    df, commodity_map, dictionary, get_matching_commodities, "commodity"
+                )
 
-        logger.info(
-            f"  process_uc_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
-        )
+            tables[tag] = df
+
+            # TODO: Should the tool alert about the following?
+            # logger.warning("a row matched no processes or commodities")
+
+            logger.info(
+                f"  process_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
+            )
 
     return tables
 
 
-def _match_uc_wildcards(
+def _match_wildcards(
     df: pd.DataFrame,
-    process_map: dict[str, str],
+    col_map: dict[str, str],
     dictionary: dict[str, pd.DataFrame],
     matcher: Callable,
     result_col: str,
@@ -2237,7 +2154,7 @@ def _match_uc_wildcards(
 
     Args:
         df: Table to match wildcards in.
-        process_map: Mapping of column names to process sets.
+        col_map: Mapping of column names to sets.
         dictionary: Dictionary of process sets to match against.
         matcher: Matching function to use, e.g. get_matching_processes or get_matching_commodities.
         result_col: Name of the column to store the matched results in.
@@ -2245,10 +2162,10 @@ def _match_uc_wildcards(
     Returns:
         The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
     """
-    proc_cols = list(process_map.keys())
+    wild_cols = list(col_map.keys())
 
     # drop duplicate sets of wildcard columns to save repeated (slow) regex matching.  This makes things much faster.
-    unique_filters = df[proc_cols].drop_duplicates().dropna(axis="rows", how="all")
+    unique_filters = df[wild_cols].drop_duplicates().dropna(axis="rows", how="all")
 
     # match all the wildcards columns against the dictionary names
     matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
@@ -2270,62 +2187,52 @@ def _match_uc_wildcards(
         matches, left_index=True, right_index=True
     )
 
-    # Finally we merge the matches back into the original table. This join re-duplicates the duplicate filters dropped above for speed.
-    # And we explode any matches to multiple names to give a long-format table.
+    # Finally we merge the matches back into the original table.
+    # This join re-duplicates the duplicate filters dropped above for speed.
     df = (
-        df.merge(filter_matches, left_on=proc_cols, right_on=proc_cols, how="left")
-        .explode(result_col)
+        df.merge(filter_matches, on=wild_cols, how="left")
         .reset_index(drop=True)
-        .drop(columns=proc_cols)
+        .drop(columns=wild_cols)
     )
 
-    # replace NaNs in results_col with None for consistency with older logic
-    df[result_col] = df[result_col].where(df[result_col].notna(), None)
+    # And we explode any matches to multiple names to give a long-format table.
+    if result_col in df.columns:
+        df = df.explode(result_col, ignore_index=True)
+    else:
+        df[result_col] = None
+
+    # replace NaNs in results_col with None (expected downstream)
+    if df[result_col].dtype != object:
+        df[result_col] = df[result_col].astype(object)
+    df.loc[df[result_col].isna(), [result_col]] = None
 
     return df
 
 
-def process_wildcards(
+def apply_transform_tables(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
     """
-    Process wildcards specified in TFM tables.
+    Include data from transformation tables.
     """
 
     topology = generate_topology_dictionary(tables, model)
 
-    def match_wildcards(
-        row: pd.Series,
-    ) -> tuple[DataFrame | None, DataFrame | None] | None:
-        """
-        Return matching processes and commodities
-        """
-        matching_processes = get_matching_processes(row, topology)
-        matching_commodities = get_matching_commodities(row, topology)
-
-        if (matching_processes is None or len(matching_processes) == 0) and (
-            matching_commodities is None or len(matching_commodities) == 0
-        ):  # TODO is this necessary? Try without?
-            # TODO debug these
-            logger.warning("a row matched no processes or commodities")
-            return None
-        return matching_processes, matching_commodities
-
     def query(
         table: DataFrame,
-        processes: DataFrame | None,
-        commodities: DataFrame | None,
+        process: str | None,
+        commodity: str | None,
         attribute: str | None,
         region: str | None,
         year: int | None,
     ) -> pd.Index:
         qs = []
-        if processes is not None and not processes.empty:
-            qs.append(f"process in [{','.join(map(repr, processes['process']))}]")
-        if commodities is not None and not commodities.empty:
-            qs.append(f"commodity in [{','.join(map(repr, commodities['commodity']))}]")
+        if process is not None:
+            qs.append(f"process in ['{process}']")
+        if commodity is not None:
+            qs.append(f"commodity in ['{commodity}']")
         if attribute is not None:
             qs.append(f"attribute == '{attribute}'")
         if region is not None:
@@ -2359,22 +2266,23 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_upd.value}",
+            desc=f"Applying transformations from {datatypes.Tag.tfm_upd.value}",
         ):
-            if row["value"] is None:  # TODO is this really needed?
-                continue
-            match = match_wildcards(row)
-            if match is None:
-                continue
-            processes, commodities = match
             rows_to_update = query(
                 table,
-                processes,
-                commodities,
+                row["process"],
+                row["commodity"],
                 row["attribute"],
                 row["region"],
                 row["year"],
             )
+
+            if not any(rows_to_update):
+                logger.info(
+                    f"A {datatypes.Tag.tfm_upd.value} row generated no records."
+                )
+                continue
+
             new_rows = table.loc[rows_to_update].copy()
             new_rows["source_filename"] = row["source_filename"]
             eval_and_update(new_rows, rows_to_update, row["value"])
@@ -2384,32 +2292,10 @@ def process_wildcards(
         tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
 
     if datatypes.Tag.tfm_ins in tables:
-        updates = tables[datatypes.Tag.tfm_ins]
         table = tables[datatypes.Tag.fi_t]
-        new_tables = []
+        updates = tables[datatypes.Tag.tfm_ins].filter(table.columns, axis=1)
+        tables[datatypes.Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
 
-        # TFM_INS: expand each row by wildcards, then add to FI_T
-        for _, row in tqdm(
-            updates.iterrows(),
-            total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins.value}",
-        ):
-            match = match_wildcards(row)
-            # TODO perf: add matched procs/comms into column and use explode?
-            new_rows = pd.DataFrame([row.filter(table.columns)])
-            if match is not None:
-                processes, commodities = match
-                if processes is not None:
-                    new_rows = processes.merge(new_rows, how="cross")
-                if commodities is not None:
-                    new_rows = commodities.merge(new_rows, how="cross")
-            new_rows["source_filename"] = row["source_filename"]
-            new_tables.append(new_rows)
-
-        new_tables.append(tables[datatypes.Tag.fi_t])
-        tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
-
-    # TODO: Move this somewhere else (i.e. no wildcard processing)?
     if datatypes.Tag.tfm_dins in tables:
         table = tables[datatypes.Tag.fi_t]
         updates = tables[datatypes.Tag.tfm_dins].filter(table.columns, axis=1)
@@ -2423,23 +2309,18 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_ins_txt.value}",
+            desc=f"Applying transformations from {datatypes.Tag.tfm_ins_txt.value}",
         ):
-            match = match_wildcards(row)
-            if match is None:
-                logger.warning("TFM_INS-TXT row matched neither commodity nor process")
-                continue
-            processes, commodities = match
-            if commodities is not None:
+            if row["commodity"] is not None:
                 table = model.commodities
-            elif processes is not None:
+            elif row["process"] is not None:
                 table = model.processes
             else:
                 assert False  # All rows match either a commodity or a process
 
             # Query for rows with matching process/commodity and region
             rows_to_update = query(
-                table, processes, commodities, None, row["region"], None
+                table, row["process"], row["commodity"], None, row["region"], None
             )
             # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
             # with the value from row
@@ -2454,19 +2335,24 @@ def process_wildcards(
         for _, row in tqdm(
             updates.iterrows(),
             total=len(updates),
-            desc=f"Processing wildcard for {datatypes.Tag.tfm_mig.value}",
+            desc=f"Applying transformations from {datatypes.Tag.tfm_mig.value}",
         ):
-            match = match_wildcards(row)
-            processes, commodities = match if match is not None else (None, None)
             # TODO should we also query on limtype?
             rows_to_update = query(
                 table,
-                processes,
-                commodities,
+                row["process"],
+                row["commodity"],
                 row["attribute"],
                 row["region"],
                 row["year"],
             )
+
+            if not any(rows_to_update):
+                logger.info(
+                    f"A {datatypes.Tag.tfm_mig.value} row generated no records."
+                )
+                continue
+
             new_rows = table.loc[rows_to_update].copy()
             # Modify values in all '*2' columns
             for c, v in row.items():
@@ -2482,31 +2368,14 @@ def process_wildcards(
         tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
 
     if datatypes.Tag.tfm_comgrp in tables:
-        updates = tables[datatypes.Tag.tfm_comgrp]
         table = model.commodity_groups
-        new_tables = []
+        updates = tables[datatypes.Tag.tfm_comgrp].filter(table.columns, axis=1)
 
-        # Expand each row by wildcards, then add to model.commodity_groups
-        for _, row in updates.iterrows():
-            match = match_wildcards(row)
-            # Convert series to dataframe; keep only relevant columns
-            new_rows = pd.DataFrame([row.filter(table.columns)])
-            # Match returns both processes and commodities, but only latter is relevant here
-            processes, commodities = match if match is not None else (None, None)
-            if commodities is None:
-                logger.warning(f"TFM_COMGRP row did not match any commodity")
-            else:
-                new_rows = commodities.merge(new_rows, how="cross")
-                new_tables.append(new_rows)
-
-        # Expand model.commodity_groups with user-defined commodity groups
-        if new_tables:
-            new_tables.append(model.commodity_groups)
-            commodity_groups = pd.concat(
-                new_tables, ignore_index=True
-            ).drop_duplicates()
-            commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
-            model.commodity_groups = commodity_groups.dropna()
+        commodity_groups = pd.concat(
+            [table, updates], ignore_index=True
+        ).drop_duplicates()
+        commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
+        model.commodity_groups = commodity_groups.dropna()
 
     return tables
 
@@ -2809,58 +2678,94 @@ def complete_processes(
     return tables
 
 
-def apply_more_fixups(
+def apply_final_fixup(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
     model: datatypes.TimesModel,
 ) -> Dict[str, DataFrame]:
-    # TODO: This should only be applied to processes introduced in BASE
-    df = tables.get(datatypes.Tag.fi_t)
-    if df is not None:
-        index = df["attribute"] == "STOCK"
-        # Temporary solution to include only processes defined in BASE
-        i_vt = index & (df["source_filename"].str.contains("VT_", case=False))
-        if any(index):
-            extra_rows = []
-            for region in df[index]["region"].unique():
-                i_reg = index & (df["region"] == region)
-                for process in df[(i_reg & i_vt)]["process"].unique():
-                    i_reg_prc = i_reg & (df["process"] == process)
-                    if any(i_reg_prc):
-                        extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
-                    # TODO: TIMES already handles this. Drop?
-                    if len(df[i_reg_prc]["year"].unique()) == 1:
-                        year = df[i_reg_prc]["year"].unique()[0]
-                        i_attr = (
-                            df["attribute"].isin({"NCAP_TLIFE", "LIFE"})
-                            & (df["region"] == region)
-                            & (df["process"] == process)
-                        )
-                        if any(i_attr):
-                            lifetime = df[i_attr]["value"].unique()[-1]
-                        else:
-                            lifetime = 30
-                        extra_rows.append(
-                            ["STOCK", region, process, "", year + lifetime, 0]
-                        )
-            if len(extra_rows) > 0:
-                df = pd.concat(
-                    [
-                        df,
-                        pd.DataFrame(
-                            extra_rows,
-                            columns=[
-                                "attribute",
-                                "region",
-                                "process",
-                                "limtype",
-                                "year",
-                                "value",
-                            ],
-                        ),
-                    ]
+
+    veda_process_sets = tables["VedaProcessSets"]
+    reg_com_flows = tables["ProcessTopology"].drop(columns="io")
+    df = tables[datatypes.Tag.fi_t]
+
+    # Fill other_indexes for COST
+    cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
+    i = (df["attribute"] == "COST") & df["process"].notna()
+    if any(i):
+        for process in df[i]["process"].unique():
+            veda_process_set = (
+                veda_process_sets["sets"]
+                .loc[veda_process_sets["process"] == process]
+                .unique()
+            )
+            if veda_process_set.shape[0]:
+                df.loc[i & (df["process"] == process), "other_indexes"] = cost_mapping[
+                    veda_process_set[0]
+                ]
+            else:
+                logger.warning(
+                    f"COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
                 )
-        tables[datatypes.Tag.fi_t] = df
+
+    # Use CommName to store the active commodity for EXP / IMP
+    i = df["attribute"].isin({"COST", "IRE_PRICE"})
+    if any(i):
+        i_exp = i & (df["other_indexes"] == "EXP")
+        df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
+        i_imp = i & (df["other_indexes"] == "IMP")
+        df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
+
+    # Fill CommName for COST (alias of IRE_PRICE) if missing
+    i = (df["attribute"] == "COST") & df["commodity"].isna()
+    if any(i):
+        df.loc[i, "commodity"] = df[i].apply(
+            lambda row: ",".join(
+                reg_com_flows.loc[
+                    (reg_com_flows["region"] == row["region"])
+                    & (reg_com_flows["process"] == row["process"]),
+                    "commodity",
+                ].unique()
+            ),
+            axis=1,
+        )
+
+    # Handle STOCK specified for a single year
+    i = (df["attribute"] == "STOCK") & df["process"].notna()
+    # Temporary solution to include only processes defined in BASE
+    i_vt = i & (df["source_filename"].str.contains("VT_", case=False))
+    if any(i):
+        extra_rows = []
+        for region in df[i]["region"].unique():
+            i_reg = i & (df["region"] == region)
+            for process in df[(i_reg & i_vt)]["process"].unique():
+                i_reg_prc = i_reg & (df["process"] == process)
+                if any(i_reg_prc):
+                    extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
+                # TODO: TIMES already handles this. Drop?
+                if len(df[i_reg_prc]["year"].unique()) == 1:
+                    year = df[i_reg_prc]["year"].unique()[0]
+                    i_attr = (
+                        df["attribute"].isin({"NCAP_TLIFE", "LIFE"})
+                        & (df["region"] == region)
+                        & (df["process"] == process)
+                    )
+                    if any(i_attr):
+                        lifetime = df[i_attr]["value"].unique()[-1]
+                    else:
+                        lifetime = 30
+                    extra_rows.append(
+                        ["STOCK", region, process, "", year + lifetime, 0]
+                    )
+        if len(extra_rows) > 0:
+            cols = ["attribute", "region", "process", "limtype", "year", "value"]
+            df = pd.concat(
+                [
+                    df,
+                    pd.DataFrame(extra_rows, columns=cols),
+                ]
+            )
+
+    tables[datatypes.Tag.fi_t] = df
 
     return tables
 
