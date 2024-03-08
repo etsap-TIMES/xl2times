@@ -876,9 +876,7 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out",
-        "commodity-in-aux",
-        "commodity-out-aux"
+        "commodity-out"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -888,8 +886,7 @@
   "SHARE-I": {
     "defaults": {
       "commodity": [
-        "commodity-in",
-        "commodity-in-aux"
+        "commodity-in"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -899,8 +896,7 @@
   "SHARE-O": {
     "defaults": {
       "commodity": [
-        "commodity-out",
-        "commodity-out-aux"
+        "commodity-out"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
