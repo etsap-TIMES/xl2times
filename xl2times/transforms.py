@@ -426,12 +426,12 @@ def process_flexible_import_tables(
         "limtype": {"LO", "UP", "FX"},
         # TODO: check what the values for the below should be
         "timeslice": set(model.ts_tslvl["tslvl"]),
-        "commodity-out": set(
+        "commodity": set(
             utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
-        "other_indexes": {"INPUT", "OUTPUT", "DEMO", "DEMI"},
+        "other_indexes": {"IN", "OUT", "DEMO", "DEMI"},
     }
 
     def get_colname(value):
@@ -1101,19 +1101,29 @@ def apply_fixups(
         if "year" in df.columns:
             df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
-        # Populate CommName based on defaults
-        i = (
-            df["attribute"]
-            .str.upper()
-            .isin(config.veda_attr_defaults["commodity"].keys())
-            & df["commodity"].isna()
-        )
-        if len(df[i]) > 0:
-            for attr in df[i]["attribute"].unique():
-                for com_in_out in config.veda_attr_defaults["commodity"][attr.upper()]:
-                    index = i & (df["attribute"] == attr) & (df["commodity"].isna())
-                    if len(df[index]) > 0:
-                        df.loc[index, ["commodity"]] = df[index][com_in_out]
+        def _populate_defaults(dataframe: DataFrame, col_name: str):
+            i_na = (
+                dataframe["attribute"]
+                .str.upper()
+                .isin(config.veda_attr_defaults[col_name].keys())
+                & dataframe[col_name].isna()
+            )
+            if len(df[i_na]) > 0:
+                for attr in dataframe[i_na]["attribute"].unique():
+                    for com_in_out in config.veda_attr_defaults[col_name][attr.upper()]:
+                        index = (
+                            i_na
+                            & (dataframe["attribute"] == attr)
+                            & (dataframe[col_name].isna())
+                        )
+                        if len(dataframe[index]) > 0:
+                            dataframe.loc[index, [col_name]] = dataframe[index][
+                                com_in_out
+                            ]
+
+        # Populate commodity and other_indexes based on defaults
+        for col in {"commodity", "other_indexes"}:
+            _populate_defaults(df, col)
 
         # Fill other indexes for some attributes
         # FLO_SHAR

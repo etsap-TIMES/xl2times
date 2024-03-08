@@ -700,7 +700,7 @@
   },
   "INPUT": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
         "commodity-in",
         "commodity-in-aux"
       ],
@@ -804,7 +804,7 @@
   },
   "OUTPUT": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
         "commodity-out",
         "commodity-out-aux"
       ],
