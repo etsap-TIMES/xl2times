@@ -1,11 +1,12 @@
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import resources
 from itertools import chain
 import json
 import re
 from typing import Dict, Iterable, List, Set, Tuple
 from enum import Enum
+from loguru import logger
 from pandas.core.frame import DataFrame
 
 # ============================================================================
@@ -138,6 +139,60 @@ class TimesXlMap:
     filter_rows: Dict[str, str]
 
 
+@dataclass
+class TimesModel:
+    """
+    This class contains all the information about the processed TIMES model.
+    """
+
+    internal_regions: Set[str] = field(default_factory=set)
+    all_regions: Set[str] = field(default_factory=set)
+    processes: DataFrame = field(default_factory=DataFrame)
+    commodities: DataFrame = field(default_factory=DataFrame)
+    commodity_groups: DataFrame = field(default_factory=DataFrame)
+    topology: DataFrame = field(default_factory=DataFrame)
+    trade: DataFrame = field(default_factory=DataFrame)
+    attributes: DataFrame = field(default_factory=DataFrame)
+    user_constraints: DataFrame = field(default_factory=DataFrame)
+    uc_attributes: DataFrame = field(default_factory=DataFrame)
+    ts_tslvl: DataFrame = field(default_factory=DataFrame)
+    ts_map: DataFrame = field(default_factory=DataFrame)
+    time_periods: DataFrame = field(default_factory=DataFrame)
+    units: DataFrame = field(default_factory=DataFrame)
+    start_year: int = field(default_factory=int)
+    files: Set[str] = field(default_factory=set)
+
+    @property
+    def external_regions(self) -> Set[str]:
+        return self.all_regions.difference(self.internal_regions)
+
+    @property
+    def data_years(self) -> Set[int]:
+        """
+        data_years are years for which there is data specified.
+        """
+        data_years = set()
+        for attributes in [self.attributes, self.uc_attributes]:
+            if not attributes.empty:
+                data_years.update(attributes["year"].astype(int).values)
+        # Remove interpolation rules before return
+        return {y for y in data_years if y >= 1000}
+
+    @property
+    def past_years(self) -> Set[int]:
+        """
+        Pastyears is the set of all years before start_year.
+        """
+        return {x for x in self.data_years if x < self.start_year}
+
+    @property
+    def model_years(self) -> Set[int]:
+        """
+        model_years is the union of past_years and the representative years of the model (middleyears).
+        """
+        return self.past_years | set(self.time_periods["m"].values)
+
+
 class Config:
     """Encapsulates all configuration options for a run of the tool, including
     the mapping betwen excel tables and output tables, categories of tables, etc.
@@ -154,13 +209,24 @@ class Config:
     # List of tags for which empty tables should be discarded
     discard_if_empty: Iterable[Tag]
     veda_attr_defaults: Dict[str, Dict[str, list]]
+    # Known columns for each tag
+    known_columns: Dict[Tag, Set[str]]
+    # Query columns for each tag
+    query_columns: Dict[Tag, Set[str]]
+    # Required columns for each tag
+    required_columns: Dict[Tag, Set[str]]
+    # Names of regions to include in the model; if empty, all regions are included.
+    filter_regions: Set[str]
+    times_sets: Dict[str, List[str]]
 
     def __init__(
         self,
         mapping_file: str,
         times_info_file: str,
+        times_sets_file: str,
         veda_tags_file: str,
         veda_attr_defaults_file: str,
+        regions: str,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         (
@@ -168,10 +234,14 @@ class Config:
             self.all_attributes,
             param_mappings,
         ) = Config._process_times_info(times_info_file)
+        self.times_sets = Config._read_times_sets(times_sets_file)
         (
             self.column_aliases,
             self.row_comment_chars,
             self.discard_if_empty,
+            self.query_columns,
+            self.known_columns,
+            self.required_columns,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
             veda_attr_defaults_file
@@ -181,6 +251,17 @@ class Config:
         for m in param_mappings:
             name_to_map[m.times_name] = m
         self.times_xl_maps = list(name_to_map.values())
+        self.filter_regions = Config._read_regions_filter(regions)
+
+    @staticmethod
+    def _read_times_sets(
+        times_sets_file: str,
+    ) -> Dict[str, List[str]]:
+        # Read times_sets_file
+        with resources.open_text("xl2times.config", times_sets_file) as f:
+            times_sets = json.load(f)
+
+        return times_sets
 
     @staticmethod
     def _process_times_info(
@@ -196,7 +277,7 @@ class Config:
             cat_to_tables[item["gams-cat"]].append(item["name"])
         unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
         if unknown_cats:
-            print(f"WARNING: Unknown categories in times-info.json: {unknown_cats}")
+            logger.warning(f"Unknown categories in times-info.json: {unknown_cats}")
         dd_table_order = chain.from_iterable(
             (sorted(cat_to_tables[c]) for c in categories)
         )
@@ -214,8 +295,12 @@ class Config:
             times_cols = entity["indexes"] + ["VALUE"]
             xl_cols = entity["mapping"] + ["value"]  # TODO map in json
             col_map = dict(zip(times_cols, xl_cols))
-            # If tag starts with UC, then the data is in UC_T, else FI_T
-            xl_name = Tag.uc_t if entity["name"].lower().startswith("uc") else Tag.fi_t
+            # If tag starts with UC, then the data is in UCAttributes, else Attributes
+            xl_name = (
+                "UCAttributes"
+                if entity["name"].lower().startswith("uc")
+                else "Attributes"
+            )
             return TimesXlMap(
                 times_name=entity["name"],
                 times_cols=times_cols,
@@ -264,9 +349,9 @@ class Config:
                     break
                 (times, xl) = line.split(" = ")
                 (times_name, times_cols_str) = list(
-                    filter(None, re.split("\[|\]", times))
+                    filter(None, re.split(r"\[|\]", times))
                 )
-                (xl_name, xl_cols_str) = list(filter(None, re.split("\(|\)", xl)))
+                (xl_name, xl_cols_str) = list(filter(None, re.split(r"\(|\)", xl)))
                 times_cols = times_cols_str.split(",")
                 xl_cols = xl_cols_str.split(",")
                 filter_rows = {}
@@ -300,15 +385,22 @@ class Config:
                     dropped.append(line)
 
         if len(dropped) > 0:
-            print(
-                f"WARNING: Dropping {len(dropped)} mappings that are not yet complete"
+            logger.warning(
+                f"Dropping {len(dropped)} mappings that are not yet complete"
             )
         return mappings
 
     @staticmethod
     def _read_veda_tags_info(
         veda_tags_file: str,
-    ) -> Tuple[Dict[Tag, Dict[str, str]], Dict[Tag, Dict[str, list]], Iterable[Tag]]:
+    ) -> Tuple[
+        Dict[Tag, Dict[str, str]],
+        Dict[Tag, Dict[str, list]],
+        Iterable[Tag],
+        Dict[Tag, Set[str]],
+        Dict[Tag, Set[str]],
+        Dict[Tag, Set[str]],
+    ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
             return Tag("~" + s.upper())
@@ -321,13 +413,16 @@ class Config:
         tags = {to_tag(tag_info["tag_name"]) for tag_info in veda_tags_info}
         for tag in Tag:
             if tag not in tags:
-                print(
-                    f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
+                logger.warning(
+                    f"datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
                 )
 
         valid_column_names = {}
         row_comment_chars = {}
         discard_if_empty = []
+        query_cols = defaultdict(set)
+        known_cols = defaultdict(set)
+        required_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
             tag_name = to_tag(tag_info["tag_name"])
@@ -348,11 +443,20 @@ class Config:
                     else:
                         field_name = valid_field["name"]
 
+                    if valid_field["query_field"]:
+                        query_cols[tag_name].add(field_name)
+
+                    if valid_field["remove_any_row_if_absent"]:
+                        required_cols[tag_name].add(field_name)
+
+                    known_cols[tag_name].add(field_name)
+
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
-                        row_comment_chars[tag_name][field_name] = valid_field[
-                            "row_ignore_symbol"
-                        ]
+
+                    row_comment_chars[tag_name][field_name] = valid_field[
+                        "row_ignore_symbol"
+                    ]
 
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
@@ -362,8 +466,19 @@ class Config:
                     discard_if_empty.append(tag_name)
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
+                if base_tag in query_cols:
+                    query_cols[tag_name] = query_cols[base_tag]
+                if base_tag in known_cols:
+                    known_cols[tag_name] = known_cols[base_tag]
 
-        return valid_column_names, row_comment_chars, discard_if_empty
+        return (
+            valid_column_names,
+            row_comment_chars,
+            discard_if_empty,
+            query_cols,
+            known_cols,
+            required_cols,
+        )
 
     @staticmethod
     def _read_veda_attr_defaults(
@@ -405,3 +520,10 @@ class Config:
                     veda_attr_defaults["tslvl"][tslvl].append(attr)
 
         return veda_attr_defaults, attr_aliases
+
+    @staticmethod
+    def _read_regions_filter(regions_list: str) -> Set[str]:
+        if regions_list == "":
+            return set()
+        else:
+            return set(regions_list.strip(" ").upper().split(sep=","))

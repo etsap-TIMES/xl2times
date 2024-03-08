@@ -10,24 +10,34 @@ name = "xl2times"
 version = "0.1.0"
 description = 'An open source tool to convert Excel input files for TIMES models to the DD format accepted by GAMS'
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 keywords = []
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
 ]
 dependencies = [
-  "GitPython >= 3.1.31, < 3.2",
-  "more-itertools",
-  "openpyxl >= 3.0, < 3.1",
-  "pandas >= 2.1",
+    "GitPython >= 3.1.31, < 3.2",
+    "more-itertools",
+    "openpyxl >= 3.0, < 3.1",
+    "pandas >= 2.1",
+    "pyarrow",
+    "tqdm",
+    "loguru"
 ]
 
 [project.optional-dependencies]
-dev = ["black", "pre-commit", "tabulate"]
+dev = [
+    "black",
+    "pre-commit",
+    "tabulate",
+    "pytest",
+    "pytest-cov",
+    "poethepoet"
+]
 
 [project.urls]
 Documentation = "https://github.com/etsap-TIMES/xl2times#readme"
@@ -36,3 +46,18 @@ Source = "https://github.com/etsap-TIMES/xl2times"
 
 [project.scripts]
 xl2times = "xl2times.__main__:main"
+
+[tool.pytest.ini_options]
+# don't print runtime warnings
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning", "ignore::FutureWarning"]
+# show output, print test coverage report
+addopts = '-s --durations=0 --durations-min=5.0 --tb=native'
+
+[tool.poe.tasks]
+# Automation of common dev tasks etc.
+# Run with: `poe <target>`, e,g. `poe lint` or `poe benchmark Ireland`.
+# See https://github.com/nat-n/poethepoet for details.
+benchmark = { cmd = "python utils/run_benchmarks.py benchmarks.yml --run", help = "Run a single benchmark.  Usage: poe benchmark <benchmark_name>" }
+benchmark_all = { shell = "python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt", help = "Run the project", interpreter = "posix" }
+lint = { shell = "git add .pre-commit-config.yaml & pre-commit run", help = "Run pre-commit hooks", interpreter = "posix" }
+test = { cmd = "pytest --cov-report term --cov-report html --cov=xl2times --cov=utils", help = "Run unit tests with pytest" }
