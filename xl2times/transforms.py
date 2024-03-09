@@ -2548,7 +2548,15 @@ def convert_aliases(
         subset=[col for col in df.columns if col != "value"], keep="last"
     )
     tables[datatypes.Tag.fi_t] = df.reset_index(drop=True)
-    # TODO: do this earlier
+    return tables
+
+
+def assign_model_attributes(
+    config: datatypes.Config,
+    tables: Dict[str, DataFrame],
+    model: datatypes.TimesModel,
+) -> Dict[str, DataFrame]:
+
     model.attributes = tables[datatypes.Tag.fi_t]
     if datatypes.Tag.uc_t in tables.keys():
         model.uc_attributes = tables[datatypes.Tag.uc_t]
