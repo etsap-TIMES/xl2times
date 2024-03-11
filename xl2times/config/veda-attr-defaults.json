@@ -213,9 +213,12 @@
   },
   "CEFF": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
+        "commodity",
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -223,8 +226,10 @@
   },
   "CEFF-I": {
     "defaults": {
-      "commodity": [
-        "commodity-in"
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -232,8 +237,10 @@
   },
   "CEFF-O": {
     "defaults": {
-      "commodity": [
-        "commodity-out"
+      "other_indexes": [
+        "commodity",
+        "commodity-out",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -241,9 +248,12 @@
   },
   "CEFFICIENCY": {
     "defaults": {
-      "commodity": [
+      "other_indexes": [
+        "commodity",
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -399,7 +409,8 @@
   "DELIV": {
     "defaults": {
       "commodity": [
-        "commodity-in"
+        "commodity-in",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -434,12 +445,18 @@
   },
   "EFF": {
     "defaults": {
+      "other_indexes": [
+        "ACT"
+      ],
       "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
   "EFFICIENCY": {
     "defaults": {
+      "other_indexes": [
+        "ACT"
+      ],
       "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
@@ -457,7 +474,12 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
+      ],
+      "other_indexes": [
+        "ACT"
       ],
       "ts-level": "ANNUAL"
     },
@@ -479,7 +501,12 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
+      ],
+      "other_indexes": [
+        "ACT"
       ],
       "ts-level": "ANNUAL"
     },
@@ -501,7 +528,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -510,14 +539,13 @@
   "FIXOM": {
     "times-attribute": "NCAP_FOM"
   },
-  "FLOP": {
-    "times-attribute": "VDA_FLOP"
-  },
   "FLOSHAR": {
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -534,7 +562,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -547,7 +577,8 @@
   "FLO_DELIV": {
     "defaults": {
       "commodity": [
-        "commodity-in"
+        "commodity-in",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -556,16 +587,21 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
-    }
+    },
+    "times-attribute": "FLO_EMIS"
   },
   "FLO_EMIS": {
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -584,7 +620,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "limtype": "UP"
     }
@@ -593,7 +631,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-out"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "limtype": "FX",
       "ts-level": "ANNUAL"
@@ -603,7 +643,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -612,7 +654,9 @@
     "defaults": {
       "commodity": [
         "commodity-out",
-        "commodity-in"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "ts-level": "ANNUAL"
     }
@@ -670,6 +714,17 @@
   },
   "ILED": {
     "times-attribute": "NCAP_ILED"
+  },
+  "INPUT": {
+    "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-in-aux"
+      ],
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "VDA_FLOP"
   },
   "INVCOST": {
     "times-attribute": "NCAP_COST"
@@ -764,6 +819,17 @@
   },
   "OLIFE": {
     "times-attribute": "NCAP_OLIFE"
+  },
+  "OUTPUT": {
+    "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-out",
+        "commodity-out-aux"
+      ],
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "VDA_FLOP"
   },
   "PASTI": {
     "times-attribute": "NCAP_PASTI"
@@ -1055,6 +1121,13 @@
   },
   "VDA_FLOP": {
     "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
+      ],
       "ts-level": "ANNUAL"
     }
   },

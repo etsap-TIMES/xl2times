@@ -491,6 +491,7 @@ class Config:
         veda_attr_defaults = {
             "aliases": defaultdict(list),
             "commodity": {},
+            "other_indexes": {},
             "limtype": {"FX": [], "LO": [], "UP": []},
             "tslvl": {"DAYNITE": [], "ANNUAL": []},
         }
@@ -510,6 +511,11 @@ class Config:
 
                 if "commodity" in attr_defaults:
                     veda_attr_defaults["commodity"][attr] = attr_defaults["commodity"]
+
+                if "other_indexes" in attr_defaults:
+                    veda_attr_defaults["other_indexes"][attr] = attr_defaults[
+                        "other_indexes"
+                    ]
 
                 if "limtype" in attr_defaults:
                     limtype = attr_defaults["limtype"]
