@@ -3,7 +3,6 @@ import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
-from datetime import datetime
 from functools import reduce
 from itertools import groupby
 from pathlib import Path

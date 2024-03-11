@@ -2,7 +2,6 @@ import gzip
 import pickle
 from datetime import datetime
 
-import numpy as np
 import pandas as pd
 from pandasql import sqldf
 from tqdm import tqdm

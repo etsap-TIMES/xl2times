@@ -26,7 +26,8 @@ dependencies = [
     "pandas >= 2.1",
     "pyarrow",
     "tqdm",
-    "loguru"
+    "loguru",
+    "sqldf"
 ]
 
 [project.optional-dependencies]
