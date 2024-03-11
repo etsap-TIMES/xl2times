@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
+from datetime import datetime
 from functools import reduce
 from itertools import groupby
 from pathlib import Path
@@ -11,8 +12,9 @@ from typing import Dict, List, Set
 
 import pandas as pd
 from loguru import logger
-from more_itertools import locate, one
+from more_itertools import locate
 from pandas.core.frame import DataFrame
+from pandasql import sqldf
 from tqdm import tqdm
 
 from . import datatypes
@@ -1810,7 +1812,7 @@ def process_transform_table_variants(
         ]:
             # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
             df = table.dataframe
-            query_columns = config.query_columns[datatypes.Tag(table.tag)]
+
             if "year" in df.columns:
                 raise ValueError(f"TFM_INS-TS table already has Year column: {table}")
 
@@ -2209,6 +2211,99 @@ def _match_wildcards(
     return df
 
 
+def query(
+    table: DataFrame,
+    process: str | None,
+    commodity: str | None,
+    attribute: str | None,
+    region: str | None,
+    year: int | None,
+) -> pd.Index:
+    qs = []
+    if process is not None:
+        qs.append(f"process in ['{process}']")
+    if commodity is not None:
+        qs.append(f"commodity in ['{commodity}']")
+    if attribute is not None:
+        qs.append(f"attribute == '{attribute}'")
+    if region is not None:
+        qs.append(f"region == '{region}'")
+    if year is not None:
+        qs.append(f"year == {year}")
+    return table.query(" and ".join(qs)).index
+
+
+def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) -> None:
+    """Performs an inplace update of rows `rows_to_update` of `table` with `new_value`,
+    which can be a update formula like `*2.3`.
+    """
+    if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
+        old_values = table.loc[rows_to_update, "value"]
+        updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
+        table.loc[rows_to_update, "value"] = updated
+    else:
+        table.loc[rows_to_update, "value"] = new_value
+
+
+def _eval_updates(eval_table: pd.DataFrame, updates: pd.DataFrame) -> pd.DataFrame:
+    """
+    Evaluate the update formulas (e.g. *,/,+,-) in updates on matching rows in table, returning updated rows.
+
+    This uses sqldf and an in-mem sqlite database to perform this complex join in a single operation and is significantly faster than row iteration
+    for large tables (which is necessary as this cannot be done in a single `df.query()` call due to the conditional matching.
+
+    1. For each for in updates, fFind rows from `table` matching the same Process, Commodity, Attribute, Region, and Year
+    2. Apply the update formula (copy the value or apply basic numerical operations) to the value of each matching row
+
+    Args:
+        eval_table:
+        updates:
+
+    Returns: the updated rows as a dataframe
+    """
+    new_tables = []
+    join_cols = ["process", "commodity", "attribute", "region", "year"]
+
+    # Join table with update.value by process, commodity, attribute, region, year, where a None value in a key column matches all values in the
+    # corresponding column of table. This is equivalent to the SQL (u.process = t.process OR u.process IS NULL) join conditions.
+    # For any columns values in update that are none, we match all values in the corresponding columns of table
+    joined = sqldf(
+        """
+        SELECT t.*, u.value AS 'value_upd', u.source_filename as 'source_filename_upd'
+        FROM updates AS u
+        LEFT JOIN eval_table AS t ON
+        (u.process = t.process OR u.process IS NULL) AND
+        (u.commodity = t.commodity OR u.commodity IS NULL) AND
+        (u.attribute = t.attribute OR u.attribute IS NULL) AND
+        (u.region = t.region OR u.region IS NULL) AND
+        (u.year = t.year OR u.year IS NULL)
+        WHERE t.value IS NOT NULL
+        """,
+        env={"updates": updates, "eval_table": eval_table},
+    )
+
+    def eval_row(row, strict: bool = False):
+        if isinstance(row["value_upd"], str) and row["value_upd"][0] in {
+            "*",
+            "+",
+            "-",
+            "/",
+        }:
+            return eval(row["value"] + row["value_upd"])
+        else:
+            return row["value_upd"]
+
+    # apply the multipliers etc from the `value_upd` col to the `value` column
+    joined["value"] = joined.apply(lambda row: eval_row(row), axis=1)
+
+    # Drop the now-unused cols
+    joined = joined.drop(columns=["value_upd", "source_filename"])
+    # Use the filename from the updates table
+    joined = joined.rename(columns={"source_filename_upd": "source_filename"})
+
+    return joined
+
+
 def apply_transform_tables(
     config: datatypes.Config,
     tables: Dict[str, DataFrame],
@@ -2218,78 +2313,19 @@ def apply_transform_tables(
     Include data from transformation tables.
     """
 
-    topology = generate_topology_dictionary(tables, model)
-
-    def query(
-        table: DataFrame,
-        process: str | None,
-        commodity: str | None,
-        attribute: str | None,
-        region: str | None,
-        year: int | None,
-    ) -> pd.Index:
-        qs = []
-        if process is not None:
-            qs.append(f"process in ['{process}']")
-        if commodity is not None:
-            qs.append(f"commodity in ['{commodity}']")
-        if attribute is not None:
-            qs.append(f"attribute == '{attribute}'")
-        if region is not None:
-            qs.append(f"region == '{region}'")
-        if year is not None:
-            qs.append(f"year == {year}")
-        return table.query(" and ".join(qs)).index
-
-    def eval_and_update(
-        table: DataFrame, rows_to_update: pd.Index, new_value: str
-    ) -> None:
-        """Performs an inplace update of rows `rows_to_update` of `table` with `new_value`,
-        which can be a update formula like `*2.3`."""
-        if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
-            old_values = table.loc[rows_to_update, "value"]
-            updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
-            table.loc[rows_to_update, "value"] = updated
-        else:
-            table.loc[rows_to_update, "value"] = new_value
-
     if datatypes.Tag.tfm_upd in tables:
         updates = tables[datatypes.Tag.tfm_upd]
         table = tables[datatypes.Tag.fi_t]
-        new_tables = [table]
+
         # Reset FI_T index so that queries can determine unique rows to update
         tables[datatypes.Tag.fi_t].reset_index(inplace=True, drop=True)
 
-        # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
-        # evaluate the update formula, and add new rows to FI_T
-        # TODO perf: collect all updates and go through FI_T only once?
-        for _, row in tqdm(
-            updates.iterrows(),
-            total=len(updates),
-            desc=f"Applying transformations from {datatypes.Tag.tfm_upd.value}",
-        ):
-            rows_to_update = query(
-                table,
-                row["process"],
-                row["commodity"],
-                row["attribute"],
-                row["region"],
-                row["year"],
-            )
+        # Apply the update formulas in updates to the rows in table
+        new_tables = _eval_updates(table, updates)
 
-            if not any(rows_to_update):
-                logger.info(
-                    f"A {datatypes.Tag.tfm_upd.value} row generated no records."
-                )
-                continue
-
-            new_rows = table.loc[rows_to_update].copy()
-            new_rows["source_filename"] = row["source_filename"]
-            eval_and_update(new_rows, rows_to_update, row["value"])
-            new_tables.append(new_rows)
-
-        # Add new rows to table
-        tables[datatypes.Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+        # Append updated rows to table.
+        # TODO this matches old behaviour, but double-check that the old (non-updated) values get removed later?!
+        tables[datatypes.Tag.fi_t] = pd.concat([table, new_tables], ignore_index=True)
 
     if datatypes.Tag.tfm_ins in tables:
         table = tables[datatypes.Tag.fi_t]
@@ -2325,7 +2361,12 @@ def apply_transform_tables(
             # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
             # with the value from row
             # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
-            table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
+            if row["attribute"] not in attr_prop:
+                logger.warning(
+                    f"Unknown attribute {row['attribute']}, skipping update."
+                )
+            else:
+                table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
 
     if datatypes.Tag.tfm_mig in tables:
         updates = tables[datatypes.Tag.tfm_mig]

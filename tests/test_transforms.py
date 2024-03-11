@@ -1,6 +1,11 @@
+import gzip
+import pickle
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
+from pandasql import sqldf
+from tqdm import tqdm
 
 from xl2times import transforms, utils, datatypes
 from xl2times.transforms import (
@@ -12,6 +17,8 @@ from xl2times.transforms import (
     _match_wildcards,
     process_map,
     commodity_map,
+    query,
+    eval_and_update,
 )
 
 logger = utils.get_logger()
@@ -68,7 +75,110 @@ def _match_uc_wildcards_old(
     return df
 
 
+def _eval_updates_old(table: pd.DataFrame, updates: pd.DataFrame) -> list[pd.DataFrame]:
+    """
+    Evaluate the update formulas in updates on matching rows in table, returning updated rows.
+    """
+    new_tables = []
+
+    # TODO perf: collect all updates and go through FI_T only once?
+    for _, row in tqdm(
+        updates.iterrows(),
+        total=len(updates),
+        desc=f"Applying transformations from {datatypes.Tag.tfm_upd.value}",
+    ):
+        rows_to_update = query(
+            table,
+            row["process"],
+            row["commodity"],
+            row["attribute"],
+            row["region"],
+            row["year"],
+        )
+
+        if not any(rows_to_update):
+            logger.info(f"A {datatypes.Tag.tfm_upd.value} row generated no records.")
+            continue
+
+        new_rows = table.loc[rows_to_update].copy()
+        new_rows["source_filename"] = row["source_filename"]
+        eval_and_update(new_rows, rows_to_update, row["value"])
+        new_tables.append(new_rows)
+    return new_tables
+
+
 class TestTransforms:
+    def test_eval_updates(self):
+        """
+        Austimes performance:
+            Finished eval_updates() in 0:01:57.146817
+            Finished eval_updates_old() in 0:05:29.668738
+
+        Ireland performance:
+            Finished eval_updates() in 0:00:02.955761
+            Finished eval_updates_old() in 0:00:03.532933
+
+        """
+        table = pickle.load(gzip.open("tests/data/tmp_fi_t_ireland.pkl.gz", "rb"))
+        updates = pickle.load(gzip.open("tests/data/tmp_tfm_upd_ireland.pkl.gz", "rb"))
+
+        # warmup sqldf
+        sqldf("select * from updates limit 1")
+
+        t0 = datetime.now()
+        updates_new = transforms._eval_updates(table, updates).sort_values(
+            by=["process", "commodity", "attribute", "region", "year"]
+        )
+        t1 = datetime.now()
+        updates_old = _eval_updates_old(table, updates)
+        updates_old = pd.concat(updates_old).sort_values(
+            by=["process", "commodity", "attribute", "region", "year"]
+        )
+        t2 = datetime.now()
+
+        logger.info(f"_eval_updates_old() took {t2 - t1} seconds")
+        logger.info(
+            f"_eval_updates() took {t1 - t0} seconds, a speedup of {((t2 - t1) / (t1 - t0)):.1f}x"
+        )
+
+        assert updates_new.shape == updates_old.shape, "shapes should be equal"
+        assert (updates_new.dtypes == updates_old.dtypes).all()
+        assert (
+            (
+                updates_old.fillna("")
+                .reset_index(drop=True)
+                .astype(float, errors="ignore")
+                .round(3)
+                .drop(columns="value")
+                == updates_new.fillna("")
+                .reset_index(drop=True)
+                .astype(float, errors="ignore")
+                .round(3)
+                .drop(columns="value")
+            )
+            .all()
+            .all()
+        ), "non-value columns should be equal"
+        assert (
+            updates_old["value"]
+            .reset_index(drop=True)
+            .astype(float, errors="ignore")
+            .round(3)
+            == updates_new["value"]
+            .reset_index(drop=True)
+            .astype(float, errors="ignore")
+            .round(3)
+        ).all(), "value columns should be equal"
+
+    def test_process_wildcards(self):
+        with open("tests/data/process_wildcards_test_data.pkl", "rb") as f:
+            table = pd.read_pickle(f)
+        with open("tests/data/process_wildcards_test_model.pkl", "rb") as f:
+            model = pd.read_pickle(f)
+        t0 = datetime.now()
+        result = transforms.process_wildcards(None, table, model)  # pyright: ignore
+        logger.info(f"process_wildcards() took {datetime.now() - t0} seconds")
+
     def test_uc_wildcards(self):
         """
         Tests logic that matches wildcards in the process_uc_wildcards transform .
@@ -165,4 +275,5 @@ class TestTransforms:
 
 if __name__ == "__main__":
     # TestTransforms().test_default_pcg_vectorised()
-    TestTransforms().test_uc_wildcards()
+    # TestTransforms().test_uc_wildcards()
+    TestTransforms().test_eval_updates()

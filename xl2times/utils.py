@@ -188,14 +188,20 @@ def get_scalar(table_tag: str, tables: List[datatypes.EmbeddedXlTable]):
 
 
 def has_negative_patterns(pattern):
+    if len(pattern) == 0:
+        return False
     return pattern[0] == "-" or ",-" in pattern
 
 
 def remove_negative_patterns(pattern):
+    if len(pattern) == 0:
+        return pattern
     return ",".join([word for word in pattern.split(",") if word[0] != "-"])
 
 
 def remove_positive_patterns(pattern):
+    if len(pattern) == 0:
+        return pattern
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
@@ -259,7 +265,7 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
         "handlers": [
             {
                 "sink": sys.stdout,
-                "diagnose": False,
+                "diagnose": True,
                 "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level> (<cyan>{name}:{"
                 'thread.name}:pid-{process}</cyan> "<cyan>{'
                 'file.path}</cyan>:<cyan>{line}</cyan>")',
