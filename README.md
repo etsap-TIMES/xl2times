@@ -140,4 +140,4 @@ python -m twine upload dist/*
 
 ## Contributing
 
-This project welcomes contributions and suggestions.
+This project welcomes contributions and suggestions. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
