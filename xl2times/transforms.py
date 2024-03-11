@@ -426,12 +426,12 @@ def process_flexible_import_tables(
         "limtype": {"LO", "UP", "FX"},
         # TODO: check what the values for the below should be
         "timeslice": set(model.ts_tslvl["tslvl"]),
-        "commodity-out": set(
+        "commodity": set(
             utils.merge_columns(tables, datatypes.Tag.fi_comm, "commodity")
         ),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, datatypes.Tag.currencies, "currency"),
-        "other_indexes": {"INPUT", "OUTPUT", "DEMO", "DEMI"},
+        "other_indexes": {"IN", "OUT", "DEMO", "DEMI"},
     }
 
     def get_colname(value):
@@ -1092,7 +1092,8 @@ def apply_fixups(
     model: datatypes.TimesModel,
 ) -> List[datatypes.EmbeddedXlTable]:
     def apply_fixups_table(table: datatypes.EmbeddedXlTable):
-        if not table.tag.startswith(datatypes.Tag.fi_t):
+        tag = datatypes.Tag.fi_t
+        if not table.tag.startswith(tag):
             return table
 
         df = table.dataframe.copy()
@@ -1101,19 +1102,35 @@ def apply_fixups(
         if "year" in df.columns:
             df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
-        # Populate CommName based on defaults
-        i = (
-            df["attribute"]
-            .str.upper()
-            .isin(config.veda_attr_defaults["commodity"].keys())
-            & df["commodity"].isna()
-        )
-        if len(df[i]) > 0:
-            for attr in df[i]["attribute"].unique():
-                for com_in_out in config.veda_attr_defaults["commodity"][attr.upper()]:
-                    index = i & (df["attribute"] == attr) & (df["commodity"].isna())
-                    if len(df[index]) > 0:
-                        df.loc[index, ["commodity"]] = df[index][com_in_out]
+        def _populate_defaults(dataframe: DataFrame, col_name: str):
+            """
+            Fill in some of the missing values based on defaults in place.
+            """
+            i_na = (
+                dataframe["attribute"]
+                .str.upper()
+                .isin(config.veda_attr_defaults[col_name].keys())
+                & dataframe[col_name].isna()
+            )
+            if any(i_na):
+                for attr in dataframe[i_na]["attribute"].unique():
+                    i_attr = dataframe["attribute"] == attr
+                    for default_value in config.veda_attr_defaults[col_name][
+                        attr.upper()
+                    ]:
+                        # Ensure that previously filled values are not overwritten
+                        i_fill = i_na & i_attr & dataframe[col_name].isna()
+                        if any(i_fill):
+                            if default_value not in config.known_columns[tag]:
+                                dataframe.loc[i_fill, [col_name]] = default_value
+                            else:
+                                dataframe.loc[i_fill, [col_name]] = dataframe[i_fill][
+                                    default_value
+                                ]
+
+        # Populate commodity and other_indexes based on defaults
+        for col in {"commodity", "other_indexes"}:
+            _populate_defaults(df, col)
 
         # Fill other indexes for some attributes
         # FLO_SHAR
@@ -1121,14 +1138,6 @@ def apply_fixups(
         df.loc[i, "other_indexes"] = "NRGI"
         i = df["attribute"] == "SHARE-O"
         df.loc[i, "other_indexes"] = "NRGO"
-        # ACT_EFF
-        i = df["attribute"].isin({"CEFF", "CEFFICIENCY", "CEFF-I", "CEFF-O"})
-        df.loc[i, "other_indexes"] = df[i]["commodity"]
-        i = df["attribute"].isin({"EFF", "EFFICIENCY"})
-        df.loc[i, "other_indexes"] = "ACT"
-        # FLO_EMIS
-        i = df["attribute"].isin({"ENV_ACT", "ENVACT"})
-        df.loc[i, "other_indexes"] = "ACT"
 
         return replace(table, dataframe=df)
 
@@ -2539,7 +2548,15 @@ def convert_aliases(
         subset=[col for col in df.columns if col != "value"], keep="last"
     )
     tables[datatypes.Tag.fi_t] = df.reset_index(drop=True)
-    # TODO: do this earlier
+    return tables
+
+
+def assign_model_attributes(
+    config: datatypes.Config,
+    tables: Dict[str, DataFrame],
+    model: datatypes.TimesModel,
+) -> Dict[str, DataFrame]:
+
     model.attributes = tables[datatypes.Tag.fi_t]
     if datatypes.Tag.uc_t in tables.keys():
         model.uc_attributes = tables[datatypes.Tag.uc_t]
