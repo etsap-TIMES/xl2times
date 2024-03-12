@@ -1,10 +1,9 @@
 import argparse
-import sys
-from collections import defaultdict
 import json
 import os
+import sys
+from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -13,7 +12,7 @@ from loguru import logger
 
 def parse_parameter_values_from_file(
     path: Path,
-) -> Tuple[Dict[str, List], Dict[str, set]]:
+) -> tuple[dict[str, list], dict[str, set]]:
     """
     Parse *.dd to turn it into CSV format
     There are parameters and sets, and each has a slightly different format
@@ -35,11 +34,11 @@ def parse_parameter_values_from_file(
 
     """
 
-    data = list(open(path, "r"))
+    data = list(open(path))
     data = [line.rstrip() for line in data]
 
-    param_value_dict: Dict[str, List] = dict()
-    set_data_dict: Dict[str, set] = dict()
+    param_value_dict: dict[str, list] = dict()
+    set_data_dict: dict[str, set] = dict()
     index = 0
     while index < len(data):
         if data[index].startswith("PARAMETER"):
@@ -124,8 +123,8 @@ def parse_parameter_values_from_file(
 
 
 def save_data_with_headers(
-    param_data_dict: Dict[str, Union[pd.DataFrame, List[str]]],
-    headers_data: Dict[str, List[str]],
+    param_data_dict: dict[str, pd.DataFrame | list[str]],
+    headers_data: dict[str, list[str]],
     save_dir: str,
 ) -> None:
     """
@@ -157,7 +156,7 @@ def save_data_with_headers(
     return
 
 
-def generate_headers_by_attr() -> Dict[str, List[str]]:
+def generate_headers_by_attr() -> dict[str, list[str]]:
     with open("xl2times/config/times-info.json") as f:
         attributes = json.load(f)
 
@@ -173,7 +172,7 @@ def generate_headers_by_attr() -> Dict[str, List[str]]:
 
 
 def convert_dd_to_tabular(
-    basedir: str, output_dir: str, headers_by_attr: Dict[str, List[str]]
+    basedir: str, output_dir: str, headers_by_attr: dict[str, list[str]]
 ) -> None:
     dd_files = [p for p in Path(basedir).rglob("*.dd")]
 
@@ -201,12 +200,13 @@ def convert_dd_to_tabular(
     os.makedirs(set_path, exist_ok=True)
 
     # Extract headers with key=param_name and value=List[attributes]
-    lines = list(open("xl2times/config/times_mapping.txt", "r"))
+    lines = list(open("xl2times/config/times_mapping.txt"))
     headers_data = headers_by_attr
     # The following will overwrite data obtained from headers_by_attr
     # TODO: Remove once migration is done?
     for line in lines:
-        line = line.strip()
+        # TODO Fix: PLW2901 `for` loop variable `line` overwritten by assignment target
+        line = line.strip()  # noqa
         if line != "":
             param_name = line.split("[")[0]
             attributes = line.split("[")[1].split("]")[0].split(",")
