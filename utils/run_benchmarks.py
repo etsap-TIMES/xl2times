@@ -334,8 +334,7 @@ def run_all_benchmarks(
             results_main = list(executor.map(run_a_benchmark, benchmarks))
 
     # Print table with combined results to make comparison easier
-    def trunc(s):
-        s[:10] + "\u2026" if len(s) > 10 else s
+    trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s  # noqa
 
     combined_results = [
         (
