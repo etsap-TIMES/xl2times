@@ -170,9 +170,9 @@ class TestTransforms:
         ).all(), "value columns should be equal"
 
     def test_process_wildcards(self):
-        with open("tests/data/process_wildcards_test_data.pkl", "rb") as f:
+        with gzip.open("tests/data/process_wildcards_test_data.pkl.gz", "rb") as f:
             table = pd.read_pickle(f)
-        with open("tests/data/process_wildcards_test_model.pkl", "rb") as f:
+        with gzip.open("tests/data/process_wildcards_test_model.pkl.gz", "rb") as f:
             model = pd.read_pickle(f)
         t0 = datetime.now()
         result = transforms.process_wildcards(None, table, model)  # pyright: ignore
