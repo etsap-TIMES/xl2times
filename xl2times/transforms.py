@@ -2130,9 +2130,6 @@ def process_wildcards(
             df = tables[tag]
             dictionary = generate_topology_dictionary(tables, model)
 
-            # Explode=False: Ran Ireland in 10.94s. 90.0% (36629 correct, 3415 additional).
-            # Explode=True:  Ran Ireland in 14.51s. 90.0% (36614 correct, 3415 additional).
-
             if set(df.columns).intersection(set(process_map.keys())):
                 df = _match_wildcards(
                     df,
@@ -2427,9 +2424,10 @@ def apply_transform_tables(
         updates = tables[datatypes.Tag.tfm_comgrp].filter(table.columns, axis=1)
 
         commodity_groups = pd.concat([table, updates], ignore_index=True)
-        commodity_groups = commodity_groups.drop_duplicates(
-            subset=[c for c in commodity_groups.columns if c != "commodity"]
+        commodity_groups["commodity"] = commodity_groups["commodity"].explode(
+            ignore_index=True
         )
+        commodity_groups = commodity_groups.drop_duplicates()
         commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
         model.commodity_groups = commodity_groups.dropna()
 
@@ -2454,11 +2452,6 @@ def explode_process_commodity_cols(
                 "commodity", ignore_index=True
             )
             tables[tag] = df
-
-    # special case: explode any commodities that got added during the Tag.tfm_comgrp processing in apply_transform_tables
-    model.commodity_groups = model.commodity_groups.explode(
-        "commodity", ignore_index=True
-    )
 
     return tables
 
