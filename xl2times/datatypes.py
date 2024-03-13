@@ -75,14 +75,12 @@ class EmbeddedXlTable:
 
     Attributes:
         tag         Table tag associated with this table in the excel file used as input.
-        current_tag Tag corresponding to the current table format (i.e. after a transformation).
         defaults    Defaults for the table that are separated by a colon from the tag.
         uc_sets     User constrained tables are declared with tags which indicate their type and domain of coverage.
         sheetname   Name of the excel worksheet where this table was extracted from.
         range       Range of rows and columns that contained this table in the original excel worksheet.
         filename    Name of the original excel the table was extracted from.
         dataframe   Pandas dataframe containing the values of the table.
-        module      Specifies a group assigned to a file based on its name pattern.
     """
 
     tag: str
