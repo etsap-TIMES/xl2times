@@ -4,7 +4,9 @@ from __future__ import (
 
 # see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
 import functools
+import gzip
 import os
+import pickle
 import re
 import sys
 from collections.abc import Iterable
@@ -15,6 +17,7 @@ from pathlib import Path
 import loguru
 import numpy
 import pandas as pd
+from loguru import logger
 from more_itertools import one
 from pandas.core.frame import DataFrame
 
@@ -189,14 +192,20 @@ def get_scalar(table_tag: str, tables: list[datatypes.EmbeddedXlTable]):
 
 
 def has_negative_patterns(pattern):
+    if len(pattern) == 0:
+        return False
     return pattern[0] == "-" or ",-" in pattern
 
 
 def remove_negative_patterns(pattern):
+    if len(pattern) == 0:
+        return pattern
     return ",".join([word for word in pattern.split(",") if word[0] != "-"])
 
 
 def remove_positive_patterns(pattern):
+    if len(pattern) == 0:
+        return pattern
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
@@ -260,7 +269,7 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
         "handlers": [
             {
                 "sink": sys.stdout,
-                "diagnose": False,
+                "diagnose": True,
                 "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level> (<cyan>{name}:{"
                 'thread.name}:pid-{process}</cyan> "<cyan>{'
                 'file.path}</cyan>:<cyan>{line}</cyan>")',
@@ -272,7 +281,7 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
                 "level": "DEBUG",
                 "colorize": False,
                 "serialize": False,
-                "diagnose": True,
+                "diagnose": False,
                 "rotation": "20 MB",
                 "compression": "zip",
             },
@@ -280,3 +289,106 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
     }
     logger.configure(**log_conf)
     return logger
+
+
+def save_state(
+    config: datatypes.Config,
+    tables: dict[str, DataFrame],
+    model: datatypes.TimesModel,
+    filename: str,
+) -> None:
+    """Saves the state from a transform step to a single pickle file.
+    Useful for troubleshooting regressions by diffing with state from another branch.
+    """
+    pickle.dump({"tables": tables, "model": model}, gzip.open(filename, "wb"))
+    logger.debug(f"State saved to {filename}")
+
+
+def compare_df_dict(
+    df_before: dict[str, DataFrame],
+    df_after: dict[str, DataFrame],
+    sort_cols: bool = True,
+    context_rows: int = 2,
+) -> None:
+    """
+    Simple function to compare two dictionaries of DataFrames.
+
+    Args:
+        df_before: the first dictionary of DataFrames to compare
+        df_after: the second dictionary of DataFrames to compare
+        sort_cols: whether to sort the columns before comparing.  Set True if the column order is unimportant.
+        context_rows: number of rows to show around the first difference
+    """
+
+    for key in df_before:
+
+        before = df_before[key]
+        after = df_after[key]
+
+        if sort_cols:
+            before = before.sort_index(axis="columns")
+            after = after.sort_index(axis="columns")
+
+        if not before.equals(after):
+
+            # print first line that is different, and its surrounding lines
+            for i in range(len(before)):
+                if not before.columns.equals(after.columns):
+                    logger.warning(
+                        f"Table {key} has different columns (or column order):\n"
+                        f"BEFORE: {before.columns}\n"
+                        f"AFTER: {after.columns}"
+                    )
+                    break
+                if not before.iloc[i].equals(after.iloc[i]):
+                    logger.warning(
+                        f"Table {key} is different, first difference at row {i}:\n"
+                        f"BEFORE:\n{before.iloc[i - context_rows:i + context_rows + 1]}\n"
+                        f"AFTER: \n{after.iloc[i - context_rows:i + context_rows + 1]}"
+                    )
+                    break
+        else:
+            logger.success(f"Table {key} is the same")
+
+
+def diff_state(
+    filename_before: str, filename_after: str, sort_cols: bool = False
+) -> None:
+    """
+    Diffs dataframes from two persisted state files created with save_state().
+
+    Typical usage:
+    - Save the state from a branch with a regression at some point in the transforms:
+    - Switch to `main` branch and save the state from the same point:
+    - Diff the two states:
+
+    For example:
+    >>> from utils import save_state, diff_state
+    >>> save_state(config, tables, model, "branch.pkl.gz")
+    >>> save_state(config, tables, model, "main.pkl.gz")
+    >>> diff_state("branch.pkl.gz", "main.pkl.gz")
+
+    TODO also compare config and non-dataframe model attributes?
+    """
+    before = pickle.load(gzip.open(filename_before, "rb"))
+    after = pickle.load(gzip.open(filename_after, "rb"))
+
+    # Compare DFs in the tables dict
+    logger.info("Comparing `table` dataframes...")
+    compare_df_dict(before["tables"], after["tables"], sort_cols=sort_cols)
+
+    # Compare DFs on the model object
+    model_before = before["model"]
+    model_after = after["model"]
+    dfs_before = {
+        a: getattr(model_before, a)
+        for a in dir(model_before)
+        if isinstance(getattr(model_before, a), pd.DataFrame)
+    }
+    dfs_after = {
+        a: getattr(model_after, a)
+        for a in dir(model_after)
+        if isinstance(getattr(model_after, a), pd.DataFrame)
+    }
+    logger.info("Comparing `model` dataframes...")
+    compare_df_dict(dfs_before, dfs_after, sort_cols=sort_cols)
