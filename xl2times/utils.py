@@ -304,38 +304,77 @@ def save_state(
 
 
 def compare_df_dict(
-    df_main: dict[str, DataFrame], df_new: dict[str, DataFrame], sort_cols: bool = True
+    df_before: dict[str, DataFrame],
+    df_after: dict[str, DataFrame],
+    sort_cols: bool = True,
+    context_rows: int = 2,
 ) -> None:
-    """Simple function to compare two dictionaries of DataFrames, for troubleshooting model regressions etc."""
-    for key in df_main:
+    """
+    Simple function to compare two dictionaries of DataFrames.
 
-        main = df_main[key]
-        new = df_new[key]
+    Args:
+        df_before: the first dictionary of DataFrames to compare
+        df_after: the second dictionary of DataFrames to compare
+        sort_cols: whether to sort the columns before comparing.  Set True if the column order is unimportant.
+        context_rows: number of rows to show around the first difference
+    """
+
+    for key in df_before:
+
+        before = df_before[key]
+        after = df_after[key]
 
         if sort_cols:
-            main = main.sort_index(axis="columns")
-            new = new.sort_index(axis="columns")
+            before = before.sort_index(axis="columns")
+            after = after.sort_index(axis="columns")
 
-        if not main.equals(new):
-            logger.error(f"Table {key} is different...")
+        if not before.equals(after):
 
             # print first line that is different, and its surrounding lines
-            for i in range(len(main)):
-                if not main.iloc[i].equals(new.iloc[i]):
-                    print(f"main: {main.iloc[i - 1:i + 2]}")
-                    print(f"new: {new.iloc[i - 1:i + 2]}")
+            for i in range(len(before)):
+                if not before.columns.equals(after.columns):
+                    logger.warning(
+                        f"Table {key} has different columns (or column order):\n"
+                        f"BEFORE: {before.columns}\n"
+                        f"AFTER: {after.columns}"
+                    )
+                    break
+                if not before.iloc[i].equals(after.iloc[i]):
+                    logger.warning(
+                        f"Table {key} is different, first difference at row {i}:\n"
+                        f"BEFORE:\n{before.iloc[i - context_rows:i + context_rows + 1]}\n"
+                        f"AFTER: \n{after.iloc[i - context_rows:i + context_rows + 1]}"
+                    )
                     break
         else:
             logger.success(f"Table {key} is the same")
 
 
-def diff_state(filename_before: str, filename_after: str) -> None:
-    """Diffs two state files created with save_state()."""
+def diff_state(
+    filename_before: str, filename_after: str, sort_cols: bool = False
+) -> None:
+    """
+    Diffs dataframes from two persisted state files created with save_state().
+
+    Typical usage:
+    - Save the state from a branch with a regression at some point in the transforms:
+    - Switch to `main` branch and save the state from the same point:
+    - Diff the two states:
+
+    For example:
+    >>> from utils import save_state, diff_state
+    >>> save_state(config, tables, model, "branch.pkl.gz")
+    >>> save_state(config, tables, model, "main.pkl.gz")
+    >>> diff_state("branch.pkl.gz", "main.pkl.gz")
+
+    TODO also compare config and non-dataframe model attributes?
+    """
     before = pickle.load(gzip.open(filename_before, "rb"))
     after = pickle.load(gzip.open(filename_after, "rb"))
 
     # Compare DFs in the tables dict
-    compare_df_dict(before["tables"], after["tables"])
+    logger.info("Comparing `table` dataframes...")
+    compare_df_dict(before["tables"], after["tables"], sort_cols=sort_cols)
 
     # Compare DFs on the model object
     model_before = before["model"]
@@ -350,4 +389,5 @@ def diff_state(filename_before: str, filename_after: str) -> None:
         for a in dir(model_after)
         if isinstance(getattr(model_after, a), pd.DataFrame)
     }
-    compare_df_dict(dfs_before, dfs_after)
+    logger.info("Comparing `model` dataframes...")
+    compare_df_dict(dfs_before, dfs_after, sort_cols=sort_cols)

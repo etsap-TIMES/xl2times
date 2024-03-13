@@ -2424,9 +2424,7 @@ def apply_transform_tables(
         updates = tables[datatypes.Tag.tfm_comgrp].filter(table.columns, axis=1)
 
         commodity_groups = pd.concat([table, updates], ignore_index=True)
-        commodity_groups["commodity"] = commodity_groups["commodity"].explode(
-            ignore_index=True
-        )
+        commodity_groups = commodity_groups.explode("commodity", ignore_index=True)
         commodity_groups = commodity_groups.drop_duplicates()
         commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
         model.commodity_groups = commodity_groups.dropna()
@@ -2455,8 +2453,6 @@ def explode_process_commodity_cols(
             df = df.explode("commodity", ignore_index=True)
 
         tables[tag] = df
-
-    utils.save_state(config, tables, model, "exploded_process_commodity_cols.pkl.gz")
 
     return tables
 
