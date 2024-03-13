@@ -1,22 +1,20 @@
 import re
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
 from itertools import groupby
 from pathlib import Path
-from typing import Callable
-from typing import Dict, List, Set
 
 import pandas as pd
 from loguru import logger
-from more_itertools import locate, one
+from more_itertools import locate
 from pandas.core.frame import DataFrame
 from tqdm import tqdm
 
-from . import datatypes
-from . import utils
+from . import datatypes, utils
 from .utils import max_workers
 
 csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
@@ -50,9 +48,9 @@ commodity_map = {
 
 def remove_comment_rows(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Remove comment rows from all the tables. Assumes table dataframes are not empty.
     """
@@ -76,7 +74,7 @@ def remove_comment_rows(
 
 def _remove_df_comment_rows(
     df: pd.DataFrame,
-    comment_chars: Dict[str, list],
+    comment_chars: dict[str, list],
 ) -> None:
     """
     Modify a dataframe in-place by deleting rows with cells starting with symbols
@@ -130,9 +128,9 @@ def remove_comment_cols(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
 
 def remove_exreg_cols(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Remove external region columns from all the tables except tradelinks.
     """
@@ -173,9 +171,9 @@ def remove_exreg_cols(
 
 def remove_tables_with_formulas(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Return a modified copy of 'tables' where tables with formulas (as identified by an
     initial '=') have deleted from the list.
@@ -198,9 +196,9 @@ def remove_tables_with_formulas(
 
 def validate_input_tables(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Perform some basic validation (tag names are valid, no duplicate column labels), and
     remove empty tables (for recognized tags).
@@ -236,9 +234,9 @@ def validate_input_tables(
 
 def revalidate_input_tables(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Perform further validation of input tables by checking whether required columns are
     present / non-empty. Remove tables without required columns or if they are empty.
@@ -277,9 +275,9 @@ def revalidate_input_tables(
 
 def normalize_tags_columns(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Normalize (uppercase) tags and (lowercase) column names.
 
@@ -309,9 +307,9 @@ def normalize_tags_columns(
 
 def normalize_column_aliases(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     for table in tables:
         tag = table.tag.split(":")[0]
         if tag in config.column_aliases:
@@ -329,9 +327,9 @@ def normalize_column_aliases(
 
 def include_tables_source(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Add a column specifying source filename to every table
     """
@@ -346,9 +344,9 @@ def include_tables_source(
 
 def merge_tables(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     """
     Merge all tables in 'tables' with the same table tag, as long as they share the same
     column field values. Print a warning for those that don't share the same column values.
@@ -405,9 +403,9 @@ def merge_tables(
 
 def process_flexible_import_tables(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Attempt to process all flexible import tables in 'tables'. The processing includes:
     - Checking that the table is indeed a flexible import table. If not, return it unmodified.
@@ -555,9 +553,9 @@ def process_flexible_import_tables(
 
 def process_user_constraint_tables(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Process all user constraint tables in 'tables'. The processing includes:
     - Removing, adding and renaming columns as needed.
@@ -675,9 +673,9 @@ def process_user_constraint_tables(
 
 def generate_uc_properties(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Generate a dataframe containing User Constraint properties
     """
@@ -742,9 +740,9 @@ def generate_uc_properties(
 
 def fill_in_missing_values(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Attempt to fill in missing values for all tables except update tables (as these contain
     wildcards). How the value is filled in depends on the name of the column the empty values
@@ -838,7 +836,7 @@ def fill_in_missing_values(
 
 
 def expand_rows(
-    query_columns: Set[str], table: datatypes.EmbeddedXlTable
+    query_columns: set[str], table: datatypes.EmbeddedXlTable
 ) -> datatypes.EmbeddedXlTable:
     """
     Expand entries with commas into separate entries in the same column. Do this
@@ -876,9 +874,9 @@ def expand_rows(
 
 def remove_invalid_values(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Remove all entries of any dataframes that are considered invalid. The rules for
     allowing an entry can be seen in the 'constraints' dictionary below.
@@ -924,9 +922,9 @@ def remove_invalid_values(
 
 def process_units(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     units_map = {
         "activity": model.processes["tact"].unique(),
         "capacity": model.processes["tcap"].unique(),
@@ -943,9 +941,9 @@ def process_units(
 
 def process_time_periods(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     model.start_year = utils.get_scalar(datatypes.Tag.start_year, tables)
     active_pdef = utils.get_scalar(datatypes.Tag.active_p_def, tables)
     df = utils.single_table(tables, datatypes.Tag.time_periods).dataframe.copy()
@@ -970,15 +968,15 @@ def process_time_periods(
 
 def process_regions(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Read model regions and update model.internal_regions and model.all_regions.
     Include IMPEXP and MINRNW in model.all_regions (defined by default by Veda).
     """
 
-    model.all_regions.update((["IMPEXP", "MINRNW"]))
+    model.all_regions.update(["IMPEXP", "MINRNW"])
     # Read region settings
     region_def = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
     # Harmonise the dataframe
@@ -1021,9 +1019,9 @@ def process_regions(
 
 def complete_dictionary(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     for k, v in [
         ("AllRegions", model.all_regions),
         ("Regions", model.internal_regions),
@@ -1061,9 +1059,9 @@ def complete_dictionary(
 
 def capitalise_some_values(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Ensure that all attributes and units are uppercase
     """
@@ -1088,9 +1086,9 @@ def capitalise_some_values(
 
 def apply_fixups(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     def apply_fixups_table(table: datatypes.EmbeddedXlTable):
         tag = datatypes.Tag.fi_t
         if not table.tag.startswith(tag):
@@ -1129,7 +1127,7 @@ def apply_fixups(
                                 ]
 
         # Populate commodity and other_indexes based on defaults
-        for col in {"commodity", "other_indexes"}:
+        for col in ("commodity", "other_indexes"):
             _populate_defaults(df, col)
 
         # Fill other indexes for some attributes
@@ -1146,9 +1144,9 @@ def apply_fixups(
 
 def generate_commodity_groups(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Generate commodity groups.
     """
@@ -1289,9 +1287,9 @@ def _process_comm_groups_vectorised(
 
 def complete_commodity_groups(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     """
     Complete the list of commodity groups.
     """
@@ -1314,9 +1312,9 @@ def complete_commodity_groups(
 
 def generate_trade(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Generate inter-regional exchange topology
     """
@@ -1405,9 +1403,9 @@ def generate_trade(
 
 def fill_in_missing_pcgs(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Fill in missing primary commodity groups in FI_Process tables.
     Expand primary commodity groups specified in FI_Process tables by a suffix.
@@ -1457,9 +1455,9 @@ def fill_in_missing_pcgs(
 
 def remove_fill_tables(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     # These tables collect data from elsewhere and update the table itself or a region below
     # The collected data is then presumably consumed via Excel references or vlookups
     # TODO: For the moment, assume that these tables are up-to-date. We will need a tool to do this.
@@ -1474,9 +1472,9 @@ def remove_fill_tables(
 
 def process_commodity_emissions(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     result = []
     for table in tables:
         if table.tag != datatypes.Tag.comemi:
@@ -1512,9 +1510,9 @@ def process_commodity_emissions(
 
 def process_commodities(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Process commodities.
     """
@@ -1539,9 +1537,9 @@ def process_commodities(
 
 def process_processes(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Process processes.
     """
@@ -1591,9 +1589,9 @@ def process_processes(
 
 def process_topology(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Create topology.
     """
@@ -1653,10 +1651,10 @@ def process_topology(
 
 def generate_dummy_processes(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
     include_dummy_processes=True,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Define dummy processes and specify default cost data for them to ensure that a TIMES model
     can always be solved. This covers situations when a commodity cannot be supplied
@@ -1709,9 +1707,9 @@ def generate_dummy_processes(
 
 def process_tradelinks(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Transform tradelinks to tradelinks_dins
     """
@@ -1789,9 +1787,9 @@ def process_tradelinks(
 
 def process_transform_table_variants(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """Reduces variants of TFM_INS like TFM_INS-TS to TFM_INS."""
 
     def has_no_wildcards(list):
@@ -1872,9 +1870,9 @@ def process_transform_table_variants(
 
 def process_transform_tables(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     """
     Process transform tables.
     """
@@ -1983,9 +1981,9 @@ def process_transform_tables(
 
 def process_transform_availability(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     result = []
     dropped = []
     for table in tables:
@@ -2024,7 +2022,7 @@ def intersect(acc, df):
     return acc.merge(df)
 
 
-def get_matching_processes(row: pd.Series, topology: Dict[str, DataFrame]) -> pd.Series:
+def get_matching_processes(row: pd.Series, topology: dict[str, DataFrame]) -> pd.Series:
     matching_processes = None
     for col, key in process_map.items():
         if col in row.index and row[col] is not None:
@@ -2039,7 +2037,7 @@ def get_matching_processes(row: pd.Series, topology: Dict[str, DataFrame]) -> pd
     return matching_processes
 
 
-def get_matching_commodities(row: pd.Series, topology: Dict[str, DataFrame]):
+def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
     matching_commodities = None
     for col, key in commodity_map.items():
         if col in row.index and row[col] is not None:
@@ -2062,8 +2060,8 @@ def df_indexed_by_col(df, col):
 
 
 def generate_topology_dictionary(
-    tables: Dict[str, DataFrame], model: datatypes.TimesModel
-) -> Dict[str, DataFrame]:
+    tables: dict[str, DataFrame], model: datatypes.TimesModel
+) -> dict[str, DataFrame]:
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
 
@@ -2111,9 +2109,9 @@ def generate_topology_dictionary(
 
 def process_wildcards(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     tags = [
         datatypes.Tag.tfm_comgrp,
         datatypes.Tag.tfm_ins,
@@ -2293,9 +2291,9 @@ def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) 
 
 def apply_transform_tables(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     """
     Include data from transformation tables.
     """
@@ -2434,9 +2432,9 @@ def apply_transform_tables(
 
 def explode_process_commodity_cols(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     """
     Explodes the process and commodity columns in the tables that contain them as lists after process_wildcards.
     We store wildcard matches for these columns as lists and explode them late here for performance reasons - to avoid row-wise processing that
@@ -2459,13 +2457,13 @@ def explode_process_commodity_cols(
 
 def process_time_slices(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     def timeslices_table(
         table: datatypes.EmbeddedXlTable,
         regions: list,
-        result: List[datatypes.EmbeddedXlTable],
+        result: list[datatypes.EmbeddedXlTable],
     ):
         # User-specified timeslices (ordered)
         user_ts_levels = ["SEASON", "WEEKLY", "DAYNITE"]
@@ -2582,9 +2580,9 @@ def process_time_slices(
 
 def convert_to_string(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     for key, value in tables.items():
         tables[key] = value.map(
             lambda x: str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
@@ -2594,9 +2592,9 @@ def convert_to_string(
 
 def convert_aliases(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     # Ensure TIMES names for all attributes
     replacement_dict = {}
     for k, v in config.veda_attr_defaults["aliases"].items():
@@ -2621,9 +2619,9 @@ def convert_aliases(
 
 def assign_model_attributes(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
 
     model.attributes = tables[datatypes.Tag.fi_t]
     if datatypes.Tag.uc_t in tables.keys():
@@ -2634,9 +2632,9 @@ def assign_model_attributes(
 
 def resolve_remaining_cgs(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     """
     Resolve commodity group names in model.attributes specified as commodity type.
     Supplement model.commodity_groups with resolved commodity groups.
@@ -2686,9 +2684,9 @@ def resolve_remaining_cgs(
 
 def fix_topology(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
     model.topology.replace({"io": mapping}, inplace=True)
@@ -2698,9 +2696,9 @@ def fix_topology(
 
 def complete_processes(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     """
     Generate processes based on trade links if not defined elsewhere
     """
@@ -2765,9 +2763,9 @@ def complete_processes(
 
 def apply_final_fixup(
     config: datatypes.Config,
-    tables: Dict[str, DataFrame],
+    tables: dict[str, DataFrame],
     model: datatypes.TimesModel,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
 
     veda_process_sets = tables["VedaProcessSets"]
     reg_com_flows = tables["ProcessTopology"].drop(columns="io")
@@ -2857,9 +2855,9 @@ def apply_final_fixup(
 
 def expand_rows_parallel(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
     query_columns_lists = [
         (
             config.query_columns[datatypes.Tag(table.tag)]

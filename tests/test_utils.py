@@ -1,5 +1,6 @@
-from xl2times import utils
 import pandas as pd
+
+from xl2times import utils
 
 
 class TestUtils:

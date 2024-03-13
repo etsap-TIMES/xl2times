@@ -3,16 +3,16 @@ from datetime import datetime
 import pandas as pd
 from pandas import DataFrame
 
-from xl2times import transforms, utils, datatypes
+from xl2times import datatypes, transforms, utils
 from xl2times.transforms import (
-    _process_comm_groups_vectorised,
     _count_comm_group_vectorised,
+    _match_wildcards,
+    _process_comm_groups_vectorised,
+    commodity_map,
     expand_rows,
     get_matching_commodities,
     get_matching_processes,
-    _match_wildcards,
     process_map,
-    commodity_map,
 )
 
 logger = utils.get_logger()
