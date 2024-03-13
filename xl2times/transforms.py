@@ -403,32 +403,6 @@ def merge_tables(
     return result
 
 
-def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedXlTable:
-    """
-    Handles table level declarations. Declarations can be included in the table
-    tag and will apply to all data that doesn't have a different value for that
-    index specified. For example, ~FI_T: DEMAND would assign DEMAND as the
-    attribute for all values in the table that don't have an attribute specification
-    at the column or row level. After applying the declaration this function will
-    return the modified table with the simplified table tag (e.g. ~FI_T).
-
-    See page 15 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-    for more context.
-
-    :param table:      Table in EmbeddedXlTable format.
-    :return:           Table in EmbeddedXlTable format with declarations applied
-                       and table tag simplified.
-    """
-    if ":" in table.tag:
-        (newtag, varname) = table.tag.split(":")
-        varname = varname.strip()
-        df = table.dataframe.copy()
-        df["attribute"] = df["attribute"].fillna(varname)
-        return replace(table, tag=newtag, dataframe=df)
-    else:
-        return table
-
-
 def apply_tag_specified_defaults(
     config: datatypes.Config,
     tables: List[datatypes.EmbeddedXlTable],
