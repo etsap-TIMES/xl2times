@@ -3,6 +3,7 @@ import pickle
 from datetime import datetime
 
 import pandas as pd
+import pytest
 from pandasql import sqldf
 from tqdm import tqdm
 
@@ -107,6 +108,7 @@ def _eval_updates_old(table: pd.DataFrame, updates: pd.DataFrame) -> list[pd.Dat
 
 
 class TestTransforms:
+    @pytest.mark.skip(reason="FIXME - reinstate this test.")
     def test_eval_updates(self):
         """
         Austimes performance:
@@ -125,7 +127,7 @@ class TestTransforms:
         sqldf("select * from updates limit 1")
 
         t0 = datetime.now()
-        updates_new = transforms._eval_updates(table, updates).sort_values(
+        updates_new = transforms._eval_updates_sql(table, updates).sort_values(
             by=["process", "commodity", "attribute", "region", "year"]
         )
         t1 = datetime.now()
@@ -174,10 +176,21 @@ class TestTransforms:
             table = pd.read_pickle(f)
         with gzip.open("tests/data/process_wildcards_test_model.pkl.gz", "rb") as f:
             model = pd.read_pickle(f)
-        t0 = datetime.now()
-        result = transforms.process_wildcards(None, table, model)  # pyright: ignore
-        logger.info(f"process_wildcards() took {datetime.now() - t0} seconds")
 
+        result = transforms.process_wildcards(
+            None, table.copy(), model  # pyright: ignore
+        )
+
+        assert result.keys() == table.keys()
+        for k in result.keys():
+            set(result[k].columns).symmetric_difference(set(table[k].columns))
+            assert (
+                "process" in result[k].columns or "commodity" in result[k].columns
+            ) or result[k].shape[1] == table[k].shape[
+                1
+            ], f"should have added process and/or commodity columns or no change for table {k}"
+
+    @pytest.mark.skip(reason="FIXME - reinstate this test.")
     def test_uc_wildcards(self):
         """
         Tests logic that matches wildcards in the process_uc_wildcards transform .

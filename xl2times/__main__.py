@@ -123,6 +123,7 @@ def convert_xl_to_times(
         transforms.complete_commodity_groups,
         transforms.process_wildcards,
         transforms.apply_transform_tables,
+        transforms.explode_process_commodity_cols,
         transforms.apply_final_fixup,
         transforms.convert_aliases,
         transforms.assign_model_attributes,
@@ -144,7 +145,7 @@ def convert_xl_to_times(
         end_time = time.time()
         sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
         logger.info(
-            f"{sep}transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
+            f"{sep}took {end_time - start_time:.2f} seconds for transform {transform.__code__.co_name} "
         )
         if verbose:
             if isinstance(output, list):

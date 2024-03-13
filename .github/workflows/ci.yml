@@ -51,7 +51,7 @@ jobs:
         working-directory: xl2times
         run: |
           source .venv/bin/activate
-          pytest
+          poe test
 
       # ---------- Prepare ETSAP Demo models
 
