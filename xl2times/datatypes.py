@@ -92,8 +92,6 @@ class EmbeddedXlTable:
     filename: str
     dataframe: DataFrame
     defaults: str | None = field(default=None)
-    current_tag: str | None = field(default=None)
-    module: str | None = field(default=None)
 
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, EmbeddedXlTable):
