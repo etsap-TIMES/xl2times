@@ -2456,6 +2456,8 @@ def explode_process_commodity_cols(
 
         tables[tag] = df
 
+    utils.save_state(config, tables, model, "exploded_process_commodity_cols.pkl.gz")
+
     return tables
 
 
