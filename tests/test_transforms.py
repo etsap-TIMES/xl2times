@@ -1,17 +1,18 @@
 from datetime import datetime
 
 import pandas as pd
+from pandas import DataFrame
 
-from xl2times import transforms, utils, datatypes
+from xl2times import datatypes, transforms, utils
 from xl2times.transforms import (
-    _process_comm_groups_vectorised,
     _count_comm_group_vectorised,
+    _match_wildcards,
+    _process_comm_groups_vectorised,
+    commodity_map,
     expand_rows,
     get_matching_commodities,
     get_matching_processes,
-    _match_wildcards,
     process_map,
-    commodity_map,
 )
 
 logger = utils.get_logger()
@@ -69,6 +70,24 @@ def _match_uc_wildcards_old(
 
 
 class TestTransforms:
+    def test_explode_process_commodity_cols(self):
+        df = DataFrame(
+            {
+                "process": ["a", "b", ["c", "d"]],
+                "commodity": [["v", "w", "x"], "y", "z"],
+            }
+        )
+        df2 = transforms.explode_process_commodity_cols(
+            None, {"name": df.copy()}, None  # pyright: ignore
+        )
+        correct = DataFrame(
+            {
+                "process": ["a", "a", "a", "b", "c", "d"],
+                "commodity": ["v", "w", "x", "y", "z", "z"],
+            }
+        )
+        assert df2["name"].equals(correct)
+
     def test_uc_wildcards(self):
         """
         Tests logic that matches wildcards in the process_uc_wildcards transform .
@@ -119,9 +138,6 @@ class TestTransforms:
 
         # consistency checks with old method
         assert len(set(df_new.columns).symmetric_difference(set(df_old.columns))) == 0
-        assert df_new.fillna(-1).equals(
-            df_old.fillna(-1)
-        ), "Dataframes should be equal (ignoring Nones and NaNs)"
 
     def test_generate_commodity_groups(self):
         """

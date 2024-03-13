@@ -1,11 +1,12 @@
-from collections import defaultdict
-from dataclasses import dataclass, field
-from importlib import resources
-from itertools import chain
 import json
 import re
-from typing import Dict, Iterable, List, Set, Tuple
+from collections import defaultdict
+from collections.abc import Iterable
+from dataclasses import dataclass, field
 from enum import Enum
+from importlib import resources
+from itertools import chain
+
 from loguru import logger
 from pandas.core.frame import DataFrame
 
@@ -84,7 +85,7 @@ class EmbeddedXlTable:
     """
 
     tag: str
-    uc_sets: Dict[str, str]
+    uc_sets: dict[str, str]
     sheetname: str
     range: str
     filename: str
@@ -132,11 +133,11 @@ class TimesXlMap:
     """
 
     times_name: str
-    times_cols: List[str]
+    times_cols: list[str]
     xl_name: str  # TODO once we move away from times_mapping.txt, make this type Tag
-    xl_cols: List[str]
-    col_map: Dict[str, str]
-    filter_rows: Dict[str, str]
+    xl_cols: list[str]
+    col_map: dict[str, str]
+    filter_rows: dict[str, str]
 
 
 @dataclass
@@ -145,8 +146,8 @@ class TimesModel:
     This class contains all the information about the processed TIMES model.
     """
 
-    internal_regions: Set[str] = field(default_factory=set)
-    all_regions: Set[str] = field(default_factory=set)
+    internal_regions: set[str] = field(default_factory=set)
+    all_regions: set[str] = field(default_factory=set)
     processes: DataFrame = field(default_factory=DataFrame)
     commodities: DataFrame = field(default_factory=DataFrame)
     commodity_groups: DataFrame = field(default_factory=DataFrame)
@@ -160,14 +161,14 @@ class TimesModel:
     time_periods: DataFrame = field(default_factory=DataFrame)
     units: DataFrame = field(default_factory=DataFrame)
     start_year: int = field(default_factory=int)
-    files: Set[str] = field(default_factory=set)
+    files: set[str] = field(default_factory=set)
 
     @property
-    def external_regions(self) -> Set[str]:
+    def external_regions(self) -> set[str]:
         return self.all_regions.difference(self.internal_regions)
 
     @property
-    def data_years(self) -> Set[int]:
+    def data_years(self) -> set[int]:
         """
         data_years are years for which there is data specified.
         """
@@ -179,14 +180,14 @@ class TimesModel:
         return {y for y in data_years if y >= 1000}
 
     @property
-    def past_years(self) -> Set[int]:
+    def past_years(self) -> set[int]:
         """
         Pastyears is the set of all years before start_year.
         """
         return {x for x in self.data_years if x < self.start_year}
 
     @property
-    def model_years(self) -> Set[int]:
+    def model_years(self) -> set[int]:
         """
         model_years is the union of past_years and the representative years of the model (middleyears).
         """
@@ -198,26 +199,26 @@ class Config:
     the mapping betwen excel tables and output tables, categories of tables, etc.
     """
 
-    times_xl_maps: List[TimesXlMap]
+    times_xl_maps: list[TimesXlMap]
     dd_table_order: Iterable[str]
-    all_attributes: Set[str]
-    attr_aliases: Set[str]
+    all_attributes: set[str]
+    attr_aliases: set[str]
     # For each tag, this dictionary maps each column alias to the normalized name
-    column_aliases: Dict[Tag, Dict[str, str]]
+    column_aliases: dict[Tag, dict[str, str]]
     # For each tag, this dictionary specifies comment row symbols by column name
-    row_comment_chars: Dict[Tag, Dict[str, list]]
+    row_comment_chars: dict[Tag, dict[str, list]]
     # List of tags for which empty tables should be discarded
     discard_if_empty: Iterable[Tag]
-    veda_attr_defaults: Dict[str, Dict[str, list]]
+    veda_attr_defaults: dict[str, dict[str, list]]
     # Known columns for each tag
-    known_columns: Dict[Tag, Set[str]]
+    known_columns: dict[Tag, set[str]]
     # Query columns for each tag
-    query_columns: Dict[Tag, Set[str]]
+    query_columns: dict[Tag, set[str]]
     # Required columns for each tag
-    required_columns: Dict[Tag, Set[str]]
+    required_columns: dict[Tag, set[str]]
     # Names of regions to include in the model; if empty, all regions are included.
-    filter_regions: Set[str]
-    times_sets: Dict[str, List[str]]
+    filter_regions: set[str]
+    times_sets: dict[str, list[str]]
 
     def __init__(
         self,
@@ -256,7 +257,7 @@ class Config:
     @staticmethod
     def _read_times_sets(
         times_sets_file: str,
-    ) -> Dict[str, List[str]]:
+    ) -> dict[str, list[str]]:
         # Read times_sets_file
         with resources.open_text("xl2times.config", times_sets_file) as f:
             times_sets = json.load(f)
@@ -266,7 +267,7 @@ class Config:
     @staticmethod
     def _process_times_info(
         times_info_file: str,
-    ) -> Tuple[Iterable[str], Set[str], List[TimesXlMap]]:
+    ) -> tuple[Iterable[str], set[str], list[TimesXlMap]]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
         with resources.open_text("xl2times.config", times_info_file) as f:
@@ -279,7 +280,7 @@ class Config:
         if unknown_cats:
             logger.warning(f"Unknown categories in times-info.json: {unknown_cats}")
         dd_table_order = chain.from_iterable(
-            (sorted(cat_to_tables[c]) for c in categories)
+            sorted(cat_to_tables[c]) for c in categories
         )
 
         # Compute the set of all attributes, i.e. all entities with category = parameter
@@ -320,7 +321,7 @@ class Config:
         return dd_table_order, attributes, param_mappings
 
     @staticmethod
-    def _read_mappings(filename: str) -> List[TimesXlMap]:
+    def _read_mappings(filename: str) -> list[TimesXlMap]:
         """
         Function to load mappings from a text file between the excel sheets we use as input and
         the tables we give as output. The mappings have the following structure:
@@ -393,13 +394,13 @@ class Config:
     @staticmethod
     def _read_veda_tags_info(
         veda_tags_file: str,
-    ) -> Tuple[
-        Dict[Tag, Dict[str, str]],
-        Dict[Tag, Dict[str, list]],
+    ) -> tuple[
+        dict[Tag, dict[str, str]],
+        dict[Tag, dict[str, list]],
         Iterable[Tag],
-        Dict[Tag, Set[str]],
-        Dict[Tag, Set[str]],
-        Dict[Tag, Set[str]],
+        dict[Tag, set[str]],
+        dict[Tag, set[str]],
+        dict[Tag, set[str]],
     ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
@@ -483,7 +484,7 @@ class Config:
     @staticmethod
     def _read_veda_attr_defaults(
         veda_attr_defaults_file: str,
-    ) -> Tuple[Dict[str, Dict[str, list]], Set[str]]:
+    ) -> tuple[dict[str, dict[str, list]], set[str]]:
         # Read veda_tags_file
         with resources.open_text("xl2times.config", veda_attr_defaults_file) as f:
             defaults = json.load(f)
@@ -528,7 +529,7 @@ class Config:
         return veda_attr_defaults, attr_aliases
 
     @staticmethod
-    def _read_regions_filter(regions_list: str) -> Set[str]:
+    def _read_regions_filter(regions_list: str) -> set[str]:
         if regions_list == "":
             return set()
         else:
