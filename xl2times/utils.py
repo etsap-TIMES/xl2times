@@ -150,9 +150,8 @@ def apply_wildcards(
             current_list = []
             for wildcard in wildcard_list:
                 if wildcard.startswith("-"):
-                    # TODO Fix: PLW2901 `for` loop variable `line` overwritten by assignment target
-                    wildcard = wildcard[1:]  # noqa
-                    regexp = re.compile(wildcard.replace("*", ".*"))
+                    w = wildcard[1:]
+                    regexp = re.compile(w.replace("*", ".*"))
                     current_list = [s for s in current_list if not regexp.match(s)]
                 else:
                     regexp = re.compile(wildcard.replace("*", ".*"))

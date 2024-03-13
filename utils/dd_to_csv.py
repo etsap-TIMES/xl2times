@@ -205,11 +205,10 @@ def convert_dd_to_tabular(
     # The following will overwrite data obtained from headers_by_attr
     # TODO: Remove once migration is done?
     for line in lines:
-        # TODO Fix: PLW2901 `for` loop variable `line` overwritten by assignment target
-        line = line.strip()  # noqa
-        if line != "":
-            param_name = line.split("[")[0]
-            attributes = line.split("[")[1].split("]")[0].split(",")
+        ln = line.strip()
+        if ln != "":
+            param_name = ln.split("[")[0]
+            attributes = ln.split("[")[1].split("]")[0].split(",")
             headers_data[param_name] = [*attributes]
 
     save_data_with_headers(all_parameters, headers_data, param_path)

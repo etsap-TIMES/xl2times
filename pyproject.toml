@@ -67,7 +67,7 @@ test = { cmd = "pytest --cov-report term --cov-report html --cov=xl2times --cov=
 # Config for various pre-commit checks are below
 # Ruff linting rules - see https://github.com/charliermarsh/ruff and https://beta.ruff.rs/docs/rules/
 [tool.ruff]
-target-version = "py39"
+target-version = "py311"
 line-length = 88
 
 # Option 1: use basic rules only.
