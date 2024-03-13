@@ -9,14 +9,14 @@ from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from os import path, symlink
-from typing import Any, Tuple
+from typing import Any
 
 import git
 import pandas as pd
 import yaml
+from dd_to_csv import main
 from tabulate import tabulate
 
-from dd_to_csv import main
 from xl2times import utils
 from xl2times.__main__ import parse_args, run
 from xl2times.utils import max_workers
@@ -24,7 +24,7 @@ from xl2times.utils import max_workers
 logger = utils.get_logger()
 
 
-def parse_result(output: str) -> Tuple[float, int, int]:
+def parse_result(output: str) -> tuple[float, int, int]:
     # find pattern in multiline string
     m = re.findall(
         r"(\d+\.\d)% of ground truth rows present in output \((\d+)/(\d+)\), (\d+) additional rows",
@@ -65,6 +65,7 @@ def run_gams_gdxdiff(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        check=False,
     )
     if res.returncode != 0:
         logger.info(res.stdout)
@@ -96,6 +97,7 @@ def run_gams_gdxdiff(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        check=False,
     )
     if res.returncode != 0:
         logger.info(res.stdout)
@@ -119,6 +121,7 @@ def run_gams_gdxdiff(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        check=False,
     )
     if verbose:
         logger.info(res.stdout)
@@ -138,7 +141,7 @@ def run_benchmark(
     out_folder: str = "out",
     verbose: bool = False,
     debug: bool = False,
-) -> Tuple[str, float, str, float, int, int]:
+) -> tuple[str, float, str, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
     dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
     csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])
@@ -160,6 +163,7 @@ def run_benchmark(
                 stderr=subprocess.STDOUT,
                 text=True,
                 shell=True if os.name == "nt" else False,
+                check=False,
             )
             if res.returncode != 0:
                 # Remove partial outputs
@@ -191,7 +195,7 @@ def run_benchmark(
     if "regions" in benchmark:
         args.extend(["--regions", benchmark["regions"]])
     if "inputs" in benchmark:
-        args.extend((path.join(xl_folder, b) for b in benchmark["inputs"]))
+        args.extend(path.join(xl_folder, b) for b in benchmark["inputs"])
     else:
         args.append(xl_folder)
     start = time.time()
@@ -203,6 +207,7 @@ def run_benchmark(
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            check=False,
         )
     else:
         # If debug option is set, run as a function call to allow stepping with a debugger.
@@ -295,7 +300,6 @@ def run_all_benchmarks(
         for benchmark in benchmarks:
             with open(
                 path.join(benchmarks_folder, "out-main", benchmark["name"], "stdout"),
-                "r",
             ) as f:
                 result = parse_result(f.readlines()[-1])
             # Use a fake runtime and GAMS result
@@ -330,7 +334,8 @@ def run_all_benchmarks(
             results_main = list(executor.map(run_a_benchmark, benchmarks))
 
     # Print table with combined results to make comparison easier
-    trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s
+    trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s  # noqa
+
     combined_results = [
         (
             f"{b:<20}",

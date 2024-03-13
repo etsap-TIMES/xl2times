@@ -24,3 +24,4 @@ docs/api/
 *.log
 /profile.*
 xl2times/.cache/
+*.log.zip

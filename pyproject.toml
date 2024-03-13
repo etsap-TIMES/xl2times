@@ -36,7 +36,8 @@ dev = [
     "tabulate",
     "pytest",
     "pytest-cov",
-    "poethepoet"
+    "poethepoet",
+    "ruff"
 ]
 
 [project.urls]
@@ -61,3 +62,37 @@ benchmark = { cmd = "python utils/run_benchmarks.py benchmarks.yml --run", help 
 benchmark_all = { shell = "python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt", help = "Run the project", interpreter = "posix" }
 lint = { shell = "git add .pre-commit-config.yaml & pre-commit run", help = "Run pre-commit hooks", interpreter = "posix" }
 test = { cmd = "pytest --cov-report term --cov-report html --cov=xl2times --cov=utils", help = "Run unit tests with pytest" }
+
+
+# Config for various pre-commit checks are below
+# Ruff linting rules - see https://github.com/charliermarsh/ruff and https://beta.ruff.rs/docs/rules/
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+# Option 1: use basic rules only.
+lint.select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "UP", # pyupgrade
+    "N", # pep8 naming
+    "I", # isort
+    "TID", # tidy imports
+    "UP", # pyupgrade
+    "NPY", # numpy style
+    "PL", # pylint
+#    "PD", # pandas style # TODO enable later
+#    "C90", # code complexity # TODO enable later
+]
+
+# Add specific rule codes/groups here to ignore them, or add a '#noqa' comment to the line of code to skip all checks.
+lint.ignore = [
+    "PLR", # complexity rules
+    "PD901", "PD011", # pandas 'df''
+    "E501", # line too long, handled by black
+]
+
+# Ruff rule-specific options:
+[tool.ruff.mccabe]
+max-complexity = 12 # increase max function 'complexity'

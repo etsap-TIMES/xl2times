@@ -1,16 +1,16 @@
+import re
+import time
+
+import numpy
 from loguru import logger
 from openpyxl import load_workbook
 from openpyxl.worksheet.cell_range import CellRange
-from typing import Dict, List
-import time
 from pandas.core.frame import DataFrame
-import numpy
-import re
-from . import datatypes
-from . import utils
+
+from . import datatypes, utils
 
 
-def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
+def extract_tables(filename: str) -> list[datatypes.EmbeddedXlTable]:
     """
     This function calls the extract_table function on each individual table in each worksheet of the
     given excel file.
@@ -68,7 +68,7 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
 def extract_table(
     tag_row: int,
     tag_col: int,
-    uc_sets: Dict[str, str],
+    uc_sets: dict[str, str],
     df: DataFrame,
     sheetname: str,
     filename: str,

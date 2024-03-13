@@ -1,21 +1,20 @@
 import argparse
-from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime
 import hashlib
-from pandas.core.frame import DataFrame
-import pandas as pd
-import pickle
-from pathlib import Path
 import os
+import pickle
 import sys
 import time
-from typing import Dict, List
+from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+from pandas.core.frame import DataFrame
 
 from xl2times import __file__ as xl2times_file_path
 from xl2times.utils import max_workers
-from . import datatypes, utils
-from . import excel
-from . import transforms
+
+from . import datatypes, excel, transforms, utils
 
 logger = utils.get_logger()
 
@@ -24,7 +23,7 @@ cache_dir = os.path.abspath(os.path.dirname(xl2times_file_path)) + "/.cache/"
 os.makedirs(cache_dir, exist_ok=True)
 
 
-def _read_xlsx_cached(filename: str) -> List[datatypes.EmbeddedXlTable]:
+def _read_xlsx_cached(filename: str) -> list[datatypes.EmbeddedXlTable]:
     """Extract EmbeddedXlTables from xlsx file (cached).
 
     Since excel.extract_tables is quite slow, we cache its results in `cache_dir`.
@@ -50,14 +49,14 @@ def _read_xlsx_cached(filename: str) -> List[datatypes.EmbeddedXlTable]:
 
 
 def convert_xl_to_times(
-    input_files: List[str],
+    input_files: list[str],
     output_dir: str,
     config: datatypes.Config,
     model: datatypes.TimesModel,
     no_cache: bool,
     verbose: bool = False,
     stop_after_read: bool = False,
-) -> Dict[str, DataFrame]:
+) -> dict[str, DataFrame]:
     start_time = datetime.now()
     with ProcessPoolExecutor(max_workers) as executor:
         raw_tables = executor.map(
@@ -167,7 +166,7 @@ def convert_xl_to_times(
     return output
 
 
-def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
+def write_csv_tables(tables: dict[str, DataFrame], output_dir: str):
     os.makedirs(output_dir, exist_ok=True)
     for item in os.listdir(output_dir):
         if item.endswith(".csv"):
@@ -176,7 +175,7 @@ def write_csv_tables(tables: Dict[str, DataFrame], output_dir: str):
         df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
 
 
-def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
+def read_csv_tables(input_dir: str) -> dict[str, DataFrame]:
     result = {}
     for filename in os.listdir(input_dir):
         result[filename.split(".")[0]] = pd.read_csv(
@@ -186,7 +185,7 @@ def read_csv_tables(input_dir: str) -> Dict[str, DataFrame]:
 
 
 def compare(
-    data: Dict[str, DataFrame], ground_truth: Dict[str, DataFrame], output_dir: str
+    data: dict[str, DataFrame], ground_truth: dict[str, DataFrame], output_dir: str
 ) -> str:
     logger.info(
         f"Ground truth contains {len(ground_truth)} tables,"
@@ -261,8 +260,8 @@ def compare(
 
 
 def produce_times_tables(
-    config: datatypes.Config, input: Dict[str, DataFrame]
-) -> Dict[str, DataFrame]:
+    config: datatypes.Config, input: dict[str, DataFrame]
+) -> dict[str, DataFrame]:
     logger.info(
         f"produce_times_tables: {len(input)} tables incoming,"
         f" {sum(len(value) for (_, value) in input.items())} rows"
@@ -286,7 +285,7 @@ def produce_times_tables(
                         f" {mapping.xl_name} does not contain column {filter_col}"
                     )
                     # TODO break this loop and continue outer loop?
-                filter = set(x.lower() for x in {filter_val})
+                filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
                 df = df.loc[i, :]
             # TODO find the correct tech group
@@ -330,7 +329,7 @@ def produce_times_tables(
 
 
 def write_dd_files(
-    tables: Dict[str, DataFrame], config: datatypes.Config, output_dir: str
+    tables: dict[str, DataFrame], config: datatypes.Config, output_dir: str
 ):
     encoding = "utf-8"
     os.makedirs(output_dir, exist_ok=True)
@@ -397,10 +396,10 @@ def strip_filename_prefix(table, prefix):
     return table
 
 
-def dump_tables(tables: List, filename: str) -> List:
+def dump_tables(tables: list, filename: str) -> list:
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w") as text_file:
-        for t in tables if isinstance(tables, List) else tables.items():
+        for t in tables if isinstance(tables, list) else tables.items():
             if isinstance(t, datatypes.EmbeddedXlTable):
                 tag = t.tag
                 text_file.write(f"sheetname: {t.sheetname}\n")

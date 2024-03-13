@@ -1,15 +1,16 @@
 from __future__ import (
     annotations,
-)  # see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
+)
 
+# see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
 import functools
 import os
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import replace
-from math import log10, floor
+from math import floor, log10
 from pathlib import Path
-from typing import Iterable, List
 
 import loguru
 import numpy
@@ -84,7 +85,7 @@ def explode(df, data_columns):
     return df, names
 
 
-def single_table(tables: List[datatypes.EmbeddedXlTable], tag: str):
+def single_table(tables: list[datatypes.EmbeddedXlTable], tag: str):
     """
     Make sure exactly one table in 'tables' has the given table tag, and return it.
     If there are none or more than one raise an error.
@@ -96,7 +97,7 @@ def single_table(tables: List[datatypes.EmbeddedXlTable], tag: str):
     return one(table for table in tables if table.tag == tag)
 
 
-def single_column(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: str):
+def single_column(tables: list[datatypes.EmbeddedXlTable], tag: str, colname: str):
     """
     Make sure exactly one table in 'tables' has the given table tag, and return the
     values for the given column name. If there are none or more than one raise an error.
@@ -109,7 +110,7 @@ def single_column(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: st
     return single_table(tables, tag).dataframe[colname].values
 
 
-def merge_columns(tables: List[datatypes.EmbeddedXlTable], tag: str, colname: str):
+def merge_columns(tables: list[datatypes.EmbeddedXlTable], tag: str, colname: str):
     """
     Return a list with all the values belonging to a column 'colname' from
     a table with the given tag.
@@ -149,8 +150,8 @@ def apply_wildcards(
             current_list = []
             for wildcard in wildcard_list:
                 if wildcard.startswith("-"):
-                    wildcard = wildcard[1:]
-                    regexp = re.compile(wildcard.replace("*", ".*"))
+                    w = wildcard[1:]
+                    regexp = re.compile(w.replace("*", ".*"))
                     current_list = [s for s in current_list if not regexp.match(s)]
                 else:
                     regexp = re.compile(wildcard.replace("*", ".*"))
@@ -180,7 +181,7 @@ def missing_value_inherit(df: DataFrame, colname: str):
             last = value
 
 
-def get_scalar(table_tag: str, tables: List[datatypes.EmbeddedXlTable]):
+def get_scalar(table_tag: str, tables: list[datatypes.EmbeddedXlTable]):
     table = one(filter(lambda t: t.tag == table_tag, tables))
     if table.dataframe.shape[0] != 1 or table.dataframe.shape[1] != 1:
         raise ValueError("Not scalar table")
