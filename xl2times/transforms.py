@@ -2447,11 +2447,14 @@ def explode_process_commodity_cols(
 
     for tag in tables:
         df = tables[tag]
-        if "process" in df.columns and "commodity" in df.columns:
-            df = df.explode("process", ignore_index=True).explode(
-                "commodity", ignore_index=True
-            )
-            tables[tag] = df
+
+        if "process" in df.columns:
+            df = df.explode("process", ignore_index=True)
+
+        if "commodity" in df.columns:
+            df = df.explode("commodity", ignore_index=True)
+
+        tables[tag] = df
 
     return tables
 
