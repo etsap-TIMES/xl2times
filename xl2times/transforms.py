@@ -1817,6 +1817,7 @@ def process_transform_table_variants(
         ]:
             # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
             df = table.dataframe
+
             if "year" in df.columns:
                 raise ValueError(f"TFM_INS-TS table already has Year column: {table}")
 
@@ -2129,11 +2130,21 @@ def process_wildcards(
 
             if set(df.columns).intersection(set(process_map.keys())):
                 df = _match_wildcards(
-                    df, process_map, dictionary, get_matching_processes, "process"
+                    df,
+                    process_map,
+                    dictionary,
+                    get_matching_processes,
+                    "process",
+                    explode=False,
                 )
             if set(df.columns).intersection(set(commodity_map.keys())):
                 df = _match_wildcards(
-                    df, commodity_map, dictionary, get_matching_commodities, "commodity"
+                    df,
+                    commodity_map,
+                    dictionary,
+                    get_matching_commodities,
+                    "commodity",
+                    explode=False,
                 )
 
             tables[tag] = df
@@ -2154,6 +2165,7 @@ def _match_wildcards(
     dictionary: dict[str, pd.DataFrame],
     matcher: Callable,
     result_col: str,
+    explode: bool = False,
 ) -> pd.DataFrame:
     """
     Match wildcards in the given table using the given process map and dictionary.
@@ -2164,6 +2176,7 @@ def _match_wildcards(
         dictionary: Dictionary of process sets to match against.
         matcher: Matching function to use, e.g. get_matching_processes or get_matching_commodities.
         result_col: Name of the column to store the matched results in.
+        explode: Whether to explode the  results_col ('process'/'commodities') column into a long-format table.
 
     Returns:
         The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
@@ -2196,23 +2209,84 @@ def _match_wildcards(
     # Finally we merge the matches back into the original table.
     # This join re-duplicates the duplicate filters dropped above for speed.
     df = (
-        df.merge(filter_matches, on=wild_cols, how="left")
+        df.merge(filter_matches, on=wild_cols, how="left", suffixes=("_old", ""))
         .reset_index(drop=True)
         .drop(columns=wild_cols)
     )
 
+    # TODO TFM_UPD has existing (but empty) 'process' and 'commodity' columns here.  Is it ok to drop existing columns here?
+    if f"{result_col}_old" in df.columns:
+        if not df[f"{result_col}_old"].isna().all():
+            logger.warning(
+                f"Non-empty existing '{result_col}' column will be overwritten!"
+            )
+        df = df.drop(columns=[f"{result_col}_old"])
+
     # And we explode any matches to multiple names to give a long-format table.
-    if result_col in df.columns:
-        df = df.explode(result_col, ignore_index=True)
-    else:
-        df[result_col] = None
+    if explode:
+        if result_col in df.columns:
+            df = df.explode(result_col, ignore_index=True)
+        else:
+            df[result_col] = None
 
     # replace NaNs in results_col with None (expected downstream)
     if df[result_col].dtype != object:
         df[result_col] = df[result_col].astype(object)
+
+    # replace NaNs in results_col with None (expected downstream)
     df.loc[df[result_col].isna(), [result_col]] = None
 
     return df
+
+
+def query(
+    table: DataFrame,
+    process: str | list | None,
+    commodity: str | list | None,
+    attribute: str | None,
+    region: str | None,
+    year: int | None,
+) -> pd.Index:
+    qs = []
+
+    # special handling for commodity and process, which can be lists or arbitrary scalars
+    missing_commodity = (
+        commodity is None or pd.isna(commodity)
+        if not isinstance(commodity, list)
+        else pd.isna(commodity).all()
+    )
+    missing_process = (
+        process is None or pd.isna(process)
+        if not isinstance(process, list)
+        else pd.isna(process).all()
+    )
+
+    if not missing_process:
+        qs.append(f"process in {process if isinstance(process, list) else [process]}")
+    if not missing_commodity:
+        qs.append(
+            f"commodity in {commodity if isinstance(commodity, list) else [commodity]}"
+        )
+    if attribute is not None:
+        qs.append(f"attribute == '{attribute}'")
+    if region is not None:
+        qs.append(f"region == '{region}'")
+    if year is not None:
+        qs.append(f"year == {year}")
+    query_str = " and ".join(qs)
+    row_idx = table.query(query_str).index
+    return row_idx
+
+
+def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) -> None:
+    """Performs an inplace update of rows `rows_to_update` of `table` with `new_value`,
+    which can be a update formula like `*2.3`."""
+    if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
+        old_values = table.loc[rows_to_update, "value"]
+        updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
+        table.loc[rows_to_update, "value"] = updated
+    else:
+        table.loc[rows_to_update, "value"] = new_value
 
 
 def apply_transform_tables(
@@ -2223,39 +2297,6 @@ def apply_transform_tables(
     """
     Include data from transformation tables.
     """
-
-    def query(
-        table: DataFrame,
-        process: str | None,
-        commodity: str | None,
-        attribute: str | None,
-        region: str | None,
-        year: int | None,
-    ) -> pd.Index:
-        qs = []
-        if process is not None:
-            qs.append(f"process in ['{process}']")
-        if commodity is not None:
-            qs.append(f"commodity in ['{commodity}']")
-        if attribute is not None:
-            qs.append(f"attribute == '{attribute}'")
-        if region is not None:
-            qs.append(f"region == '{region}'")
-        if year is not None:
-            qs.append(f"year == {year}")
-        return table.query(" and ".join(qs)).index
-
-    def eval_and_update(
-        table: DataFrame, rows_to_update: pd.Index, new_value: str
-    ) -> None:
-        """Performs an inplace update of rows `rows_to_update` of `table` with `new_value`,
-        which can be a update formula like `*2.3`."""
-        if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
-            old_values = table.loc[rows_to_update, "value"]
-            updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
-            table.loc[rows_to_update, "value"] = updated
-        else:
-            table.loc[rows_to_update, "value"] = new_value
 
     if datatypes.Tag.tfm_upd in tables:
         updates = tables[datatypes.Tag.tfm_upd]
@@ -2329,7 +2370,12 @@ def apply_transform_tables(
             # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
             # with the value from row
             # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
-            table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
+            if row["attribute"] not in attr_prop:
+                logger.warning(
+                    f"Unknown attribute {row['attribute']}, skipping update."
+                )
+            else:
+                table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
 
     if datatypes.Tag.tfm_mig in tables:
         updates = tables[datatypes.Tag.tfm_mig]
@@ -2375,11 +2421,36 @@ def apply_transform_tables(
         table = model.commodity_groups
         updates = tables[datatypes.Tag.tfm_comgrp].filter(table.columns, axis=1)
 
-        commodity_groups = pd.concat(
-            [table, updates], ignore_index=True
-        ).drop_duplicates()
+        commodity_groups = pd.concat([table, updates], ignore_index=True)
+        commodity_groups = commodity_groups.explode("commodity", ignore_index=True)
+        commodity_groups = commodity_groups.drop_duplicates()
         commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
         model.commodity_groups = commodity_groups.dropna()
+
+    return tables
+
+
+def explode_process_commodity_cols(
+    config: datatypes.Config,
+    tables: dict[str, DataFrame],
+    model: datatypes.TimesModel,
+) -> dict[str, DataFrame]:
+    """
+    Explodes the process and commodity columns in the tables that contain them as lists after process_wildcards.
+    We store wildcard matches for these columns as lists and explode them late here for performance reasons - to avoid row-wise processing that
+    would otherwise need to iterate over very long tables.
+    """
+
+    for tag in tables:
+        df = tables[tag]
+
+        if "process" in df.columns:
+            df = df.explode("process", ignore_index=True)
+
+        if "commodity" in df.columns:
+            df = df.explode("commodity", ignore_index=True)
+
+        tables[tag] = df
 
     return tables
 
