@@ -14,7 +14,8 @@ from pandas.core.frame import DataFrame
 from xl2times import __file__ as xl2times_file_path
 from xl2times.utils import max_workers
 
-from . import datatypes, excel, transforms, utils
+from . import excel, transforms, utils
+from .datatypes import Config, EmbeddedXlTable, TimesModel
 
 logger = utils.get_logger()
 
@@ -23,7 +24,7 @@ cache_dir = os.path.abspath(os.path.dirname(xl2times_file_path)) + "/.cache/"
 os.makedirs(cache_dir, exist_ok=True)
 
 
-def _read_xlsx_cached(filename: str) -> list[datatypes.EmbeddedXlTable]:
+def _read_xlsx_cached(filename: str) -> list[EmbeddedXlTable]:
     """Extract EmbeddedXlTables from xlsx file (cached).
 
     Since excel.extract_tables is quite slow, we cache its results in `cache_dir`.
@@ -51,8 +52,8 @@ def _read_xlsx_cached(filename: str) -> list[datatypes.EmbeddedXlTable]:
 def convert_xl_to_times(
     input_files: list[str],
     output_dir: str,
-    config: datatypes.Config,
-    model: datatypes.TimesModel,
+    config: Config,
+    model: TimesModel,
     no_cache: bool,
     verbose: bool = False,
     stop_after_read: bool = False,
@@ -92,6 +93,7 @@ def convert_xl_to_times(
         transforms.remove_comment_rows,
         transforms.revalidate_input_tables,
         transforms.process_regions,
+        transforms.process_commodities,
         transforms.process_time_periods,
         transforms.remove_exreg_cols,
         transforms.generate_dummy_processes,
@@ -101,10 +103,10 @@ def convert_xl_to_times(
         transforms.process_tradelinks,
         transforms.process_processes,
         transforms.process_topology,
+        transforms.apply_tag_specified_defaults,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
-        transforms.process_commodities,
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
         transforms.generate_uc_properties,
@@ -122,6 +124,7 @@ def convert_xl_to_times(
         transforms.complete_commodity_groups,
         transforms.process_wildcards,
         transforms.apply_transform_tables,
+        transforms.explode_process_commodity_cols,
         transforms.apply_final_fixup,
         transforms.convert_aliases,
         transforms.assign_model_attributes,
@@ -260,7 +263,7 @@ def compare(
 
 
 def produce_times_tables(
-    config: datatypes.Config, input: dict[str, DataFrame]
+    config: Config, input: dict[str, DataFrame]
 ) -> dict[str, DataFrame]:
     logger.info(
         f"produce_times_tables: {len(input)} tables incoming,"
@@ -328,9 +331,7 @@ def produce_times_tables(
     return result
 
 
-def write_dd_files(
-    tables: dict[str, DataFrame], config: datatypes.Config, output_dir: str
-):
+def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str):
     encoding = "utf-8"
     os.makedirs(output_dir, exist_ok=True)
     for item in os.listdir(output_dir):
@@ -390,7 +391,7 @@ def write_dd_files(
 
 
 def strip_filename_prefix(table, prefix):
-    if isinstance(table, datatypes.EmbeddedXlTable):
+    if isinstance(table, EmbeddedXlTable):
         if table.filename.startswith(prefix):
             table.filename = table.filename[len(prefix) + 1 :]
     return table
@@ -400,7 +401,7 @@ def dump_tables(tables: list, filename: str) -> list:
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w") as text_file:
         for t in tables if isinstance(tables, list) else tables.items():
-            if isinstance(t, datatypes.EmbeddedXlTable):
+            if isinstance(t, EmbeddedXlTable):
                 tag = t.tag
                 text_file.write(f"sheetname: {t.sheetname}\n")
                 text_file.write(f"range: {t.range}\n")
@@ -421,14 +422,18 @@ def dump_tables(tables: list, filename: str) -> list:
 
 
 def run(args: argparse.Namespace) -> str | None:
+    """Runs the xl2times conversion.
+
+    Parameters
+    ----------
+    args
+        Pre-parsed command line arguments
+
+    Returns
+    -------
+        comparison with ground-truth string if `ground_truth_dir` is provided, else None.
     """
-    Runs the xl2times conversion.
-    Args:
-         args: pre-parsed command line arguments
-    Returns:
-         comparison with ground-truth string if `ground_truth_dir` is provided, else None.
-    """
-    config = datatypes.Config(
+    config = Config(
         "times_mapping.txt",
         "times-info.json",
         "times-sets.json",
@@ -437,7 +442,7 @@ def run(args: argparse.Namespace) -> str | None:
         args.regions,
     )
 
-    model = datatypes.TimesModel()
+    model = TimesModel()
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         logger.critical(f"expected at least 1 input. Got {args.input}")
@@ -487,11 +492,15 @@ def run(args: argparse.Namespace) -> str | None:
 def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
     """Parses command line arguments.
 
-    Args:
-        arg_list: List of command line arguments. Uses sys.argv (default argparse behaviour) if `None`.
+    Parameters
+    ----------
+    arg_list
+        List of command line arguments. Uses sys.argv (default argparse behaviour) if `None`.
 
-    Returns:
-        argparse.Namespace: Parsed arguments.
+    Returns
+    -------
+    argparse.Namespace
+        Parsed arguments.
     """
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
@@ -535,8 +544,10 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
 
 
 def main(arg_list: None | list[str] = None) -> None:
-    """Main entry point for the xl2times package
-    Returns:
+    """Main entry point for the xl2times package.
+
+    Returns
+    -------
         None.
     """
     args = parse_args(arg_list)

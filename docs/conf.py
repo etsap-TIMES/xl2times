@@ -32,6 +32,9 @@ apidoc_output_dir = "api"
 # apidoc_excluded_paths = ['tests']
 # apidoc_separate_modules = True
 
+# To allow `Attributes` block in class docstrings. TODO can we docstring the dataclass attributes directly?
+napoleon_use_ivar = True
+
 # -- Options for autodoc ----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#configuration
 

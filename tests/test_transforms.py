@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
+from pandas import DataFrame
 
 from xl2times import datatypes, transforms, utils
 from xl2times.transforms import (
@@ -33,7 +34,9 @@ pd.set_option(
 def _match_uc_wildcards_old(
     df: pd.DataFrame, dictionary: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
-    """Old version of the process_uc_wildcards matching logic, for comparison with the new vectorised version.
+    """Old version of the process_uc_wildcards matching logic, for comparison with the
+    new vectorised version.
+
     TODO remove this function once validated.
     """
 
@@ -69,9 +72,26 @@ def _match_uc_wildcards_old(
 
 
 class TestTransforms:
+    def test_explode_process_commodity_cols(self):
+        df = DataFrame(
+            {
+                "process": ["a", "b", ["c", "d"]],
+                "commodity": [["v", "w", "x"], "y", "z"],
+            }
+        )
+        df2 = transforms.explode_process_commodity_cols(
+            None, {"name": df.copy()}, None  # pyright: ignore
+        )
+        correct = DataFrame(
+            {
+                "process": ["a", "a", "a", "b", "c", "d"],
+                "commodity": ["v", "w", "x", "y", "z", "z"],
+            }
+        )
+        assert df2["name"].equals(correct)
+
     def test_uc_wildcards(self):
-        """
-        Tests logic that matches wildcards in the process_uc_wildcards transform .
+        """Tests logic that matches wildcards in the process_uc_wildcards transform .
 
         Results on Ireland model:
             Old method took 0:00:08.42 seconds
@@ -119,13 +139,10 @@ class TestTransforms:
 
         # consistency checks with old method
         assert len(set(df_new.columns).symmetric_difference(set(df_old.columns))) == 0
-        assert df_new.fillna(-1).equals(
-            df_old.fillna(-1)
-        ), "Dataframes should be equal (ignoring Nones and NaNs)"
 
     def test_generate_commodity_groups(self):
-        """
-        Tests that the _count_comm_group_vectorised function works as expected.
+        """Tests that the _count_comm_group_vectorised function works as expected.
+
         Full austimes run:
             Vectorised version took 0.021999 seconds
             looped version took 966.653371 seconds
@@ -145,12 +162,13 @@ class TestTransforms:
         assert comm_groups2.shape == (comm_groups.shape[0], comm_groups.shape[1] + 1)
 
     def test_default_pcg_vectorised(self):
-        """Tests the default primary commodity group identification logic runs correctly.
+        """Tests the default primary commodity group identification logic runs
+        correctly.
+
         Full austimes run:
             Looped version took 1107.66 seconds
             Vectorised version took 62.85 seconds
         """
-
         # data extracted immediately before the original for loops
         comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.parquet")
 

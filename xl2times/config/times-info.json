@@ -4535,7 +4535,7 @@
   },
   {
     "name": "UC_ATTR",
-    "gams-cat": "parameter",
+    "gams-cat": "md-set",
     "indexes": [
       "ALL_R",
       "UC_N",
@@ -4547,8 +4547,8 @@
       "region",
       "uc_n",
       "side",
-      "type",
-      "uc_n"
+      "uc_grptype",
+      "uc_name"
     ]
   },
   {

@@ -60,7 +60,8 @@ addopts = '-s --durations=0 --durations-min=5.0 --tb=native'
 # See https://github.com/nat-n/poethepoet for details.
 benchmark = { cmd = "python utils/run_benchmarks.py benchmarks.yml --run", help = "Run a single benchmark.  Usage: poe benchmark <benchmark_name>" }
 benchmark_all = { shell = "python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt", help = "Run the project", interpreter = "posix" }
-lint = { shell = "git add .pre-commit-config.yaml & pre-commit run", help = "Run pre-commit hooks", interpreter = "posix" }
+lint = { shell = "git add .pre-commit-config.yaml; pre-commit run", help = "Run pre-commit hooks on staged files", interpreter = "posix" }
+lint-all = { shell = "git add .pre-commit-config.yaml; pre-commit run --all-files", help = "Run pre-commit hooks on all files", interpreter = "posix" }
 test = { cmd = "pytest --cov-report term --cov-report html --cov=xl2times --cov=utils", help = "Run unit tests with pytest" }
 
 
@@ -82,6 +83,7 @@ lint.select = [
     "UP", # pyupgrade
     "NPY", # numpy style
     "PL", # pylint
+    "D", # docstring conventions
 #    "PD", # pandas style # TODO enable later
 #    "C90", # code complexity # TODO enable later
 ]
@@ -91,8 +93,13 @@ lint.ignore = [
     "PLR", # complexity rules
     "PD901", "PD011", # pandas 'df''
     "E501", # line too long, handled by black
+    "D100", "D101", "D102", "D103", "D104", "D105", # Missing docstrings # TODO enable when added
+    "D205", "D401"
 ]
 
-# Ruff rule-specific options:
-[tool.ruff.mccabe]
-max-complexity = 12 # increase max function 'complexity'
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.mccabe]
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+max-complexity = 12
