@@ -311,13 +311,13 @@ def normalize_column_aliases(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     for table in tables:
-        tag = table.tag
+        tag = datatypes.Tag(table.tag)
         if tag in config.column_aliases:
             table.dataframe = table.dataframe.rename(
                 columns=config.column_aliases[tag], errors="ignore"
             )
         else:
-            logger.warning(f"could not find {table.tag} in config.column_aliases")
+            logger.warning(f"could not find {tag.value} in config.column_aliases")
         if len(set(table.dataframe.columns)) > len(table.dataframe.columns):
             raise ValueError(
                 f"Table has duplicate column names (after normalization): {table}"
@@ -403,9 +403,9 @@ def merge_tables(
 
 def apply_tag_specified_defaults(
     config: datatypes.Config,
-    tables: List[datatypes.EmbeddedXlTable],
+    tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
-) -> List[datatypes.EmbeddedXlTable]:
+) -> list[datatypes.EmbeddedXlTable]:
 
     return [utils.apply_composite_tag(t) for t in tables]
 
@@ -452,10 +452,9 @@ def process_flexible_import_tables(
         return None, value
 
     # TODO decide whether VedaProcessSets should become a new Enum type or part of TimesModelData type
-    veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
 
     def process_flexible_import_table(
-        table: datatypes.EmbeddedXlTable, veda_process_sets: DataFrame
+        table: datatypes.EmbeddedXlTable,
     ) -> datatypes.EmbeddedXlTable:
         # Make sure it's a flexible import table, and return the table untouched if not
         if not table.tag == datatypes.Tag.fi_t:
@@ -556,7 +555,7 @@ def process_flexible_import_tables(
 
         return replace(table, dataframe=df)
 
-    return [process_flexible_import_table(t, veda_process_sets) for t in tables]
+    return [process_flexible_import_table(t) for t in tables]
 
 
 def process_user_constraint_tables(
