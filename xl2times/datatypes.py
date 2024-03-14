@@ -175,7 +175,13 @@ class TimesModel:
         data_years = set()
         for attributes in [self.attributes, self.uc_attributes]:
             if not attributes.empty:
-                data_years.update(attributes["year"].astype(int).values)
+                int_years = attributes["year"].astype(
+                    int, errors="ignore"
+                )  # leave non-parseable vals alone
+                int_years = [
+                    y for y in int_years if isinstance(y, int)
+                ]  # remove non-parseable years
+                data_years.update(int_years)
         # Remove interpolation rules before return
         return {y for y in data_years if y >= 1000}
 

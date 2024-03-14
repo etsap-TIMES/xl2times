@@ -4707,7 +4707,7 @@
   },
   {
     "name": "UC_DYNBND",
-    "gams-cat": "parameter",
+    "gams-cat": "md-set",
     "indexes": [
       "UC_N",
       "LIM"
