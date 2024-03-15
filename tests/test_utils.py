@@ -6,7 +6,6 @@ from xl2times import utils
 class TestUtils:
     def test_explode(self):
         """Test that explode logics functions correctly."""
-
         input_df1 = pd.DataFrame(
             [
                 ("PRC1", 100, None, 200),

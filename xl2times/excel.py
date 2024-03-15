@@ -11,8 +11,8 @@ from . import datatypes, utils
 
 
 def extract_tables(filename: str) -> list[datatypes.EmbeddedXlTable]:
-    """This function calls the extract_table function on each individual table in each
-    worksheet of the given excel file.
+    """Run the extract_table function on each individual table in each worksheet of the
+    given excel file.
 
     Parameters
     ----------
@@ -109,7 +109,6 @@ def extract_table(
 
     Returns
     -------
-
         Table object in the EmbeddedXlTable format.
     """
     # If the cell to the right is not empty then we read a scalar from it

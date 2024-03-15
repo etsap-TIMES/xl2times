@@ -169,7 +169,6 @@ class TestTransforms:
             Looped version took 1107.66 seconds
             Vectorised version took 62.85 seconds
         """
-
         # data extracted immediately before the original for loops
         comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.parquet")
 

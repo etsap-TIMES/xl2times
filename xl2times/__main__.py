@@ -428,9 +428,9 @@ def run(args: argparse.Namespace) -> str | None:
     ----------
     args
         Pre-parsed command line arguments
+
     Returns
     -------
-
         comparison with ground-truth string if `ground_truth_dir` is provided, else None.
     """
     config = datatypes.Config(
@@ -548,7 +548,6 @@ def main(arg_list: None | list[str] = None) -> None:
 
     Returns
     -------
-
         None.
     """
     args = parse_args(arg_list)

@@ -88,7 +88,6 @@ def _remove_df_comment_rows(
     comment_chars
         Dictionary where keys are column names and values are lists of valid comment symbols
     """
-
     comment_rows = set()
 
     for colname in df.columns:
@@ -142,7 +141,6 @@ def remove_exreg_cols(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Remove external region columns from all the tables except tradelinks."""
-
     external_regions = model.external_regions
 
     def remove_table_exreg_cols(
@@ -152,7 +150,6 @@ def remove_exreg_cols(
         Return a modified copy of 'table' where columns that are external regions
         have been removed.
         """
-
         exreg_cols = [
             colname
             for colname in table.dataframe.columns
@@ -218,7 +215,8 @@ def validate_input_tables(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Perform some basic validation (tag names are valid, no duplicate column labels),
-    and remove empty tables (for recognized tags)."""
+    and remove empty tables (for recognized tags).
+    """
 
     def discard(table):
         if table.tag in config.discard_if_empty:
@@ -441,8 +439,9 @@ def process_flexible_import_tables(
     tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
-    """Attempt to process all flexible import tables in 'tables'. The processing
-    includes:
+    """Attempt to process all flexible import tables in 'tables'.
+
+    The processing includes:
 
     - Checking that the table is indeed a flexible import table. If not, return it unmodified.
     - Removing, adding and renaming columns as needed.
@@ -602,7 +601,9 @@ def process_user_constraint_tables(
     tables: list[datatypes.EmbeddedXlTable],
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
-    """Process all user constraint tables in 'tables'. The processing includes:
+    """Process all user constraint tables in 'tables'.
+
+    The processing includes:
 
     - Removing, adding and renaming columns as needed.
     - Populating index columns.
@@ -733,7 +734,6 @@ def generate_uc_properties(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Generate a dataframe containing User Constraint properties."""
-
     uc_tables = [table for table in tables if table.tag == datatypes.Tag.uc_t]
     columns = ["uc_n", "description", "region", "reg_action", "ts_action"]
     user_constraints = pd.DataFrame(columns=columns)
@@ -1054,7 +1054,6 @@ def process_regions(
 
     Include IMPEXP and MINRNW in model.all_regions (defined by default by Veda).
     """
-
     model.all_regions.update(["IMPEXP", "MINRNW"])
     # Read region settings
     region_def = utils.single_table(tables, datatypes.Tag.book_regions_map).dataframe
@@ -1142,7 +1141,6 @@ def capitalise_some_values(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Ensure that all attributes and units are uppercase."""
-
     # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
 
@@ -1257,7 +1255,6 @@ def generate_commodity_groups(
 
     def name_comm_group(df):
         """Generate the name of a commodity group based on the member count."""
-
         if df["commoditygroup"] > 1:
             return df["process"] + "_" + df["csets"] + df["io"][:1]
         elif df["commoditygroup"] == 1:
@@ -1338,14 +1335,14 @@ def _process_comm_groups_vectorised(
 
     Returns
     -------
-
         Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in eachregion/process/io combination.
     """
 
     def _set_default_veda_pcg(group):
         """For a given [region, process] group, default group is set as the first cset
         in the `csets_ordered_for_pcg` list, which is an output, if one exists,
-        otherwise the first input."""
+        otherwise the first input.
+        """
         if not group["csets"].isin(csets_ordered_for_pcg).all():
             return group
 
@@ -1374,7 +1371,6 @@ def complete_commodity_groups(
     model: datatypes.TimesModel,
 ) -> dict[str, DataFrame]:
     """Complete the list of commodity groups."""
-
     # Single member CGs i.e., CG and commodity are the same
     single_cgs = model.commodities[["region", "commodity"]].drop_duplicates(
         ignore_index=True
@@ -1397,7 +1393,6 @@ def generate_trade(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Generate inter-regional exchange topology."""
-
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
     dummy_process_cset = [["NRG", "IMPNRGZ"], ["MAT", "IMPMATZ"], ["DEM", "IMPDEMZ"]]
     veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
@@ -1492,7 +1487,6 @@ def fill_in_missing_pcgs(
 
     def expand_pcg_from_suffix(df):
         """Generate the name of a default primary commodity group based on suffix and process name."""
-
         if df["primarycg"] in default_pcg_suffixes:
             return df["process"] + "_" + df["primarycg"]
         else:
@@ -1591,7 +1585,6 @@ def process_commodities(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Process commodities."""
-
     regions = ",".join(model.internal_regions)
 
     result = []
@@ -1616,7 +1609,6 @@ def process_processes(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Process processes."""
-
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
 
@@ -1666,7 +1658,6 @@ def process_topology(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Create topology."""
-
     fit_tables = [t for t in tables if t.tag.startswith(datatypes.Tag.fi_t)]
 
     columns = [
@@ -1733,7 +1724,6 @@ def generate_dummy_processes(
     Significant cost is usually associated with the activity of these processes to
     ensure that they are used as a last resort
     """
-
     if include_dummy_processes:
         # TODO: Activity units below are arbitrary. Suggest Veda devs not to have any.
         dummy_processes = [
@@ -1783,7 +1773,6 @@ def process_tradelinks(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Transform tradelinks to tradelinks_dins."""
-
     result = []
     for table in tables:
         if table.tag == datatypes.Tag.tradelinks:
@@ -2254,7 +2243,6 @@ def _match_wildcards(
 
     Returns
     -------
-
         The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
     """
     wild_cols = list(col_map.keys())
@@ -2356,7 +2344,8 @@ def query(
 
 def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) -> None:
     """Performs an inplace update of rows `rows_to_update` of `table` with `new_value`,
-    which can be a update formula like `*2.3`."""
+    which can be a update formula like `*2.3`.
+    """
     if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
         old_values = table.loc[rows_to_update, "value"]
         updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
@@ -2371,7 +2360,6 @@ def apply_transform_tables(
     model: datatypes.TimesModel,
 ) -> dict[str, DataFrame]:
     """Include data from transformation tables."""
-
     if datatypes.Tag.tfm_upd in tables:
         updates = tables[datatypes.Tag.tfm_upd]
         table = tables[datatypes.Tag.fi_t]
@@ -2515,7 +2503,6 @@ def explode_process_commodity_cols(
     We store wildcard matches for these columns as lists and explode them late here for performance reasons - to avoid row-wise processing that
     would otherwise need to iterate over very long tables.
     """
-
     for tag in tables:
         df = tables[tag]
 
@@ -2714,7 +2701,6 @@ def resolve_remaining_cgs(
 
     Supplement model.commodity_groups with resolved commodity groups.
     """
-
     if not model.attributes.empty:
         i = model.attributes["other_indexes"].isin(default_pcg_suffixes)
         if any(i):
@@ -2775,7 +2761,6 @@ def complete_processes(
     model: datatypes.TimesModel,
 ) -> dict[str, DataFrame]:
     """Generate processes based on trade links if not defined elsewhere."""
-
     # Dataframe with region, process and commodity columns (no trade direction)
     trade_processes = pd.concat(
         [

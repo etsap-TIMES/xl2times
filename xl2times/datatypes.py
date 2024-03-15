@@ -72,7 +72,7 @@ class Tag(str, Enum):
 
 @dataclass
 class EmbeddedXlTable:
-    """This class defines a table object as a pandas dataframe wrapped with some metadata.
+    """A table object: a pandas dataframe wrapped with some metadata.
 
     Attributes
     ----------
@@ -159,7 +159,7 @@ class TimesXlMap:
 
 @dataclass
 class TimesModel:
-    """This class contains all the information about the processed TIMES model."""
+    """A class containing all the information about the processed TIMES model."""
 
     internal_regions: set[str] = field(default_factory=set)
     all_regions: set[str] = field(default_factory=set)
@@ -200,13 +200,15 @@ class TimesModel:
     @property
     def model_years(self) -> set[int]:
         """model_years is the union of past_years and the representative years of the
-        model (middleyears)."""
+        model (middleyears).
+        """
         return self.past_years | set(self.time_periods["m"].values)
 
 
 class Config:
     """Encapsulates all configuration options for a run of the tool, including the
-    mapping betwen excel tables and output tables, categories of tables, etc."""
+    mapping betwen excel tables and output tables, categories of tables, etc.
+    """
 
     times_xl_maps: list[TimesXlMap]
     dd_table_order: Iterable[str]
@@ -332,8 +334,9 @@ class Config:
     @staticmethod
     def _read_mappings(filename: str) -> list[TimesXlMap]:
         """Function to load mappings from a text file between the excel sheets we use as
-        input and the tables we give as output. The mappings have the following
-        structure:
+        input and the tables we give as output.
+
+        The mappings have the following structure:
 
         OUTPUT_TABLE[DATAYEAR,VALUE] = ~TimePeriods(Year,B)
 
