@@ -44,12 +44,14 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     :return:           Table in EmbeddedXlTable format with declarations applied
                        and table tag simplified.
     """
-    if ":" in table.tag:
-        (newtag, varname) = table.tag.split(":")
-        varname = varname.strip()
-        df = table.dataframe.copy()
-        df["attribute"] = df["attribute"].fillna(varname)
-        return replace(table, tag=newtag, dataframe=df)
+    if table.defaults:
+        varname = table.defaults
+        df = table.dataframe
+        if "attribute" in df.columns:
+            df["attribute"] = df["attribute"].fillna(varname)
+        else:
+            df["attribute"] = varname
+        return replace(table, dataframe=df)
     else:
         return table
 

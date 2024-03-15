@@ -75,13 +75,12 @@ class EmbeddedXlTable:
     """This class defines a table object as a pandas dataframe wrapped with some metadata.
 
     Attributes:
-        tag         Table tag associated with this table in the excel file used as input. You can see a list of all the
-                    possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-        uc_sets     User constrained tables are declared with tags which indicate their type and domain of coverage. This variable contains these two values.
-                    See section 2.4.7 in https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+        tag         Table tag associated with this table in the excel file used as input.
+        defaults    Defaults for the table that are separated by a colon from the tag.
+        uc_sets     User constrained tables are declared with tags which indicate their type and domain of coverage.
         sheetname   Name of the excel worksheet where this table was extracted from.
         range       Range of rows and columns that contained this table in the original excel worksheet.
-        filename    Name of the original excel file where this table was extracted from.
+        filename    Name of the original excel the table was extracted from.
         dataframe   Pandas dataframe containing the values of the table.
     """
 
@@ -91,6 +90,7 @@ class EmbeddedXlTable:
     range: str
     filename: str
     dataframe: DataFrame
+    defaults: str | None = field(default=None)
 
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, EmbeddedXlTable):
