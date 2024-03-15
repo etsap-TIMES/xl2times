@@ -447,6 +447,7 @@ def process_flexible_import_tables(
     - Removing, adding and renaming columns as needed.
     - Populating index columns.
     - Handing Attribute column and Other Indexes.
+
     See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16.
 
     Parameters
@@ -608,6 +609,7 @@ def process_user_constraint_tables(
     - Removing, adding and renaming columns as needed.
     - Populating index columns.
     - Handing Attribute column and wildcards.
+
     See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16.
 
     Parameters
