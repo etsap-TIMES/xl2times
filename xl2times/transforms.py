@@ -58,7 +58,7 @@ def remove_comment_rows(
     result = []
 
     for table in tables:
-        tag = datatypes.Tag(table.tag.split(":")[0])
+        tag = datatypes.Tag(table.tag)
         if tag in config.row_comment_chars:
             df = table.dataframe
             _remove_df_comment_rows(df, config.row_comment_chars[tag])
@@ -229,7 +229,7 @@ def validate_input_tables(
 
     result = []
     for table in tables:
-        if not datatypes.Tag.has_tag(table.tag.split(":")[0]):
+        if not datatypes.Tag.has_tag(table.tag):
             logger.warning(f"Dropping table with unrecognized tag {table.tag}")
             continue
         if discard(table):
@@ -258,7 +258,7 @@ def revalidate_input_tables(
     """
     result = []
     for table in tables:
-        tag = datatypes.Tag(table.tag.split(":")[0])
+        tag = datatypes.Tag(table.tag)
         required_cols = config.required_columns[tag]
         unique_table_cols = set(table.dataframe.columns)
         if required_cols:
@@ -314,8 +314,8 @@ def normalize_tags_columns(
         # Only uppercase upto ':', the rest can be non-uppercase values like regions
         parts = table.tag.split(":")
         # assert len(parts) <= 2
-        parts[0] = parts[0].upper()
-        newtag = ":".join(parts)
+        newtag = parts[0].upper()
+        defaults = parts[1].strip() if len(parts) > 1 else None
 
         df = table.dataframe
         # Strip leading and trailing whitespaces from column names
@@ -324,7 +324,7 @@ def normalize_tags_columns(
         col_name_map = {x: x.lower() for x in df.columns}
         df = df.rename(columns=col_name_map)
 
-        return replace(table, tag=newtag, dataframe=df)
+        return replace(table, tag=newtag, dataframe=df, defaults=defaults)
 
     return [normalize(table) for table in tables]
 
@@ -335,13 +335,13 @@ def normalize_column_aliases(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     for table in tables:
-        tag = table.tag.split(":")[0]
+        tag = datatypes.Tag(table.tag)
         if tag in config.column_aliases:
             table.dataframe = table.dataframe.rename(
                 columns=config.column_aliases[tag], errors="ignore"
             )
         else:
-            logger.warning(f"could not find {table.tag} in config.column_aliases")
+            logger.warning(f"could not find {tag.value} in config.column_aliases")
         if len(set(table.dataframe.columns)) > len(table.dataframe.columns):
             raise ValueError(
                 f"Table has duplicate column names (after normalization): {table}"
@@ -405,9 +405,15 @@ def merge_tables(
         missing_cols = [concat_cols - set(t.dataframe.columns) for t in group]
 
         if any([len(m) for m in missing_cols]):
-            err = f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual table(s), see details below:"
+            err = (
+                f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual "
+                f"table(s), see details below:"
+            )
             for table in group:
-                err += f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, {table.filename}"
+                err += (
+                    f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, "
+                    f"{table.filename}"
+                )
             logger.warning(err)
 
         match key:
@@ -432,6 +438,15 @@ def merge_tables(
                 result[key] = df
 
     return result
+
+
+def apply_tag_specified_defaults(
+    config: datatypes.Config,
+    tables: list[datatypes.EmbeddedXlTable],
+    model: datatypes.TimesModel,
+) -> list[datatypes.EmbeddedXlTable]:
+
+    return [utils.apply_composite_tag(t) for t in tables]
 
 
 def process_flexible_import_tables(
@@ -489,13 +504,12 @@ def process_flexible_import_tables(
         return None, value
 
     # TODO decide whether VedaProcessSets should become a new Enum type or part of TimesModelData type
-    veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
 
     def process_flexible_import_table(
-        table: datatypes.EmbeddedXlTable, veda_process_sets: DataFrame
+        table: datatypes.EmbeddedXlTable,
     ) -> datatypes.EmbeddedXlTable:
         # Make sure it's a flexible import table, and return the table untouched if not
-        if not table.tag.startswith(datatypes.Tag.fi_t):
+        if not table.tag == datatypes.Tag.fi_t:
             return table
 
         # Rename, add and remove specific columns if the circumstances are right
@@ -532,7 +546,6 @@ def process_flexible_import_tables(
                 df[colname] = [None] * nrows
         table = replace(table, dataframe=df)
 
-        table = utils.apply_composite_tag(table)
         df = table.dataframe
 
         attribute = "attribute"
@@ -594,7 +607,7 @@ def process_flexible_import_tables(
 
         return replace(table, dataframe=df)
 
-    return [process_flexible_import_table(t, veda_process_sets) for t in tables]
+    return [process_flexible_import_table(t) for t in tables]
 
 
 def process_user_constraint_tables(
@@ -661,7 +674,7 @@ def process_user_constraint_tables(
     ) -> datatypes.EmbeddedXlTable:
         # See https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV_October-2016.pdf from p16
 
-        if not table.tag.startswith(datatypes.Tag.uc_t):
+        if not table.tag == datatypes.Tag.uc_t:
             return table
 
         df = table.dataframe
@@ -1168,7 +1181,7 @@ def apply_fixups(
 ) -> list[datatypes.EmbeddedXlTable]:
     def apply_fixups_table(table: datatypes.EmbeddedXlTable):
         tag = datatypes.Tag.fi_t
-        if not table.tag.startswith(tag):
+        if not table.tag == tag:
             return table
 
         df = table.dataframe.copy()
@@ -1536,8 +1549,9 @@ def remove_fill_tables(
     # TODO: For the moment, assume that these tables are up-to-date. We will need a tool to do this.
     result = []
     for table in tables:
-        if table.tag != datatypes.Tag.tfm_fill and not table.tag.startswith(
-            datatypes.Tag.tfm_fill_r
+        if (
+            table.tag != datatypes.Tag.tfm_fill
+            and not table.tag == datatypes.Tag.tfm_fill_r
         ):
             result.append(table)
     return result
@@ -1660,7 +1674,8 @@ def process_topology(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Create topology."""
-    fit_tables = [t for t in tables if t.tag.startswith(datatypes.Tag.fi_t)]
+
+    fit_tables = [t for t in tables if t.tag == datatypes.Tag.fi_t]
 
     columns = [
         "region",
@@ -1870,7 +1885,7 @@ def process_transform_table_variants(
 
     result = []
     for table in tables:
-        tag = datatypes.Tag(table.tag.split(":")[0])
+        tag = datatypes.Tag(table.tag)
         if tag in [
             datatypes.Tag.tfm_dins_ts,
             datatypes.Tag.tfm_ins_ts,
@@ -1949,7 +1964,7 @@ def process_transform_tables(
     result = []
     dropped = []
     for table in tables:
-        if not any(table.tag.startswith(t) for t in tfm_tags):
+        if not any(table.tag == tag for tag in tfm_tags):
             result.append(table)
 
         elif table.tag in [
@@ -2068,11 +2083,22 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
+def filter_by_pattern(df: pd.DataFrame, pattern: str, combined: bool) -> pd.DataFrame:
+    """
+    Filter dataframe index by a regex pattern. Parameter combined indicates whether commas should
+    be treated as a pattern separator or belong to the pattern.
+    """
     # Duplicates can be created when a process has multiple commodities that match the pattern
-    df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
-    exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
-    return df.drop(exclude)
+    df = df.filter(
+        regex=utils.create_regexp(pattern, combined), axis="index"
+    ).drop_duplicates()
+    if combined:
+        exclude = df.filter(
+            regex=utils.create_negative_regexp(pattern), axis="index"
+        ).index
+        return df.drop(exclude)
+    else:
+        return df
 
 
 def intersect(acc, df):
@@ -2081,13 +2107,15 @@ def intersect(acc, df):
     return acc.merge(df)
 
 
-def get_matching_processes(row: pd.Series, topology: dict[str, DataFrame]) -> pd.Series:
+def get_matching_processes(
+    row: pd.Series, topology: dict[str, DataFrame]
+) -> pd.Series | None:
     matching_processes = None
     for col, key in process_map.items():
         if col in row.index and row[col] is not None:
             proc_set = topology[key]
             pattern = row[col].upper()
-            filtered = filter_by_pattern(proc_set, pattern)
+            filtered = filter_by_pattern(proc_set, pattern, col != "pset_pd")
             matching_processes = intersect(matching_processes, filtered)
 
     if matching_processes is not None and any(matching_processes.duplicated()):
@@ -2102,7 +2130,7 @@ def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
         if col in row.index and row[col] is not None:
             matching_commodities = intersect(
                 matching_commodities,
-                filter_by_pattern(topology[key], row[col].upper()),
+                filter_by_pattern(topology[key], row[col].upper(), col != "cset_cd"),
             )
     return matching_commodities
 
