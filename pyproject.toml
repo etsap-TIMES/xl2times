@@ -93,6 +93,8 @@ lint.ignore = [
     "PLR", # complexity rules
     "PD901", "PD011", # pandas 'df''
     "E501", # line too long, handled by black
+    "D100", "D101", "D102", "D103", "D104", "D105", # Missing docstrings # TODO enable when added
+    "D205", "D401"
 ]
 
 [tool.ruff.lint.pydocstyle]
