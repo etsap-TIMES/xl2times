@@ -16,8 +16,8 @@ from pandas.core.frame import DataFrame
 
 
 class Tag(str, Enum):
-    """
-    Enum class to enumerate all the accepted table tags by this program.
+    """Enum class to enumerate all the accepted table tags by this program.
+
     You can see a list of all the possible tags in section 2.4 of
     https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
     """
@@ -76,14 +76,22 @@ class EmbeddedXlTable:
 
     Attributes
     ----------
-        tag         Table tag associated with this table in the excel file used as input. You can see a list of all the
-                    possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-        uc_sets     User constrained tables are declared with tags which indicate their type and domain of coverage. This variable contains these two values.
-                    See section 2.4.7 in https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-        sheetname   Name of the excel worksheet where this table was extracted from.
-        range       Range of rows and columns that contained this table in the original excel worksheet.
-        filename    Name of the original excel file where this table was extracted from.
-        dataframe   Pandas dataframe containing the values of the table.
+    tag
+        Table tag associated with this table in the excel file used as input. You can
+        see a list of all the possible tags in section 2.4 of
+        https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+    uc_sets
+        User constrained tables are declared with tags which indicate their type and
+        domain of coverage. This variable contains these two values.  See section 2.4.7
+        in https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+    sheetname
+        Name of the excel worksheet where this table was extracted from.
+    range
+        Range of rows and columns that contained this table in the original excel worksheet.
+    filename
+        Name of the original excel file where this table was extracted from.
+    dataframe
+        Pandas dataframe containing the values of the table.
     """
 
     tag: str
@@ -117,21 +125,28 @@ class EmbeddedXlTable:
 
 @dataclass
 class TimesXlMap:
-    """This class defines mapping data objects between the TIMES excel tables
-    used by the tool for input and the transformed tables it outputs. The mappings
-    are defined in the times_mapping.txt file.
+    """This class defines mapping data objects between the TIMES excel tables used by
+    the tool for input and the transformed tables it outputs. The mappings are defined
+    in the times_mapping.txt file.
 
     Attributes
     ----------
-        times_name      Name of the table in its output form.
-        times_cols      Name of the columns that the table will have in its output form.
-                        They will be in the header of the output csv files.
-        xl_name         Tag for the Excel table used as input. You can see a list of all the
-                        possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
-        xl_cols         Columns from the Excel table used as input.
-        col_map         A mapping from Excel column names to Times column names.
-        filter_rows     A map from column name to value to filter rows to. If {}, all
-                        rows are outputted. E.g., {'Attribute': 'COM_ELAST'}
+    times_name
+        Name of the table in its output form.
+    times_cols
+        Name of the columns that the table will have in its output form. They will be
+        in the header of the output csv files.
+    xl_name
+        Tag for the Excel table used as input. You can see a list of all the possible
+        tags in section 2.4 of
+        https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
+    xl_cols
+        Columns from the Excel table used as input.
+    col_map
+        A mapping from Excel column names to Times column names.
+    filter_rows
+        A map from column name to value to filter rows to. If `{}`, all rows are
+        outputted. E.g., `{'Attribute': 'COM_ELAST'}`
     """
 
     times_name: str
@@ -144,9 +159,7 @@ class TimesXlMap:
 
 @dataclass
 class TimesModel:
-    """
-    This class contains all the information about the processed TIMES model.
-    """
+    """This class contains all the information about the processed TIMES model."""
 
     internal_regions: set[str] = field(default_factory=set)
     all_regions: set[str] = field(default_factory=set)
@@ -171,9 +184,7 @@ class TimesModel:
 
     @property
     def data_years(self) -> set[int]:
-        """
-        data_years are years for which there is data specified.
-        """
+        """data_years are years for which there is data specified."""
         data_years = set()
         for attributes in [self.attributes, self.uc_attributes]:
             if not attributes.empty:
@@ -183,23 +194,19 @@ class TimesModel:
 
     @property
     def past_years(self) -> set[int]:
-        """
-        Pastyears is the set of all years before start_year.
-        """
+        """Pastyears is the set of all years before start_year."""
         return {x for x in self.data_years if x < self.start_year}
 
     @property
     def model_years(self) -> set[int]:
-        """
-        model_years is the union of past_years and the representative years of the model (middleyears).
-        """
+        """model_years is the union of past_years and the representative years of the
+        model (middleyears)."""
         return self.past_years | set(self.time_periods["m"].values)
 
 
 class Config:
-    """Encapsulates all configuration options for a run of the tool, including
-    the mapping betwen excel tables and output tables, categories of tables, etc.
-    """
+    """Encapsulates all configuration options for a run of the tool, including the
+    mapping betwen excel tables and output tables, categories of tables, etc."""
 
     times_xl_maps: list[TimesXlMap]
     dd_table_order: Iterable[str]
@@ -324,9 +331,9 @@ class Config:
 
     @staticmethod
     def _read_mappings(filename: str) -> list[TimesXlMap]:
-        """
-        Function to load mappings from a text file between the excel sheets we use as input and
-        the tables we give as output. The mappings have the following structure:
+        """Function to load mappings from a text file between the excel sheets we use as
+        input and the tables we give as output. The mappings have the following
+        structure:
 
         OUTPUT_TABLE[DATAYEAR,VALUE] = ~TimePeriods(Year,B)
 
@@ -340,8 +347,15 @@ class Config:
         The mappings are loaded into TimesXlMap objects. See the description of that class for more
         information of the different fields they contain.
 
-        :param filename:        Name of the text file containing the mappings.
-        :return:                List of mappings in TimesXlMap format.
+        Parameters
+        ----------
+        filename
+            Name of the text file containing the mappings.
+
+        Returns
+        -------
+        list[TimesXlMap]
+            List of mappings in TimesXlMap format.
         """
         mappings = []
         dropped = []
