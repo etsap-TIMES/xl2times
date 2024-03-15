@@ -1674,7 +1674,6 @@ def process_topology(
     model: datatypes.TimesModel,
 ) -> list[datatypes.EmbeddedXlTable]:
     """Create topology."""
-
     fit_tables = [t for t in tables if t.tag == datatypes.Tag.fi_t]
 
     columns = [
