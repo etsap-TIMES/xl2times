@@ -568,21 +568,7 @@ def process_user_constraint_tables(
     :return:            List of tables in EmbeddedXlTable format with all FI_T processed.
     """
     legal_values = {
-        # TODO: load these from times-info.json
-        "attribute": {
-            "UC_ACT",
-            "UC_ATTR",
-            "UC_CAP",
-            "UC_COMNET",
-            "UC_COMPRD",
-            "UC_FLO",
-            "UC_NCAP",
-            "UC_RHSRT",
-            "UC_RHSRTS",
-            "UC_RHSTS",
-            "UC_R_EACH",
-            "UC_R_SUM",
-        },
+        "attribute": {attr for attr in config.all_attributes if attr.startswith("uc")},
         "region": model.internal_regions,
         "limtype": {"FX", "LO", "UP"},
         "side": {"LHS", "RHS"},

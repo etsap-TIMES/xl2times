@@ -7,6 +7,19 @@
       "ENV",
       "FIN"
    ],
+   "NRG_TYPE": [
+      "CONSRV",
+      "FOSSIL",
+      "FRERENEW",
+      "ELC",
+      "HTHEAT",
+      "LIMRENEW",
+      "LTHEAT",
+      "NUCLR",
+      "RATE",
+      "RENEN",
+      "SYNTH"
+   ],
    "PRC_GRP":
    [
       "CHP",
@@ -29,17 +42,43 @@
       "STS",
       "XTRACT"
    ],
-   "NRG_TYPE": [
-      "CONSRV",
-      "FOSSIL",
-      "FRERENEW",
-      "ELC",
-      "HTHEAT",
-      "LIMRENEW",
-      "LTHEAT",
-      "NUCLR",
-      "RATE",
-      "RENEN",
-      "SYNTH"
+   "SIDE":
+   [
+      "LHS",
+      "RHS"
+   ],
+   "UC_GRPTYPE":
+   [
+      "ACT",
+      "CAP",
+      "COMCON",
+      "COMNET",
+      "COMPRD",
+      "FLO",
+      "IRE",
+      "NCAP",
+      "UCN"
+   ],
+   "UC_NAME":
+   [
+      "BUILDUP",
+      "CAPACT",
+      "CAPFLO",
+      "COST",
+      "CUMSUM",
+      "DELIV",
+      "EFF",
+      "GROWTH",
+      "INVCOST",
+      "INVSUB",
+      "INVTAX",
+      "NET",
+      "NEWFLO",
+      "ONLINE",
+      "PERDISC",
+      "PERIOD",
+      "SUB",
+      "SYNC",
+      "TAX"
    ]
 }
