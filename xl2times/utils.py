@@ -430,7 +430,7 @@ def diff_state(
     - Save the state from a branch with a regression at some point in the transforms:
     - Switch to `main` branch and save the state from the same point:
     - Diff the two states:
-
+    
     For example:
 
     >>> from utils import save_state, diff_state
