@@ -125,9 +125,9 @@ class EmbeddedXlTable:
 
 @dataclass
 class TimesXlMap:
-    """This class defines mapping data objects between the TIMES excel tables used by
-    the tool for input and the transformed tables it outputs. The mappings are defined
-    in the times_mapping.txt file.
+    """The mapping between the TIMES excel tables used by the tool for input and the
+    transformed tables it outputs. The mappings are defined in the
+    `times_mapping.txt` and `times-info.json` files.
 
     Attributes
     ----------
