@@ -74,7 +74,8 @@ class Tag(str, Enum):
 class EmbeddedXlTable:
     """This class defines a table object as a pandas dataframe wrapped with some metadata.
 
-    Attributes:
+    Attributes
+    ----------
         tag         Table tag associated with this table in the excel file used as input. You can see a list of all the
                     possible tags in section 2.4 of https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf
         uc_sets     User constrained tables are declared with tags which indicate their type and domain of coverage. This variable contains these two values.
@@ -120,7 +121,8 @@ class TimesXlMap:
     used by the tool for input and the transformed tables it outputs. The mappings
     are defined in the times_mapping.txt file.
 
-    Attributes:
+    Attributes
+    ----------
         times_name      Name of the table in its output form.
         times_cols      Name of the columns that the table will have in its output form.
                         They will be in the header of the output csv files.
