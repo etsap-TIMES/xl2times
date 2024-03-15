@@ -13,10 +13,10 @@ from loguru import logger
 def parse_parameter_values_from_file(
     path: Path,
 ) -> tuple[dict[str, list], dict[str, set]]:
-    """
-    Parse *.dd to turn it into CSV format
-    There are parameters and sets, and each has a slightly different format
-    *.dd files have data of the following form:
+    """Parse *.dd to turn it into CSV format.
+
+    There are parameters and sets, and each has a slightly different format.
+    `*.dd` files have data of the following form:
 
     PARAMETER
     PARAM_NAME ' '/
@@ -31,9 +31,7 @@ def parse_parameter_values_from_file(
     ...
 
     /
-
     """
-
     data = list(open(path))
     data = [line.rstrip() for line in data]
 
@@ -128,13 +126,15 @@ def save_data_with_headers(
     save_dir: str,
 ) -> None:
     """
+    Saves data (with headers) to the provided directory.
+
+    Note that the header and data dictionaries are assumed to be parallel dictionaries
 
     :param param_data_dict: Dictionary containing key=param_name and val=dataframe for parameters or List[str] for sets
     :param headers_data: Dictionary containing key=param_name and val=dataframes
     :param save_dir: Path to folder in which to save the tabular data files
     :return: None
 
-    Note that the header and data dictionaries are assumed to be parallel dictionaries
     """
     for param_name, param_data in param_data_dict.items():
         try:
