@@ -125,16 +125,18 @@ def save_data_with_headers(
     headers_data: dict[str, list[str]],
     save_dir: str,
 ) -> None:
-    """
-    Saves data (with headers) to the provided directory.
+    """Saves data (with headers) to the provided directory.
 
     Note that the header and data dictionaries are assumed to be parallel dictionaries
 
-    :param param_data_dict: Dictionary containing key=param_name and val=dataframe for parameters or List[str] for sets
-    :param headers_data: Dictionary containing key=param_name and val=dataframes
-    :param save_dir: Path to folder in which to save the tabular data files
-    :return: None
-
+    Parameters
+    ----------
+    param_data_dict
+        Dictionary containing key=param_name and val=dataframe for parameters or List[str] for sets
+    headers_data
+        Dictionary containing key=param_name and val=dataframes
+    save_dir
+        Path to folder in which to save the tabular data files
     """
     for param_name, param_data in param_data_dict.items():
         try:
