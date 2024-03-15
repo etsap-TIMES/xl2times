@@ -34,7 +34,9 @@ pd.set_option(
 def _match_uc_wildcards_old(
     df: pd.DataFrame, dictionary: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
-    """Old version of the process_uc_wildcards matching logic, for comparison with the new vectorised version.
+    """Old version of the process_uc_wildcards matching logic, for comparison with the
+    new vectorised version.
+
     TODO remove this function once validated.
     """
 
@@ -89,8 +91,7 @@ class TestTransforms:
         assert df2["name"].equals(correct)
 
     def test_uc_wildcards(self):
-        """
-        Tests logic that matches wildcards in the process_uc_wildcards transform .
+        """Tests logic that matches wildcards in the process_uc_wildcards transform .
 
         Results on Ireland model:
             Old method took 0:00:08.42 seconds
@@ -140,8 +141,8 @@ class TestTransforms:
         assert len(set(df_new.columns).symmetric_difference(set(df_old.columns))) == 0
 
     def test_generate_commodity_groups(self):
-        """
-        Tests that the _count_comm_group_vectorised function works as expected.
+        """Tests that the _count_comm_group_vectorised function works as expected.
+
         Full austimes run:
             Vectorised version took 0.021999 seconds
             looped version took 966.653371 seconds
@@ -161,12 +162,13 @@ class TestTransforms:
         assert comm_groups2.shape == (comm_groups.shape[0], comm_groups.shape[1] + 1)
 
     def test_default_pcg_vectorised(self):
-        """Tests the default primary commodity group identification logic runs correctly.
+        """Tests the default primary commodity group identification logic runs
+        correctly.
+
         Full austimes run:
             Looped version took 1107.66 seconds
             Vectorised version took 62.85 seconds
         """
-
         # data extracted immediately before the original for loops
         comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.parquet")
 

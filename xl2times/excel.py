@@ -11,12 +11,18 @@ from . import datatypes, utils
 
 
 def extract_tables(filename: str) -> list[datatypes.EmbeddedXlTable]:
-    """
-    This function calls the extract_table function on each individual table in each worksheet of the
+    """Run the extract_table function on each individual table in each worksheet of the
     given excel file.
 
-    :param filename:      Path to the excel file we will extract tables from.
-    :return:              List of table objects in EmbeddedXlTable format.
+    Parameters
+    ----------
+    filename
+        Path to the excel file we will extract tables from.
+
+    Returns
+    -------
+    list[datatypes.EmbeddedXlTable]
+        List of table objects in EmbeddedXlTable format.
     """
     start_time = time.time()
 
@@ -86,16 +92,24 @@ def extract_table(
       spaces around them and the column names are determined by the
       values in the row immediately below the table tag
 
-    Args:
-        tag_row:         Row number for the tag designating the table to be extracted
-        tag_col:         Column number for the tag designating the table to be extracted
-        uc_sets:         Sets (regions and timeslices) for user constraints
-        df:              Dataframe object containing all values for the worksheet being evaluated
-        sheetname:       Name of the worksheet being evaluated
-        filename:        Path to the excel file being evaluated.
+    Parameters
+    ----------
+    tag_row
+        Row number for the tag designating the table to be extracted
+    tag_col
+        Column number for the tag designating the table to be extracted
+    uc_sets
+        Sets (regions and timeslices) for user constraints
+    df
+        Dataframe object containing all values for the worksheet being evaluated
+    sheetname
+        Name of the worksheet being evaluated
+    filename
+        Path to the excel file being evaluated.
 
-    Returns:
-       Table object in the EmbeddedXlTable format.
+    Returns
+    -------
+        Table object in the EmbeddedXlTable format.
     """
     # If the cell to the right is not empty then we read a scalar from it
     # Otherwise the row below is the header
@@ -168,14 +182,23 @@ def extract_table(
 
 
 def are_cells_all_empty(df, row: int, start_col: int, end_col: int) -> bool:
-    """
-    Check if all cells in a given row are empty by calling cell_is_empty() on them.
+    """Check if all cells in a given row are empty by calling cell_is_empty() on them.
 
-    :param df:              Dataframe object containing all values for the worksheet being evaluated
-    :param row:             Row of the dataframe to be evaluated.
-    :param start_col:       Initial column of the dataframe to be evaluated.
-    :param end_col:         Final column of the dataframe to be evaluated.
-    :return:                Boolean indicating if all the cells are empty.
+    Parameters
+    ----------
+    df
+        Dataframe object containing all values for the worksheet being evaluated
+    row
+        Row of the dataframe to be evaluated.
+    start_col
+        Initial column of the dataframe to be evaluated.
+    end_col
+        Final column of the dataframe to be evaluated.
+
+    Returns
+    -------
+    bool
+        Boolean indicating if all the cells are empty.
     """
     for col in range(start_col, end_col):
         if not cell_is_empty(df.iloc[row, col]):
@@ -184,11 +207,17 @@ def are_cells_all_empty(df, row: int, start_col: int, end_col: int) -> bool:
 
 
 def cell_is_empty(value) -> bool:
-    """
-    Check if the given cell is empty.
+    """Check if the given cell is empty.
 
-    :param value:           Cell value.
-    :return:                Boolean indicating if the cells are empty.
+    Parameters
+    ----------
+    value
+        Cell value.
+
+    Returns
+    -------
+    bool
+        Boolean indicating if the cells are empty.
     """
     return (
         value is None
