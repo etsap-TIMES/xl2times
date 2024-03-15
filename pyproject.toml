@@ -83,6 +83,7 @@ lint.select = [
     "UP", # pyupgrade
     "NPY", # numpy style
     "PL", # pylint
+    "D", # docstring conventions
 #    "PD", # pandas style # TODO enable later
 #    "C90", # code complexity # TODO enable later
 ]
@@ -93,6 +94,9 @@ lint.ignore = [
     "PD901", "PD011", # pandas 'df''
     "E501", # line too long, handled by black
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
