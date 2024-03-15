@@ -101,6 +101,7 @@ def convert_xl_to_times(
         transforms.process_tradelinks,
         transforms.process_processes,
         transforms.process_topology,
+        transforms.apply_tag_specified_defaults,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,

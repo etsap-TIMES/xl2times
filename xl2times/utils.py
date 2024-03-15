@@ -44,12 +44,14 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     :return:           Table in EmbeddedXlTable format with declarations applied
                        and table tag simplified.
     """
-    if ":" in table.tag:
-        (newtag, varname) = table.tag.split(":")
-        varname = varname.strip()
-        df = table.dataframe.copy()
-        df["attribute"] = df["attribute"].fillna(varname)
-        return replace(table, tag=newtag, dataframe=df)
+    if table.defaults:
+        varname = table.defaults
+        df = table.dataframe
+        if "attribute" in df.columns:
+            df["attribute"] = df["attribute"].fillna(varname)
+        else:
+            df["attribute"] = varname
+        return replace(table, dataframe=df)
     else:
         return table
 
@@ -191,40 +193,51 @@ def get_scalar(table_tag: str, tables: list[datatypes.EmbeddedXlTable]):
     return table.dataframe["value"].values[0]
 
 
-def has_negative_patterns(pattern):
+def has_negative_patterns(pattern: str) -> bool:
     if len(pattern) == 0:
         return False
     return pattern[0] == "-" or ",-" in pattern
 
 
-def remove_negative_patterns(pattern):
+def remove_negative_patterns(pattern: str) -> str:
     if len(pattern) == 0:
         return pattern
     return ",".join([word for word in pattern.split(",") if word[0] != "-"])
 
 
-def remove_positive_patterns(pattern):
+def remove_positive_patterns(pattern: str) -> str:
     if len(pattern) == 0:
         return pattern
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
 @functools.lru_cache(maxsize=int(1e6))
-def create_regexp(pattern):
-    # exclude negative patterns
-    if has_negative_patterns(pattern):
-        pattern = remove_negative_patterns(pattern)
+def create_regexp(pattern: str, combined: bool = True) -> str:
+    # Distinguish comma-separated list of patterns vs a pattern with a comma(s)
+    if combined:
+        # Remove whitespaces
+        pattern = pattern.replace(" ", "")
+        # Exclude negative patterns
+        if has_negative_patterns(pattern):
+            pattern = remove_negative_patterns(pattern)
+        # Handle comma-separated values
+        pattern = pattern.replace(",", r"$|^")
     if len(pattern) == 0:
-        return re.compile(pattern)  # matches everything
-    # Handle VEDA wildcards
-    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", r"$|^")
+        return r".*"  # matches everything
+    # Handle substite VEDA wildcards with regex patterns
+    for substition in (("*", ".*"), ("?", ".")):
+        old, new = substition
+        pattern = pattern.replace(old, new)
     # Do not match substrings
     pattern = rf"^{pattern}$"
-    return re.compile(pattern)
+    return pattern
 
 
 @functools.lru_cache(maxsize=int(1e6))
-def create_negative_regexp(pattern):
+def create_negative_regexp(pattern: str) -> str:
+    # Remove whitespaces
+    pattern = pattern.replace(" ", "")
+    # Exclude positive patterns
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
         pattern = r"^$"  # matches nothing
@@ -248,7 +261,8 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
     Call this once from entrypoints to set up a new logger.
     In non-entrypoint modules, just use `from loguru import logger` directly.
 
-    To set the log level, use the `LOGURU_LEVEL` environment variable before or during runtime. E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
+    To set the log level, use the `LOGURU_LEVEL` environment variable before or during runtime.
+    E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
     Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `INFO`.
 
     Log file will be written to `f"{log_dir}/{log_name}.log"`
@@ -270,7 +284,8 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
             {
                 "sink": sys.stdout,
                 "diagnose": True,
-                "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level> (<cyan>{name}:{"
+                "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{"
+                "message}</level> (<cyan>{name}:{"
                 'thread.name}:pid-{process}</cyan> "<cyan>{'
                 'file.path}</cyan>:<cyan>{line}</cyan>")',
             },
