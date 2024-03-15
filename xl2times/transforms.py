@@ -372,9 +372,15 @@ def merge_tables(
         missing_cols = [concat_cols - set(t.dataframe.columns) for t in group]
 
         if any([len(m) for m in missing_cols]):
-            err = f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual table(s), see details below:"
+            err = (
+                f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual "
+                f"table(s), see details below:"
+            )
             for table in group:
-                err += f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, {table.filename}"
+                err += (
+                    f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, "
+                    f"{table.filename}"
+                )
             logger.warning(err)
 
         match key:
@@ -1264,7 +1270,8 @@ def _process_comm_groups_vectorised(
         comm_groups: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
         csets_ordered_for_pcg: List of csets in the order they should be considered for default pcg
     Returns:
-        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in eachregion/process/io combination.
+        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in eachregion/process/io
+        combination.
     """
 
     def _set_default_veda_pcg(group):
@@ -2017,11 +2024,22 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
+def filter_by_pattern(df: pd.DataFrame, pattern: str, combined: bool) -> pd.DataFrame:
+    """
+    Filter dataframe index by a regex pattern. Parameter combined indicates whether commas should
+    be treated as a pattern separator or belong to the pattern.
+    """
     # Duplicates can be created when a process has multiple commodities that match the pattern
-    df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
-    exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
-    return df.drop(exclude)
+    df = df.filter(
+        regex=utils.create_regexp(pattern, combined), axis="index"
+    ).drop_duplicates()
+    if combined:
+        exclude = df.filter(
+            regex=utils.create_negative_regexp(pattern), axis="index"
+        ).index
+        return df.drop(exclude)
+    else:
+        return df
 
 
 def intersect(acc, df):
@@ -2030,13 +2048,15 @@ def intersect(acc, df):
     return acc.merge(df)
 
 
-def get_matching_processes(row: pd.Series, topology: dict[str, DataFrame]) -> pd.Series:
+def get_matching_processes(
+    row: pd.Series, topology: dict[str, DataFrame]
+) -> pd.Series | None:
     matching_processes = None
     for col, key in process_map.items():
         if col in row.index and row[col] is not None:
             proc_set = topology[key]
             pattern = row[col].upper()
-            filtered = filter_by_pattern(proc_set, pattern)
+            filtered = filter_by_pattern(proc_set, pattern, col != "pset_pd")
             matching_processes = intersect(matching_processes, filtered)
 
     if matching_processes is not None and any(matching_processes.duplicated()):
@@ -2051,7 +2071,7 @@ def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
         if col in row.index and row[col] is not None:
             matching_commodities = intersect(
                 matching_commodities,
-                filter_by_pattern(topology[key], row[col].upper()),
+                filter_by_pattern(topology[key], row[col].upper(), col != "cset_cd"),
             )
     return matching_commodities
 
@@ -2187,7 +2207,8 @@ def _match_wildcards(
         explode: Whether to explode the  results_col ('process'/'commodities') column into a long-format table.
 
     Returns:
-        The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
+        The table with the wildcard columns removed and the results of the wildcard matches added as
+        a column named `results_col`
     """
     wild_cols = list(col_map.keys())
 
