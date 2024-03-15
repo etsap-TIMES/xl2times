@@ -191,40 +191,48 @@ def get_scalar(table_tag: str, tables: list[datatypes.EmbeddedXlTable]):
     return table.dataframe["value"].values[0]
 
 
-def has_negative_patterns(pattern):
+def has_negative_patterns(pattern: str) -> bool:
     if len(pattern) == 0:
         return False
     return pattern[0] == "-" or ",-" in pattern
 
 
-def remove_negative_patterns(pattern):
+def remove_negative_patterns(pattern: str) -> str:
     if len(pattern) == 0:
         return pattern
     return ",".join([word for word in pattern.split(",") if word[0] != "-"])
 
 
-def remove_positive_patterns(pattern):
+def remove_positive_patterns(pattern: str) -> str:
     if len(pattern) == 0:
         return pattern
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
 @functools.lru_cache(maxsize=int(1e6))
-def create_regexp(pattern):
-    # exclude negative patterns
+def create_regexp(pattern: str) -> re.Pattern:
+    # Remove whitespaces
+    pattern = pattern.replace(" ", "")
+    # Exclude negative patterns
     if has_negative_patterns(pattern):
         pattern = remove_negative_patterns(pattern)
     if len(pattern) == 0:
         return re.compile(pattern)  # matches everything
-    # Handle VEDA wildcards
-    pattern = pattern.replace("*", ".*").replace("?", ".").replace(",", r"$|^")
+    # Handle substite VEDA wildcards with regex patterns
+    substitions = (("*", ".*"), ("?", "."), (",", r"$|^"))
+    for substition in substitions:
+        old, new = substition
+        pattern = pattern.replace(old, new)
     # Do not match substrings
     pattern = rf"^{pattern}$"
     return re.compile(pattern)
 
 
 @functools.lru_cache(maxsize=int(1e6))
-def create_negative_regexp(pattern):
+def create_negative_regexp(pattern: str) -> re.Pattern:
+    # Remove whitespaces
+    pattern = pattern.replace(" ", "")
+    # Exclude positive patterns
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
         pattern = r"^$"  # matches nothing
@@ -248,7 +256,8 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
     Call this once from entrypoints to set up a new logger.
     In non-entrypoint modules, just use `from loguru import logger` directly.
 
-    To set the log level, use the `LOGURU_LEVEL` environment variable before or during runtime. E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
+    To set the log level, use the `LOGURU_LEVEL` environment variable before or during runtime.
+    E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
     Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `INFO`.
 
     Log file will be written to `f"{log_dir}/{log_name}.log"`
@@ -270,7 +279,8 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
             {
                 "sink": sys.stdout,
                 "diagnose": True,
-                "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level> (<cyan>{name}:{"
+                "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{"
+                "message}</level> (<cyan>{name}:{"
                 'thread.name}:pid-{process}</cyan> "<cyan>{'
                 'file.path}</cyan>:<cyan>{line}</cyan>")',
             },

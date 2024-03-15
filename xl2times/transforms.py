@@ -372,9 +372,15 @@ def merge_tables(
         missing_cols = [concat_cols - set(t.dataframe.columns) for t in group]
 
         if any([len(m) for m in missing_cols]):
-            err = f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual table(s), see details below:"
+            err = (
+                f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual "
+                f"table(s), see details below:"
+            )
             for table in group:
-                err += f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, {table.filename}"
+                err += (
+                    f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, "
+                    f"{table.filename}"
+                )
             logger.warning(err)
 
         match key:
@@ -1257,7 +1263,8 @@ def _process_comm_groups_vectorised(
         comm_groups: 'Process' DataFrame with columns ["region", "process", "io", "csets", "commoditygroup"]
         csets_ordered_for_pcg: List of csets in the order they should be considered for default pcg
     Returns:
-        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in eachregion/process/io combination.
+        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in eachregion/process/io
+        combination.
     """
 
     def _set_default_veda_pcg(group):
@@ -2179,7 +2186,8 @@ def _match_wildcards(
         explode: Whether to explode the  results_col ('process'/'commodities') column into a long-format table.
 
     Returns:
-        The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
+        The table with the wildcard columns removed and the results of the wildcard matches added as
+        a column named `results_col`
     """
     wild_cols = list(col_map.keys())
 
