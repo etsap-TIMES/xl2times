@@ -210,26 +210,29 @@ def remove_positive_patterns(pattern: str) -> str:
 
 
 @functools.lru_cache(maxsize=int(1e6))
-def create_regexp(pattern: str) -> re.Pattern:
-    # Remove whitespaces
-    pattern = pattern.replace(" ", "")
-    # Exclude negative patterns
-    if has_negative_patterns(pattern):
-        pattern = remove_negative_patterns(pattern)
+def create_regexp(pattern: str, combined: bool = True) -> str:
+    # Distinguish comma-separated list of patterns vs a pattern with a comma(s)
+    if combined:
+        # Remove whitespaces
+        pattern = pattern.replace(" ", "")
+        # Exclude negative patterns
+        if has_negative_patterns(pattern):
+            pattern = remove_negative_patterns(pattern)
+        # Handle comma-separated values
+        pattern = pattern.replace(",", r"$|^")
     if len(pattern) == 0:
-        return re.compile(pattern)  # matches everything
+        return r".*"  # matches everything
     # Handle substite VEDA wildcards with regex patterns
-    substitions = (("*", ".*"), ("?", "."), (",", r"$|^"))
-    for substition in substitions:
+    for substition in (("*", ".*"), ("?", ".")):
         old, new = substition
         pattern = pattern.replace(old, new)
     # Do not match substrings
     pattern = rf"^{pattern}$"
-    return re.compile(pattern)
+    return pattern
 
 
 @functools.lru_cache(maxsize=int(1e6))
-def create_negative_regexp(pattern: str) -> re.Pattern:
+def create_negative_regexp(pattern: str) -> str:
     # Remove whitespaces
     pattern = pattern.replace(" ", "")
     # Exclude positive patterns
