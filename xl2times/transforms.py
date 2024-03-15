@@ -734,14 +734,23 @@ def generate_uc_properties(
 ) -> list[EmbeddedXlTable]:
     """Generate a dataframe containing User Constraint properties."""
     uc_tables = [table for table in tables if table.tag == Tag.uc_t]
-    columns = ["uc_n", "description", "region", "reg_action", "ts_action"]
+    columns = [
+        "uc_n",
+        "description",
+        "region",
+        "reg_action",
+        "ts_action",
+        "uc_attr",
+        "group_type",
+        "side",
+    ]
     user_constraints = pd.DataFrame(columns=columns)
     # Create df_list to hold DataFrames that will be concatenated later on
     df_list = list()
     for uc_table in uc_tables:
         # DataFrame with unique UC names and descriptions if they exist:
         df = (
-            uc_table.dataframe.loc[:, ["uc_n", "description"]]
+            uc_table.dataframe.loc[:, ["uc_n", "description", "uc_attr", "side"]]
             .groupby("uc_n", sort=False)
             .first()
         )
@@ -765,7 +774,38 @@ def generate_uc_properties(
             user_constraints.loc[index, ["description"]] = user_constraints["uc_n"][
                 index
             ]
-
+        # Handle uc_attr
+        index = user_constraints["uc_attr"].isna()
+        if any(index):
+            # Remove unnecessary values in side
+            user_constraints.loc[index, ["side"]] = user_constraints["uc_attr"][index]
+        if not all(index):
+            # Unpack uc_attr
+            user_constraints["group_type"] = None
+            user_constraints["group_type"][~index] = user_constraints[~index].apply(
+                lambda row: [
+                    v.strip().upper()
+                    for v in row["uc_attr"].split(",")
+                    if v.strip().upper() in config.times_sets["UC_GRPTYPE"]
+                ],
+                axis=1,
+            )
+            user_constraints["group_type"][~index] = user_constraints[~index].apply(
+                lambda row: row["group_type"][-1] if row["group_type"] else None,
+                axis=1,
+            )
+            user_constraints["uc_attr"][~index] = user_constraints[~index].apply(
+                lambda row: [
+                    v.strip().upper()
+                    for v in row["uc_attr"].split(",")
+                    if v.strip().upper() in config.times_sets["UC_NAME"]
+                ],
+                axis=1,
+            )
+            user_constraints["uc_attr"][~index] = user_constraints[~index].apply(
+                lambda row: row["uc_attr"][-1] if row["uc_attr"] else None,
+                axis=1,
+            )
         # TODO: Can this (until user_constraints.explode) become a utility function?
         # Handle allregions by substituting it with a list of internal regions
         index = user_constraints["region"].str.lower() == "allregions"
@@ -786,7 +826,9 @@ def generate_uc_properties(
         # Explode regions
         user_constraints = user_constraints.explode("region", ignore_index=True)
 
-    model.user_constraints = user_constraints.rename(columns={"uc_n": "name"})
+    model.user_constraints = user_constraints.rename(
+        columns={"uc_n": "name", "uc_attr": "uc_param"}
+    )
 
     return tables
 
