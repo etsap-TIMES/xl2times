@@ -46,7 +46,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     """
     if table.defaults:
         varname = table.defaults
-        df = table.dataframe.copy()
+        df = table.dataframe
         if "attribute" in df.columns:
             df["attribute"] = df["attribute"].fillna(varname)
         else:
