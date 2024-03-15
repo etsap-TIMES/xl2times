@@ -54,7 +54,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         return table
 
 
-def explode(df, data_columns):
+def explode(df: DataFrame, data_columns: list[str]) -> tuple[DataFrame, pd.Series]:
     """
     Transpose the 'data_columns' in each row into a column of values, replicating the other
     columns. The name for the new column is "VALUE".
@@ -88,7 +88,9 @@ def explode(df, data_columns):
     return df, names
 
 
-def single_table(tables: list[datatypes.EmbeddedXlTable], tag: str):
+def single_table(
+    tables: list[datatypes.EmbeddedXlTable], tag: str
+) -> datatypes.EmbeddedXlTable:
     """
     Make sure exactly one table in 'tables' has the given table tag, and return it.
     If there are none or more than one raise an error.
@@ -100,7 +102,9 @@ def single_table(tables: list[datatypes.EmbeddedXlTable], tag: str):
     return one(table for table in tables if table.tag == tag)
 
 
-def single_column(tables: list[datatypes.EmbeddedXlTable], tag: str, colname: str):
+def single_column(
+    tables: list[datatypes.EmbeddedXlTable], tag: str, colname: str
+) -> numpy.ndarray:
     """
     Make sure exactly one table in 'tables' has the given table tag, and return the
     values for the given column name. If there are none or more than one raise an error.
@@ -108,12 +112,14 @@ def single_column(tables: list[datatypes.EmbeddedXlTable], tag: str, colname: st
     :param tables:          List of tables in EmbeddedXlTable format.
     :param tag:             Tag name.
     :param colname:         Column name to return the values of.
-    :return:                Table with the given tag in EmbeddedXlTable format.
+    :return:                Values for the column in the given table.
     """
     return single_table(tables, tag).dataframe[colname].values
 
 
-def merge_columns(tables: list[datatypes.EmbeddedXlTable], tag: str, colname: str):
+def merge_columns(
+    tables: list[datatypes.EmbeddedXlTable], tag: str, colname: str
+) -> numpy.ndarray:
     """
     Return a list with all the values belonging to a column 'colname' from
     a table with the given tag.
@@ -134,7 +140,7 @@ def apply_wildcards(
     Apply wildcards values to a list of candidates. Wildcards are values containing '*'. For example,
     a value containing '*SOLID*' would include all the values in 'candidates' containing 'SOLID' in the middle.
 
-
+    TODO unused. Remove?
 
     :param df:              Dataframe containing all values.
     :param candidates:      List of candidate strings to apply the wildcard to.
@@ -142,7 +148,6 @@ def apply_wildcards(
     :param output_col:      Name of the column to dump the wildcard matches to.
     :return:                A dataframe containing all the wildcard matches on its 'output_col' column.
     """
-
     wildcard_map = {}
     all_wildcards = df[wildcard_col].unique()
     for wildcard_string in all_wildcards:
@@ -165,8 +170,7 @@ def apply_wildcards(
     df[output_col] = df[wildcard_col].map(wildcard_map)
 
 
-def missing_value_inherit(df: DataFrame, colname: str):
-    # TODO: should we use pandas.DataFrame.fillna(method="ffill") instead?
+def missing_value_inherit(df: DataFrame, colname: str) -> None:
     """
     For each None value in the specifed column of the dataframe, replace it with the last
     non-None value. If no previous non-None value is found leave it as it is. This function
@@ -176,6 +180,7 @@ def missing_value_inherit(df: DataFrame, colname: str):
     :param colname:     Name of the column to be filled in.
     :return:            None. The dataframe is filled in in place.
     """
+    # TODO: should we use pandas.DataFrame.fillna(method="ffill") instead?
     last = None
     for index, value in df[colname].items():
         if value is None:
@@ -253,11 +258,17 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
 
     Log file will be written to `f"{log_dir}/{log_name}.log"`
 
-    Parameters:
-        log_name (str): Name of the log. Corresponding log file will be called {log_name}.log in the .
-        log_dir (str): Directory to write the log file to. Default is the current working directory.
-    Returns:
-        Logger: A configured loguru logger.
+    Parameters
+    ----------
+    log_name
+        Name of the log. Corresponding log file will be called {log_name}.log in the .
+    log_dir
+        Directory to write the log file to. Default is the current working directory.
+
+    Returns
+    -------
+    Logger
+        A configured loguru logger.
     """
     from loguru import logger
 
@@ -319,7 +330,6 @@ def compare_df_dict(
         sort_cols: whether to sort the columns before comparing.  Set True if the column order is unimportant.
         context_rows: number of rows to show around the first difference
     """
-
     for key in df_before:
 
         before = df_before[key]
