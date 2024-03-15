@@ -78,7 +78,7 @@ class EmbeddedXlTable:
     ----------
     tag
         Table tag associated with this table in the excel file used as input.
-    defaults    
+    defaults
         Defaults for the table that are separated by a colon from the tag.
     uc_sets
         User constrained tables are declared with tags which indicate their type and domain of coverage.
