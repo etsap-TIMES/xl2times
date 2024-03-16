@@ -482,7 +482,7 @@ def process_flexible_import_tables(
     # Get a list of allowed values for each category.
     # TODO: update this dictionary
     legal_values = {
-        "limtype": {"LO", "UP", "FX"},
+        "limtype": set(config.times_sets["LIM"]),
         # TODO: check what the values for the below should be
         "timeslice": set(model.ts_tslvl["tslvl"]),
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
@@ -640,8 +640,8 @@ def process_user_constraint_tables(
     legal_values = {
         "attribute": {attr for attr in config.all_attributes if attr.startswith("uc")},
         "region": model.internal_regions,
-        "limtype": {"FX", "LO", "UP"},
-        "side": {"LHS", "RHS"},
+        "limtype": set(config.times_sets["LIM"]),
+        "side": set(config.times_sets["SIDE"]),
     }
 
     def get_colname(value):
@@ -781,6 +781,7 @@ def generate_uc_properties(
             user_constraints.loc[index, ["side"]] = user_constraints["uc_attr"][index]
         if not all(index):
             # Unpack uc_attr
+            extended_uc_name = config.times_sets["UC_NAME"] + config.times_sets["TSLVL"]
             user_constraints["group_type"] = None
             user_constraints["group_type"][~index] = user_constraints[~index].apply(
                 lambda row: [
@@ -798,7 +799,7 @@ def generate_uc_properties(
                 lambda row: [
                     v.strip().upper()
                     for v in row["uc_attr"].split(",")
-                    if v.strip().upper() in config.times_sets["UC_NAME"]
+                    if v.strip().upper() in extended_uc_name
                 ],
                 axis=1,
             )

@@ -7,6 +7,23 @@
       "ENV",
       "FIN"
    ],
+   "IN_OUT":
+   [
+      "IN",
+      "OUT"
+   ],
+   "IMPEXP":
+   [
+      "EXP",
+      "IMP"
+   ],
+   "LIM":
+   [
+      "FX",
+      "LO",
+      "N",
+      "UP"
+   ],
    "NRG_TYPE": [
       "CONSRV",
       "FOSSIL",
@@ -47,6 +64,13 @@
       "LHS",
       "RHS"
    ],
+   "TSLVL":
+   [
+      "ANNUAL",
+      "SEASON",
+      "WEEKLY",
+      "DAYNITE"
+   ],
    "UC_GRPTYPE":
    [
       "ACT",
@@ -80,5 +104,11 @@
       "SUB",
       "SYNC",
       "TAX"
+   ],
+   "UPT":
+   [
+      "COLD",
+      "WARM",
+      "HOT"
    ]
 }
