@@ -779,11 +779,28 @@ def generate_uc_properties(
         if any(index):
             # Remove unnecessary values in side
             user_constraints.loc[index, ["side"]] = user_constraints["uc_attr"][index]
+        # Unpack uc_attr if not all the values in the column are na
         if not all(index):
-            # Unpack uc_attr
+            # Handle semicolon-separated values
+            i_pairs = ~index & user_constraints["uc_attr"].str.contains(";")
+            if any(i_pairs):
+                user_constraints.loc[i_pairs, "uc_attr"] = user_constraints[
+                    i_pairs
+                ].apply(
+                    lambda row: row["uc_attr"].strip().split(";"),
+                    axis=1,
+                )
+                user_constraints = user_constraints.explode(
+                    "uc_attr", ignore_index=True
+                )
+                # Update index
+                index = user_constraints["uc_attr"].isna()
+            # Extend UC_NAME set with timeslice levels
             extended_uc_name = config.times_sets["UC_NAME"] + config.times_sets["TSLVL"]
             user_constraints["group_type"] = None
-            user_constraints["group_type"][~index] = user_constraints[~index].apply(
+            # TODO: Verify that the values are comma-separated pairs
+            # TODO: Only one of the values should be UC_GRPTYPE
+            user_constraints.loc[~index, "group_type"] = user_constraints[~index].apply(
                 lambda row: [
                     v.strip().upper()
                     for v in row["uc_attr"].split(",")
@@ -791,11 +808,12 @@ def generate_uc_properties(
                 ],
                 axis=1,
             )
-            user_constraints["group_type"][~index] = user_constraints[~index].apply(
+            user_constraints.loc[~index, "group_type"] = user_constraints[~index].apply(
                 lambda row: row["group_type"][-1] if row["group_type"] else None,
                 axis=1,
             )
-            user_constraints["uc_attr"][~index] = user_constraints[~index].apply(
+            # TODO: Only one of the values should be from extended_uc_name
+            user_constraints.loc[~index, "uc_attr"] = user_constraints[~index].apply(
                 lambda row: [
                     v.strip().upper()
                     for v in row["uc_attr"].split(",")
@@ -803,7 +821,7 @@ def generate_uc_properties(
                 ],
                 axis=1,
             )
-            user_constraints["uc_attr"][~index] = user_constraints[~index].apply(
+            user_constraints.loc[~index, "uc_attr"] = user_constraints[~index].apply(
                 lambda row: row["uc_attr"][-1] if row["uc_attr"] else None,
                 axis=1,
             )
@@ -816,10 +834,10 @@ def generate_uc_properties(
         # Handle comma-separated regions
         index = user_constraints["region"].str.contains(",")
         if any(index):
-            user_constraints.loc[index, ["region"]] = user_constraints.apply(
+            user_constraints.loc[index, "region"] = user_constraints[index].apply(
                 lambda row: [
                     region
-                    for region in str(row["region"]).split(",")
+                    for region in row["region"].split(",")
                     if region in model.internal_regions
                 ],
                 axis=1,
