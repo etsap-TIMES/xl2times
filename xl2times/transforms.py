@@ -776,7 +776,11 @@ def generate_uc_properties(
                 index
             ]
         # Handle uc_attr
-        index = user_constraints["uc_attr"].notna()
+        index = (
+            user_constraints["uc_attr"].notna()
+            if "uc_attr" in user_constraints.columns
+            else list()
+        )
         # Unpack uc_attr if not all the values in the column are na
         if any(index):
             # Handle semicolon-separated values
