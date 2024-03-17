@@ -491,16 +491,6 @@ def process_flexible_import_tables(
         "other_indexes": {"IN", "OUT", "DEMO", "DEMI"},
     }
 
-    def get_colname(value):
-        # Return the value in the desired format along with the associated category (if any)
-        # TODO make sure to do case-insensitive comparisons when parsing composite column names
-        if value.isdigit():
-            return "year", int(value)
-        for name, values in legal_values.items():
-            if value.upper() in values:
-                return name, value
-        return None, value
-
     # TODO decide whether VedaProcessSets should become a new Enum type or part of TimesModelData type
 
     def process_flexible_import_table(
@@ -566,7 +556,7 @@ def process_flexible_import_tables(
                 i = df[attribute] == attr
                 parts = attr.split("~")
                 for value in parts:
-                    colname, typed_value = get_colname(value)
+                    colname, typed_value = _get_colname(value, legal_values)
                     if colname is None:
                         df.loc[i, attribute] = typed_value
                     else:
@@ -608,6 +598,16 @@ def process_flexible_import_tables(
     return [process_flexible_import_table(t) for t in tables]
 
 
+def _get_colname(value, legal_values):
+    """Return the value in the desired format along with the associated category (if any)."""
+    if value.isdigit():
+        return "year", int(value)
+    for name, values in legal_values.items():
+        if value.upper() in values:
+            return name, value.upper()
+    return None, value
+
+
 def process_user_constraint_tables(
     config: Config,
     tables: list[EmbeddedXlTable],
@@ -644,15 +644,6 @@ def process_user_constraint_tables(
         "side": set(config.times_sets["SIDE"]),
     }
 
-    def get_colname(value):
-        # TODO make sure to do case-insensitive comparisons when parsing composite column names
-        if value.isdigit():
-            return "year", int(value)
-        for name, values in legal_values.items():
-            if value in values:
-                return name, value
-        return None, value
-
     def process_user_constraint_table(
         table: EmbeddedXlTable,
     ) -> EmbeddedXlTable:
@@ -663,18 +654,17 @@ def process_user_constraint_tables(
 
         df = table.dataframe
 
-        # TODO: apply table.uc_sets
-
         # Fill in UC_N blank cells with value from above
         df["uc_n"] = df["uc_n"].ffill()
+        # TODO: Handle pseudo-attributes in a more general way
+        known_columns = config.known_columns[Tag.uc_t].copy()
+        known_columns.remove("uc_attr")
 
-        data_columns = [
-            x for x in df.columns if x not in config.known_columns[Tag.uc_t]
-        ]
+        data_columns = [x for x in df.columns if x not in known_columns]
 
         # Populate columns
         nrows = df.shape[0]
-        for colname in config.known_columns[Tag.uc_t]:
+        for colname in known_columns:
             if colname not in df.columns:
                 df[colname] = [None] * nrows
         table = replace(table, dataframe=df)
@@ -716,7 +706,7 @@ def process_user_constraint_tables(
                 i = df["attribute"] == attr
                 parts = attr.split("~")
                 for value in parts:
-                    colname, typed_value = get_colname(value)
+                    colname, typed_value = _get_colname(value, legal_values)
                     if colname is None:
                         df.loc[i, "attribute"] = typed_value
                     else:
@@ -748,12 +738,10 @@ def generate_uc_properties(
     # Create df_list to hold DataFrames that will be concatenated later on
     df_list = list()
     for uc_table in uc_tables:
+        uc_df = uc_table.dataframe
         # DataFrame with unique UC names and descriptions if they exist:
-        df = (
-            uc_table.dataframe.loc[:, ["uc_n", "description", "uc_attr", "side"]]
-            .groupby("uc_n", sort=False)
-            .first()
-        )
+        df = uc_df.loc[:, ["uc_n", "description"]].groupby("uc_n", sort=False).first()
+        df = df.reset_index()
         # Add info on how regions and timeslices should be treated by the UCs
         for key in uc_table.uc_sets.keys():
             if key.startswith("R_"):
@@ -761,12 +749,25 @@ def generate_uc_properties(
                 df["region"] = uc_table.uc_sets[key].upper().strip()
             elif key.startswith("T_"):
                 df["ts_action"] = key
+        # Supplement with UC_ATTR if present
+        index = uc_df["attribute"] == "UC_ATTR"
+        if any(index):
+            uc_attr_rows = uc_df.loc[index, ["uc_n", "value", "side"]]
+            # uc_attr is expected as column name
+            uc_attr_rows = (
+                uc_attr_rows.rename(columns={"value": "uc_attr"})
+                .dropna()
+                .drop_duplicates()
+            )
+            df = pd.merge(df, uc_attr_rows, on=["uc_n"], how="left")
+            # Remove UC_ATTR records from the original dataframe
+            uc_table.dataframe = uc_df[~index].reset_index(drop=True)
 
         df_list.append(df)
     # Do further processing if df_list is not empty
     if df_list:
         # Create a single DataFrame with all UCs
-        user_constraints = pd.concat(df_list).reset_index()
+        user_constraints = pd.concat(df_list).reset_index(drop=True)
 
         # Use name to populate description if it is missing
         index = user_constraints["description"].isna()
@@ -775,14 +776,11 @@ def generate_uc_properties(
                 index
             ]
         # Handle uc_attr
-        index = user_constraints["uc_attr"].isna()
-        if any(index):
-            # Remove unnecessary values in side
-            user_constraints.loc[index, ["side"]] = user_constraints["uc_attr"][index]
+        index = user_constraints["uc_attr"].notna()
         # Unpack uc_attr if not all the values in the column are na
-        if not all(index):
+        if any(index):
             # Handle semicolon-separated values
-            i_pairs = ~index & user_constraints["uc_attr"].str.contains(";")
+            i_pairs = index & user_constraints["uc_attr"].str.contains(";")
             if any(i_pairs):
                 user_constraints.loc[i_pairs, "uc_attr"] = user_constraints[
                     i_pairs
@@ -794,13 +792,13 @@ def generate_uc_properties(
                     "uc_attr", ignore_index=True
                 )
                 # Update index
-                index = user_constraints["uc_attr"].isna()
+                index = user_constraints["uc_attr"].notna()
             # Extend UC_NAME set with timeslice levels
             extended_uc_name = config.times_sets["UC_NAME"] + config.times_sets["TSLVL"]
             user_constraints["group_type"] = None
             # TODO: Verify that the values are comma-separated pairs
             # TODO: Only one of the values should be UC_GRPTYPE
-            user_constraints.loc[~index, "group_type"] = user_constraints[~index].apply(
+            user_constraints.loc[index, "group_type"] = user_constraints[index].apply(
                 lambda row: [
                     v.strip().upper()
                     for v in row["uc_attr"].split(",")
@@ -808,12 +806,12 @@ def generate_uc_properties(
                 ],
                 axis=1,
             )
-            user_constraints.loc[~index, "group_type"] = user_constraints[~index].apply(
+            user_constraints.loc[index, "group_type"] = user_constraints[index].apply(
                 lambda row: row["group_type"][-1] if row["group_type"] else None,
                 axis=1,
             )
             # TODO: Only one of the values should be from extended_uc_name
-            user_constraints.loc[~index, "uc_attr"] = user_constraints[~index].apply(
+            user_constraints.loc[index, "uc_attr"] = user_constraints[index].apply(
                 lambda row: [
                     v.strip().upper()
                     for v in row["uc_attr"].split(",")
@@ -821,7 +819,7 @@ def generate_uc_properties(
                 ],
                 axis=1,
             )
-            user_constraints.loc[~index, "uc_attr"] = user_constraints[~index].apply(
+            user_constraints.loc[index, "uc_attr"] = user_constraints[index].apply(
                 lambda row: row["uc_attr"][-1] if row["uc_attr"] else None,
                 axis=1,
             )
