@@ -91,11 +91,18 @@
       "COST",
       "CUMSUM",
       "DELIV",
+      "FLO_COST",
+      "FLO_DELIV",
+      "FLO_SUB",
+      "FLO_TAX",
       "EFF",
       "GROWTH",
       "INVCOST",
       "INVSUB",
       "INVTAX",
+      "NCAP_COST",
+      "NCAP_ISUB",
+      "NCAP_ITAX",
       "NET",
       "NEWFLO",
       "ONLINE",
@@ -103,7 +110,8 @@
       "PERIOD",
       "SUB",
       "SYNC",
-      "TAX"
+      "TAX",
+      "YES"
    ],
    "UPT":
    [
