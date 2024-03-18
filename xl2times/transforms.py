@@ -511,10 +511,7 @@ def process_flexible_import_tables(
             return table
 
         # Rename, add and remove specific columns if the circumstances are right
-        # TODO: We should do a full scale normalisation here, incl. renaming of aliases
         df = table.dataframe
-
-        nrows = df.shape[0]
 
         # Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
@@ -541,51 +538,53 @@ def process_flexible_import_tables(
         ]
         for colname in index_columns:
             if colname not in df.columns:
-                df[colname] = [None] * nrows
+                df[colname] = None
         table = replace(table, dataframe=df)
 
         df = table.dataframe
 
-        attribute = "attribute"
-        df, attribute_suffix = utils.explode(df, data_columns)
-
-        # Append the data column name to the Attribute column values
-        if nrows > 0:
-            i = df[attribute].notna()
-            df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
-            i = df[attribute].isna()
-            df.loc[i, attribute] = attribute_suffix[i]
+        if data_columns:
+            df, attribute_suffix = utils.explode(df, data_columns)
+            # Append the data column name to the Attribute column values
+            i = df["attribute"].notna()
+            df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
+            i = df["attribute"].isna()
+            df.loc[i, "attribute"] = attribute_suffix[i]
 
         # Capitalise all attributes, unless column type float
-        if df[attribute].dtype != float:
-            df[attribute] = df[attribute].str.upper()
+        if df["attribute"].dtype != float:
+            df["attribute"] = df["attribute"].str.upper()
 
         # Handle Attribute containing tilde, such as 'STOCK~2030'
-        for attr in df[attribute].unique():
-            if "~" in attr:
-                i = df[attribute] == attr
+        index = df["attribute"].str.contains("~")
+        if any(index):
+            for attr in df["attribute"][index].unique():
+                i = index & (df["attribute"] == attr)
                 parts = attr.split("~")
                 for value in parts:
                     colname, typed_value = get_colname(value)
                     if colname is None:
-                        df.loc[i, attribute] = typed_value
+                        df.loc[i, "attribute"] = typed_value
                     else:
                         df.loc[i, colname] = typed_value
 
         # Handle Other_Indexes
         other = "other_indexes"
-        for attr in df[attribute].unique():
+        for attr in df["attribute"].unique():
             if attr == "END":
-                i = df[attribute] == attr
+                i = df["attribute"] == attr
                 df.loc[i, "year"] = df.loc[i, "value"].astype("int") + 1
                 df.loc[i, other] = "EOH"
-                df.loc[i, attribute] = "PRC_NOFF"
+                df.loc[i, "attribute"] = "PRC_NOFF"
 
         df = df.reset_index(drop=True)
 
         # Should have all index_columns and VALUE
         if len(df.columns) != (len(index_columns) + 1):
-            raise ValueError(f"len(df.columns) = {len(df.columns)}")
+            if len(df.columns) == len(index_columns) and "value" not in df.columns:
+                df["value"] = None
+            else:
+                raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
         df["year2"] = df.apply(
             lambda row: (
@@ -1973,10 +1972,8 @@ def process_transform_tables(
             )
 
             # Handle Regions:
-            # Check whether allregions or any of model regions are among columns
-            if set(df.columns).isdisjoint(
-                {x.lower() for x in regions} | {"allregions"}
-            ):
+            # Check whether any of model regions are among columns
+            if set(df.columns).isdisjoint({x.lower() for x in regions}):
                 if "region" not in df.columns:
                     # If there's no region information at all, this table is for all regions:
                     df["region"] = ["allregions"] * len(df)
