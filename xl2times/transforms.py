@@ -740,26 +740,29 @@ def generate_uc_properties(
     for uc_table in uc_tables:
         uc_df = uc_table.dataframe
         # DataFrame with unique UC names and descriptions if they exist:
-        df = uc_df.loc[:, ["uc_n", "description"]].groupby("uc_n", sort=False).first()
+        df = (
+            uc_df.loc[:, ["uc_n", "region", "description"]]
+            .groupby(["uc_n", "region"], sort=False)
+            .first()
+        )
         df = df.reset_index()
         # Add info on how regions and timeslices should be treated by the UCs
         for key in uc_table.uc_sets.keys():
             if key.startswith("R_"):
                 df["reg_action"] = key
-                df["region"] = uc_table.uc_sets[key].upper().strip()
             elif key.startswith("T_"):
                 df["ts_action"] = key
         # Supplement with UC_ATTR if present
         index = uc_df["attribute"] == "UC_ATTR"
         if any(index):
-            uc_attr_rows = uc_df.loc[index, ["uc_n", "value", "side"]]
+            uc_attr_rows = uc_df.loc[index, ["uc_n", "region", "value", "side"]]
             # uc_attr is expected as column name
             uc_attr_rows = (
                 uc_attr_rows.rename(columns={"value": "uc_attr"})
                 .dropna()
                 .drop_duplicates()
             )
-            df = pd.merge(df, uc_attr_rows, on=["uc_n"], how="left")
+            df = pd.merge(df, uc_attr_rows, on=["uc_n", "region"], how="left")
             # Remove UC_ATTR records from the original dataframe
             uc_table.dataframe = uc_df[~index].reset_index(drop=True)
 
