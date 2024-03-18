@@ -693,18 +693,6 @@ def process_user_constraint_tables(
                 df[colname] = [None] * nrows
         table = replace(table, dataframe=df)
 
-        # Fill missing regions using defaults (if specified)
-        # TODO: This assumes several regions lists may be present. Handle overwritting?
-        regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R")]
-        if regions_lists and table.uc_sets[regions_lists[-1]] != "":
-            regions = table.uc_sets[regions_lists[-1]]
-            if regions.lower() != "allregions":
-                regions = model.internal_regions.intersection(
-                    set(regions.upper().split(","))
-                )
-                regions = ",".join(regions)
-                df.loc[df["region"].isna(), ["region"]] = regions
-
         # TODO: detect RHS correctly
         i = df["side"].isna()
         df.loc[i, "side"] = "LHS"
@@ -719,6 +707,25 @@ def process_user_constraint_tables(
             df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
             i = df["attribute"].isna()
             df.loc[i, "attribute"] = attribute_suffix[i]
+
+        # Fill missing regions using allregions
+        df.loc[df["region"].isna(), "region"] = "allregions"
+        # Apply any general region specification if present
+        # TODO: This assumes several regions lists may be present. Overwrite earlier?
+        regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R_")]
+        # Using the last regions_list
+        if regions_lists and table.uc_sets[regions_lists[-1]] != "":
+            regions = table.uc_sets[regions_lists[-1]]
+            # Only expand regions if specified regions list is not allregions
+            if regions.lower() != "allregions":
+                # Only include valid model region names
+                regions = model.internal_regions.intersection(
+                    set(regions.upper().split(","))
+                )
+                regions = ",".join(regions)
+                i_allregions = df["region"].str.lower() == "allregions"
+                df.loc[i_allregions, "region"] = regions
+                # TODO: Check whether any invalid regions are present
 
         # Capitalise all attributes, unless column type float
         if df["attribute"].dtype != float:
