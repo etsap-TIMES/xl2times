@@ -571,6 +571,7 @@ def process_flexible_import_tables(
 
         # Should have all index_columns and VALUE
         if len(df.columns) != (len(index_columns) + 1):
+            # TODO: Should be ok to drop as long as the topology info is stored.
             if len(df.columns) == len(index_columns) and "value" not in df.columns:
                 df["value"] = None
             else:
@@ -2439,6 +2440,11 @@ def apply_transform_tables(
             total=len(updates),
             desc=f"Applying transformations from {Tag.tfm_upd.value}",
         ):
+            # No need to proceed with this row if there is no value to update with.
+            # TODO: remove rows with NAs in value column earlier?
+            if "value" not in row.index:
+                continue
+
             rows_to_update = query(
                 table,
                 row["process"],
