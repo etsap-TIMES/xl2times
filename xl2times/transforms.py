@@ -801,35 +801,30 @@ def generate_uc_properties(
                 # Update index
                 index = user_constraints["uc_attr"].notna()
             # Extend UC_NAME set with timeslice levels
-            extended_uc_name = config.times_sets["UC_NAME"] + config.times_sets["TSLVL"]
-            user_constraints["group_type"] = None
-            # TODO: Verify that the values are comma-separated pairs
-            # TODO: Only one of the values should be UC_GRPTYPE
-            user_constraints.loc[index, "group_type"] = user_constraints[index].apply(
-                lambda row: [
-                    v.strip().upper()
-                    for v in row["uc_attr"].split(",")
-                    if v.strip().upper() in config.times_sets["UC_GRPTYPE"]
-                ],
-                axis=1,
+            extended_uc_names = set(
+                config.times_sets["UC_NAME"] + config.times_sets["TSLVL"]
             )
-            user_constraints.loc[index, "group_type"] = user_constraints[index].apply(
-                lambda row: row["group_type"][-1] if row["group_type"] else None,
-                axis=1,
+            uc_group_types = set(config.times_sets["UC_GRPTYPE"])
+
+            def process_uc_attr(pair_str):
+                items = [s.strip().upper() for s in pair_str.split(",")]
+                group_types = [s for s in items if s in uc_group_types]
+                uc_names = [s for s in items if s in extended_uc_names]
+                if (
+                    len(group_types) > 1
+                    or len(uc_names) > 1
+                    or len(group_types) + len(uc_names) != len(items)
+                ):
+                    raise ValueError(
+                        f"uc_attr column value expected to be a pair (UC_GRPTYPE, UC_NAME/TSLVL) but got {pair_str}"
+                    )
+                return next(iter(group_types), None), next(iter(uc_names), None)
+
+            group_types, uc_attrs = zip(
+                *map(process_uc_attr, user_constraints.loc[index, "uc_attr"])
             )
-            # TODO: Only one of the values should be from extended_uc_name
-            user_constraints.loc[index, "uc_attr"] = user_constraints[index].apply(
-                lambda row: [
-                    v.strip().upper()
-                    for v in row["uc_attr"].split(",")
-                    if v.strip().upper() in extended_uc_name
-                ],
-                axis=1,
-            )
-            user_constraints.loc[index, "uc_attr"] = user_constraints[index].apply(
-                lambda row: row["uc_attr"][-1] if row["uc_attr"] else None,
-                axis=1,
-            )
+            user_constraints.loc[index, "group_type"] = group_types
+            user_constraints.loc[index, "uc_attr"] = uc_attrs
         # TODO: Can this (until user_constraints.explode) become a utility function?
         # Handle allregions by substituting it with a list of internal regions
         index = user_constraints["region"].str.lower() == "allregions"
