@@ -93,6 +93,7 @@ def convert_xl_to_times(
         transforms.remove_comment_rows,
         transforms.revalidate_input_tables,
         transforms.process_regions,
+        transforms.process_commodities,
         transforms.process_time_periods,
         transforms.remove_exreg_cols,
         transforms.generate_dummy_processes,
@@ -106,7 +107,6 @@ def convert_xl_to_times(
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
-        transforms.process_commodities,
         transforms.process_transform_availability,
         transforms.fill_in_missing_values,
         transforms.generate_uc_properties,

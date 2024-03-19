@@ -483,15 +483,12 @@ def process_flexible_import_tables(
     # TODO: update this dictionary
     legal_values = {
         "limtype": set(config.times_sets["LIM"]),
-        # TODO: check what the values for the below should be
         "timeslice": set(model.ts_tslvl["tslvl"]),
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, Tag.currencies, "currency"),
         "other_indexes": {"IN", "OUT", "DEMO", "DEMI"},
     }
-
-    # TODO decide whether VedaProcessSets should become a new Enum type or part of TimesModelData type
 
     def process_flexible_import_table(
         table: EmbeddedXlTable,
@@ -505,27 +502,13 @@ def process_flexible_import_tables(
 
         # Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
-        # TODO: Include other valid column headers
+
         known_columns = config.known_columns[Tag.fi_t]
+        # TODO: Verify this list against other lists
         data_columns = [x for x in df.columns if x not in known_columns]
 
-        # TODO: Replace this with something similar to know columns from config
-        # Populate index columns
-        index_columns = [
-            "region",
-            "process",
-            "commodity",
-            "commodity-in",
-            "commodity-in-aux",
-            "commodity-out",
-            "commodity-out-aux",
-            "attribute",
-            "year",
-            "timeslice",
-            "limtype",
-            "currency",
-            "other_indexes",
-        ]
+        # Populate index columns (same as known columns for this table type)
+        index_columns = known_columns
         for colname in index_columns:
             if colname not in df.columns:
                 df[colname] = None
@@ -1988,6 +1971,7 @@ def process_transform_tables(
 ) -> list[EmbeddedXlTable]:
     """Process transform tables."""
     regions = model.internal_regions
+    # TODO: Add other tfm tags?
     tfm_tags = [
         Tag.tfm_dins,
         Tag.tfm_ins,
@@ -2001,23 +1985,16 @@ def process_transform_tables(
     result = []
     dropped = []
     for table in tables:
-        if not any(table.tag == tag for tag in tfm_tags):
+        tag = Tag(table.tag)
+
+        if tag not in tfm_tags:
             result.append(table)
 
-        elif table.tag in [
-            Tag.tfm_dins,
-            Tag.tfm_ins,
-            Tag.tfm_ins_txt,
-            Tag.tfm_upd,
-            Tag.tfm_mig,
-            Tag.tfm_comgrp,
-        ]:
+        elif tag in tfm_tags and tag != Tag.tfm_topins:
             df = table.dataframe.copy()
 
             # Standardize column names
-            known_columns = (
-                config.known_columns[table.tag] | config.query_columns[table.tag]
-            )
+            known_columns = config.known_columns[tag]
 
             # Handle Regions:
             # Check whether any of model regions are among columns
@@ -2025,13 +2002,16 @@ def process_transform_tables(
                 if "region" not in df.columns:
                     # If there's no region information at all, this table is for all regions:
                     df["region"] = ["allregions"] * len(df)
-                # Else, we only have a "region" column so handle it below
+                    # Else, we only have a "region" column so handle it below
             else:
                 if "region" in df.columns:
                     raise ValueError(
                         "ERROR: table has a column called region as well as columns with"
                         f" region names:\n{table}\n{df.columns}"
                     )
+                # In the absence of the "region" column values in the "value" column apply to all regions
+                if "value" in df.columns:
+                    df = df.rename(columns={"value": "allregions"})
                 # We have columns whose names are regions, so gather them into a "region" column:
                 region_cols = [
                     col_name
