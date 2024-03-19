@@ -734,8 +734,9 @@ def generate_uc_properties(
         "uc_n",
         "description",
         "region",
-        "reg_action",
-        "ts_action",
+        "region_action",
+        "period_action",
+        "timeslice_action",
         "uc_attr",
         "group_type",
         "side",
@@ -752,12 +753,14 @@ def generate_uc_properties(
             .first()
         )
         df = df.reset_index()
-        # Add info on how regions and timeslices should be treated by the UCs
+        # Add info on how regions, periods and timeslices should be treated by the UCs
         for key in uc_table.uc_sets.keys():
             if key.startswith("R_"):
-                df["reg_action"] = key
+                df["region_action"] = key
             elif key.startswith("T_"):
-                df["ts_action"] = key
+                df["period_action"] = key
+            elif key.startswith("TS_"):
+                df["timeslice_action"] = key
         # Supplement with UC_ATTR if present
         index = uc_df["attribute"] == "UC_ATTR"
         if any(index):
