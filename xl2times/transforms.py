@@ -2002,7 +2002,7 @@ def process_transform_tables(
                 if "region" not in df.columns:
                     # If there's no region information at all, this table is for all regions:
                     df["region"] = ["allregions"] * len(df)
-                    # Else, we only have a "region" column so handle it below
+                # Else, we only have a "region" column so handle it below
             else:
                 if "region" in df.columns:
                     raise ValueError(
@@ -2420,11 +2420,6 @@ def apply_transform_tables(
             total=len(updates),
             desc=f"Applying transformations from {Tag.tfm_upd.value}",
         ):
-            # No need to proceed with this row if there is no value to update with.
-            # TODO: remove rows with NAs in value column earlier?
-            if "value" not in row.index:
-                continue
-
             rows_to_update = query(
                 table,
                 row["process"],
