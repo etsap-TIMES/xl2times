@@ -684,8 +684,7 @@ def process_user_constraint_tables(
         i = df["attribute"].isna()
         df.loc[i, "attribute"] = attribute_suffix[i]
 
-        # Fill missing regions using allregions
-        df.loc[df["region"].isna(), "region"] = "allregions"
+        # TODO: There may be regions specified as column names
         # Apply any general region specification if present
         # TODO: This assumes several regions lists may be present. Overwrite earlier?
         regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R_")]
@@ -699,7 +698,7 @@ def process_user_constraint_tables(
                     set(regions.upper().split(","))
                 )
                 regions = ",".join(regions)
-                i_allregions = df["region"].str.lower() == "allregions"
+                i_allregions = df["region"].isna()
                 df.loc[i_allregions, "region"] = regions
                 # TODO: Check whether any invalid regions are present
 
