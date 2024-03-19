@@ -8,7 +8,17 @@ packages = ["xl2times"]
 [project]
 name = "xl2times"
 version = "0.1.0"
-description = 'An open source tool to convert Excel input files for TIMES models to the DD format accepted by GAMS'
+authors = [
+{ name="Sam Webster", email="13457618+samwebster@users.noreply.github.com" },
+{ name="Tom Minka", email="8955276+tminka@users.noreply.github.com" },
+{ name="Siddharth Krishna", email="siddharth-krishna@users.noreply.github.com" },
+{ name="Olexandr Balyk", email="olex@energymodelling.club" },
+]
+maintainers = [
+{ name="Siddharth Krishna", email="siddharth-krishna@users.noreply.github.com" },
+{ name="Olexandr Balyk", email="olex@energymodelling.club" },
+]
+description = 'An open source tool to convert TIMES models specified in Excel a format ready for processing by GAMS'
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
