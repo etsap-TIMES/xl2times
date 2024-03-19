@@ -640,6 +640,8 @@ def process_user_constraint_tables(
     legal_values = {
         "attribute": {attr for attr in config.all_attributes if attr.startswith("uc")},
         "region": model.internal_regions,
+        "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
+        "timeslice": set(model.ts_tslvl["tslvl"]),
         "limtype": set(config.times_sets["LIM"]),
         "side": set(config.times_sets["SIDE"]),
     }
@@ -663,10 +665,9 @@ def process_user_constraint_tables(
         data_columns = [x for x in df.columns if x not in known_columns]
 
         # Populate columns
-        nrows = df.shape[0]
         for colname in known_columns:
             if colname not in df.columns:
-                df[colname] = [None] * nrows
+                df[colname] = None
         table = replace(table, dataframe=df)
 
         # TODO: detect RHS correctly
@@ -678,11 +679,10 @@ def process_user_constraint_tables(
         df, attribute_suffix = utils.explode(df, data_columns)
 
         # Append the data column name to the Attribute column
-        if nrows > 0:
-            i = df["attribute"].notna()
-            df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
-            i = df["attribute"].isna()
-            df.loc[i, "attribute"] = attribute_suffix[i]
+        i = df["attribute"].notna()
+        df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
+        i = df["attribute"].isna()
+        df.loc[i, "attribute"] = attribute_suffix[i]
 
         # Fill missing regions using allregions
         df.loc[df["region"].isna(), "region"] = "allregions"
