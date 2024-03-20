@@ -5,7 +5,7 @@ Authors and Contributors
 
 The project originally started in a Microsoft [repository](https://github.com/microsoft/times-excel-reader) under the name times-excel-reader. The following individuals contributed to its development at Microsoft:
 
-- Sam Webster ([@samwebster](https://github.com/samwebster))
+- Sam Webster ([@samwebster](https://github.com/samwebster) - vast majority of work done in his own time)
 - Tom Minka ([@tminka](https://github.com/tminka))
 - Siddharth Krishna ([@siddharth-krishna](https://github.com/siddharth-krishna))
 - Pashmina Cameron
