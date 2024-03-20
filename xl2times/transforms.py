@@ -483,15 +483,12 @@ def process_flexible_import_tables(
     # TODO: update this dictionary
     legal_values = {
         "limtype": set(config.times_sets["LIM"]),
-        # TODO: check what the values for the below should be
         "timeslice": set(model.ts_tslvl["tslvl"]),
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, Tag.currencies, "currency"),
         "other_indexes": {"IN", "OUT", "DEMO", "DEMI"},
     }
-
-    # TODO decide whether VedaProcessSets should become a new Enum type or part of TimesModelData type
 
     def process_flexible_import_table(
         table: EmbeddedXlTable,
@@ -501,81 +498,66 @@ def process_flexible_import_tables(
             return table
 
         # Rename, add and remove specific columns if the circumstances are right
-        # TODO: We should do a full scale normalisation here, incl. renaming of aliases
         df = table.dataframe
-
-        nrows = df.shape[0]
 
         # Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
-        # TODO: Include other valid column headers
+
         known_columns = config.known_columns[Tag.fi_t]
+        # TODO: Verify this list against other lists
         data_columns = [x for x in df.columns if x not in known_columns]
 
-        # TODO: Replace this with something similar to know columns from config
-        # Populate index columns
-        index_columns = [
-            "region",
-            "process",
-            "commodity",
-            "commodity-in",
-            "commodity-in-aux",
-            "commodity-out",
-            "commodity-out-aux",
-            "attribute",
-            "year",
-            "timeslice",
-            "limtype",
-            "currency",
-            "other_indexes",
-        ]
+        # Populate index columns (same as known columns for this table type)
+        index_columns = known_columns
         for colname in index_columns:
             if colname not in df.columns:
-                df[colname] = [None] * nrows
+                df[colname] = None
         table = replace(table, dataframe=df)
 
         df = table.dataframe
 
-        attribute = "attribute"
-        df, attribute_suffix = utils.explode(df, data_columns)
-
-        # Append the data column name to the Attribute column values
-        if nrows > 0:
-            i = df[attribute].notna()
-            df.loc[i, attribute] = df.loc[i, attribute] + "~" + attribute_suffix[i]
-            i = df[attribute].isna()
-            df.loc[i, attribute] = attribute_suffix[i]
+        if data_columns:
+            df, attribute_suffix = utils.explode(df, data_columns)
+            # Append the data column name to the Attribute column values
+            i = df["attribute"].notna()
+            df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
+            i = df["attribute"].isna()
+            df.loc[i, "attribute"] = attribute_suffix[i]
 
         # Capitalise all attributes, unless column type float
-        if df[attribute].dtype != float:
-            df[attribute] = df[attribute].str.upper()
+        if df["attribute"].dtype != float:
+            df["attribute"] = df["attribute"].str.upper()
 
         # Handle Attribute containing tilde, such as 'STOCK~2030'
-        for attr in df[attribute].unique():
-            if "~" in attr:
-                i = df[attribute] == attr
+        index = df["attribute"].str.contains("~")
+        if any(index):
+            for attr in df["attribute"][index].unique():
+                i = index & (df["attribute"] == attr)
                 parts = attr.split("~")
                 for value in parts:
                     colname, typed_value = _get_colname(value, legal_values)
                     if colname is None:
-                        df.loc[i, attribute] = typed_value
+                        df.loc[i, "attribute"] = typed_value
                     else:
                         df.loc[i, colname] = typed_value
 
         # Handle Other_Indexes
         other = "other_indexes"
-        for attr in df[attribute].unique():
-            if attr == "END":
-                i = df[attribute] == attr
-                df.loc[i, "year"] = df.loc[i, "value"].astype("int") + 1
-                df.loc[i, other] = "EOH"
-                df.loc[i, attribute] = "PRC_NOFF"
+        if "END" in df["attribute"]:
+            i = df["attribute"] == "END"
+            df.loc[i, "year"] = df.loc[i, "value"].astype("int") + 1
+            df.loc[i, other] = "EOH"
+            df.loc[i, "attribute"] = "PRC_NOFF"
 
         df = df.reset_index(drop=True)
 
         # Should have all index_columns and VALUE
         if len(df.columns) != (len(index_columns) + 1):
-            raise ValueError(f"len(df.columns) = {len(df.columns)}")
+            # TODO: Should be ok to drop as long as the topology info is stored.
+            if len(df.columns) == len(index_columns) and "value" not in df.columns:
+                df["value"] = None
+            else:
+                raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
         df["year2"] = df.apply(
             lambda row: (
@@ -1997,6 +1979,7 @@ def process_transform_tables(
 ) -> list[EmbeddedXlTable]:
     """Process transform tables."""
     regions = model.internal_regions
+    # TODO: Add other tfm tags?
     tfm_tags = [
         Tag.tfm_dins,
         Tag.tfm_ins,
@@ -2010,29 +1993,20 @@ def process_transform_tables(
     result = []
     dropped = []
     for table in tables:
-        if not any(table.tag == tag for tag in tfm_tags):
+        tag = Tag(table.tag)
+
+        if tag not in tfm_tags:
             result.append(table)
 
-        elif table.tag in [
-            Tag.tfm_dins,
-            Tag.tfm_ins,
-            Tag.tfm_ins_txt,
-            Tag.tfm_upd,
-            Tag.tfm_mig,
-            Tag.tfm_comgrp,
-        ]:
+        elif tag in tfm_tags and tag != Tag.tfm_topins:
             df = table.dataframe.copy()
 
             # Standardize column names
-            known_columns = (
-                config.known_columns[table.tag] | config.query_columns[table.tag]
-            )
+            known_columns = config.known_columns[tag]
 
             # Handle Regions:
-            # Check whether allregions or any of model regions are among columns
-            if set(df.columns).isdisjoint(
-                {x.lower() for x in regions} | {"allregions"}
-            ):
+            # Check whether any of model regions are among columns
+            if set(df.columns).isdisjoint({x.lower() for x in regions}):
                 if "region" not in df.columns:
                     # If there's no region information at all, this table is for all regions:
                     df["region"] = ["allregions"] * len(df)
@@ -2043,6 +2017,9 @@ def process_transform_tables(
                         "ERROR: table has a column called region as well as columns with"
                         f" region names:\n{table}\n{df.columns}"
                     )
+                # In the absence of the "region" column values in the "value" column apply to all regions
+                if "value" in df.columns:
+                    df = df.rename(columns={"value": "allregions"})
                 # We have columns whose names are regions, so gather them into a "region" column:
                 region_cols = [
                     col_name
