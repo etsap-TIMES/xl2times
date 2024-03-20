@@ -543,12 +543,11 @@ def process_flexible_import_tables(
 
         # Handle Other_Indexes
         other = "other_indexes"
-        for attr in df["attribute"].unique():
-            if attr == "END":
-                i = df["attribute"] == attr
-                df.loc[i, "year"] = df.loc[i, "value"].astype("int") + 1
-                df.loc[i, other] = "EOH"
-                df.loc[i, "attribute"] = "PRC_NOFF"
+        if "END" in df["attribute"]:
+            i = df["attribute"] == "END"
+            df.loc[i, "year"] = df.loc[i, "value"].astype("int") + 1
+            df.loc[i, other] = "EOH"
+            df.loc[i, "attribute"] = "PRC_NOFF"
 
         df = df.reset_index(drop=True)
 
