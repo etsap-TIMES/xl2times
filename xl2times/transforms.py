@@ -640,6 +640,8 @@ def process_user_constraint_tables(
     legal_values = {
         "attribute": {attr for attr in config.all_attributes if attr.startswith("uc")},
         "region": model.internal_regions,
+        "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
+        "timeslice": set(model.ts_tslvl["tslvl"]),
         "limtype": set(config.times_sets["LIM"]),
         "side": set(config.times_sets["SIDE"]),
     }
@@ -663,23 +665,10 @@ def process_user_constraint_tables(
         data_columns = [x for x in df.columns if x not in known_columns]
 
         # Populate columns
-        nrows = df.shape[0]
         for colname in known_columns:
             if colname not in df.columns:
-                df[colname] = [None] * nrows
+                df[colname] = None
         table = replace(table, dataframe=df)
-
-        # Fill missing regions using defaults (if specified)
-        # TODO: This assumes several regions lists may be present. Handle overwritting?
-        regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R")]
-        if regions_lists and table.uc_sets[regions_lists[-1]] != "":
-            regions = table.uc_sets[regions_lists[-1]]
-            if regions.lower() != "allregions":
-                regions = model.internal_regions.intersection(
-                    set(regions.upper().split(","))
-                )
-                regions = ",".join(regions)
-                df.loc[df["region"].isna(), ["region"]] = regions
 
         # TODO: detect RHS correctly
         i = df["side"].isna()
@@ -690,11 +679,28 @@ def process_user_constraint_tables(
         df, attribute_suffix = utils.explode(df, data_columns)
 
         # Append the data column name to the Attribute column
-        if nrows > 0:
-            i = df["attribute"].notna()
-            df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
-            i = df["attribute"].isna()
-            df.loc[i, "attribute"] = attribute_suffix[i]
+        i = df["attribute"].notna()
+        df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
+        i = df["attribute"].isna()
+        df.loc[i, "attribute"] = attribute_suffix[i]
+
+        # TODO: There may be regions specified as column names
+        # Apply any general region specification if present
+        # TODO: This assumes several regions lists may be present. Overwrite earlier?
+        regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R_")]
+        # Using the last regions_list
+        if regions_lists and table.uc_sets[regions_lists[-1]] != "":
+            regions = table.uc_sets[regions_lists[-1]]
+            # Only expand regions if specified regions list is not allregions
+            if regions.lower() != "allregions":
+                # Only include valid model region names
+                regions = model.internal_regions.intersection(
+                    set(regions.upper().split(","))
+                )
+                regions = ",".join(regions)
+                i_allregions = df["region"].isna()
+                df.loc[i_allregions, "region"] = regions
+                # TODO: Check whether any invalid regions are present
 
         # Capitalise all attributes, unless column type float
         if df["attribute"].dtype != float:
@@ -728,8 +734,9 @@ def generate_uc_properties(
         "uc_n",
         "description",
         "region",
-        "reg_action",
-        "ts_action",
+        "region_action",
+        "period_action",
+        "timeslice_action",
         "uc_attr",
         "group_type",
         "side",
@@ -746,12 +753,14 @@ def generate_uc_properties(
             .first()
         )
         df = df.reset_index()
-        # Add info on how regions and timeslices should be treated by the UCs
+        # Add info on how regions, periods and timeslices should be treated by the UCs
         for key in uc_table.uc_sets.keys():
             if key.startswith("R_"):
-                df["reg_action"] = key
+                df["region_action"] = key
             elif key.startswith("T_"):
-                df["ts_action"] = key
+                df["period_action"] = key
+            elif key.startswith("TS_"):
+                df["timeslice_action"] = key
         # Supplement with UC_ATTR if present
         index = uc_df["attribute"] == "UC_ATTR"
         if any(index):
