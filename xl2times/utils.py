@@ -315,6 +315,24 @@ default_log_name = Path(sys.argv[0]).stem
 default_log_name = "log" if default_log_name == "" else default_log_name
 
 
+def is_veda_based(files: list[str]) -> bool:
+    """Determine whether the model follows Veda file structure."""
+    patterns = (r".*SysSettings", r".*VT_.*")
+
+    if all(
+        any(re.match(pattern, file, flags=re.IGNORECASE) for file in files)
+        for pattern in patterns
+    ):
+        return True
+    else:
+        return False
+
+
+def filter_veda_filename_patterns(files: list[str]) -> list[str]:
+    # patterns = ()
+    return files
+
+
 def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.Logger:
     """Return a configured loguru logger.
 
