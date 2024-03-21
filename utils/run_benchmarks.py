@@ -155,7 +155,7 @@ def run_benchmark(
             res = subprocess.run(
                 [
                     "python",
-                    "utils/dd_to_csv.py",
+                    "xl2times/dd_to_csv.py",
                     dd_folder,
                     csv_folder,
                 ],

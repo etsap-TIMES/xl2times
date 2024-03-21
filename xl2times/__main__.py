@@ -39,7 +39,7 @@ def invalidate_cache(max_age: timedelta = timedelta(days=365)):
                 logger.warning(f"Failed to delete old cache file {file}. {e}")
 
 
-def _read_xlsx_cached(filename: str) -> list[EmbeddedXlTable]:
+def _read_xlsx_cached(filename: str | Path) -> list[EmbeddedXlTable]:
     """Extract EmbeddedXlTables from xlsx file (cached).
 
     Since excel.extract_tables is quite slow, we cache its results in `cache_dir`.
@@ -49,26 +49,25 @@ def _read_xlsx_cached(filename: str) -> list[EmbeddedXlTable]:
     Args:
         filename: Path to the xlsx file to extract tables from.
     """
-    with open(filename, "rb") as f:
+    filename = Path(filename).resolve()
+    with filename.open("rb") as f:
         digest = hashlib.file_digest(f, "sha256")  # pyright: ignore
     hsh = digest.hexdigest()
-    hash_file = cache_dir / f"{Path(filename).stem}_{hsh}.pkl"
-    if hash_file.is_file():
-        with hash_file.open("rb") as f:
-            fname1, _timestamp, tables = pickle.load(f)
-        # In the extremely unlikely event that we have a hash collision, also check that
-        # the filename is the same:
-        # TODO check modified timestamp also matches
-        if filename == fname1:
-            logger.info(f"Using cached data for {filename} from {hash_file}")
-            return tables
-    # Write extracted data to cache:
-    tables = excel.extract_tables(filename)
-    with hash_file.open("wb") as f:
-        last_modified = hash_file.lstat().st_mtime
-        pickle.dump((filename, last_modified, tables), f)
-    logger.info(f"Saved cache for {filename} to {hash_file}")
-    return excel.extract_tables(filename)
+    cached_file = (cache_dir / f"{Path(filename).stem}_{hsh}.pkl").resolve()
+
+    if cached_file.exists():
+        # just load and return the cached pickle
+        with cached_file.open("rb") as f:
+            tables = pickle.load(f)
+            logger.info(f"Using cached data for {filename} from {cached_file}")
+    else:
+        # extracted data and write it to cache before returning it
+        tables = excel.extract_tables(str(filename))
+        with cached_file.open("wb") as f:
+            pickle.dump(tables, f)
+        logger.info(f"Saved cache for {filename} to {cached_file}")
+
+    return tables
 
 
 def convert_xl_to_times(
