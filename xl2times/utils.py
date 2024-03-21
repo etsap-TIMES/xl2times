@@ -315,19 +315,21 @@ default_log_name = Path(sys.argv[0]).stem
 default_log_name = "log" if default_log_name == "" else default_log_name
 
 
+def _is_match_on_windows(path: Path, pattern: str) -> bool:
+    """Hack for case-insensitive comparisson, because case_sensitive
+    parameter in match available from Python 3.12, but not in 3.11.
+    """
+    uri_path = path.resolve().as_uri()
+    return PureWindowsPath(uri_path).match(pattern)
+
+
 def is_veda_based(files: list[str]) -> bool:
     """Determine whether the model follows Veda file structure.
     This function does not verify file extension.
     """
     marker = "SysSettings.*"
 
-    matches = [
-        file
-        for file in files
-        # Hack for case-insensitive comparisson (i.e. PureWindowsPath vs Path)
-        # case_sensitive parameter available from Python 3.12
-        if PureWindowsPath(file).match(marker)
-    ]
+    matches = [file for file in files if _is_match_on_windows(Path(file), marker)]
 
     if len(matches) == 1:
         return True
@@ -357,9 +359,7 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
         file
         for file in files
         for legal_path in legal_paths
-        # Hack for case-insensitive comparisson (i.e. PureWindowsPath vs Path)
-        # case_sensitive parameter available from Python 3.12
-        if PureWindowsPath(file).match(legal_path)
+        if _is_match_on_windows(Path(file), legal_path)
     }
     # Return as a list
     return list(filtered)
