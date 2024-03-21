@@ -5,7 +5,7 @@ import pickle
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -19,8 +19,23 @@ from . import datatypes, excel, transforms, utils
 logger = utils.get_logger()
 
 
-cache_dir = str(Path.home() / ".cache/xl2times/")
-os.makedirs(cache_dir, exist_ok=True)
+cache_dir = Path.home() / ".cache/xl2times/"
+cache_dir.mkdir(exist_ok=True, parents=True)
+
+
+def invalidate_cache(max_age: timedelta = timedelta(days=365)):
+    """
+    Delete any cache files older than max_age.
+
+    Args:
+        max_age: Maximum age of a cache file to be considered valid. Any cache files older than this are deleted.
+    """
+    for file in cache_dir.glob("*.pkl"):
+        if datetime.now() - datetime.fromtimestamp(file.lstat().st_mtime) > max_age:
+            try:
+                file.unlink()
+            except Exception as e:
+                logger.warning(f"Failed to delete old cache file {file}. {e}")
 
 
 def _read_xlsx_cached(filename: str) -> list[datatypes.EmbeddedXlTable]:
@@ -29,23 +44,29 @@ def _read_xlsx_cached(filename: str) -> list[datatypes.EmbeddedXlTable]:
     Since excel.extract_tables is quite slow, we cache its results in `cache_dir`.
     Each file is named by the hash of the contents of an xlsx file, and contains
     a tuple (filename, modified timestamp, [EmbeddedXlTable]).
+
+    Args:
+        filename: Path to the xlsx file to extract tables from.
     """
     with open(filename, "rb") as f:
         digest = hashlib.file_digest(f, "sha256")  # pyright: ignore
     hsh = digest.hexdigest()
-    if os.path.isfile(cache_dir + hsh):
-        with open(cache_dir + hsh, "rb") as f:
+    hash_file = cache_dir / f"{Path(filename).stem}_{hsh}.pkl"
+    if hash_file.is_file():
+        with hash_file.open("rb") as f:
             fname1, _timestamp, tables = pickle.load(f)
         # In the extremely unlikely event that we have a hash collision, also check that
         # the filename is the same:
         # TODO check modified timestamp also matches
         if filename == fname1:
-            logger.info(f"Using cached data for {filename} from {cache_dir + hsh}")
+            logger.info(f"Using cached data for {filename} from {hash_file}")
             return tables
     # Write extracted data to cache:
     tables = excel.extract_tables(filename)
-    pickle.dump((filename, "TODO ModifiedTime", tables), open(cache_dir + hsh, "wb"))
-    logger.info(f"Saved cache for {filename} to {cache_dir + hsh}")
+    with hash_file.open("wb") as f:
+        last_modified = hash_file.lstat().st_mtime
+        pickle.dump((filename, last_modified, tables), f)
+    logger.info(f"Saved cache for {filename} to {hash_file}")
     return excel.extract_tables(filename)
 
 
@@ -59,6 +80,8 @@ def convert_xl_to_times(
     stop_after_read: bool = False,
 ) -> dict[str, DataFrame]:
     start_time = datetime.now()
+
+    invalidate_cache()
     with ProcessPoolExecutor(max_workers) as executor:
         raw_tables = executor.map(
             excel.extract_tables if no_cache else _read_xlsx_cached, input_files
