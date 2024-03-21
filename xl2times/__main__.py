@@ -8,10 +8,10 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from pandas.core.frame import DataFrame
 
-from xl2times import __file__ as xl2times_file_path
 from xl2times.utils import max_workers
 
 from . import excel, transforms, utils
@@ -20,7 +20,7 @@ from .datatypes import Config, EmbeddedXlTable, TimesModel
 logger = utils.get_logger()
 
 
-cache_dir = os.path.abspath(os.path.dirname(xl2times_file_path)) + "/.cache/"
+cache_dir = str(Path.home() / ".cache/xl2times/")
 os.makedirs(cache_dir, exist_ok=True)
 
 
@@ -35,7 +35,8 @@ def _read_xlsx_cached(filename: str) -> list[EmbeddedXlTable]:
         digest = hashlib.file_digest(f, "sha256")  # pyright: ignore
     hsh = digest.hexdigest()
     if os.path.isfile(cache_dir + hsh):
-        fname1, _timestamp, tables = pickle.load(open(cache_dir + hsh, "rb"))
+        with open(cache_dir + hsh, "rb") as f:
+            fname1, _timestamp, tables = pickle.load(f)
         # In the extremely unlikely event that we have a hash collision, also check that
         # the filename is the same:
         # TODO check modified timestamp also matches
@@ -180,8 +181,9 @@ def write_csv_tables(tables: dict[str, DataFrame], output_dir: str):
 
 def read_csv_tables(input_dir: str) -> dict[str, DataFrame]:
     result = {}
-    for filename in os.listdir(input_dir):
-        result[filename.split(".")[0]] = pd.read_csv(
+    csv_files = list(Path(input_dir).glob("*.csv"))
+    for filename in csv_files:
+        result[str(filename).split(".")[0]] = pd.read_csv(
             os.path.join(input_dir, filename), dtype=str
         )
     return result
@@ -253,7 +255,7 @@ def compare(
                     index=False,
                 )
     result = (
-        f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
+        f"{(total_correct_rows / total_gt_rows) if total_gt_rows!=0 else np.nan :.1%} of ground truth rows present"
         f" in output ({total_correct_rows}/{total_gt_rows})"
         f", {total_additional_rows} additional rows"
     )
