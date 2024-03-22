@@ -324,7 +324,7 @@ def _is_match_on_windows(path: Path, pattern: str) -> bool:
 
 def is_veda_based(files: list[str]) -> bool:
     """Determine whether the model follows Veda file structure.
-    This function does not verify file extension.
+    This function does not verify file extensions.
     """
     marker = "SysSettings.*"
 
@@ -339,7 +339,9 @@ def is_veda_based(files: list[str]) -> bool:
 
 
 def filter_veda_filename_patterns(files: list[str]) -> list[str]:
-    """Filter files by patterns recognised by Veda."""
+    """Filter files by patterns recognised by Veda.
+    This function does not verify file extensions.
+    """
     legal_paths = (
         "BY_Trans.*",
         "LMA*.*",
