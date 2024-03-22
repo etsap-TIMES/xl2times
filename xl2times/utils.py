@@ -12,7 +12,7 @@ import sys
 from collections.abc import Iterable
 from dataclasses import replace
 from math import floor, log10
-from pathlib import Path, PureWindowsPath
+from pathlib import Path, PurePath
 
 import loguru
 import numpy
@@ -315,11 +315,11 @@ default_log_name = Path(sys.argv[0]).stem
 default_log_name = "log" if default_log_name == "" else default_log_name
 
 
-def _is_match_on_windows(path: Path, pattern: str) -> bool:
-    """Hack for case-insensitive comparisson, because case_sensitive
-    parameter in match available from Python 3.12, but not in 3.11.
+def _case_insensitive_match(path: str, pattern: str) -> bool:
+    """Do case-insensitive comparisson. Convert to lowercase first, because
+    case_sensitive parameter in match is not available before Python 3.12.
     """
-    return PureWindowsPath(path).match(pattern)
+    return PurePath(path.lower()).match(pattern.lower())
 
 
 def is_veda_based(files: list[str]) -> bool:
@@ -328,7 +328,7 @@ def is_veda_based(files: list[str]) -> bool:
     """
     marker = "SysSettings.*"
 
-    matches = [file for file in files if _is_match_on_windows(Path(file), marker)]
+    matches = [file for file in files if _case_insensitive_match(file, marker)]
 
     if len(matches) == 1:
         return True
@@ -360,7 +360,7 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
         file
         for file in files
         for legal_path in legal_paths
-        if _is_match_on_windows(Path(file), legal_path)
+        if _case_insensitive_match(file, legal_path)
     }
     # Return as a list
     return list(filtered)
