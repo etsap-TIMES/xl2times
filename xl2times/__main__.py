@@ -205,7 +205,7 @@ def read_csv_tables(input_dir: str) -> dict[str, DataFrame]:
     result = {}
     csv_files = list(Path(input_dir).glob("*.csv"))
     for filename in csv_files:
-        result[str(filename).split(".")[0]] = pd.read_csv(filename, dtype=str)
+        result[filename.stem] = pd.read_csv(filename, dtype=str)
     return result
 
 
