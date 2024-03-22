@@ -360,7 +360,6 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
         for legal_path in legal_paths
         if _is_match_on_windows(Path(file), legal_path)
     }
-    print([file for file in files if file not in filtered])
     # Return as a list
     return list(filtered)
 
