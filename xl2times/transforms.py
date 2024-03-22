@@ -428,7 +428,7 @@ def merge_tables(
                 if not all(index):
                     for _, row in df[~index].iterrows():
                         region, sets, process = row[["region", "sets", "process"]]
-                        print(
+                        logger.warning(
                             f"WARNING: Unknown process set {sets} specified for process {process}"
                             f" in region {region}. The record will be dropped."
                         )
