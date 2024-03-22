@@ -281,7 +281,7 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
     Parameters
     ----------
     log_name
-        Name of the log. Corresponding log file will be called {log_name}.log in the . (Default value = default_log_name)
+        Name of the log. Corresponding log file will be called {log_name}.log. (Default value = default_log_name)
     log_dir
         Directory to write the log file to. Default is the current working directory.
 
@@ -352,7 +352,8 @@ def compare_df_dict(
     df_after
         the second dictionary of DataFrames to compare
     sort_cols
-        whether to sort the columns before comparing.  Set True if the column order is unimportant. (Default value = True)
+        whether to sort the columns before comparing.  Set True if the column order
+        is unimportant. (Default value = True)
     context_rows
         number of rows to show around the first difference (Default value = 2)
     """
