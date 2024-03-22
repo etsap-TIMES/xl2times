@@ -476,6 +476,8 @@ def run(args: argparse.Namespace) -> str | None:
             for path in Path(args.input[0]).rglob("*")
             if path.suffix in [".xlsx", ".xlsm"] and not path.name.startswith("~")
         ]
+        if utils.is_veda_based(input_files):
+            input_files = utils.filter_veda_filename_patterns(input_files)
         logger.info(f"Loading {len(input_files)} files from {args.input[0]}")
     else:
         input_files = args.input
