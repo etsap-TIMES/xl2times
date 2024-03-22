@@ -319,8 +319,7 @@ def _is_match_on_windows(path: Path, pattern: str) -> bool:
     """Hack for case-insensitive comparisson, because case_sensitive
     parameter in match available from Python 3.12, but not in 3.11.
     """
-    uri_path = path.resolve().as_uri()
-    return PureWindowsPath(uri_path).match(pattern)
+    return PureWindowsPath(path).match(pattern)
 
 
 def is_veda_based(files: list[str]) -> bool:
@@ -352,7 +351,7 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
         "SuppXLS/Demands/ScenDem_*.*",
         "SuppXLS/ParScenFiles/Scen_Par-*.*",
         "SuppXLS/Scen_*.*",
-        "SuppXLS/Trade/ScenTrade_*.*",
+        "SuppXLS/Trades/ScenTrade_*.*",
     )
     # Generate a set of fiels that match the patterns
     filtered = {
@@ -361,6 +360,7 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
         for legal_path in legal_paths
         if _is_match_on_windows(Path(file), legal_path)
     }
+    print([file for file in files if file not in filtered])
     # Return as a list
     return list(filtered)
 
