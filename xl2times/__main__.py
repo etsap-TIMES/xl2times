@@ -61,7 +61,7 @@ def _read_xlsx_cached(filename: str | Path) -> list[EmbeddedXlTable]:
             tables = pickle.load(f)
             logger.info(f"Using cached data for {filename} from {cached_file}")
     else:
-        # extracted data and write it to cache before returning it
+        # extract data and write it to cache before returning it
         tables = excel.extract_tables(str(filename))
         with cached_file.open("wb") as f:
             pickle.dump(tables, f)

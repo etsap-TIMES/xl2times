@@ -13,7 +13,7 @@ from loguru import logger
 def parse_parameter_values_from_file(
     path: Path,
 ) -> tuple[dict[str, list], dict[str, set]]:
-    """Parse *.dd to turn it into CSV format.
+    """Parse a `*.dd` file and extract the sets and parameters.
 
     There are parameters and sets, and each has a slightly different format.
     `*.dd` files have data of the following form:
