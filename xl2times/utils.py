@@ -7,9 +7,7 @@ import functools
 import gzip
 import os
 import pickle
-import re
 import sys
-from collections.abc import Iterable
 from dataclasses import replace
 from math import floor, log10
 from pathlib import Path
@@ -171,53 +169,6 @@ def merge_columns(
     """
     columns = [table.dataframe[colname].values for table in tables if table.tag == tag]
     return numpy.concatenate(columns)
-
-
-def apply_wildcards(
-    df: DataFrame, candidates: Iterable[str], wildcard_col: str, output_col: str
-):
-    """Apply wildcards values to a list of candidates. Wildcards are values containing
-    '*'. For example, a value containing '*SOLID*' would include all the values in
-    'candidates' containing 'SOLID' in the middle.
-
-    TODO unused. Remove?
-
-    Parameters
-    ----------
-    df
-        Dataframe containing all values.
-    candidates
-        List of candidate strings to apply the wildcard to.
-    wildcard_col
-        Name of column containing the wildcards.
-    output_col
-        Name of the column to dump the wildcard matches to.
-
-    Returns
-    -------
-    type
-        A dataframe containing all the wildcard matches on its 'output_col' column.
-    """
-    wildcard_map = {}
-    all_wildcards = df[wildcard_col].unique()
-    for wildcard_string in all_wildcards:
-        if wildcard_string is None:
-            wildcard_map[wildcard_string] = None
-        else:
-            wildcard_list = wildcard_string.split(",")
-            current_list = []
-            for wildcard in wildcard_list:
-                if wildcard.startswith("-"):
-                    w = wildcard[1:]
-                    regexp = re.compile(w.replace("*", ".*"))
-                    current_list = [s for s in current_list if not regexp.match(s)]
-                else:
-                    regexp = re.compile(wildcard.replace("*", ".*"))
-                    additions = [s for s in candidates if regexp.match(s)]
-                    current_list = sorted(set(current_list + additions))
-            wildcard_map[wildcard_string] = current_list
-
-    df[output_col] = df[wildcard_col].map(wildcard_map)
 
 
 def missing_value_inherit(df: DataFrame, colname: str) -> None:
