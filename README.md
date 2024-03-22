@@ -143,4 +143,4 @@ python -m twine upload dist/*
 
 ## Contributing
 
-This project welcomes contributions and suggestions. See [CODE_OF_CONDUCT.md](https://github.com/etsap-TIMES/xl2times/blob/main/CODE_OF_CONDUCT.md) and [CONTRIBUTING.md](https://github.com/etsap-TIMES/xl2times/blob/main/CONTRIBUTING.md) for more details.
+This project welcomes contributions and suggestions. See [Code of Conduct](https://github.com/etsap-TIMES/xl2times/blob/main/CODE_OF_CONDUCT.md) and [Contributing](https://github.com/etsap-TIMES/xl2times/blob/main/CONTRIBUTING.md) for more details.
