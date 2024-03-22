@@ -316,7 +316,7 @@ default_log_name = "log" if default_log_name == "" else default_log_name
 
 
 def _case_insensitive_match(path: str, pattern: str) -> bool:
-    """Do case-insensitive comparisson. Convert to lowercase first, because
+    """Do case-insensitive path match. Convert to lowercase first, because
     case_sensitive parameter in match is not available before Python 3.12.
     """
     return PurePath(path.lower()).match(pattern.lower())
