@@ -14,11 +14,11 @@ from typing import Any
 import git
 import pandas as pd
 import yaml
-from dd_to_csv import main
 from tabulate import tabulate
 
 from xl2times import utils
 from xl2times.__main__ import parse_args, run
+from xl2times.dd_to_csv import main
 from xl2times.utils import max_workers
 
 logger = utils.get_logger()
@@ -155,7 +155,7 @@ def run_benchmark(
             res = subprocess.run(
                 [
                     "python",
-                    "utils/dd_to_csv.py",
+                    "xl2times/dd_to_csv.py",
                     dd_folder,
                     csv_folder,
                 ],
@@ -164,6 +164,7 @@ def run_benchmark(
                 text=True,
                 shell=True if os.name == "nt" else False,
                 check=False,
+                encoding="utf-8",
             )
             if res.returncode != 0:
                 # Remove partial outputs
@@ -208,6 +209,7 @@ def run_benchmark(
             stderr=subprocess.STDOUT,
             text=True,
             check=False,
+            encoding="utf-8",
         )
     else:
         # If debug option is set, run as a function call to allow stepping with a debugger.

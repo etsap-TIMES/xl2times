@@ -2511,7 +2511,7 @@ def apply_transform_tables(
             )
 
             if not any(rows_to_update):
-                logger.info(f"A {Tag.tfm_mig.value} row generated no records.")
+                logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
                 continue
 
             new_rows = table.loc[rows_to_update].copy()
