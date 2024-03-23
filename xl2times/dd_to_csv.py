@@ -13,7 +13,7 @@ from loguru import logger
 def parse_parameter_values_from_file(
     path: Path,
 ) -> tuple[dict[str, list], dict[str, set]]:
-    """Parse *.dd to turn it into CSV format.
+    """Parse a `*.dd` file and extract the sets and parameters.
 
     There are parameters and sets, and each has a slightly different format.
     `*.dd` files have data of the following form:
@@ -53,20 +53,19 @@ def parse_parameter_values_from_file(
             param_data = []
             # Parse values until a line with / is encountered.
             while not data[index].startswith("/") and data[index] != "":
-                words = data[index].split(" ")
+                line = data[index]
 
                 # Either "value" for a scalar, or "key value" for an array.
-                if len(words) == 1:
-                    attributes = []
-                elif len(words) == 2:
-                    attributes = words[0].split(".")
-                    attributes = [a if " " in a else a.strip("'") for a in attributes]
+                # So value is always the last word, or only token
+                split_point = line.rfind(" ")
+                if split_point == -1:
+                    # if only one word
+                    attributes, value = [], line
                 else:
-                    raise ValueError(
-                        f"Unexpected number of spaces in parameter value setting: {data[index]}"
-                    )
+                    attributes, value = line[:split_point], line[split_point + 1 :]
+                    attributes = attributes.split(".")
+                    attributes = [a if " " in a else a.strip("'") for a in attributes]
 
-                value = words[-1]
                 param_data.append([*attributes, value])
 
                 index += 1
