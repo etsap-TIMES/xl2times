@@ -21,6 +21,7 @@ jobs:
       REF_demos-dd: "2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
       REF_tim: "e820d8002adc6b1526a3bffcc439219b28d0eed5"
       REF_tim-gams: "703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
+      CACHE_KEY: 0 # Use this for manual cache key bumps, e.g., when caching code changes
 
     steps:
       - uses: actions/checkout@v3
@@ -115,11 +116,12 @@ jobs:
         id: cache
         uses: actions/cache/restore@v4
         with:
-          path: ${{ github.workspace }}/xl2times/xl2times/.cache
+          path: ~/.cache/xl2times
           # Cache key is refs of the input xlsx repos, since that's what is cached
-          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
+          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
           # If we can't find the exact key for the TIM repo, still use the cache if the demos repo ref matches
           restore-keys: |
+            ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-
             ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-
             ${{ runner.os }}-py-${{ env.PY_VERSION }}-
 
@@ -166,5 +168,5 @@ jobs:
         # Save the cache even if the regression tests fail
         if: always() && !steps.cache-restore.outputs.cache-hit
         with:
-          path: ${{ github.workspace }}/xl2times/xl2times/.cache
-          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
+          path: ~/.cache/xl2times
+          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}

@@ -47,6 +47,7 @@ Source = "https://github.com/etsap-TIMES/xl2times"
 
 [project.scripts]
 xl2times = "xl2times.__main__:main"
+dd_to_csv = "xl2times.dd_to_csv:main"
 
 [tool.pytest.ini_options]
 # don't print runtime warnings

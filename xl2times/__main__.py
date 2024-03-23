@@ -5,13 +5,13 @@ import pickle
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from pandas.core.frame import DataFrame
 
-from xl2times import __file__ as xl2times_file_path
 from xl2times.utils import max_workers
 
 from . import excel, transforms, utils
@@ -20,33 +20,54 @@ from .datatypes import Config, EmbeddedXlTable, TimesModel
 logger = utils.get_logger()
 
 
-cache_dir = os.path.abspath(os.path.dirname(xl2times_file_path)) + "/.cache/"
-os.makedirs(cache_dir, exist_ok=True)
+cache_dir = Path.home() / ".cache/xl2times/"
+cache_dir.mkdir(exist_ok=True, parents=True)
 
 
-def _read_xlsx_cached(filename: str) -> list[EmbeddedXlTable]:
+def invalidate_cache(max_age: timedelta = timedelta(days=365)):
+    """
+    Delete any cache files older than max_age.
+
+    Args:
+        max_age: Maximum age of a cache file to be considered valid. Any cache files older than this are deleted.
+    """
+    for file in cache_dir.glob("*.pkl"):
+        if datetime.now() - datetime.fromtimestamp(file.lstat().st_mtime) > max_age:
+            try:
+                file.unlink()
+            except Exception as e:
+                logger.warning(f"Failed to delete old cache file {file}. {e}")
+
+
+def _read_xlsx_cached(filename: str | Path) -> list[EmbeddedXlTable]:
     """Extract EmbeddedXlTables from xlsx file (cached).
 
     Since excel.extract_tables is quite slow, we cache its results in `cache_dir`.
     Each file is named by the hash of the contents of an xlsx file, and contains
     a tuple (filename, modified timestamp, [EmbeddedXlTable]).
+
+    Args:
+        filename: Path to the xlsx file to extract tables from.
     """
-    with open(filename, "rb") as f:
+    filename = Path(filename).resolve()
+    with filename.open("rb") as f:
         digest = hashlib.file_digest(f, "sha256")  # pyright: ignore
     hsh = digest.hexdigest()
-    if os.path.isfile(cache_dir + hsh):
-        fname1, _timestamp, tables = pickle.load(open(cache_dir + hsh, "rb"))
-        # In the extremely unlikely event that we have a hash collision, also check that
-        # the filename is the same:
-        # TODO check modified timestamp also matches
-        if filename == fname1:
-            logger.info(f"Using cached data for {filename} from {cache_dir + hsh}")
-            return tables
-    # Write extracted data to cache:
-    tables = excel.extract_tables(filename)
-    pickle.dump((filename, "TODO ModifiedTime", tables), open(cache_dir + hsh, "wb"))
-    logger.info(f"Saved cache for {filename} to {cache_dir + hsh}")
-    return excel.extract_tables(filename)
+    cached_file = (cache_dir / f"{Path(filename).stem}_{hsh}.pkl").resolve()
+
+    if cached_file.exists():
+        # just load and return the cached pickle
+        with cached_file.open("rb") as f:
+            tables = pickle.load(f)
+            logger.info(f"Using cached data for {filename} from {cached_file}")
+    else:
+        # extract data and write it to cache before returning it
+        tables = excel.extract_tables(str(filename))
+        with cached_file.open("wb") as f:
+            pickle.dump(tables, f)
+        logger.info(f"Saved cache for {filename} to {cached_file}")
+
+    return tables
 
 
 def convert_xl_to_times(
@@ -59,6 +80,8 @@ def convert_xl_to_times(
     stop_after_read: bool = False,
 ) -> dict[str, DataFrame]:
     start_time = datetime.now()
+
+    invalidate_cache()
     with ProcessPoolExecutor(max_workers) as executor:
         raw_tables = executor.map(
             excel.extract_tables if no_cache else _read_xlsx_cached, input_files
@@ -180,10 +203,9 @@ def write_csv_tables(tables: dict[str, DataFrame], output_dir: str):
 
 def read_csv_tables(input_dir: str) -> dict[str, DataFrame]:
     result = {}
-    for filename in os.listdir(input_dir):
-        result[filename.split(".")[0]] = pd.read_csv(
-            os.path.join(input_dir, filename), dtype=str
-        )
+    csv_files = list(Path(input_dir).glob("*.csv"))
+    for filename in csv_files:
+        result[filename.stem] = pd.read_csv(filename, dtype=str)
     return result
 
 
@@ -253,7 +275,7 @@ def compare(
                     index=False,
                 )
     result = (
-        f"{total_correct_rows / total_gt_rows :.1%} of ground truth rows present"
+        f"{(total_correct_rows / total_gt_rows) if total_gt_rows!=0 else np.nan :.1%} of ground truth rows present"
         f" in output ({total_correct_rows}/{total_gt_rows})"
         f", {total_additional_rows} additional rows"
     )
