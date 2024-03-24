@@ -428,7 +428,7 @@ def merge_tables(
                 if not all(index):
                     for _, row in df[~index].iterrows():
                         region, sets, process = row[["region", "sets", "process"]]
-                        print(
+                        logger.warning(
                             f"WARNING: Unknown process set {sets} specified for process {process}"
                             f" in region {region}. The record will be dropped."
                         )
@@ -1384,7 +1384,8 @@ def _process_comm_groups_vectorised(
 
     Returns
     -------
-        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in eachregion/process/io combination.
+        Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in
+        each region/process/io combination.
     """
 
     def _set_default_veda_pcg(group):
@@ -2292,11 +2293,13 @@ def _match_wildcards(
     result_col
         Name of the column to store the matched results in.
     explode
-        Whether to explode the  results_col ('process'/'commodities') column into a long-format table. (Default value = False)
+        Whether to explode the  results_col ('process'/'commodities') column into a long-format table.
+        (Default value = False)
 
     Returns
     -------
-        The table with the wildcard columns removed and the results of the wildcard matches added as a column named `results_col`
+        The table with the wildcard columns removed and the results of the wildcard matches added as a
+        column named `results_col`
     """
     wild_cols = list(col_map.keys())
 
@@ -2331,7 +2334,7 @@ def _match_wildcards(
         .drop(columns=wild_cols)
     )
 
-    # TODO TFM_UPD has existing (but empty) 'process' and 'commodity' columns here.  Is it ok to drop existing columns here?
+    # TODO TFM_UPD has existing (but empty) 'process' and 'commodity' columns. Is it ok to drop existing columns here?
     if f"{result_col}_old" in df.columns:
         if not df[f"{result_col}_old"].isna().all():
             logger.warning(
@@ -2549,8 +2552,8 @@ def explode_process_commodity_cols(
     """Explodes the process and commodity columns in the tables that contain them as
     lists after process_wildcards.
 
-    We store wildcard matches for these columns as lists and explode them late here for performance reasons - to avoid row-wise processing that
-    would otherwise need to iterate over very long tables.
+    We store wildcard matches for these columns as lists and explode them late here for performance
+    reasons - to avoid row-wise processing that would otherwise need to iterate over very long tables.
     """
     for tag in tables:
         df = tables[tag]

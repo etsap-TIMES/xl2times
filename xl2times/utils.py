@@ -7,9 +7,7 @@ import functools
 import gzip
 import os
 import pickle
-import re
 import sys
-from collections.abc import Iterable
 from dataclasses import replace
 from math import floor, log10
 from pathlib import Path, PurePath
@@ -173,53 +171,6 @@ def merge_columns(
     return numpy.concatenate(columns)
 
 
-def apply_wildcards(
-    df: DataFrame, candidates: Iterable[str], wildcard_col: str, output_col: str
-):
-    """Apply wildcards values to a list of candidates. Wildcards are values containing
-    '*'. For example, a value containing '*SOLID*' would include all the values in
-    'candidates' containing 'SOLID' in the middle.
-
-    TODO unused. Remove?
-
-    Parameters
-    ----------
-    df
-        Dataframe containing all values.
-    candidates
-        List of candidate strings to apply the wildcard to.
-    wildcard_col
-        Name of column containing the wildcards.
-    output_col
-        Name of the column to dump the wildcard matches to.
-
-    Returns
-    -------
-    type
-        A dataframe containing all the wildcard matches on its 'output_col' column.
-    """
-    wildcard_map = {}
-    all_wildcards = df[wildcard_col].unique()
-    for wildcard_string in all_wildcards:
-        if wildcard_string is None:
-            wildcard_map[wildcard_string] = None
-        else:
-            wildcard_list = wildcard_string.split(",")
-            current_list = []
-            for wildcard in wildcard_list:
-                if wildcard.startswith("-"):
-                    w = wildcard[1:]
-                    regexp = re.compile(w.replace("*", ".*"))
-                    current_list = [s for s in current_list if not regexp.match(s)]
-                else:
-                    regexp = re.compile(wildcard.replace("*", ".*"))
-                    additions = [s for s in candidates if regexp.match(s)]
-                    current_list = sorted(set(current_list + additions))
-            wildcard_map[wildcard_string] = current_list
-
-    df[output_col] = df[wildcard_col].map(wildcard_map)
-
-
 def missing_value_inherit(df: DataFrame, colname: str) -> None:
     """For each None value in the specifed column of the dataframe, replace it with the
     last non-None value. If no previous non-None value is found leave it as it is. This
@@ -381,7 +332,7 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
     Parameters
     ----------
     log_name
-        Name of the log. Corresponding log file will be called {log_name}.log in the . (Default value = default_log_name)
+        Name of the log. Corresponding log file will be called {log_name}.log. (Default value = default_log_name)
     log_dir
         Directory to write the log file to. Default is the current working directory.
 
@@ -452,7 +403,8 @@ def compare_df_dict(
     df_after
         the second dictionary of DataFrames to compare
     sort_cols
-        whether to sort the columns before comparing.  Set True if the column order is unimportant. (Default value = True)
+        whether to sort the columns before comparing.  Set True if the column order
+        is unimportant. (Default value = True)
     context_rows
         number of rows to show around the first difference (Default value = 2)
     """
