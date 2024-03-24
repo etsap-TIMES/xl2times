@@ -55,19 +55,15 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         df = table.dataframe
         # Check for ANSWER-style defaults
         if "=" in defaults:
-            # Split multiple comma-separated defaults
-            if "," in defaults:
-                defaults = defaults.split(",")
-            else:
-                # Make it a list
-                defaults = list([defaults])
+            # Split multiple comma-separated defaults / make defaults a list
+            defaults = defaults.split(",")
             # Check whether there are invalid values on the list
             invalid_defaults = [default for default in defaults if "=" not in default]
             if invalid_defaults:
                 logger.warning(
                     f"Expected ANSWER-style defaults, got {invalid_defaults}"
                 )
-            defaults = [default.split("=") for default in defaults]
+            defaults = [default.split("=") for default in defaults if "=" in default]
             # TODO: check whether a column is allowed in a particular table type
             for col, val in defaults:
                 colname = col.lower()
