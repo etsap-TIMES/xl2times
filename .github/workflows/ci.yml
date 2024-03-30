@@ -170,3 +170,20 @@ jobs:
         with:
           path: ~/.cache/xl2times
           key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
+
+      # ---------- Build package and upload to PyPI
+
+      - name: Build package
+        working-directory: xl2times
+        run: |
+          source .venv/bin/activate
+          python -m pip install --upgrade build twine
+          rm -rf dist || true
+          python -m build
+
+      - name: Download dist built by CI job
+        # if: startsWith(github.ref, 'refs/tags/v') # Only run on tags `v...`
+        # if: github.event_name == 'release' && github.event.action == 'created'  # TODO use this before merge
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
