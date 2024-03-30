@@ -7,7 +7,7 @@ packages = ["xl2times"]
 
 [project]
 name = "xl2times"
-version = "0.1.0-alpha"
+version = "0.1.0-alpha.1"
 authors = [
     { name="Sam Webster", email="13457618+samwebster@users.noreply.github.com" },
     { name="Tom Minka", email="8955276+tminka@users.noreply.github.com" },
