@@ -37,23 +37,25 @@ jobs:
         with:
           python-version: ${{ env.PY_VERSION }}
 
-      - name: Check code formatting
-        working-directory: xl2times
-        run: |
-          python -m pip install --upgrade pre-commit
-          pre-commit install
-          pre-commit run --all-files
-
       - name: Build and install xl2times
         working-directory: xl2times
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          python -m pip install --upgrade pip build twine
+          python -m pip install --upgrade pip build
           rm -rf dist || true
           python -m build
           # Install the built wheel file to imitiate users installing from PyPI:
           python -m pip install --no-index --find-links=dist xl2times
+
+      - name: Check code formatting
+        working-directory: xl2times
+        # Run this step after install so that pyright can find dependencies like pandas
+        run: |
+          source .venv/bin/activate
+          python -m pip install --upgrade pre-commit
+          pre-commit install
+          pre-commit run --all-files
 
       - name: Run unit tests
         working-directory: xl2times
