@@ -35,20 +35,23 @@ jobs:
         with:
           python-version: ${{ env.PY_VERSION }}
 
-      - name: Install tool and dependencies
+      - name: Check code formatting
+        working-directory: xl2times
+        run: |
+          python -m pip install --upgrade pre-commit
+          pre-commit install
+          pre-commit run --all-files
+
+      - name: Build and install xl2times
         working-directory: xl2times
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -e .[dev]
-
-      # - name: Check code formatting
-      #   working-directory: xl2times
-      #   run: |
-      #     source .venv/bin/activate
-      #     pre-commit install
-      #     pre-commit run --all-files
+          python -m pip install --upgrade pip build twine
+          rm -rf dist || true
+          python -m build
+          # Install the built wheel file to imitiate users installing from PyPI:
+          python -m pip install --no-index --find-links=dist xl2times
 
       # - name: Run unit tests
       #   working-directory: xl2times
@@ -173,15 +176,7 @@ jobs:
       #     path: ~/.cache/xl2times
       #     key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
 
-      # ---------- Build package and upload to PyPI
-
-      - name: Build package
-        working-directory: xl2times
-        run: |
-          source .venv/bin/activate
-          python -m pip install --upgrade build twine
-          rm -rf dist || true
-          python -m build
+      # ---------- Upload package to PyPI on release
 
       - name: Publish to PyPI
         # if: startsWith(github.ref, 'refs/tags/v') # Only run on tags `v...`
