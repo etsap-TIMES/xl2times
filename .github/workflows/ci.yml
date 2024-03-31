@@ -185,7 +185,7 @@ jobs:
       # ---------- Upload package to PyPI on release
 
       - name: Publish to PyPI
-        if: github.event_name == 'release' && github.event.action == 'published'
+        # if: github.event_name == 'release' && github.event.action == 'published'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
