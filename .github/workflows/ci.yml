@@ -188,5 +188,4 @@ jobs:
         if: github.event_name == 'release' && github.event.action == 'published'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/legacy/
           packages-dir: xl2times/dist/
