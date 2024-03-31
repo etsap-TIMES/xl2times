@@ -42,7 +42,7 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          pip install --upgrade pip
+          pip install --upgrade pip build
           pip install -e .[dev]
           # Build xl2times
           rm -rf dist || true
