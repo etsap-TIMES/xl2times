@@ -6,6 +6,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  release:
+    types: [published]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -13,6 +15,8 @@ on:
 jobs:
   CI:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
 
     env:
       PY_VERSION: "3.11"
@@ -33,16 +37,23 @@ jobs:
         with:
           python-version: ${{ env.PY_VERSION }}
 
-      - name: Install tool and dependencies
+      - name: Build and install xl2times
         working-directory: xl2times
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -e .[dev]
+          pip install --upgrade pip build
+          pip install -e .[dev]
+          # Build xl2times
+          rm -rf dist || true
+          python -m build
+          # Install the built wheel file to imitiate users installing from PyPI:
+          pip uninstall --yes xl2times
+          pip install --find-links=dist xl2times
 
       - name: Check code formatting
         working-directory: xl2times
+        # Run this step after install so that pyright can find dependencies like pandas
         run: |
           source .venv/bin/activate
           pre-commit install
@@ -170,3 +181,12 @@ jobs:
         with:
           path: ~/.cache/xl2times
           key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
+
+      # ---------- Upload package to PyPI on release
+
+      - name: Publish to PyPI
+        if: github.event_name == 'release' && github.event.action == 'published'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: xl2times/dist/

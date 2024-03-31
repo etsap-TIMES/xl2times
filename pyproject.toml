@@ -2,12 +2,13 @@
 requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["xl2times"]
+[tool.setuptools.packages.find]
+where = [""]
+include = ["xl2times", "xl2times.*"]
 
 [project]
 name = "xl2times"
-version = "0.1.0"
+version = "0.1.0-alpha.2"
 authors = [
     { name="Sam Webster", email="13457618+samwebster@users.noreply.github.com" },
     { name="Tom Minka", email="8955276+tminka@users.noreply.github.com" },

@@ -52,7 +52,6 @@ We recommend installing the tool in editable mode (`-e`) in a Python virtual env
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-pip install -r requirements.txt
 pip install -e .[dev]
 ```
 
@@ -132,14 +131,11 @@ VS Code will highlight the changes in the two files, which should correspond to 
 
 ### Publishing the Tool
 
-To publish a new version of the tool on PyPI, update the version number in `pyproject.toml`, and then run:
-```bash
-python -m pip install --upgrade build
-python -m pip install --upgrade twine
-rm -rf dist
-python -m build
-python -m twine upload dist/*
-```
+Follow these steps to release a new version of `xl2times` and publish it on PyPI:
+- [ ] Bump the version number in `pyproject.toml` and `xl2times/__init__.py` (use [Semantic Versioning](https://semver.org/))
+- [ ] Open a PR with this change titled "Release vX.Y.Z"
+- [ ] When the PR is merged, create a [new release](https://github.com/etsap-TIMES/xl2times/releases/new) titled "vX.Y.Z". Select "Create a new tag: on publish" and click "Generate release notes" to generate the notes automatically.
+- [ ] Click "Publish release" to publish the release on GitHub. A GitHub Actions workflow will automatically upload the distribution to PyPI.
 
 ## Contributing
 
