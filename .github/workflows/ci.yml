@@ -46,7 +46,7 @@ jobs:
           rm -rf dist || true
           python -m build
           # Install the built wheel file to imitiate users installing from PyPI:
-          python -m pip install --no-index --find-links=dist xl2times
+          python -m pip install --find-links=dist xl2times
 
       - name: Check code formatting
         working-directory: xl2times
