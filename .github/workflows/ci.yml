@@ -42,18 +42,20 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          python -m pip install --upgrade pip build
+          pip install --upgrade pip
+          pip install -e .[dev]
+          # Build xl2times
           rm -rf dist || true
           python -m build
           # Install the built wheel file to imitiate users installing from PyPI:
-          python -m pip install --find-links=dist xl2times
+          pip uninstall --yes xl2times
+          pip install --find-links=dist xl2times
 
       - name: Check code formatting
         working-directory: xl2times
         # Run this step after install so that pyright can find dependencies like pandas
         run: |
           source .venv/bin/activate
-          python -m pip install --upgrade pre-commit
           pre-commit install
           pre-commit run --all-files
 
@@ -61,7 +63,6 @@ jobs:
         working-directory: xl2times
         run: |
           source .venv/bin/activate
-          python -m pip install --upgrade pytest
           pytest
 
       # ---------- Prepare ETSAP Demo models
