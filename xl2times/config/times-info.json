@@ -1,0 +1,5139 @@
+[
+  {
+    "name": "ACT_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "ACT_COST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "ACT_CSTPL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "ACT_CSTRMP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype",
+      "currency"
+    ]
+  },
+  {
+    "name": "ACT_CSTSD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UPT",
+      "BD",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "limtype",
+      "currency"
+    ]
+  },
+  {
+    "name": "ACT_CSTUP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TSLVL",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "ACT_CUM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "BOHYEAR",
+      "EOHYEAR",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "year",
+      "year2",
+      "limtype"
+    ]
+  },
+  {
+    "name": "ACT_EFF",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "ACT_FLO",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "ACT_LOSPL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "ACT_LOSSD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UPT",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "ACT_MAXNON",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UPT"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "ACT_MINLD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "ACT_SDTIME",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UPT",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "ACT_TIME",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "ACT_UPS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "ALL_TS",
+    "gams-cat": "set",
+    "indexes": [
+      "ALL_TS"
+    ],
+    "mapping": [
+      "timeslice"
+    ]
+  },
+  {
+    "name": "ALL_REG",
+    "gams-cat": "set",
+    "indexes": [
+      "ALL_REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "B",
+    "gams-cat": "parameter",
+    "type": "derived",
+    "indexes": [
+      "YEAR"
+    ],
+    "mapping": [
+      "year"
+    ]
+  },
+  {
+    "name": "BL_COM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "OPR",
+      "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "BL_DELIVC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "COM",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "commodity",
+      "currency"
+    ]
+  },
+  {
+    "name": "BL_INP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "commodity"
+    ]
+  },
+  {
+    "name": "BL_SPEC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "BL_START",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "BL_TYPE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "BL_UNIT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "SPE"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "BL_VAROMC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "currency"
+    ]
+  },
+  {
+    "name": "BLE",
+    "gams-cat": "subsubset",
+    "indexes": [
+      "COM"
+    ],
+    "mapping": [
+      "commodity"
+    ]
+  },
+  {
+    "name": "BS_BNDPRS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "P",
+      "C",
+      "S",
+      "L"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "BS_CAPACT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "BS_DELTA",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C",
+      "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "BS_DEMDET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "RSP",
+      "C",
+      "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "other_indexes",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "BS_DETWT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
+    ]
+  },
+  {
+    "name": "BS_LAMBDA",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
+    ]
+  },
+  {
+    "name": "BS_MAINT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "P",
+      "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "BS_OMEGA",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "BS_RMAX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "P",
+      "C",
+      "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "BS_RTYPE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "C"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
+    ]
+  },
+  {
+    "name": "BS_SHARE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C",
+      "ITEM",
+      "L"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "BS_SIGMA",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C",
+      "ITEM",
+      "S"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "other_indexes",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "BS_STIME",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "P",
+      "COM",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "CAP_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "CM_CO2GTC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
+    ]
+  },
+  {
+    "name": "CM_CONST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ITEM"
+    ],
+    "mapping": [
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "CM_EXOFORC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR"
+    ],
+    "mapping": [
+      "year"
+    ]
+  },
+  {
+    "name": "CM_GHGMAP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "CG"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "CM_HISTORY",
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR",
+      "CM_VAR"
+    ],
+    "mapping": [
+      "year",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "CM_LINFOR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR",
+      "CM_VAR",
+      "LIM"
+    ],
+    "mapping": [
+      "year",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "CM_MAXC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR",
+      "CM_VAR"
+    ],
+    "mapping": [
+      "year",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "CM_MAXCO2C",
+    "gams-cat": "parameter",
+    "indexes": [
+      "YEAR"
+    ],
+    "mapping": [
+      "year"
+    ]
+  },
+  {
+    "name": "CM_PPM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "CM_VAR"
+    ],
+    "mapping": [
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "COM",
+    "gams-cat": "subset",
+    "indexes": [
+      "COM_GRP"
+    ],
+    "mapping": [
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "COM_AGG",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "commodity"
+    ]
+  },
+  {
+    "name": "COM_BNDNET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "COM_BNDPRD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "COM_BPRICE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "COM_BQTY",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "COM_CSTBAL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "ITEM",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "other_indexes",
+      "currency"
+    ]
+  },
+  {
+    "name": "COM_CSTNET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "COM_CSTPRD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "COM_CUMNET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "BOHYEAR",
+      "EOHYEAR",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year2",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "COM_CUMPRD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "BOHYEAR",
+      "EOHYEAR",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year2",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "COM_ELAST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "COM_ELASTX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "COM_FR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "COM_IE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "COM_DESC",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
+    ]
+  },
+  {
+    "name": "COM_GMAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM_GRP",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "other_indexes",
+      "commodity"
+    ]
+  },
+  {
+    "name": "COM_GRP",
+    "gams-cat": "set",
+    "indexes": [
+      "COM_GRP"
+    ],
+    "mapping": [
+      "commoditygroup"
+    ]
+  },
+  {
+    "name": "COM_LIM",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "COM_MSHGV",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
+    ]
+  },
+  {
+    "name": "COM_OFF",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM",
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "year",
+      "year2"
+    ]
+  },
+  {
+    "name": "COM_PEAK",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM_GRP"
+    ],
+    "mapping": [
+      "region",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "COM_PKFLX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "COM_PKRSV",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
+    ]
+  },
+  {
+    "name": "COM_PKTS",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM_GRP",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "other_indexes",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "COM_PROJ",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
+    ]
+  },
+  {
+    "name": "COM_STEP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "COM_SUBNET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "COM_SUBPRD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "COM_TAXNET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "COM_TAXPRD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "COM_TMAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM_TYPE",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "csets",
+      "commodity"
+    ]
+  },
+  {
+    "name": "COM_TSL",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM",
+      "TSLVL"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "COM_UNIT",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "COM",
+      "UNITS_COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "unit"
+    ]
+  },
+  {
+    "name": "COM_VOC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "CONVERT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "OPR",
+      "CVT"
+    ],
+    "mapping": [
+      "other_indexes",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "CUR",
+    "gams-cat": "set",
+    "indexes": [
+      "CUR"
+    ],
+    "mapping": [
+      "currency"
+    ]
+  },
+  {
+    "name": "DAM_BQTY",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
+    ]
+  },
+  {
+    "name": "DAM_COST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "currency"
+    ]
+  },
+  {
+    "name": "DAM_ELAST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "DAM_STEP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "DAM_TQTY",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity"
+    ]
+  },
+  {
+    "name": "DAM_TVOC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "DAM_VOC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "E",
+    "gams-cat": "parameter",
+    "type": "derived",
+    "indexes": [
+      "YEAR"
+    ],
+    "mapping": [
+      "year"
+    ]
+  },
+  {
+    "name": "ENV_BL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "COM",
+      "OPR",
+      "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "commodity",
+      "other_indexes",
+      "year"
+    ]
+  },
+  {
+    "name": "FLO_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "FLO_COST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "FLO_CUM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM",
+      "BOHYEAR",
+      "EOHYEAR",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "year",
+      "year2",
+      "limtype"
+    ]
+  },
+  {
+    "name": "FLO_DELIV",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "FLO_EFF",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "FLO_EMIS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "FLO_FEQ",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity"
+    ]
+  },
+  {
+    "name": "FLO_FR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "FLO_FUNC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "CG",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "other_indexes",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "FLO_FUNCX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "CG"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "FLO_MARK",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "FLO_PKCOI",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "FLO_SHAR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "CG",
+      "TS",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "other_indexes",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "FLO_SUB",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "FLO_SUM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "COM",
+      "CG",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "commodity",
+      "other_indexes",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "FLO_TAX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "currency"
+    ]
+  },
+  {
+    "name": "G_CUREX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "CUR",
+      "CUR2"
+    ],
+    "mapping": [
+      "currency",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "G_CYCLE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "TSLVL"
+    ],
+    "mapping": [
+      "timeslice"
+    ]
+  },
+  {
+    "name": "G_DRATE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "currency"
+    ]
+  },
+  {
+    "name": "G_DYEAR",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "DATAYEAR",
+    "gams-cat": "subset",
+    "indexes": [
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "year"
+    ]
+  },
+  {
+    "name": "G_ILEDNO",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "G_OFFTHD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "year"
+    ]
+  },
+  {
+    "name": "G_OVERLAP",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "G_RFRIR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
+    ]
+  },
+  {
+    "name": "G_TLIFE",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "G_YRFR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "GR_DEMFR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "GR_ENDFR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "CG"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "GR_GENFR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "ITEM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "GR_GENLEV",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity"
+    ]
+  },
+  {
+    "name": "GR_GENMAP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "ITEM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "GR_THMIN",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "GR_VARGEN",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "TS",
+      "ITEM",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "GR_XBND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
+    ]
+  },
+  {
+    "name": "IRE_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS",
+      "ALL_R",
+      "IE",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "region",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "IRE_CCVT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "COM",
+      "ALL_R",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "region",
+      "commodity"
+    ]
+  },
+  {
+    "name": "IRE_FLO",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "COM",
+      "ALL_R",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "region",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "IRE_FLOSUM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "IE",
+      "COM",
+      "IO"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "other_indexes",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "IRE_PRICE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "ALL_R",
+      "IE",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "region",
+      "other_indexes",
+      "currency"
+    ]
+  },
+  {
+    "name": "IRE_TSCVT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "TS",
+      "ALL_R",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "region",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "IRE_XBND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS",
+      "IE",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "MILESTONYR",
+    "gams-cat": "subset",
+    "indexes": [
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "year"
+    ]
+  },
+  {
+    "name": "MODLYEAR",
+    "gams-cat": "subsubset",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "MULTI",
+    "gams-cat": "parameter",
+    "indexes": [
+      "J",
+      "YEAR"
+    ],
+    "mapping": [
+      "stage",
+      "year"
+    ]
+  },
+  {
+    "name": "NCAP_AF",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "NCAP_AFA",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "NCAP_AFAC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "NCAP_AFC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TSL"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "NCAP_AFCS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "NCAP_AFM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_AFS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "NCAP_AFSX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "NCAP_AFX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "NCAP_BPME",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_CDME",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_CEH",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_CHPR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "NCAP_CLAG",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "IO"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "NCAP_CLED",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity"
+    ]
+  },
+  {
+    "name": "NCAP_COM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "IO"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "NCAP_COST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "NCAP_CPX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_DCOST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "NCAP_DELIF",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_DISC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "UNIT"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "NCAP_DLAG",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_DLAGC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "NCAP_DLIFE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_DRATE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_ELIFE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_FDR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_FOM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "NCAP_FOMM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_FOMX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_FSUB",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "NCAP_FSUBM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_FSUBX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_FTAX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "NCAP_FTAXM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_FTAXX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_ICOM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity"
+    ]
+  },
+  {
+    "name": "NCAP_ILED",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_ISPCT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "ALLYEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_ISUB",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "NCAP_ITAX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "currency"
+    ]
+  },
+  {
+    "name": "NCAP_LCOST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_LFOM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_MSPRF",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "C",
+      "P",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "NCAP_OCOM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity"
+    ]
+  },
+  {
+    "name": "NCAP_OLIFE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_PASTI",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_PASTY",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_PKCNT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "NCAP_SEMI",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_START",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_TLIFE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "NCAP_VALU",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "currency"
+    ]
+  },
+  {
+    "name": "NRG_TMAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "NRG_TYPE",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "ctype",
+      "commodity"
+    ]
+  },
+  {
+    "name": "OPR",
+    "gams-cat": "subsubset",
+    "indexes": [
+      "COM"
+    ],
+    "mapping": [
+      "commodity"
+    ]
+  },
+  {
+    "name": "PASTYEAR",
+    "gams-cat": "subset",
+    "indexes": [
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "year"
+    ]
+  },
+  {
+    "name": "PEAKDA_BL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "COM",
+      "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "year"
+    ]
+  },
+  {
+    "name": "PRC",
+    "gams-cat": "set",
+    "indexes": [
+      "PRC"
+    ],
+    "mapping": [
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_ACTFLO",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "PRC_ACTUNT",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "CG",
+      "UNITS_ACT"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "primarycg",
+      "tact"
+    ]
+  },
+  {
+    "name": "PRC_AOFF",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "year",
+      "year2"
+    ]
+  },
+  {
+    "name": "PRC_CAPACT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_CAPUNT",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "CG",
+      "UNITS_CAP"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "primarycg",
+      "tcap"
+    ]
+  },
+  {
+    "name": "PRC_DESC",
+    "gams-cat": "md-set",
+    "indexes": [
+      "R",
+      "P"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_DSCNCAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "R",
+      "P"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_DSCNCAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "R",
+      "P"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_FOFF",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM",
+      "ALL_TS",
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "timeslice",
+      "year",
+      "year2"
+    ]
+  },
+  {
+    "name": "PRC_GMAP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "ITEM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "PRC_MARK",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "ITEM",
+      "COM",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "commodity",
+      "limtype"
+    ]
+  },
+  {
+    "name": "PRC_MAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC_GRP",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "sets",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_NOFF",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "year",
+      "year2"
+    ]
+  },
+  {
+    "name": "PRC_NSTTS",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "ALL_TS"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "PRC_PKAF",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_PKNO",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_REACT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_REFIT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_RESID",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_RCAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "PRC_STGIPS",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity"
+    ]
+  },
+  {
+    "name": "PRC_STGTSS",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity"
+    ]
+  },
+  {
+    "name": "PRC_TSL",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "TSLVL"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "PRC_VINT",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "R_CUREX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "CUR",
+      "CUR"
+    ],
+    "mapping": [
+      "region",
+      "currency",
+      "currency"
+    ]
+  },
+  {
+    "name": "RCAP_BLK",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "RCAP_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype"
+    ]
+  },
+  {
+    "name": "REFUNIT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "REG",
+    "gams-cat": "subset",
+    "indexes": [
+      "ALL_REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "REG_BDNCAP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "L"
+    ],
+    "mapping": [
+      "region",
+      "limtype"
+    ]
+  },
+  {
+    "name": "REG_BNDCST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COSTAGG",
+      "CUR",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "other_indexes",
+      "currency",
+      "limtype"
+    ]
+  },
+  {
+    "name": "REG_CUMCST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "YEAR",
+      "COSTAGG",
+      "CUR",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year",
+      "other_indexes",
+      "currency",
+      "limtype"
+    ]
+  },
+  {
+    "name": "REG_FIXT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "RPT_OPT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ITEM",
+      "J"
+    ],
+    "mapping": [
+      "other_indexes",
+      "stage"
+    ]
+  },
+  {
+    "name": "S_CAP_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "ALLYEAR",
+      "PRC",
+      "BD",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_CM_CONST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ITEM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "other_indexes",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_CM_MAXC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALLYEAR",
+      "ITEM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "year",
+      "other_indexes",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_CM_MAXCO2C",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALLYEAR",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "year",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_COM_CUMNET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "BOHYEAR",
+      "EOHYEAR",
+      "C",
+      "BD",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year2",
+      "commodity",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_COM_CUMPRD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "BOHYEAR",
+      "EOHYEAR",
+      "C",
+      "BD",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "year2",
+      "commodity",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_COM_FR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "C",
+      "S",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_COM_PROJ",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "ALLYEAR",
+      "COM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_COM_TAX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "C",
+      "S",
+      "COM_VAR",
+      "CUR",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "timeslice",
+      "other_indexes",
+      "currency",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_DAM_COST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "C",
+      "CUR",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "commodity",
+      "currency",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_FLO_CUM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "P",
+      "C",
+      "ITEM",
+      "ITEM",
+      "BD",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "other_indexes",
+      "other_indexes",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_FLO_FUNC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P",
+      "CG",
+      "CG",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "other_indexes",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_NCAP_AFS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P",
+      "S",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_NCAP_COST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_UC_RHS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "uc_n",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_UC_RHSR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_REG",
+      "UC_N",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_UC_RHSRT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_REG",
+      "UC_N",
+      "ALLYEAR",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_UC_RHSRTS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_REG",
+      "UC_N",
+      "ALLYEAR",
+      "TS",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year",
+      "timeslice",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_UC_RHST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALLYEAR",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "uc_n",
+      "year",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_UC_RHSTS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALLYEAR",
+      "TS",
+      "LIM",
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "uc_n",
+      "year",
+      "timeslice",
+      "limtype",
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "S_UCOBJ",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "uc_n",
+      "sow"
+    ]
+  },
+  {
+    "name": "SHAPE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "J",
+      "AGE"
+    ],
+    "mapping": [
+      "other_indexes",
+      "year"
+    ]
+  },
+  {
+    "name": "SPE",
+    "gams-cat": "set",
+    "indexes": [
+      "SPE"
+    ],
+    "mapping": [
+      "spe"
+    ]
+  },
+  {
+    "name": "STG_CHRG",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "STG_EFF",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "STG_LOSS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "STG_MAXCYC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "P"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "STG_SIFT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "STGIN_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "STGOUT_BND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "SW_LAMBDA",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "SW_PROB",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALLSOW"
+    ],
+    "mapping": [
+      "sow"
+    ]
+  },
+  {
+    "name": "SW_SPROB",
+    "gams-cat": "parameter",
+    "indexes": [
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "SW_START",
+    "gams-cat": "parameter",
+    "indexes": [
+      "J"
+    ],
+    "mapping": [
+      "stage"
+    ]
+  },
+  {
+    "name": "SW_SUBS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "J",
+      "ALLSOW"
+    ],
+    "mapping": [
+      "stage",
+      "sow"
+    ]
+  },
+  {
+    "name": "TL_CCAP0",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "TL_CCAPM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "TL_CLUSTER",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "process"
+    ]
+  },
+  {
+    "name": "TL_MRCLUST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC",
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "TL_PRAT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "TL_SC0",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "TL_SEG",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "process"
+    ]
+  },
+  {
+    "name": "TM_ARBM",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "TM_DEFVAL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "TM_DEFVAL"
+    ],
+    "mapping": [
+      "tm_defval"
+    ]
+  },
+  {
+    "name": "TM_DEPR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_DESUB",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_DMTOL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_ESUB",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_EXPBND",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR",
+      "P"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "TM_EXPF",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
+    ]
+  },
+  {
+    "name": "TM_GDP0",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_GR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
+    ]
+  },
+  {
+    "name": "TM_HSX",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR"
+    ],
+    "mapping": [
+      "region",
+      "year"
+    ]
+  },
+  {
+    "name": "TM_IVETOL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_KGDP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_KPVS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_MDTL",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_MDTQ",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_QFAC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R"
+    ],
+    "mapping": [
+      "region"
+    ]
+  },
+  {
+    "name": "TM_SCALE_CST",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "TM_SCALE_NRG",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "TM_SCALE_UTIL",
+    "gams-cat": "parameter",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "TM_STEP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "CG",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "TM_VOC",
+    "gams-cat": "parameter",
+    "indexes": [
+      "R",
+      "YEAR",
+      "CG",
+      "BD"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "other_indexes",
+      "limtype"
+    ]
+  },
+  {
+    "name": "TS_CYCLE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "TOP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "PRC",
+      "COM",
+      "IO"
+    ],
+    "mapping": [
+      "region",
+      "process",
+      "commodity",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "TOP_IRE",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "COM",
+      "ALL_REG",
+      "COM",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "commodity",
+      "region",
+      "commodity",
+      "process"
+    ]
+  },
+  {
+    "name": "TS_GROUP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "TSLVL",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "TS_MAP",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_REG",
+      "ALL_TS",
+      "ALL_TS"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "TS_OFF",
+    "gams-cat": "md-set",
+    "indexes": [
+      "REG",
+      "TS",
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "region",
+      "timeslice",
+      "year",
+      "year2"
+    ]
+  },
+  {
+    "name": "UC_ACT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "UC_ATTR",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "SIDE",
+      "UC_GRPTYPE",
+      "UC_NAME"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "side",
+      "uc_grptype",
+      "uc_name"
+    ]
+  },
+  {
+    "name": "UC_CAP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "UC_CLI",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "REG",
+      "YEAR",
+      "CM_VAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "UC_COMCON",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "UC_COMNET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "UC_COMPRD",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "UC_CUMACT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "PRC",
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "process",
+      "year",
+      "year2"
+    ]
+  },
+  {
+    "name": "UC_CUMCOM",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "COM_VAR",
+      "COM",
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "other_indexes",
+      "commodity",
+      "year",
+      "year2"
+    ]
+  },
+  {
+    "name": "UC_CUMFLO",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "PRC",
+      "COM",
+      "BOHYEAR",
+      "EOHYEAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "process",
+      "commodity",
+      "year",
+      "year2"
+    ]
+  },
+  {
+    "name": "UC_DYNBND",
+    "gams-cat": "md-set",
+    "indexes": [
+      "UC_N",
+      "LIM"
+    ],
+    "mapping": [
+      "uc_n",
+      "limtype"
+    ]
+  },
+  {
+    "name": "UC_FLO",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "UC_FLOBET",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "CG"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "year",
+      "process",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "UC_IRE",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC",
+      "COM",
+      "TS",
+      "IE"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process",
+      "commodity",
+      "timeslice",
+      "other_indexes"
+    ]
+  },
+  {
+    "name": "UC_N",
+    "gams-cat": "set",
+    "indexes": [
+      "UC_N"
+    ],
+    "mapping": [
+      "uc_n"
+    ]
+  },
+  {
+    "name": "UC_NCAP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "UC_R_EACH",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N"
+    ],
+    "mapping": [
+      "region",
+      "uc_n"
+    ]
+  },
+  {
+    "name": "UC_R_SUM",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N"
+    ],
+    "mapping": [
+      "region",
+      "uc_n"
+    ]
+  },
+  {
+    "name": "UC_RHS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "LIM"
+    ],
+    "mapping": [
+      "uc_n",
+      "limtype"
+    ]
+  },
+  {
+    "name": "UC_RHSR",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "limtype"
+    ]
+  },
+  {
+    "name": "UC_RHSRT",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "YEAR",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year",
+      "limtype"
+    ]
+  },
+  {
+    "name": "UC_RHSRTS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "YEAR",
+      "TS",
+      "LIM"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "UC_RHST",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "YEAR",
+      "LIM"
+    ],
+    "mapping": [
+      "uc_n",
+      "year",
+      "limtype"
+    ]
+  },
+  {
+    "name": "UC_RHSTS",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "YEAR",
+      "TS",
+      "LIM"
+    ],
+    "mapping": [
+      "uc_n",
+      "year",
+      "timeslice",
+      "limtype"
+    ]
+  },
+  {
+    "name": "UC_T_EACH",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year"
+    ]
+  },
+  {
+    "name": "UC_T_SUCC",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year"
+    ]
+  },
+  {
+    "name": "UC_T_SUM",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALLYEAR"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "year"
+    ]
+  },
+  {
+    "name": "UC_TIME",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "ALL_R",
+      "YEAR"
+    ],
+    "mapping": [
+      "uc_n",
+      "region",
+      "year"
+    ]
+  },
+  {
+    "name": "UC_TS_EACH",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALL_TS"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "UC_TS_SUM",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "ALL_TS"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "UC_TSL",
+    "gams-cat": "md-set",
+    "indexes": [
+      "ALL_R",
+      "UC_N",
+      "SIDE",
+      "TSLVL"
+    ],
+    "mapping": [
+      "region",
+      "uc_n",
+      "side",
+      "timeslice"
+    ]
+  },
+  {
+    "name": "UC_UCN",
+    "gams-cat": "parameter",
+    "indexes": [
+      "UC_N",
+      "SIDE",
+      "ALL_R",
+      "YEAR",
+      "UC_N"
+    ],
+    "mapping": [
+      "uc_n",
+      "side",
+      "region",
+      "year",
+      "uc_n"
+    ]
+  },
+  {
+    "name": "UNITS",
+    "gams-cat": "set",
+    "indexes": [
+      "UNITS"
+    ],
+    "mapping": [
+      "units"
+    ]
+  },
+  {
+    "name": "UNITS_ACT",
+    "gams-cat": "subset",
+    "indexes": [
+      "UNITS"
+    ],
+    "mapping": [
+      "units"
+    ]
+  },
+  {
+    "name": "UNITS_CAP",
+    "gams-cat": "subset",
+    "indexes": [
+      "UNITS"
+    ],
+    "mapping": [
+      "units"
+    ]
+  },
+  {
+    "name": "UNITS_COM",
+    "gams-cat": "subset",
+    "indexes": [
+      "UNITS"
+    ],
+    "mapping": [
+      "units"
+    ]
+  },
+  {
+    "name": "UNITS_MONY",
+    "gams-cat": "subset",
+    "indexes": [],
+    "mapping": []
+  },
+  {
+    "name": "VDA_CEH",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process"
+    ]
+  },
+  {
+    "name": "VDA_EMCB",
+    "gams-cat": "parameter",
+    "type": "special",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "COM",
+      "COM"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "other_indexes",
+      "commodity"
+    ]
+  },
+  {
+    "name": "VDA_FLOP",
+    "gams-cat": "parameter",
+    "indexes": [
+      "REG",
+      "YEAR",
+      "PRC",
+      "CG",
+      "TS"
+    ],
+    "mapping": [
+      "region",
+      "year",
+      "process",
+      "other_indexes",
+      "timeslice"
+    ]
+  }
+]

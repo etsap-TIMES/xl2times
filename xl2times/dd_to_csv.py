@@ -1,20 +1,22 @@
 import argparse
+import json
 import os
+import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 
 def parse_parameter_values_from_file(
     path: Path,
-) -> Tuple[Dict[str, List], Dict[str, set]]:
-    """
-    Parse *.dd to turn it into CSV format
-    There are parameters and sets, and each has a slightly different format
-    *.dd files have data of the following form:
+) -> tuple[dict[str, list], dict[str, set]]:
+    """Parse a `*.dd` file and extract the sets and parameters.
+
+    There are parameters and sets, and each has a slightly different format.
+    `*.dd` files have data of the following form:
 
     PARAMETER
     PARAM_NAME ' '/
@@ -29,19 +31,19 @@ def parse_parameter_values_from_file(
     ...
 
     /
-
     """
-
-    data = list(open(path, "r"))
+    data = list(open(path))
     data = [line.rstrip() for line in data]
 
-    param_value_dict: Dict[str, List] = dict()
-    set_data_dict: Dict[str, set] = dict()
+    param_value_dict: dict[str, list] = dict()
+    set_data_dict: dict[str, set] = dict()
     index = 0
     while index < len(data):
         if data[index].startswith("PARAMETER"):
             # We expect the parameter name on the next line.
             index += 1
+            while data[index].strip() == "":
+                index += 1
 
             param_name = data[index].replace(
                 " ' '/", ""
@@ -51,20 +53,19 @@ def parse_parameter_values_from_file(
             param_data = []
             # Parse values until a line with / is encountered.
             while not data[index].startswith("/") and data[index] != "":
-                words = data[index].split(" ")
+                line = data[index]
 
                 # Either "value" for a scalar, or "key value" for an array.
-                if len(words) == 1:
-                    attributes = []
-                elif len(words) == 2:
-                    attributes = words[0].split(".")
-                    attributes = [a if " " in a else a.strip("'") for a in attributes]
+                # So value is always the last word, or only token
+                split_point = line.rfind(" ")
+                if split_point == -1:
+                    # if only one word
+                    attributes, value = [], line
                 else:
-                    raise ValueError(
-                        f"Unexpected number of spaces in parameter value setting: {data[index]}"
-                    )
+                    attributes, value = line[:split_point], line[split_point + 1 :]
+                    attributes = attributes.split(".")
+                    attributes = [a if " " in a else a.strip("'") for a in attributes]
 
-                value = words[-1]
                 param_data.append([*attributes, value])
 
                 index += 1
@@ -75,9 +76,13 @@ def parse_parameter_values_from_file(
             # See https://www.gams.com/latest/docs/UG_SetDefinition.html
             # This can only parse a subset of the allowed representations
             _, name = data[index].split(" ")
-            assert data[index + 1].startswith("/")
+            index += 1
+            while data[index].strip() == "":
+                index += 1
 
-            index += 2
+            assert data[index].startswith("/")
+            index += 1
+
             set_data = set()
             while not data[index].startswith("/") and data[index] != "":
                 parts = [[]]
@@ -115,21 +120,30 @@ def parse_parameter_values_from_file(
 
 
 def save_data_with_headers(
-    param_data_dict: Dict[str, Union[pd.DataFrame, List[str]]],
-    headers_data: Dict[str, List[str]],
+    param_data_dict: dict[str, pd.DataFrame | list[str]],
+    headers_data: dict[str, list[str]],
     save_dir: str,
 ) -> None:
-    """
-
-    :param param_data: Dictionary containing key=param_name and val=dataframe for parameters or List[str] for sets
-    :param headers_data: Dictionary containing key=param_name and val=dataframes
-    :param save_dir: Path to folder in which to save the tabular data files
-    :return: None
+    """Saves data (with headers) to the provided directory.
 
     Note that the header and data dictionaries are assumed to be parallel dictionaries
+
+    Parameters
+    ----------
+    param_data_dict
+        Dictionary containing key=param_name and val=dataframe for parameters or List[str] for sets
+    headers_data
+        Dictionary containing key=param_name and val=dataframes
+    save_dir
+        Path to folder in which to save the tabular data files
     """
     for param_name, param_data in param_data_dict.items():
-        columns = headers_data[param_name]
+        try:
+            columns = headers_data[param_name]
+        except KeyError:
+            raise ValueError(
+                f"Could not find mapping for {param_name} in mapping file."
+            )
         for row in param_data:
             if len(row) != len(columns):
                 raise ValueError(
@@ -143,13 +157,30 @@ def save_data_with_headers(
     return
 
 
-def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
+def generate_headers_by_attr() -> dict[str, list[str]]:
+    with open("xl2times/config/times-info.json") as f:
+        attributes = json.load(f)
+
+    headers_by_attr = {}
+
+    for attr in attributes:
+        if attr["gams-cat"] == "parameter":
+            headers_by_attr[attr["name"]] = [*attr["indexes"], "VALUE"]
+        else:
+            headers_by_attr[attr["name"]] = attr["indexes"]
+
+    return headers_by_attr
+
+
+def convert_dd_to_tabular(
+    basedir: str, output_dir: str, headers_by_attr: dict[str, list[str]]
+) -> None:
     dd_files = [p for p in Path(basedir).rglob("*.dd")]
 
     all_sets = defaultdict(list)
     all_parameters = defaultdict(list)
     for path in dd_files:
-        print(f"Processing path: {path}")
+        logger.info(f"Processing path: {path}")
         local_param_values, local_sets = parse_parameter_values_from_file(path)
 
         # merge params from file into global collection
@@ -170,13 +201,15 @@ def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
     os.makedirs(set_path, exist_ok=True)
 
     # Extract headers with key=param_name and value=List[attributes]
-    lines = list(open("times_reader/config/times_mapping.txt", "r"))
-    headers_data = dict()
+    lines = list(open("xl2times/config/times_mapping.txt"))
+    headers_data = headers_by_attr
+    # The following will overwrite data obtained from headers_by_attr
+    # TODO: Remove once migration is done?
     for line in lines:
-        line = line.strip()
-        if line != "":
-            param_name = line.split("[")[0]
-            attributes = line.split("[")[1].split("]")[0].split(",")
+        ln = line.strip()
+        if ln != "":
+            param_name = ln.split("[")[0]
+            attributes = ln.split("[")[1].split("]")[0].split(",")
             headers_data[param_name] = [*attributes]
 
     save_data_with_headers(all_parameters, headers_data, param_path)
@@ -185,7 +218,7 @@ def convert_dd_to_tabular(basedir: str, output_dir: str) -> None:
     return
 
 
-if __name__ == "__main__":
+def main(arg_list: None | list[str] = None):
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         "input_dir", type=str, help="Input directory containing .dd files."
@@ -193,5 +226,9 @@ if __name__ == "__main__":
     args_parser.add_argument(
         "output_dir", type=str, help="Output directory to save the .csv files in."
     )
-    args = args_parser.parse_args()
-    convert_dd_to_tabular(args.input_dir, args.output_dir)
+    args = args_parser.parse_args(arg_list)
+    convert_dd_to_tabular(args.input_dir, args.output_dir, generate_headers_by_attr())
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -2,34 +2,116 @@
 requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = [""]
+include = ["xl2times", "xl2times.*"]
+
 [project]
-name = "times-excel-reader"
+name = "xl2times"
 version = "0.1.0"
-description = 'An open source tool to convert TIMES model Excel input files to DD format ready for processing by GAMS'
+authors = [
+    { name="Sam Webster", email="13457618+samwebster@users.noreply.github.com" },
+    { name="Tom Minka", email="8955276+tminka@users.noreply.github.com" },
+    { name="Siddharth Krishna", email="siddharth-krishna@users.noreply.github.com" },
+    { name="Olexandr Balyk", email="olex@energymodelling.club" },
+]
+maintainers = [
+    { name="Siddharth Krishna", email="siddharth-krishna@users.noreply.github.com" },
+    { name="Olexandr Balyk", email="olex@energymodelling.club" },
+]
+description = 'An open source tool to convert TIMES models specified in Excel a format ready for processing by GAMS'
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 keywords = []
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
 ]
 dependencies = [
-  "GitPython >= 3.1.31, < 3.2",
-  "more-itertools",
-  "openpyxl >= 3.0, < 3.1",
-  "pandas >= 1.5",
+    "GitPython >= 3.1.31, < 3.2",
+    "more-itertools",
+    "openpyxl >= 3.0, < 3.1",
+    "pandas >= 2.1",
+    "pyarrow",
+    "tqdm",
+    "loguru"
 ]
 
 [project.optional-dependencies]
-dev = ["black", "pre-commit", "tabulate"]
+dev = [
+    "black",
+    "pre-commit",
+    "tabulate",
+    "pytest",
+    "pytest-cov",
+    "poethepoet",
+    "ruff"
+]
 
 [project.urls]
-Documentation = "https://github.com/etsap-TIMES/times-excel-reader#readme"
-Issues = "https://github.com/etsap-TIMES/times-excel-reader/issues"
-Source = "https://github.com/etsap-TIMES/times-excel-reader"
+Documentation = "https://github.com/etsap-TIMES/xl2times#readme"
+Issues = "https://github.com/etsap-TIMES/xl2times/issues"
+Source = "https://github.com/etsap-TIMES/xl2times"
 
 [project.scripts]
-times-excel-reader = "times_reader.__main__:main"
+xl2times = "xl2times.__main__:main"
+dd_to_csv = "xl2times.dd_to_csv:main"
+
+[tool.pytest.ini_options]
+# don't print runtime warnings
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning", "ignore::FutureWarning"]
+# show output, print test coverage report
+addopts = '-s --durations=0 --durations-min=5.0 --tb=native'
+
+[tool.poe.tasks]
+# Automation of common dev tasks etc.
+# Run with: `poe <target>`, e,g. `poe lint` or `poe benchmark Ireland`.
+# See https://github.com/nat-n/poethepoet for details.
+benchmark = { cmd = "python utils/run_benchmarks.py benchmarks.yml --run", help = "Run a single benchmark.  Usage: poe benchmark <benchmark_name>" }
+benchmark_all = { shell = "python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt", help = "Run the project", interpreter = "posix" }
+lint = { shell = "git add .pre-commit-config.yaml; pre-commit run", help = "Run pre-commit hooks on staged files", interpreter = "posix" }
+lint-all = { shell = "git add .pre-commit-config.yaml; pre-commit run --all-files", help = "Run pre-commit hooks on all files", interpreter = "posix" }
+test = { cmd = "pytest --cov-report term --cov-report html --cov=xl2times --cov=utils", help = "Run unit tests with pytest" }
+
+
+# Config for various pre-commit checks are below
+# Ruff linting rules - see https://github.com/charliermarsh/ruff and https://beta.ruff.rs/docs/rules/
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+# Option 1: use basic rules only.
+lint.select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "UP", # pyupgrade
+    "N", # pep8 naming
+    "I", # isort
+    "TID", # tidy imports
+    "UP", # pyupgrade
+    "NPY", # numpy style
+    "PL", # pylint
+    "D", # docstring conventions
+#    "PD", # pandas style # TODO enable later
+#    "C90", # code complexity # TODO enable later
+]
+
+# Add specific rule codes/groups here to ignore them, or add a '#noqa' comment to the line of code to skip all checks.
+lint.ignore = [
+    "PLR", # complexity rules
+    "PD901", "PD011", # pandas 'df''
+    "E501", # line too long, handled by black
+    "D100", "D101", "D102", "D103", "D104", "D105", # Missing docstrings # TODO enable when added
+    "D205", "D401"
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.mccabe]
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+max-complexity = 12

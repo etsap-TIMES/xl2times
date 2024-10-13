@@ -6,6 +6,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  release:
+    types: [published]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -13,26 +15,55 @@ on:
 jobs:
   CI:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    env:
+      PY_VERSION: "3.11"
+      REF_TIMES_model: "b488fb07f0899ee8b7e710c230b1a9414fa06f7d"
+      REF_demos-xlsx: "34a2a5c044cc0bbea1357de50db2f5f02d575181"
+      REF_demos-dd: "2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
+      REF_tim: "e820d8002adc6b1526a3bffcc439219b28d0eed5"
+      REF_tim-gams: "703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
+      CACHE_KEY: 0 # Use this for manual cache key bumps, e.g., when caching code changes
 
     steps:
       - uses: actions/checkout@v3
         with:
-          path: times-excel-reader
+          path: xl2times
 
-      - name: Install tool and dependencies
-        working-directory: times-excel-reader
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
+
+      - name: Build and install xl2times
+        working-directory: xl2times
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -e .[dev]
+          pip install --upgrade pip build
+          pip install -e .[dev]
+          # Build xl2times
+          rm -rf dist || true
+          python -m build
+          # Install the built wheel file to imitiate users installing from PyPI:
+          pip uninstall --yes xl2times
+          pip install --find-links=dist xl2times
 
       - name: Check code formatting
-        working-directory: times-excel-reader
+        working-directory: xl2times
+        # Run this step after install so that pyright can find dependencies like pandas
         run: |
           source .venv/bin/activate
           pre-commit install
           pre-commit run --all-files
+
+      - name: Run unit tests
+        working-directory: xl2times
+        run: |
+          source .venv/bin/activate
+          pytest
 
       # ---------- Prepare ETSAP Demo models
 
@@ -40,16 +71,19 @@ jobs:
         with:
           repository: etsap-TIMES/TIMES_model
           path: TIMES_model
+          ref: ${{ env.REF_TIMES_model }}
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-dd
-          path: times-excel-reader/benchmarks/dd
+          path: xl2times/benchmarks/dd
+          ref: ${{ env.REF_demos-dd }}
 
       - uses: actions/checkout@v3
         with:
           repository: olejandro/demos-xlsx
-          path: times-excel-reader/benchmarks/xlsx
+          path: xl2times/benchmarks/xlsx
+          ref: ${{ env.REF_demos-xlsx }}
           token: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
       # ---------- Prepare TIMES Ireland Model
@@ -58,17 +92,22 @@ jobs:
       # so that the run_benchmarks.py script runs this model too
       - uses: actions/checkout@v3
         with:
-          repository: samwebster/times-ireland-model
-          path: times-excel-reader/benchmarks/xlsx/Ireland
+          repository: esma-cgep/tim
+          path: xl2times/benchmarks/xlsx/Ireland
+          ref: ${{ env.REF_tim }}
 
       - uses: actions/checkout@v3
         with:
-          repository: olejandro/times-ireland-model_gams
-          path: times-excel-reader/benchmarks/dd/Ireland
+          repository: esma-cgep/tim-gams
+          path: xl2times/benchmarks/dd/Ireland
+          ref: ${{ env.REF_tim-gams }}
 
       # ---------- Install GAMS
 
       - name: Install GAMS
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE != '' }}
         run: |
           curl https://d37drm4t2jghv5.cloudfront.net/distributions/44.1.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
           chmod +x linux_x64_64_sfx.exe
@@ -81,17 +120,30 @@ jobs:
           mkdir -p $HOME/.local/share/GAMS
           echo "$GAMS_LICENSE" > $HOME/.local/share/GAMS/gamslice.txt
           ls -l $HOME/.local/share/GAMS/
-        env:
-          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
 
       # ---------- Run tool, check for regressions
 
+      - name: Restore XLSX cache directory from cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/xl2times
+          # Cache key is refs of the input xlsx repos, since that's what is cached
+          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
+          # If we can't find the exact key for the TIM repo, still use the cache if the demos repo ref matches
+          restore-keys: |
+            ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-
+            ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-
+            ${{ runner.os }}-py-${{ env.PY_VERSION }}-
+
       - name: Run tool on all benchmarks
-        working-directory: times-excel-reader
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE != '' }}
+        working-directory: xl2times
         # Use tee to also save the output to out.txt so that the summary table can be
         # printed again in the next step.
         # Save the return code to retcode.txt so that the next step can fail the action
-        # if run_benchmarks.py failed.
         run: |
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
@@ -101,8 +153,39 @@ jobs:
               | tee out.txt; \
             echo ${PIPESTATUS[0]} > retcode.txt)
 
+      - name: Run CSV-only regression tests (no GAMS license)
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE == '' }}
+        working-directory: xl2times
+        # Run without --dd flag if GAMS license secret doesn't exist.
+        # Useful for testing for (CSV) regressions in forks before creating PRs.
+        run: |
+          source .venv/bin/activate
+          export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams44.1_linux_x64_64_sfx
+          (python utils/run_benchmarks.py benchmarks.yml \
+              --times_dir $GITHUB_WORKSPACE/TIMES_model \
+              --verbose \
+              | tee out.txt; \
+          echo ${PIPESTATUS[0]} > retcode.txt)
+
       - name: Print summary
-        working-directory: times-excel-reader
+        working-directory: xl2times
         run: |
           sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
           exit $(cat retcode.txt)
+
+      - uses: actions/cache/save@v4
+        # Save the cache even if the regression tests fail
+        if: always() && !steps.cache-restore.outputs.cache-hit
+        with:
+          path: ~/.cache/xl2times
+          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
+
+      # ---------- Upload package to PyPI on release
+
+      - name: Publish to PyPI
+        if: github.event_name == 'release' && github.event.action == 'published'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: xl2times/dist/

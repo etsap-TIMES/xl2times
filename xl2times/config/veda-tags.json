@@ -1,0 +1,4697 @@
+[
+  {
+    "tag_name": "activepdef",
+    "tag_allowed_in": [
+      "SysSettings"
+    ]
+  },
+  {
+    "tag_name": "bookregions_map",
+    "tag_allowed_in": [
+      "SysSettings"
+    ],
+    "valid_fields": [
+      {
+        "name": "bookname",
+        "aliases": [],
+        "use_name": "bookname",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": true,
+        "remove_first_row_if_absent": true,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "comemi",
+    "tag_allowed_in": [
+      "BY",
+      "SubRES"
+    ],
+    "valid_fields": [
+      {
+        "name": "commname",
+        "aliases": [
+          "commodity"
+        ],
+        "use_name": "commodity",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "currencies",
+    "tag_allowed_in": [
+      "SysSettings"
+    ]
+  },
+  {
+    "tag_name": "defaultyear",
+    "tag_allowed_in": [
+      "SysSettings"
+    ]
+  },
+  {
+    "tag_name": "defunits",
+    "tag_allowed_in": [
+      "SysSettings"
+    ]
+  },
+  {
+    "tag_name": "endyear",
+    "tag_allowed_in": [
+      "SysSettings"
+    ]
+  },
+  {
+    "tag_name": "fi_comm",
+    "tag_allowed_in": [
+      "BY",
+      "SubRES",
+      "SysSettings"
+    ],
+    "valid_fields": [
+      {
+        "name": "commdesc",
+        "aliases": [
+          "description"
+        ],
+        "use_name": "description",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "commname",
+        "aliases": [
+          "commodity"
+        ],
+        "use_name": "commodity",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": true
+      },
+      {
+        "name": "csets",
+        "aliases": [
+          "cset",
+          "sets",
+          "set"
+        ],
+        "use_name": "csets",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": true,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "ctslvl",
+        "aliases": [
+          "tslvl",
+          "timeslicelevel"
+        ],
+        "use_name": "ctslvl",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "ctype",
+        "aliases": [
+          "type",
+          "commoditytype"
+        ],
+        "use_name": "ctype",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype",
+        "aliases": [
+          "bd"
+        ],
+        "use_name": "limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "peakts",
+        "aliases": [
+          "peaktimeslice"
+        ],
+        "use_name": "peakts",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "unit",
+        "aliases": [],
+        "use_name": "unit",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "fi_process",
+    "tag_allowed_in": [
+      "BY",
+      "SubRES"
+    ],
+    "valid_fields": [
+      {
+        "name": "primarycg",
+        "aliases": [
+          "pcg",
+          "primarycommoditygroup",
+          "primary_commodity_group"
+        ],
+        "use_name": "primarycg",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sets",
+        "aliases": [
+          "set"
+        ],
+        "use_name": "sets",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": true,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "tact",
+        "aliases": [
+          "activityunit",
+          "activity_unit"
+        ],
+        "use_name": "tact",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "tcap",
+        "aliases": [
+          "capacityunit",
+          "capacity_unit"
+        ],
+        "use_name": "tcap",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "techdesc",
+        "aliases": [
+          "description"
+        ],
+        "use_name": "description",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "techname",
+        "aliases": [
+          "process"
+        ],
+        "use_name": "process",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": true
+      },
+      {
+        "name": "tslvl",
+        "aliases": [
+          "timeslicelevel"
+        ],
+        "use_name": "tslvl",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "vintage",
+        "aliases": [],
+        "use_name": "vintage",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "fi_t",
+    "tag_allowed_in": [
+      "BY",
+      "SubRES"
+    ],
+    "valid_fields": [
+      {
+        "name": "attribute",
+        "aliases": [
+          "parameter",
+          "prmtr",
+          "attr",
+          "attrib"
+        ],
+        "use_name": "attribute",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "commodity",
+        "aliases": [
+          "commname",
+          "cset_cn"
+        ],
+        "use_name": "commodity",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "commodity-in",
+        "aliases": [
+          "comm-in",
+          "comm_in",
+          "commin",
+          "commodity_in",
+          "commodityin"
+        ],
+        "use_name": "commodity-in",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "commodity-in-aux",
+        "aliases": [
+          "comm-in-a",
+          "comm_in-a",
+          "commin-a",
+          "commodity_in-aux",
+          "commodityin-aux",
+          "commodity_in_aux"
+        ],
+        "use_name": "commodity-in-aux",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "commodity-out",
+        "aliases": [
+          "comm-out",
+          "comm_out",
+          "commout",
+          "commodity_out",
+          "commodityout"
+        ],
+        "use_name": "commodity-out",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "commodity-out-aux",
+        "aliases": [
+          "comm-out-a",
+          "comm_out-a",
+          "commout-a",
+          "commodity_out-aux",
+          "commodityout-aux",
+          "commodity_out_aux"
+        ],
+        "use_name": "commodity-out-aux",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "currency",
+        "aliases": [
+          "curr"
+        ],
+        "use_name": "currency",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype",
+        "aliases": [
+          "lim_type",
+          "bd"
+        ],
+        "use_name": "limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "other_indexes",
+        "aliases": [
+          "other_ind",
+          "oth_ind",
+          "commgrp",
+          "commodity_group"
+        ],
+        "use_name": "other_indexes",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "process",
+        "aliases": [
+          "techname",
+          "pset_pn"
+        ],
+        "use_name": "process",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": true,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sow",
+        "aliases": [],
+        "use_name": "sow",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "stage",
+        "aliases": [],
+        "use_name": "stage",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "timeslice",
+        "aliases": [
+          "timeslices",
+          "time_slice",
+          "time_slices",
+          "ts"
+        ],
+        "use_name": "timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "year",
+        "aliases": [
+          "yr"
+        ],
+        "use_name": "year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "milestoneyears",
+    "tag_allowed_in": [
+      "SysSettings"
+    ]
+  },
+  {
+    "tag_name": "startyear",
+    "tag_allowed_in": [
+      "SysSettings"
+    ]
+  },
+  {
+    "tag_name": "tfm_ava",
+    "tag_allowed_in": [
+      "SR_Trans"
+    ],
+    "valid_fields": [
+      {
+        "name": "pset_ci",
+        "aliases": [
+          "pset:ci",
+          "pset: ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_co",
+        "aliases": [
+          "pset:co",
+          "pset: co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pd",
+        "aliases": [
+          "pset:pd",
+          "pset: pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_set",
+        "aliases": [
+          "pset:set",
+          "pset: set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_comgrp",
+    "tag_allowed_in": [
+      "SysSettings"
+    ],
+    "valid_fields": [
+      {
+        "name": "cset_cd",
+        "aliases": [
+          "cset:cd",
+          "cset: cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_set",
+        "aliases": [
+          "cset:set",
+          "cset: set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "description",
+        "aliases": [],
+        "use_name": "description",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "name",
+        "aliases": [],
+        "use_name": "commoditygroup",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": true,
+        "remove_first_row_if_absent": true,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_csets",
+    "tag_allowed_in": [
+      "setrules"
+    ],
+    "valid_fields": [
+      {
+        "name": "and_or_negative_dimension",
+        "aliases": [
+          "c_neg_andor"
+        ],
+        "use_name": "and_or_negative_dimension",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "and_or_negative_for_sets",
+        "aliases": [
+          "c_neg_andor_forsets"
+        ],
+        "use_name": "and_or_negative_for_sets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "and_or_positive_dimension",
+        "aliases": [
+          "c_pos_andor"
+        ],
+        "use_name": "and_or_positive_dimension",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "and_or_positive_for_sets",
+        "aliases": [
+          "c_pos_andor_forsets"
+        ],
+        "use_name": "and_or_positive_for_sets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "comment",
+        "aliases": [
+          "comments"
+        ],
+        "use_name": "comment",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "description",
+        "aliases": [
+          "cset_cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "dimension_name",
+        "aliases": [],
+        "use_name": "dimension_name",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "dimension_set_name",
+        "aliases": [
+          "cset_set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "input_commodity",
+        "aliases": [
+          "pset_ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "name",
+        "aliases": [
+          "cset_cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "outout_commodity",
+        "aliases": [
+          "pset_co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "set_description",
+        "aliases": [
+          "setdesc",
+          "set_desc"
+        ],
+        "use_name": "set_description",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "set_name",
+        "aliases": [
+          "setname"
+        ],
+        "use_name": "set_name",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_dins",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "attribute",
+        "aliases": [],
+        "use_name": "attribute",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "commodity",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "curr",
+        "aliases": [
+          "currency"
+        ],
+        "use_name": "currency",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype",
+        "aliases": [
+          "lim_type",
+          "bd"
+        ],
+        "use_name": "limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "other_indexes",
+        "aliases": [
+          "other_ind",
+          "oth_ind"
+        ],
+        "use_name": "other_indexes",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "process",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "side",
+        "aliases": [],
+        "use_name": "side",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sow",
+        "aliases": [],
+        "use_name": "sow",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "stage",
+        "aliases": [],
+        "use_name": "stage",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "timeslice",
+        "aliases": [
+          "time_slice",
+          "ts"
+        ],
+        "use_name": "timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "ts_filter",
+        "aliases": [],
+        "use_name": "ts_filter",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "uc_n",
+        "aliases": [
+          "user_constraint"
+        ],
+        "use_name": "uc_n",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "year",
+        "aliases": [
+          "yr"
+        ],
+        "use_name": "year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_dins-at",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_dins",
+    "mod_type": "at"
+  },
+  {
+    "tag_name": "tfm_dins-ts",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_dins",
+    "mod_type": "ts"
+  },
+  {
+    "tag_name": "tfm_dins-tsl",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_dins",
+    "mod_type": "tsl"
+  },
+  {
+    "tag_name": "tfm_fill",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "RegScen",
+      "TradeScen",
+      "ParScen",
+      "SysSettings"
+    ],
+    "valid_fields": [
+      {
+        "name": "attrib_cond",
+        "aliases": [
+          "attribute_condition"
+        ],
+        "use_name": "attrib_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "attribute",
+        "aliases": [],
+        "use_name": "attribute",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_limtype",
+        "aliases": [
+          "avc_lim_type"
+        ],
+        "use_name": "avc_limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_timeslice",
+        "aliases": [
+          "avc_time_slice"
+        ],
+        "use_name": "avc_timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_year",
+        "aliases": [],
+        "use_name": "avc_year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor",
+        "aliases": [],
+        "use_name": "c_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "c_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor",
+        "aliases": [],
+        "use_name": "c_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "c_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cd",
+        "aliases": [
+          "cset:cd",
+          "cset: cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_set",
+        "aliases": [
+          "cset:set",
+          "cset: set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "curr",
+        "aliases": [
+          "currency"
+        ],
+        "use_name": "currency",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype",
+        "aliases": [
+          "lim_type",
+          "bd"
+        ],
+        "use_name": "limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "operation_sum_avg_count",
+        "aliases": [],
+        "use_name": "operation_sum_avg_count",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "other_indexes",
+        "aliases": [
+          "other_ind",
+          "oth_ind"
+        ],
+        "use_name": "other_indexes",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_ci",
+        "aliases": [
+          "pset:ci",
+          "pset: ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_co",
+        "aliases": [
+          "pset:co",
+          "pset: co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pd",
+        "aliases": [
+          "pset:pd",
+          "pset: pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_set",
+        "aliases": [
+          "pset:set",
+          "pset: set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sourcescen",
+        "aliases": [
+          "scenario",
+          "scenario name",
+          "scen"
+        ],
+        "use_name": "sourcescen",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sow",
+        "aliases": [],
+        "use_name": "sow",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "stage",
+        "aliases": [],
+        "use_name": "stage",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor",
+        "aliases": [],
+        "use_name": "t_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "t_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor",
+        "aliases": [],
+        "use_name": "t_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "t_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "timeslice",
+        "aliases": [
+          "time_slice",
+          "ts"
+        ],
+        "use_name": "timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "top_check",
+        "aliases": [
+          "top_chk"
+        ],
+        "use_name": "top_check",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "val_cond",
+        "aliases": [
+          "value_condition"
+        ],
+        "use_name": "val_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "year",
+        "aliases": [
+          "yr"
+        ],
+        "use_name": "year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_ins",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "attrib_cond",
+        "aliases": [
+          "attribute_condition"
+        ],
+        "use_name": "attrib_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "attribute",
+        "aliases": [],
+        "use_name": "attribute",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_limtype",
+        "aliases": [
+          "avc_lim_type"
+        ],
+        "use_name": "avc_limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_timeslice",
+        "aliases": [
+          "avc_time_slice"
+        ],
+        "use_name": "avc_timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_year",
+        "aliases": [],
+        "use_name": "avc_year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor",
+        "aliases": [],
+        "use_name": "c_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "c_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor",
+        "aliases": [],
+        "use_name": "c_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "c_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cd",
+        "aliases": [
+          "cset:cd",
+          "cset: cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_set",
+        "aliases": [
+          "cset:set",
+          "cset: set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "curr",
+        "aliases": [
+          "currency"
+        ],
+        "use_name": "currency",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype",
+        "aliases": [
+          "lim_type",
+          "bd"
+        ],
+        "use_name": "limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "other_indexes",
+        "aliases": [
+          "other_ind",
+          "oth_ind"
+        ],
+        "use_name": "other_indexes",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_ci",
+        "aliases": [
+          "pset:ci",
+          "pset: ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_co",
+        "aliases": [
+          "pset:co",
+          "pset: co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pd",
+        "aliases": [
+          "pset:pd",
+          "pset: pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_set",
+        "aliases": [
+          "pset:set",
+          "pset: set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "side",
+        "aliases": [],
+        "use_name": "side",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sow",
+        "aliases": [],
+        "use_name": "sow",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "stage",
+        "aliases": [],
+        "use_name": "stage",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor",
+        "aliases": [],
+        "use_name": "t_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "t_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor",
+        "aliases": [],
+        "use_name": "t_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "t_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "timeslice",
+        "aliases": [
+          "time_slice",
+          "ts"
+        ],
+        "use_name": "timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "top_check",
+        "aliases": [
+          "top_chk"
+        ],
+        "use_name": "top_check",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "ts_filter",
+        "aliases": [],
+        "use_name": "ts_filter",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "uc_n",
+        "aliases": [
+          "user_constraint"
+        ],
+        "use_name": "uc_n",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "val_cond",
+        "aliases": [
+          "value_condition"
+        ],
+        "use_name": "val_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "year",
+        "aliases": [
+          "yr"
+        ],
+        "use_name": "year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_ins-at",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_ins",
+    "mod_type": "at"
+  },
+  {
+    "tag_name": "tfm_ins-ts",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_ins",
+    "mod_type": "ts"
+  },
+  {
+    "tag_name": "tfm_ins-tsl",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_ins",
+    "mod_type": "tsl"
+  },
+  {
+    "tag_name": "tfm_ins-txt",
+    "tag_allowed_in": [
+      "SysSettings"
+    ],
+    "valid_fields": [
+      {
+        "name": "attribute",
+        "aliases": [],
+        "use_name": "attribute",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cd",
+        "aliases": [
+          "cset:cd",
+          "cset: cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_set",
+        "aliases": [
+          "cset:set",
+          "cset: set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_ci",
+        "aliases": [
+          "pset:ci",
+          "pset: ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_co",
+        "aliases": [
+          "pset:co",
+          "pset: co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pd",
+        "aliases": [
+          "pset:pd",
+          "pset: pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_set",
+        "aliases": [
+          "pset:set",
+          "pset: set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_mig",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "attrib_cond",
+        "aliases": [
+          "attribute_condition"
+        ],
+        "use_name": "attrib_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "attribute",
+        "aliases": [],
+        "use_name": "attribute",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "attribute2",
+        "aliases": [],
+        "use_name": "attribute2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_limtype",
+        "aliases": [
+          "avc_lim_type"
+        ],
+        "use_name": "avc_limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_timeslice",
+        "aliases": [
+          "avc_time_slice"
+        ],
+        "use_name": "avc_timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_year",
+        "aliases": [],
+        "use_name": "avc_year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor",
+        "aliases": [],
+        "use_name": "c_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "c_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor",
+        "aliases": [],
+        "use_name": "c_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "c_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "commodity2",
+        "aliases": [
+          "cset_cn2",
+          "commname2",
+          "comm_name2",
+          "cset:cn2",
+          "cset: cn2"
+        ],
+        "use_name": "commodity2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cd",
+        "aliases": [
+          "cset:cd",
+          "cset: cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_set",
+        "aliases": [
+          "cset:set",
+          "cset: set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "curr",
+        "aliases": [
+          "currency"
+        ],
+        "use_name": "currency",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "currency2",
+        "aliases": [
+          "curr2"
+        ],
+        "use_name": "currency2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype",
+        "aliases": [
+          "lim_type",
+          "bd"
+        ],
+        "use_name": "limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype2",
+        "aliases": [
+          "lim_type2",
+          "bd2"
+        ],
+        "use_name": "limtype2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "other_indexes",
+        "aliases": [
+          "other_ind",
+          "oth_ind"
+        ],
+        "use_name": "other_indexes",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "other_indexes2",
+        "aliases": [
+          "other_ind2",
+          "oth_ind2"
+        ],
+        "use_name": "other_indexes2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_ci",
+        "aliases": [
+          "pset:ci",
+          "pset: ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_co",
+        "aliases": [
+          "pset:co",
+          "pset: co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pd",
+        "aliases": [
+          "pset:pd",
+          "pset: pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_set",
+        "aliases": [
+          "pset:set",
+          "pset: set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "side",
+        "aliases": [],
+        "use_name": "side",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sourcescen",
+        "aliases": [],
+        "use_name": "sourcescen",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sow",
+        "aliases": [],
+        "use_name": "sow",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sow2",
+        "aliases": [],
+        "use_name": "sow2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "stage",
+        "aliases": [],
+        "use_name": "stage",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "stage2",
+        "aliases": [],
+        "use_name": "stage2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor",
+        "aliases": [],
+        "use_name": "t_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "t_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor",
+        "aliases": [],
+        "use_name": "t_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "t_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "timeslice",
+        "aliases": [
+          "time_slice",
+          "ts"
+        ],
+        "use_name": "timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "timeslice2",
+        "aliases": [
+          "time_slice2",
+          "ts2"
+        ],
+        "use_name": "timeslice2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "top_check",
+        "aliases": [
+          "top_chk"
+        ],
+        "use_name": "top_check",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "uc_n",
+        "aliases": [
+          "user_constraint"
+        ],
+        "use_name": "uc_n",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "val_cond",
+        "aliases": [
+          "value_condition"
+        ],
+        "use_name": "val_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "year",
+        "aliases": [
+          "yr"
+        ],
+        "use_name": "year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "year2",
+        "aliases": [
+          "yr2"
+        ],
+        "use_name": "year2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_psets",
+    "tag_allowed_in": [
+      "setrules"
+    ],
+    "valid_fields": [
+      {
+        "name": "and_or_negative_dimension",
+        "aliases": [
+          "t_neg_andor"
+        ],
+        "use_name": "and_or_negative_dimension",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "and_or_negative_for_sets",
+        "aliases": [
+          "t_neg_andor_forsets"
+        ],
+        "use_name": "and_or_negative_for_sets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "and_or_positive_dimension",
+        "aliases": [
+          "t_pos_andor"
+        ],
+        "use_name": "and_or_positive_dimension",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "and_or_positive_for_sets",
+        "aliases": [
+          "t_pos_andor_forsets"
+        ],
+        "use_name": "and_or_positive_for_sets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "comment",
+        "aliases": [
+          "comments"
+        ],
+        "use_name": "comment",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "description",
+        "aliases": [
+          "pset_pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "dimension_name",
+        "aliases": [],
+        "use_name": "dimension_name",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "dimension_set_name",
+        "aliases": [
+          "pset_set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "input_commodity",
+        "aliases": [
+          "pset_ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "name",
+        "aliases": [
+          "pset_pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "outout_commodity",
+        "aliases": [
+          "pset_co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "set_description",
+        "aliases": [
+          "setdesc",
+          "set_desc"
+        ],
+        "use_name": "set_description",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "set_name",
+        "aliases": [
+          "setname"
+        ],
+        "use_name": "set_name",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_topdins",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions",
+          "io"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_topins",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "c_neg_andor",
+        "aliases": [],
+        "use_name": "c_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "c_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor",
+        "aliases": [],
+        "use_name": "c_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "c_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cd",
+        "aliases": [
+          "cset:cd",
+          "cset: cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_set",
+        "aliases": [
+          "cset:set",
+          "cset: set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_ci",
+        "aliases": [
+          "pset:ci",
+          "pset: ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_co",
+        "aliases": [
+          "pset:co",
+          "pset: co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pd",
+        "aliases": [
+          "pset:pd",
+          "pset: pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_set",
+        "aliases": [
+          "pset:set",
+          "pset: set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor",
+        "aliases": [],
+        "use_name": "t_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "t_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor",
+        "aliases": [],
+        "use_name": "t_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "t_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions",
+          "io"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_upd",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "attrib_cond",
+        "aliases": [
+          "attribute_condition"
+        ],
+        "use_name": "attrib_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "attribute",
+        "aliases": [],
+        "use_name": "attribute",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_limtype",
+        "aliases": [
+          "avc_lim_type"
+        ],
+        "use_name": "avc_limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_timeslice",
+        "aliases": [
+          "avc_time_slice"
+        ],
+        "use_name": "avc_timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_year",
+        "aliases": [],
+        "use_name": "avc_year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor",
+        "aliases": [],
+        "use_name": "c_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "c_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor",
+        "aliases": [],
+        "use_name": "c_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "c_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cd",
+        "aliases": [
+          "cset:cd",
+          "cset: cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_set",
+        "aliases": [
+          "cset:set",
+          "cset: set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "curr",
+        "aliases": [
+          "currency"
+        ],
+        "use_name": "currency",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype",
+        "aliases": [
+          "lim_type",
+          "bd"
+        ],
+        "use_name": "limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "other_indexes",
+        "aliases": [
+          "other_ind",
+          "oth_ind"
+        ],
+        "use_name": "other_indexes",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_ci",
+        "aliases": [
+          "pset:ci",
+          "pset: ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_co",
+        "aliases": [
+          "pset:co",
+          "pset: co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pd",
+        "aliases": [
+          "pset:pd",
+          "pset: pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_set",
+        "aliases": [
+          "pset:set",
+          "pset: set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "side",
+        "aliases": [],
+        "use_name": "side",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sourcescen",
+        "aliases": [],
+        "use_name": "sourcescen",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sow",
+        "aliases": [],
+        "use_name": "sow",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "stage",
+        "aliases": [],
+        "use_name": "stage",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor",
+        "aliases": [],
+        "use_name": "t_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "t_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor",
+        "aliases": [],
+        "use_name": "t_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "t_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "timeslice",
+        "aliases": [
+          "time_slice",
+          "ts"
+        ],
+        "use_name": "timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "top_check",
+        "aliases": [
+          "top_chk"
+        ],
+        "use_name": "top_check",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "uc_n",
+        "aliases": [
+          "user_constraint"
+        ],
+        "use_name": "uc_n",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "val_cond",
+        "aliases": [
+          "value_condition"
+        ],
+        "use_name": "val_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "year",
+        "aliases": [
+          "yr"
+        ],
+        "use_name": "year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "tfm_upd-at",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_upd",
+    "mod_type": "at"
+  },
+  {
+    "tag_name": "tfm_upd-ts",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_upd",
+    "mod_type": "ts"
+  },
+  {
+    "tag_name": "timeperiods",
+    "tag_allowed_in": [
+      "SysSettings"
+    ]
+  },
+  {
+    "tag_name": "tradelinks_dins",
+    "tag_allowed_in": [
+      "TradeScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "reg1",
+        "aliases": [],
+        "use_name": "reg1",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "reg2",
+        "aliases": [],
+        "use_name": "reg2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "comm",
+        "aliases": [],
+        "use_name": "comm",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "comm1",
+        "aliases": [],
+        "use_name": "comm1",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "comm2",
+        "aliases": [],
+        "use_name": "comm2",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "tech",
+        "aliases": [],
+        "use_name": "process",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "tradelink",
+        "aliases": [],
+        "use_name": "tradelink",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "uc_t",
+    "tag_allowed_in": [
+      "SysSettings",
+      "RegScen"
+    ],
+    "valid_fields": [
+      {
+        "name": "attrib_cond",
+        "aliases": [
+          "attribute_condition"
+        ],
+        "use_name": "attrib_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "attribute",
+        "aliases": [
+          "prmtr",
+          "parameter"
+        ],
+        "use_name": "attribute",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_limtype",
+        "aliases": [
+          "avc_lim_type"
+        ],
+        "use_name": "avc_limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_timeslice",
+        "aliases": [
+          "avc_time_slice"
+        ],
+        "use_name": "avc_timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "avc_year",
+        "aliases": [],
+        "use_name": "avc_year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor",
+        "aliases": [],
+        "use_name": "c_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "c_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor",
+        "aliases": [],
+        "use_name": "c_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "c_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "c_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cd",
+        "aliases": [
+          "cset:cd",
+          "cset: cd"
+        ],
+        "use_name": "cset_cd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_cn",
+        "aliases": [
+          "commodity",
+          "commname",
+          "comm_name",
+          "cset:cn",
+          "cset: cn"
+        ],
+        "use_name": "cset_cn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "cset_set",
+        "aliases": [
+          "cset:set",
+          "cset: set"
+        ],
+        "use_name": "cset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "currency",
+        "aliases": [
+          "curr"
+        ],
+        "use_name": "currency",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "limtype",
+        "aliases": [
+          "lim_type",
+          "bd"
+        ],
+        "use_name": "limtype",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "other_indexes",
+        "aliases": [
+          "other_ind",
+          "oth_ind"
+        ],
+        "use_name": "other_indexes",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_ci",
+        "aliases": [
+          "pset:ci",
+          "pset: ci"
+        ],
+        "use_name": "pset_ci",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_co",
+        "aliases": [
+          "pset:co",
+          "pset: co"
+        ],
+        "use_name": "pset_co",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pd",
+        "aliases": [
+          "pset:pd",
+          "pset: pd"
+        ],
+        "use_name": "pset_pd",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_pn",
+        "aliases": [
+          "process",
+          "techname",
+          "tech_name",
+          "pset:pn",
+          "pset: pn"
+        ],
+        "use_name": "pset_pn",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "pset_set",
+        "aliases": [
+          "pset:set",
+          "pset: set"
+        ],
+        "use_name": "pset_set",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": true,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "region",
+        "aliases": [],
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "side",
+        "aliases": [],
+        "use_name": "side",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "sow",
+        "aliases": [],
+        "use_name": "sow",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "stage",
+        "aliases": [],
+        "use_name": "stage",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor",
+        "aliases": [],
+        "use_name": "t_neg_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_neg_andor_forsets",
+        "aliases": [],
+        "use_name": "t_neg_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor",
+        "aliases": [],
+        "use_name": "t_pos_andor",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "t_pos_andor_forsets",
+        "aliases": [],
+        "use_name": "t_pos_andor_forsets",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "timeslice",
+        "aliases": [
+          "time_slice",
+          "ts"
+        ],
+        "use_name": "timeslice",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "top_check",
+        "aliases": [
+          "top_chk"
+        ],
+        "use_name": "top_check",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "uc_attr",
+        "aliases": [
+          "uc-attr",
+          "ucattr"
+        ],
+        "use_name": "uc_attr",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "uc_desc",
+        "aliases": [
+          "description",
+          "uc_description"
+        ],
+        "use_name": "description",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "uc_n",
+        "aliases": [
+          "user_constraint"
+        ],
+        "use_name": "uc_n",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": true,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "val_cond",
+        "aliases": [
+          "value_condition"
+        ],
+        "use_name": "val_cond",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "value",
+        "aliases": [
+          "valfield",
+          "val_field",
+          "allregions"
+        ],
+        "use_name": "value",
+        "row_ignore_symbol": [
+          "\\I:"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "year",
+        "aliases": [
+          "yr"
+        ],
+        "use_name": "year",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  },
+  {
+    "tag_name": "unitconversion",
+    "tag_allowed_in": [
+      "SysSettings"
+    ],
+    "valid_fields": [
+      {
+        "name": "from_unit",
+        "aliases": [],
+        "use_name": "from_unit",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "multiplier",
+        "aliases": [],
+        "use_name": "multiplier",
+        "row_ignore_symbol": [],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      },
+      {
+        "name": "to_unit",
+        "aliases": [],
+        "use_name": "to_unit",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": false
+      }
+    ]
+  }
+]

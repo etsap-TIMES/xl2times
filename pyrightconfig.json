@@ -1,8 +1,7 @@
 {
   "include": [
-    "times_reader",
+    "xl2times",
     "utils",
-    "times_excel_reader.py"
   ],
   "exclude": [
     "**/node_modules",
@@ -10,7 +9,7 @@
   ],
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
-  "pythonVersion": "3.10",
+  "pythonVersion": "3.11",
   "pythonPlatform": "All",
   "venv": ".venv",
   "venvPath": "."

@@ -1,22 +1,28 @@
+import re
+import time
+
+import numpy
+from loguru import logger
 from openpyxl import load_workbook
 from openpyxl.worksheet.cell_range import CellRange
-from typing import Dict, List
-import time
 from pandas.core.frame import DataFrame
-import pandas as pd
-import numpy
-import re
-from . import datatypes
-from . import utils
+
+from . import datatypes, utils
 
 
-def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
-    """
-    This function calls the extract_table function on each individual table in each worksheet of the
+def extract_tables(filename: str) -> list[datatypes.EmbeddedXlTable]:
+    """Run the extract_table function on each individual table in each worksheet of the
     given excel file.
 
-    :param filename:      Path to the excel file we will extract tables from.
-    :return:              List of table objects in EmbeddedXlTable format.
+    Parameters
+    ----------
+    filename
+        Path to the excel file we will extract tables from.
+
+    Returns
+    -------
+    list[datatypes.EmbeddedXlTable]
+        List of table objects in EmbeddedXlTable format.
     """
     start_time = time.time()
 
@@ -28,33 +34,39 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
         # https://stackoverflow.com/questions/40251948/stop-pandas-from-converting-int-to-float-due-to-an-insertion-in-another-column
         df = DataFrame(sheet.values, dtype=object)
         uc_sets = {}
+        sheet_tables = []
 
         for row_index, row in df.iterrows():
             for colname in df.columns:
                 value = str(row[colname])
                 if value.startswith("~"):
                     match = re.match(
-                        f"~{datatypes.Tag.uc_sets}:(.*)", value, re.IGNORECASE
+                        f"{datatypes.Tag.uc_sets.value}:(.*)", value, re.IGNORECASE
                     )
                     if match:
                         parts = match.group(1).split(":")
                         if len(parts) == 2:
                             uc_sets[parts[0].strip()] = parts[1].strip()
                         else:
-                            print(
-                                f"WARNING: Malformed UC_SET in {sheet.title}, {filename}"
+                            logger.warning(
+                                f"Malformed UC_SET in {sheet.title}, {filename}"
                             )
                     else:
                         col_index = df.columns.get_loc(colname)
-                        tables.append(
+                        sheet_tables.append(
                             extract_table(
                                 row_index, col_index, uc_sets, df, sheet.title, filename
                             )
                         )
 
+        for sheet_table in sheet_tables:
+            sheet_table.uc_sets = uc_sets
+
+        tables += sheet_tables
+
     end_time = time.time()
     if end_time - start_time > 2:
-        print(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
+        logger.info(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
 
     return tables
 
@@ -62,28 +74,42 @@ def extract_tables(filename: str) -> List[datatypes.EmbeddedXlTable]:
 def extract_table(
     tag_row: int,
     tag_col: int,
-    uc_sets: Dict[str, str],
+    uc_sets: dict[str, str],
     df: DataFrame,
     sheetname: str,
     filename: str,
 ) -> datatypes.EmbeddedXlTable:
-    """
-    For each individual table tag found in a worksheet, this function aims to extract
-    the associated table. We recognise several types of tables:
-    - Single cell tables:   Tables with only one value, either below or to the right of
-                            the table tag. We interpret these as a single data item with
-                            a column name VALUE.
-    - Multiple cell tables: Tables with multiple values, possibly extending accross
-                            several rows and columns. We delimitate them using empty
-                            spaces around them and the column names are determined by the
-                            values in the row immediately below the table tag
+    """For each individual table tag found in a worksheet, this function aims to extract
+    the associated table.
 
-    :param tag_row:         Row number for the tag designating the table to be extracted
-    :param tag_col:         Column number for the tag designating the table to be extracted
-    :param df:              Dataframe object containing all values for the worksheet being evaluated
-    :param sheetname:       Name of the worksheet being evaluated
-    :param filename:        Path to the excel file being evaluated.
-    :return:                Table object in the EmbeddedXlTable format.
+    We recognise several types of tables:
+
+    - Single cell tables: Tables with only one value, either below or to the right of
+      the table tag. We interpret these as a single data item with
+      a column name VALUE.
+    - Multiple cell tables: Tables with multiple values, possibly extending accross
+      several rows and columns. We delimitate them using empty
+      spaces around them and the column names are determined by the
+      values in the row immediately below the table tag
+
+    Parameters
+    ----------
+    tag_row
+        Row number for the tag designating the table to be extracted
+    tag_col
+        Column number for the tag designating the table to be extracted
+    uc_sets
+        Sets (regions and timeslices) for user constraints
+    df
+        Dataframe object containing all values for the worksheet being evaluated
+    sheetname
+        Name of the worksheet being evaluated
+    filename
+        Path to the excel file being evaluated.
+
+    Returns
+    -------
+        Table object in the EmbeddedXlTable format.
     """
     # If the cell to the right is not empty then we read a scalar from it
     # Otherwise the row below is the header
@@ -156,14 +182,23 @@ def extract_table(
 
 
 def are_cells_all_empty(df, row: int, start_col: int, end_col: int) -> bool:
-    """
-    Check if all cells in a given row are empty by calling cell_is_empty() on them.
+    """Check if all cells in a given row are empty by calling cell_is_empty() on them.
 
-    :param df:              Dataframe object containing all values for the worksheet being evaluated
-    :param row:             Row of the dataframe to be evaluated.
-    :param start_col:       Initial column of the dataframe to be evaluated.
-    :param end_col:         Final column of the dataframe to be evaluated.
-    :return:                Boolean indicating if all the cells are empty.
+    Parameters
+    ----------
+    df
+        Dataframe object containing all values for the worksheet being evaluated
+    row
+        Row of the dataframe to be evaluated.
+    start_col
+        Initial column of the dataframe to be evaluated.
+    end_col
+        Final column of the dataframe to be evaluated.
+
+    Returns
+    -------
+    bool
+        Boolean indicating if all the cells are empty.
     """
     for col in range(start_col, end_col):
         if not cell_is_empty(df.iloc[row, col]):
@@ -172,11 +207,17 @@ def are_cells_all_empty(df, row: int, start_col: int, end_col: int) -> bool:
 
 
 def cell_is_empty(value) -> bool:
-    """
-    Check if the given cell is empty.
+    """Check if the given cell is empty.
 
-    :param value:           Cell value.
-    :return:                Boolean indicating if the cells are empty.
+    Parameters
+    ----------
+    value
+        Cell value.
+
+    Returns
+    -------
+    bool
+        Boolean indicating if the cells are empty.
     """
     return (
         value is None
