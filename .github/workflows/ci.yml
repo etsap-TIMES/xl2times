@@ -129,12 +129,12 @@ jobs:
         with:
           path: ~/.cache/xl2times
           # Cache key is refs of the input xlsx repos, since that's what is cached
-          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
+          key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
           # If we can't find the exact key for the TIM repo, still use the cache if the demos repo ref matches
           restore-keys: |
-            ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-
-            ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-
-            ${{ runner.os }}-py-${{ env.PY_VERSION }}-
+            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-
+            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-
+            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-
 
       - name: Run tool on all benchmarks
         env:
@@ -180,7 +180,7 @@ jobs:
         if: always() && !steps.cache-restore.outputs.cache-hit
         with:
           path: ~/.cache/xl2times
-          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
+          key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
 
       # ---------- Upload package to PyPI on release
 
