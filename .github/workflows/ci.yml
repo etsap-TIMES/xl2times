@@ -25,7 +25,7 @@ jobs:
       REF_demos-dd: "2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
       REF_tim: "e820d8002adc6b1526a3bffcc439219b28d0eed5"
       REF_tim-gams: "703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
-      CACHE_KEY: 0 # Use this for manual cache key bumps, e.g., when caching code changes
+      CACHE_KEY: 1 # Use this for manual cache key bumps, e.g., when caching code changes
 
     steps:
       - uses: actions/checkout@v3
