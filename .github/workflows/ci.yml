@@ -25,7 +25,7 @@ jobs:
       REF_demos-dd: "2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
       REF_tim: "e820d8002adc6b1526a3bffcc439219b28d0eed5"
       REF_tim-gams: "703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
-      CACHE_KEY: 0 # Use this for manual cache key bumps, e.g., when caching code changes
+      CACHE_KEY: 1 # Use this for manual cache key bumps, e.g., when caching code changes
 
     steps:
       - uses: actions/checkout@v3
@@ -129,12 +129,12 @@ jobs:
         with:
           path: ~/.cache/xl2times
           # Cache key is refs of the input xlsx repos, since that's what is cached
-          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
+          key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
           # If we can't find the exact key for the TIM repo, still use the cache if the demos repo ref matches
           restore-keys: |
-            ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-
-            ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-
-            ${{ runner.os }}-py-${{ env.PY_VERSION }}-
+            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-
+            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-
+            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-
 
       - name: Run tool on all benchmarks
         env:
@@ -180,7 +180,7 @@ jobs:
         if: always() && !steps.cache-restore.outputs.cache-hit
         with:
           path: ~/.cache/xl2times
-          key: ${{ runner.os }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-${{ env.CACHE_KEY }}
+          key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
 
       # ---------- Upload package to PyPI on release
 
