@@ -73,38 +73,32 @@ git commit --no-verify
 
 ### Running Benchmarks
 
-See our GitHub Actions CI `.github/workflows/ci.yml` and the utility script `utils/run_benchmarks.py` to see how to run the tool on the DemoS models.
-
-In short, use the commands below to clone the benchmarks data into your local `benchmarks` dir.
-Note that this assumes you have access to all these repositories (some are private and
-you'll have to request access) - if not, comment out the inaccessible benchmarks from `benchmakrs.yml` before running.
+We use the TIMES DemoS models and some public TIMES models as benchmarks.
+See our GitHub Actions CI `.github/workflows/ci.yml` and the utility script `utils/run_benchmarks.py` to see how to we benchmark the tool and check PRs automatically for regression.
+If you are a developer, you can use the below instructions to set up and run the benchmarks locally:
 
 ```bash
-mkdir benchmarks
-# Get TIMES DemoS example models and reference DD files
-# XLSX files are in private repo for licensing reasons, please request access or replace with your own files distributed with Veda.
-git clone git@github.com:olejandro/demos-xlsx.git benchmarks/xlsx/
-git clone git@github.com:olejandro/demos-dd.git benchmarks/dd/
-
-# Get Ireland model and reference DD files
-git clone git@github.com:esma-cgep/tim.git benchmarks/xlsx/Ireland
-git clone git@github.com:esma-cgep/tim-gams.git benchmarks/dd/Ireland
+./setup-benchmarks.sh
 ```
+Note that this script assumes you have access to all the relevant repositories (some are private and you'll have to request access) - if not, comment out the inaccessible benchmarks from `benchmarks.yml` before running.
+
 Then to run the benchmarks:
 ```bash
 # Run a only a single benchmark by name (see benchmarks.yml for name list)
-python utils/run_benchmarks.py benchmarks.yml --verbose --run DemoS_001-all | tee out.txt
+python utils/run_benchmarks.py benchmarks.yml --run DemoS_001-all
+
+# To see the full output logs, and save it in a file for convenience
+python utils/run_benchmarks.py benchmarks.yml --run DemoS_001-all --verbose | tee out.txt
 
 # Run all benchmarks (without GAMS run, just comparing CSV data for regressions)
-# Note: if you have multiple remotes, set etsap-TIMES/xl2times as the first one, as it is used for speed/correctness comparisons.
-python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt
-
+# Note: if you have multiple remotes, set etsap-TIMES/xl2times as the `origin`, as it is used for speed/correctness comparisons.
+python utils/run_benchmarks.py benchmarks.yml
 
 # Run benchmarks with regression tests vs main branch
 git branch feature/your_new_changes --checkout
 # ... make your code changes here ...
 git commit -a -m "your commit message" # code must be committed for comparison to `main` branch to run.
-python utils/run_benchmarks.py benchmarks.yml --verbose | tee out.txt
+python utils/run_benchmarks.py benchmarks.yml
 ```
 At this point, if you haven't broken anything you should see something like:
 ```
