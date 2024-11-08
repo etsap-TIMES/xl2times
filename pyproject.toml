@@ -19,7 +19,7 @@ maintainers = [
     { name="Siddharth Krishna", email="siddharth-krishna@users.noreply.github.com" },
     { name="Olexandr Balyk", email="olex@energymodelling.club" },
 ]
-description = 'An open source tool to convert TIMES models specified in Excel a format ready for processing by GAMS'
+description = 'An open source tool to convert TIMES models specified in Excel to a format ready for processing by GAMS'
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -52,7 +52,7 @@ dev = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/etsap-TIMES/xl2times#readme"
+Documentation = "https://xl2times.readthedocs.io"
 Issues = "https://github.com/etsap-TIMES/xl2times/issues"
 Source = "https://github.com/etsap-TIMES/xl2times"
 

@@ -2391,7 +2391,7 @@ def query(
         qs.append(f"attribute == '{attribute}'")
     if region is not None:
         qs.append(f"region == '{region}'")
-    if year is not None:
+    if year not in [None, ""]:
         qs.append(f"year == {year}")
     query_str = " and ".join(qs)
     row_idx = table.query(query_str).index
