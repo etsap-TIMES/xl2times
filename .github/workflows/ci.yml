@@ -64,7 +64,11 @@ jobs:
 
       - name: Setup benchmark repositories
         working-directory: xl2times
-        run: ./setup-benchmarks.sh
+        run: |
+          ./setup-benchmarks.sh
+          # Convert Times-NZ's old XLS files to XLSX so that xl2times can read it:
+          sudo apt install libreoffice-calc default-jre libreoffice-java-common
+          find benchmarks/TIMES-NZ -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
         env:
           GH_PAT_DEMOS_XLSX: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
