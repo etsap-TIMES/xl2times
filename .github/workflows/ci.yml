@@ -98,13 +98,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/xl2times
-          # Cache key is refs of the input xlsx repos, since that's what is cached
-          key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
-          # If we can't find the exact key for the TIM repo, still use the cache if the demos repo ref matches
-          restore-keys: |
-            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}-
-            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-
-            ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-
+          # Cache key is manual key + python version
+          key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}
 
       - name: Run tool on all benchmarks
         env:

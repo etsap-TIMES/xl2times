@@ -43,8 +43,8 @@ def _read_xlsx_cached(filename: str | Path) -> list[EmbeddedXlTable]:
     """Extract EmbeddedXlTables from xlsx file (cached).
 
     Since excel.extract_tables is quite slow, we cache its results in `cache_dir`.
-    Each file is named by the hash of the contents of an xlsx file, and contains
-    a tuple (filename, modified timestamp, [EmbeddedXlTable]).
+    Each cache file is named {filename}_{hash}.pkl, and contains a pickled
+    `[EmbeddedXlTable]`.
 
     Args:
         filename: Path to the xlsx file to extract tables from.
