@@ -41,7 +41,7 @@ checkout_repo() {
             if [ -n "$use_SSH" ]; then
                 repo_url="git@github.com:${repo}.git"
             else
-                repo_url="https://$token@github.com/${repo}/"
+                repo_url="https://$GH_PAT_DEMOS_XLSX@github.com/${repo}/"
             fi
         else
             repo_url="https://github.com/${repo}/"
