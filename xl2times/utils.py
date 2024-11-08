@@ -232,12 +232,16 @@ def has_negative_patterns(pattern: str) -> bool:
 
 
 def remove_negative_patterns(pattern: str) -> str:
+    # Remove trailing commas
+    pattern = pattern.rstrip(",")
     if len(pattern) == 0:
         return pattern
     return ",".join([word for word in pattern.split(",") if word[0] != "-"])
 
 
 def remove_positive_patterns(pattern: str) -> str:
+    # Remove trailing commas
+    pattern = pattern.rstrip(",")
     if len(pattern) == 0:
         return pattern
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])

@@ -187,7 +187,9 @@ class TimesModel:
         data_years = set()
         for attributes in [self.attributes, self.uc_attributes]:
             if not attributes.empty:
-                data_years.update(attributes["year"].astype(int).values)
+                # Index of the year column with non-empty values
+                index = attributes["year"] != ""
+                data_years.update(attributes["year"][index].astype(int).values)
         # Remove interpolation rules before return
         return {y for y in data_years if y >= 1000}
 
