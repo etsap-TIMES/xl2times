@@ -64,8 +64,9 @@ jobs:
 
       - name: Setup benchmark repositories
         working-directory: xl2times
-        run: |
-          ./setup-benchmarks.sh
+        run: ./setup-benchmarks.sh
+        env:
+          GH_PAT_DEMOS_XLSX: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
       # ---------- Install GAMS
 
