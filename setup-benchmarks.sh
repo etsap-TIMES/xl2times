@@ -13,7 +13,7 @@ REF_tim_gams="703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
 REF_TIMES_NZ="c83f2d0e51d692cba27a55032c8f8a2a48e4d425"
 
 # If no GitHub token is provided, try to clone using SSH
-if [ -n $GH_PAT_DEMOS_XLSX ]; then
+if [ -z "$GH_PAT_DEMOS_XLSX" ]; then
     echo "Warning: no GitHub token provided, will try to clone private repos using SSH"
     use_SSH=1
 fi
