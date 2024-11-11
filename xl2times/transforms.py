@@ -1231,6 +1231,24 @@ def _populate_defaults(tag: Tag, dataframe: DataFrame, col_name: str, config: Co
                         ]
 
 
+def fill_defaults_in_transform_tables(
+    config: Config,
+    tables: dict[str, DataFrame],
+    model: TimesModel,
+) -> dict[str, DataFrame]:
+    """Fill in some of the missing values based on defaults in place."""
+    tags = [Tag.tfm_ins]
+
+    for tag in tags:
+        if tag in tables:
+            table = tables[tag]
+            # Populate other_indexes based on defaults
+            _populate_defaults(tag, table, "other_indexes", config)
+            tables[tag] = table
+
+    return tables
+
+
 def apply_fixups(
     config: Config,
     tables: list[EmbeddedXlTable],
