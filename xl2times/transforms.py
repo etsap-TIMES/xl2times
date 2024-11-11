@@ -1208,6 +1208,29 @@ def capitalise_some_values(
     return [capitalise_attributes_table(table) for table in tables]
 
 
+def _populate_defaults(tag: Tag, dataframe: DataFrame, col_name: str, config: Config):
+    """Fill in some of the missing values based on defaults in place."""
+    i_na = (
+        dataframe["attribute"]
+        .str.upper()
+        .isin(config.veda_attr_defaults[col_name].keys())
+        & dataframe[col_name].isna()
+    )
+    if any(i_na):
+        for attr in dataframe[i_na]["attribute"].unique():
+            i_attr = dataframe["attribute"] == attr
+            for default_value in config.veda_attr_defaults[col_name][attr.upper()]:
+                # Ensure that previously filled values are not overwritten
+                i_fill = i_na & i_attr & dataframe[col_name].isna()
+                if any(i_fill):
+                    if default_value not in config.known_columns[tag]:
+                        dataframe.loc[i_fill, [col_name]] = default_value
+                    else:
+                        dataframe.loc[i_fill, [col_name]] = dataframe[i_fill][
+                            default_value
+                        ]
+
+
 def apply_fixups(
     config: Config,
     tables: list[EmbeddedXlTable],
@@ -1224,33 +1247,9 @@ def apply_fixups(
         if "year" in df.columns:
             df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
-        def _populate_defaults(dataframe: DataFrame, col_name: str):
-            """Fill in some of the missing values based on defaults in place."""
-            i_na = (
-                dataframe["attribute"]
-                .str.upper()
-                .isin(config.veda_attr_defaults[col_name].keys())
-                & dataframe[col_name].isna()
-            )
-            if any(i_na):
-                for attr in dataframe[i_na]["attribute"].unique():
-                    i_attr = dataframe["attribute"] == attr
-                    for default_value in config.veda_attr_defaults[col_name][
-                        attr.upper()
-                    ]:
-                        # Ensure that previously filled values are not overwritten
-                        i_fill = i_na & i_attr & dataframe[col_name].isna()
-                        if any(i_fill):
-                            if default_value not in config.known_columns[tag]:
-                                dataframe.loc[i_fill, [col_name]] = default_value
-                            else:
-                                dataframe.loc[i_fill, [col_name]] = dataframe[i_fill][
-                                    default_value
-                                ]
-
         # Populate commodity and other_indexes based on defaults
         for col in ("commodity", "other_indexes"):
-            _populate_defaults(df, col)
+            _populate_defaults(tag, df, col, config)
 
         # Fill other indexes for some attributes
         # FLO_SHAR
@@ -2709,7 +2708,7 @@ def convert_aliases(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    # Ensure TIMES names for all attributes
+    """Ensure TIMES names for all attributes."""
     replacement_dict = {}
     for k, v in config.veda_attr_defaults["aliases"].items():
         for alias in v:
@@ -2723,6 +2722,7 @@ def convert_aliases(
     # Drop duplicates generated due to renaming
     # TODO: Clear values in irrelevant columns before doing this
     # TODO: Do this comprehensively for all relevant tables
+    # TODO: Duplicates should only be removed if in the same file/module
     df = tables[Tag.fi_t]
     df = df.dropna(subset="value").drop_duplicates(
         subset=[col for col in df.columns if col != "value"], keep="last"
