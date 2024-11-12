@@ -1210,25 +1210,28 @@ def capitalise_some_values(
 
 def _populate_defaults(tag: Tag, dataframe: DataFrame, col_name: str, config: Config):
     """Fill in some of the missing values based on defaults in place."""
-    i_na = (
+    starting_na = (
         dataframe["attribute"]
         .str.upper()
         .isin(config.veda_attr_defaults[col_name].keys())
         & dataframe[col_name].isna()
     )
-    if any(i_na):
-        for attr in dataframe[i_na]["attribute"].unique():
+    if any(starting_na):
+        attributes = dataframe[starting_na]["attribute"].unique()
+        for attr in attributes:
             i_attr = dataframe["attribute"] == attr
-            for default_value in config.veda_attr_defaults[col_name][attr.upper()]:
+            default_values = config.veda_attr_defaults[col_name][attr.upper()]
+            for default_value in default_values:
                 # Ensure that previously filled values are not overwritten
-                i_fill = i_na & i_attr & dataframe[col_name].isna()
-                if any(i_fill):
+                current_na = dataframe[col_name].isna()
+                remaining_na = starting_na & i_attr & current_na
+                if any(remaining_na):
                     if default_value not in config.known_columns[tag]:
-                        dataframe.loc[i_fill, [col_name]] = default_value
-                    else:
-                        dataframe.loc[i_fill, [col_name]] = dataframe[i_fill][
-                            default_value
-                        ]
+                        dataframe.loc[remaining_na, [col_name]] = default_value
+                    elif default_value in dataframe.columns:
+                        dataframe.loc[remaining_na, [col_name]] = dataframe[
+                            remaining_na
+                        ][default_value]
 
 
 def fill_defaults_in_transform_tables(
@@ -1242,8 +1245,8 @@ def fill_defaults_in_transform_tables(
     for tag in tags:
         if tag in tables:
             table = tables[tag]
-            # Populate other_indexes based on defaults
-            _populate_defaults(tag, table, "other_indexes", config)
+            # Populate other_indexes based on defaults. Use known columns info from the fi_t tag.
+            _populate_defaults(Tag.fi_t, table, "other_indexes", config)
             tables[tag] = table
 
     return tables
@@ -2741,10 +2744,9 @@ def convert_aliases(
     # TODO: Clear values in irrelevant columns before doing this
     # TODO: Do this comprehensively for all relevant tables
     # TODO: Duplicates should only be removed if in the same file/module
-    df = tables[Tag.fi_t]
-    df = df.dropna(subset="value").drop_duplicates(
-        subset=[col for col in df.columns if col != "value"], keep="last"
-    )
+    df = tables[Tag.fi_t].dropna(subset="value")
+    cols = [col for col in df.columns if col != "value"]
+    df = df.drop_duplicates(subset=cols, keep="last")
     tables[Tag.fi_t] = df.reset_index(drop=True)
     return tables
 
