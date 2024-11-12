@@ -2877,41 +2877,52 @@ def apply_final_fixup(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
 
-    veda_process_sets = tables["VedaProcessSets"]
+    veda_process_sets = tables["VedaProcessSets"][["sets", "process"]]
     reg_com_flows = tables["ProcessTopology"].drop(columns="io")
+    reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
     df = tables[Tag.fi_t]
 
     # Fill other_indexes for COST
     cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-    i = (df["attribute"] == "COST") & df["process"].notna()
-    if any(i):
-        for process in df[i]["process"].unique():
-            veda_process_set = (
-                veda_process_sets["sets"]
-                .loc[veda_process_sets["process"] == process]
-                .unique()
+    cost_index = (df["attribute"] == "COST") & df["process"].notna()
+
+    if any(cost_index):
+        processes = set(df[cost_index]["process"].unique())
+        # Index of IRE processes and their IRE sets specification
+        sets_index = veda_process_sets["process"].isin(processes) & veda_process_sets[
+            "sets"
+        ].isin(cost_mapping.keys())
+
+        ire_processes = set(veda_process_sets["process"][sets_index].unique())
+        other_processes = processes - ire_processes
+
+        if other_processes:
+            logger.warning(
+                f"COST won't be processed as IRE_PRICE for {other_processes}, because they are not in IMP/EXP/MIN"
             )
-            if veda_process_set.shape[0]:
-                df.loc[i & (df["process"] == process), "other_indexes"] = cost_mapping[
-                    veda_process_set[0]
-                ]
-            else:
-                logger.warning(
-                    f"COST won't be processed as IRE_PRICE for {process}, because it is not in IMP/EXP/MIN"
-                )
+
+        if any(ire_processes):
+            # Ensure only one IRE set is specified per process
+            subst_df = veda_process_sets[sets_index].drop_duplicates(
+                subset="process", keep="last"
+            )
+            index = cost_index & df["process"].isin(ire_processes)
+            df.loc[index, "other_indexes"] = df.loc[index, "process"].replace(
+                subst_df.set_index("process")["sets"].replace(cost_mapping).to_dict()
+            )
 
     # Use CommName to store the active commodity for EXP / IMP
-    i = df["attribute"].isin({"COST", "IRE_PRICE"})
-    if any(i):
-        i_exp = i & (df["other_indexes"] == "EXP")
+    index = df["attribute"].isin({"COST", "IRE_PRICE"})
+    if any(index):
+        i_exp = index & (df["other_indexes"] == "EXP")
         df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
-        i_imp = i & (df["other_indexes"] == "IMP")
+        i_imp = index & (df["other_indexes"] == "IMP")
         df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
 
     # Fill CommName for COST (alias of IRE_PRICE) if missing
-    i = (df["attribute"] == "COST") & df["commodity"].isna()
-    if any(i):
-        df.loc[i, "commodity"] = df[i].apply(
+    i_com_na = (df["attribute"] == "COST") & df["commodity"].isna()
+    if any(i_com_na):
+        df.loc[i_com_na, "commodity"] = df[i_com_na].apply(
             lambda row: ",".join(
                 reg_com_flows.loc[
                     (reg_com_flows["region"] == row["region"])
@@ -2923,13 +2934,13 @@ def apply_final_fixup(
         )
 
     # Handle STOCK specified for a single year
-    i = (df["attribute"] == "STOCK") & df["process"].notna()
+    stock_index = (df["attribute"] == "STOCK") & df["process"].notna()
     # Temporary solution to include only processes defined in BASE
-    i_vt = i & (df["source_filename"].str.contains("VT_", case=False))
-    if any(i):
+    i_vt = stock_index & (df["source_filename"].str.contains("VT_", case=False))
+    if any(stock_index):
         extra_rows = []
-        for region in df[i]["region"].unique():
-            i_reg = i & (df["region"] == region)
+        for region in df[stock_index]["region"].unique():
+            i_reg = stock_index & (df["region"] == region)
             for process in df[(i_reg & i_vt)]["process"].unique():
                 i_reg_prc = i_reg & (df["process"] == process)
                 if any(i_reg_prc):
