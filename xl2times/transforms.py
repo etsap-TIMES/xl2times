@@ -1237,7 +1237,7 @@ def fill_defaults_in_transform_tables(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Fill in some of the missing values based on defaults in place."""
-    tags = [Tag.tfm_ins]
+    tags = [Tag.tfm_mig, Tag.tfm_ins, Tag.tfm_upd]
 
     for tag in tags:
         if tag in tables:
