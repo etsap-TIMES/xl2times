@@ -2922,16 +2922,14 @@ def apply_final_fixup(
     # Fill CommName for COST (alias of IRE_PRICE) if missing
     i_com_na = (df["attribute"] == "COST") & df["commodity"].isna()
     if any(i_com_na):
-        df.loc[i_com_na, "commodity"] = df[i_com_na].apply(
-            lambda row: ",".join(
-                reg_com_flows.loc[
-                    (reg_com_flows["region"] == row["region"])
-                    & (reg_com_flows["process"] == row["process"]),
-                    "commodity",
-                ].unique()
-            ),
-            axis=1,
+        comm_rp = reg_com_flows.groupby(["region", "process"]).agg(set)
+        comm_rp["commodity"] = comm_rp["commodity"].str.join(",")
+        df.set_index(["region", "process"], inplace=True)
+        i_cost = df["attribute"] == "COST"
+        df.loc[i_cost, "commodity"] = df["commodity"][i_cost].fillna(
+            comm_rp["commodity"].to_dict()
         )
+        df.reset_index(inplace=True)
 
     # Handle STOCK specified for a single year
     stock_index = (df["attribute"] == "STOCK") & df["process"].notna()
