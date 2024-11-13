@@ -2935,39 +2935,53 @@ def apply_final_fixup(
 
     # Handle STOCK specified for a single year
     stock_index = (df["attribute"] == "STOCK") & df["process"].notna()
-    # Temporary solution to include only processes defined in BASE
-    i_vt = stock_index & (df["source_filename"].str.contains("VT_", case=False))
     if any(stock_index):
-        extra_rows = []
-        for region in df[stock_index]["region"].unique():
-            i_reg = stock_index & (df["region"] == region)
-            for process in df[(i_reg & i_vt)]["process"].unique():
-                i_reg_prc = i_reg & (df["process"] == process)
-                if any(i_reg_prc):
-                    extra_rows.append(["NCAP_BND", region, process, "UP", 0, 2])
-                # TODO: TIMES already handles this. Drop?
-                if len(df[i_reg_prc]["year"].unique()) == 1:
-                    year = df[i_reg_prc]["year"].unique()[0]
-                    i_attr = (
-                        df["attribute"].isin({"NCAP_TLIFE", "LIFE"})
-                        & (df["region"] == region)
-                        & (df["process"] == process)
-                    )
-                    if any(i_attr):
-                        lifetime = df[i_attr]["value"].unique()[-1]
-                    else:
-                        lifetime = 30
-                    extra_rows.append(
-                        ["STOCK", region, process, "", year + lifetime, 0]
-                    )
-        if len(extra_rows) > 0:
-            cols = ["attribute", "region", "process", "limtype", "year", "value"]
-            df = pd.concat(
-                [
-                    df,
-                    pd.DataFrame(extra_rows, columns=cols),
-                ]
+        # Temporary solution to include only processes defined in BASE
+        i_vt = stock_index & (df["source_filename"].str.contains("VT_", case=False))
+        # Create (region, process) index for data defined in vt
+        i_df_rp_vt = df[i_vt].set_index(["region", "process"]).index.drop_duplicates()
+        # Create extra rows with NCAP_BND
+        ncap_bnd_data = {
+            "attribute": "NCAP_BND",
+            "limtype": "UP",
+            "year": 0,
+            "value": 2,
+        }
+        ncap_bnd_rows = pd.DataFrame(ncap_bnd_data, index=i_df_rp_vt).reset_index()
+        # Create df list to concatenate later on
+        df_list = [df, ncap_bnd_rows]
+        # Stock indexed by process/region
+        cols = ["region", "process", "year"]
+        df_rp = (
+            df[stock_index]
+            .drop_duplicates(subset=cols, keep="last")
+            .set_index(["region", "process"])
+        )
+        # Index of region/process with STOCK specified only once
+        i_single_stock = ~df_rp.index.duplicated(keep=False)
+
+        # TODO: TIMES already handles this. Drop?
+        if any(i_single_stock):
+            default_life = 30
+            life_rp = (
+                df[df["attribute"].isin({"NCAP_TLIFE", "LIFE"})]
+                .drop_duplicates(subset=["region", "process"], keep="last")
+                .set_index(["region", "process"])["value"]
             )
+            stock_rows = df_rp[["attribute", "year"]][i_single_stock].copy()
+            stock_rows = stock_rows.merge(
+                life_rp, how="left", left_index=True, right_index=True
+            )
+            # Use default if lifetime not specified
+            stock_rows.loc[stock_rows["value"].isna(), "value"] = default_life
+            # Calculate the year in which STOCK is zero
+            stock_rows["year"] = stock_rows["year"] + stock_rows["value"]
+            # Specify stock value zero
+            stock_rows["value"] = 0
+            stock_rows.reset_index(inplace=True)
+            df_list.append(stock_rows)
+
+        df = pd.concat(df_list)
 
     tables[Tag.fi_t] = df
 
