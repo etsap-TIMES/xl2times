@@ -2584,6 +2584,9 @@ def explode_process_commodity_cols(
         if "commodity" in df.columns:
             df = df.explode("commodity", ignore_index=True)
 
+        if "other_indexes" in df.columns:
+            df = df.explode("other_indexes", ignore_index=True)
+
         tables[tag] = df
 
     return tables
