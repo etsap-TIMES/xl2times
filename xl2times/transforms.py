@@ -417,8 +417,6 @@ def merge_tables(
             logger.warning(err)
 
         match key:
-            case Tag.fi_comm:
-                model.commodities = df
             case Tag.fi_process:
                 # TODO: Find a better place for this (both info and processing)
                 times_prc_sets = set(config.times_sets["PRC_GRP"])
@@ -1258,6 +1256,9 @@ def apply_fixups(
         df.loc[i, "other_indexes"] = "NRGI"
         i = df["attribute"] == "SHARE-O"
         df.loc[i, "other_indexes"] = "NRGO"
+        # Determine values of and fill in some dimensions
+        i = df["other_indexes"] == "veda_cg"
+        # if any(i):
 
         return replace(table, dataframe=df)
 
@@ -1271,7 +1272,6 @@ def generate_commodity_groups(
 ) -> list[EmbeddedXlTable]:
     """Generate commodity groups."""
     process_tables = [t for t in tables if t.tag == Tag.fi_process]
-    commodity_tables = [t for t in tables if t.tag == Tag.fi_comm]
 
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
     columns = ["region", "process", "primarycg"]
@@ -1288,10 +1288,7 @@ def generate_commodity_groups(
 
     # Extract commodities and their sets by region
     columns = ["region", "csets", "commodity"]
-    comm_set = pd.DataFrame(columns=columns)
-    for commodity_table in commodity_tables:
-        df = commodity_table.dataframe[columns]
-        comm_set = pd.concat([comm_set, df])
+    comm_set = model.commodities[columns].copy()
     comm_set.drop_duplicates(keep="first", inplace=True)
 
     prc_top = utils.single_table(tables, "ProcessTopology").dataframe
@@ -1360,7 +1357,7 @@ def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
     comm_groups["commoditygroup"] = (
         comm_groups.groupby(["region", "process", "csets", "io"]).transform("count")
     )["commoditygroup"]
-    # set comoditygroup to 0 for io rows that aren't IN or OUT
+    # set commodity group to 0 for io rows that aren't IN or OUT
     comm_groups.loc[~comm_groups["io"].isin(["IN", "OUT"]), "commoditygroup"] = 0
 
 
@@ -1647,6 +1644,25 @@ def process_commodities(
             if "limtype" not in table.dataframe.columns:
                 df["limtype"] = [None] * nrows
             result.append(replace(table, dataframe=df, tag=Tag.fi_comm))
+
+    return result
+
+
+def internalise_commodities(
+    config: Config,
+    tables: list[EmbeddedXlTable],
+    model: TimesModel,
+) -> list[EmbeddedXlTable]:
+    """Populate model.commodities."""
+    result = []
+    comm_dfs = []
+    for table in tables:
+        if table.tag != Tag.fi_comm:
+            result.append(table)
+        else:
+            comm_dfs.append(table.dataframe)
+
+    model.commodities = pd.concat(comm_dfs, ignore_index=True)
 
     return result
 

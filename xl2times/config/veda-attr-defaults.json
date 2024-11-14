@@ -897,6 +897,7 @@
         "commodity-in",
         "commodity-out"
       ],
+      "other_indexes": "veda_cg",
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -905,8 +906,10 @@
   "SHARE-I": {
     "defaults": {
       "commodity": [
-        "commodity-in"
+        "commodity-in",
+        "commodity-out"
       ],
+      "other_indexes": "veda_cg",
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -915,8 +918,10 @@
   "SHARE-O": {
     "defaults": {
       "commodity": [
-        "commodity-out"
+        "commodity-out",
+        "commodity-in"
       ],
+      "other_indexes": "veda_cg",
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },

@@ -136,6 +136,7 @@ def convert_xl_to_times(
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
         transforms.capitalise_some_values,
+        transforms.internalise_commodities,
         transforms.apply_fixups,
         transforms.generate_commodity_groups,
         transforms.fill_in_missing_pcgs,
