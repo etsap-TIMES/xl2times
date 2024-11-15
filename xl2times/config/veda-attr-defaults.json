@@ -897,7 +897,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "other_indexes": "veda_cg",
+      "other_indexes": ["veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -909,7 +909,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "other_indexes": "veda_cg",
+      "other_indexes": ["veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -921,7 +921,7 @@
         "commodity-out",
         "commodity-in"
       ],
-      "other_indexes": "veda_cg",
+      "other_indexes": ["veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },

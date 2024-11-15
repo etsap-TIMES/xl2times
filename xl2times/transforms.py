@@ -1211,6 +1211,18 @@ def apply_fixups(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
+
+    # Generate Veda CG info
+    cols = ["region", "process", "commodity", "csets"]
+    # Exclude auxillary flows
+    index = model.topology["io"].isin({"IN", "OUT"})
+    veda_cgs = model.topology[cols + ["io"]][index].copy()
+    veda_cgs.drop_duplicates(subset=cols, keep="last", inplace=True)
+    veda_cgs["veda_cg"] = veda_cgs["csets"] + veda_cgs["io"].str[:1]
+    veda_cgs = veda_cgs.set_index(["region", "process", "commodity"])[
+        "veda_cg"
+    ].to_dict()
+
     def apply_fixups_table(table: EmbeddedXlTable):
         tag = Tag.fi_t
         if not table.tag == tag:
@@ -1250,15 +1262,13 @@ def apply_fixups(
         for col in ("commodity", "other_indexes"):
             _populate_defaults(df, col)
 
-        # Fill other indexes for some attributes
-        # FLO_SHAR
-        i = df["attribute"] == "SHARE-I"
-        df.loc[i, "other_indexes"] = "NRGI"
-        i = df["attribute"] == "SHARE-O"
-        df.loc[i, "other_indexes"] = "NRGO"
-        # Determine values of and fill in some dimensions
-        i = df["other_indexes"] == "veda_cg"
-        # if any(i):
+        # Determine values of and fill in some indexes
+        if any(df["other_indexes"] == "veda_cg"):
+            i = df["other_indexes"] == "veda_cg"
+            print(df.columns)
+            df.loc[i, "other_indexes"] = df[i].apply(
+                lambda x: veda_cgs[(x["region"], x["process"], x["commodity"])], axis=1
+            )
 
         return replace(table, dataframe=df)
 
