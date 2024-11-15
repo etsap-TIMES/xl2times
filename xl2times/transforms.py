@@ -1242,25 +1242,6 @@ def _populate_calculated_defaults(df: DataFrame, model: TimesModel):
         )
 
 
-def fill_defaults_in_transform_tables(
-    config: Config,
-    tables: dict[str, DataFrame],
-    model: TimesModel,
-) -> dict[str, DataFrame]:
-    """Fill in some of the missing values based on defaults in place."""
-    tags = [Tag.tfm_mig, Tag.tfm_ins, Tag.tfm_upd]
-
-    for tag in tags:
-        if tag in tables:
-            table = tables[tag]
-            # Populate other_indexes based on defaults. Use known columns info from the fi_t tag.
-            _populate_defaults(Tag.fi_t, table, "other_indexes", config)
-            _populate_calculated_defaults(table, model)
-            tables[tag] = table
-
-    return tables
-
-
 def apply_fixups(
     config: Config,
     tables: list[EmbeddedXlTable],
@@ -2923,6 +2904,9 @@ def apply_final_fixup(
     reg_com_flows = tables["ProcessTopology"].drop(columns="io")
     reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
     df = tables[Tag.fi_t]
+
+    _populate_defaults(Tag.fi_t, df, "other_indexes", config)
+    _populate_calculated_defaults(df, model)
 
     # Fill other_indexes for COST
     cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
