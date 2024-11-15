@@ -1232,6 +1232,16 @@ def _populate_defaults(tag: Tag, dataframe: DataFrame, col_name: str, config: Co
                         ][default_value]
 
 
+def _populate_calculated_defaults(df: DataFrame, model: TimesModel):
+    """Determine values of and fill in some indexes."""
+    if any(df["other_indexes"] == "veda_cg"):
+        i = df["other_indexes"] == "veda_cg"
+        df.loc[i, "other_indexes"] = df[i].apply(
+            lambda x: model.veda_cgs.get((x["region"], x["process"], x["commodity"])),
+            axis=1,
+        )
+
+
 def fill_defaults_in_transform_tables(
     config: Config,
     tables: dict[str, DataFrame],
@@ -1245,6 +1255,7 @@ def fill_defaults_in_transform_tables(
             table = tables[tag]
             # Populate other_indexes based on defaults. Use known columns info from the fi_t tag.
             _populate_defaults(Tag.fi_t, table, "other_indexes", config)
+            _populate_calculated_defaults(table, model)
             tables[tag] = table
 
     return tables
@@ -1270,15 +1281,7 @@ def apply_fixups(
         for col in ("commodity", "other_indexes"):
             _populate_defaults(tag, df, col, config)
 
-        # Determine values of and fill in some indexes
-        if any(df["other_indexes"] == "veda_cg"):
-            i = df["other_indexes"] == "veda_cg"
-            df.loc[i, "other_indexes"] = df[i].apply(
-                lambda x: model.veda_cgs.get(
-                    (x["region"], x["process"], x["commodity"])
-                ),
-                axis=1,
-            )
+        _populate_calculated_defaults(df, model)
 
         return replace(table, dataframe=df)
 
