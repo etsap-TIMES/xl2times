@@ -1265,7 +1265,6 @@ def apply_fixups(
         # Determine values of and fill in some indexes
         if any(df["other_indexes"] == "veda_cg"):
             i = df["other_indexes"] == "veda_cg"
-            print(df.columns)
             df.loc[i, "other_indexes"] = df[i].apply(
                 lambda x: veda_cgs[(x["region"], x["process"], x["commodity"])], axis=1
             )
