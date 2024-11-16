@@ -1206,18 +1206,24 @@ def capitalise_some_values(
     return [capitalise_attributes_table(table) for table in tables]
 
 
-def _populate_defaults(tag: Tag, dataframe: DataFrame, col_name: str, config: Config):
+def _populate_defaults(
+    tag: Tag,
+    dataframe: DataFrame,
+    col_name: str,
+    config: Config,
+    attr_col_name: str = "attribute",
+):
     """Fill in some of the missing values based on defaults in place."""
     starting_na = (
-        dataframe["attribute"]
+        dataframe[attr_col_name]
         .str.upper()
         .isin(config.veda_attr_defaults[col_name].keys())
         & dataframe[col_name].isna()
     )
     if any(starting_na):
-        attributes = dataframe[starting_na]["attribute"].unique()
+        attributes = dataframe[starting_na][attr_col_name].unique()
         for attr in attributes:
-            i_attr = dataframe["attribute"] == attr
+            i_attr = dataframe[attr_col_name] == attr
             default_values = config.veda_attr_defaults[col_name][attr.upper()]
             for default_value in default_values:
                 # Ensure that previously filled values are not overwritten
@@ -1261,8 +1267,6 @@ def apply_fixups(
         # Populate commodity and other_indexes based on defaults
         for col in ("commodity", "other_indexes"):
             _populate_defaults(tag, df, col, config)
-
-        _populate_calculated_defaults(df, model)
 
         return replace(table, dataframe=df)
 
@@ -2740,17 +2744,10 @@ def convert_aliases(
 
     for table_type, df in tables.items():
         if "attribute" in df.columns:
+            df["original_attr"] = df["attribute"]
             df.replace({"attribute": replacement_dict}, inplace=True)
         tables[table_type] = df
 
-    # Drop duplicates generated due to renaming
-    # TODO: Clear values in irrelevant columns before doing this
-    # TODO: Do this comprehensively for all relevant tables
-    # TODO: Duplicates should only be removed if in the same file/module
-    df = tables[Tag.fi_t].dropna(subset="value")
-    cols = [col for col in df.columns if col != "value"]
-    df = df.drop_duplicates(subset=cols, keep="last")
-    tables[Tag.fi_t] = df.reset_index(drop=True)
     return tables
 
 
@@ -2905,12 +2902,12 @@ def apply_final_fixup(
     reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
     df = tables[Tag.fi_t]
 
-    _populate_defaults(Tag.fi_t, df, "other_indexes", config)
+    _populate_defaults(Tag.fi_t, df, "other_indexes", config, "original_attr")
     _populate_calculated_defaults(df, model)
 
     # Fill other_indexes for COST
     cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-    cost_index = (df["attribute"] == "COST") & df["process"].notna()
+    cost_index = (df["original_attr"] == "COST") & df["process"].notna()
 
     if any(cost_index):
         processes = set(df[cost_index]["process"].unique())
@@ -2938,7 +2935,7 @@ def apply_final_fixup(
             )
 
     # Use CommName to store the active commodity for EXP / IMP
-    index = df["attribute"].isin({"COST", "IRE_PRICE"})
+    index = df["original_attr"].isin({"COST", "IRE_PRICE"})
     if any(index):
         i_exp = index & (df["other_indexes"] == "EXP")
         df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
@@ -2946,19 +2943,19 @@ def apply_final_fixup(
         df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
 
     # Fill CommName for COST (alias of IRE_PRICE) if missing
-    i_com_na = (df["attribute"] == "COST") & df["commodity"].isna()
+    i_com_na = (df["original_attr"] == "COST") & df["commodity"].isna()
     if any(i_com_na):
         comm_rp = reg_com_flows.groupby(["region", "process"]).agg(set)
         comm_rp["commodity"] = comm_rp["commodity"].str.join(",")
         df.set_index(["region", "process"], inplace=True)
-        i_cost = df["attribute"] == "COST"
+        i_cost = df["original_attr"] == "COST"
         df.loc[i_cost, "commodity"] = df["commodity"][i_cost].fillna(
             comm_rp["commodity"].to_dict()
         )
         df.reset_index(inplace=True)
 
     # Handle STOCK specified for a single year
-    stock_index = (df["attribute"] == "STOCK") & df["process"].notna()
+    stock_index = (df["original_attr"] == "STOCK") & df["process"].notna()
     if any(stock_index):
         # Temporary solution to include only processes defined in BASE
         i_vt = stock_index & (df["source_filename"].str.contains("VT_", case=False))
@@ -2988,7 +2985,7 @@ def apply_final_fixup(
         if any(i_single_stock):
             default_life = 30
             life_rp = (
-                df[df["attribute"].isin({"NCAP_TLIFE", "LIFE"})]
+                df[df["original_attr"].isin({"NCAP_TLIFE", "LIFE"})]
                 .drop_duplicates(subset=["region", "process"], keep="last")
                 .set_index(["region", "process"])["value"]
             )
@@ -3007,7 +3004,15 @@ def apply_final_fixup(
 
         df = pd.concat(df_list)
 
-    tables[Tag.fi_t] = df
+    # Clean up
+    # keep_columns = []
+    # TODO: Clear values in irrelevant columns before doing this
+    # TODO: Do this comprehensively for all relevant tables
+    # TODO: Duplicates should only be removed if in the same file/module
+    df.dropna(subset="value", inplace=True)
+    cols = [col for col in df.columns if col != "value"]
+    df = df.drop_duplicates(subset=cols, keep="last")
+    tables[Tag.fi_t] = df.reset_index(drop=True)
 
     return tables
 
