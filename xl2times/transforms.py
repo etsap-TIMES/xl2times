@@ -3005,13 +3005,27 @@ def apply_final_fixup(
         df = pd.concat(df_list)
 
     # Clean up
-    # keep_columns = []
-    # TODO: Clear values in irrelevant columns before doing this
     # TODO: Do this comprehensively for all relevant tables
     # TODO: Duplicates should only be removed if in the same file/module
+    keep_cols = [
+        "attribute",
+        "region",
+        "process",
+        "commodity",
+        "other_indexes",
+        "year",
+        "year2",
+        "timeslice",
+        "currency",
+        "limtype",
+        "sow",
+        "stage",
+        "source_filename",
+    ]
     df.dropna(subset="value", inplace=True)
-    cols = [col for col in df.columns if col != "value"]
-    df = df.drop_duplicates(subset=cols, keep="last")
+    drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
+    df.drop(columns=drop_cols, inplace=True)
+    df = df.drop_duplicates(subset=keep_cols, keep="last")
     tables[Tag.fi_t] = df.reset_index(drop=True)
 
     return tables
