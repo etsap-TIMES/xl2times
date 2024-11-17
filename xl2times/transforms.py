@@ -2160,7 +2160,7 @@ def get_matching_processes(
 ) -> pd.Series | None:
     matching_processes = None
     for col, key in process_map.items():
-        if col in row.index and row[col] is not None:
+        if col in row.index and row[col] not in {None, ""}:
             proc_set = topology[key]
             pattern = row[col].upper()
             filtered = filter_by_pattern(proc_set, pattern, col != "pset_pd")
@@ -2175,7 +2175,7 @@ def get_matching_processes(
 def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
     matching_commodities = None
     for col, key in commodity_map.items():
-        if col in row.index and row[col] is not None:
+        if col in row.index and row[col] not in {None, ""}:
             matching_commodities = intersect(
                 matching_commodities,
                 filter_by_pattern(topology[key], row[col].upper(), col != "cset_cd"),
@@ -2256,12 +2256,13 @@ def process_wildcards(
         Tag.uc_t,
     ]
 
+    dictionary = generate_topology_dictionary(tables, model)
+
     for tag in tags:
 
         if tag in tqdm(tables, desc=f"Processing wildcards in {tag.value} tables"):
             start_time = time.time()
             df = tables[tag]
-            dictionary = generate_topology_dictionary(tables, model)
 
             if set(df.columns).intersection(set(process_map.keys())):
                 df = _match_wildcards(
@@ -2328,7 +2329,7 @@ def _match_wildcards(
     wild_cols = list(col_map.keys())
 
     # drop duplicate sets of wildcard columns to save repeated (slow) regex matching.  This makes things much faster.
-    unique_filters = df[wild_cols].drop_duplicates().dropna(axis="rows", how="all")
+    unique_filters = df[wild_cols].drop_duplicates().dropna(axis=0, how="all")
 
     # match all the wildcards columns against the dictionary names
     matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
