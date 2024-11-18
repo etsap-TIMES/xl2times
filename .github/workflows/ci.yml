@@ -113,7 +113,7 @@ jobs:
           source .venv/bin/activate
           export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams48.2_linux_x64_64_sfx
           (python utils/run_benchmarks.py benchmarks.yml \
-              --dd --times_dir $GITHUB_WORKSPACE/TIMES_model \
+              --dd --times_dir $GITHUB_WORKSPACE/xl2times/TIMES_model \
               --verbose \
               | tee out.txt; \
             echo ${PIPESTATUS[0]} > retcode.txt)
@@ -128,7 +128,6 @@ jobs:
         run: |
           source .venv/bin/activate
           (python utils/run_benchmarks.py benchmarks.yml \
-              --times_dir $GITHUB_WORKSPACE/TIMES_model \
               --verbose \
               | tee out.txt; \
           echo ${PIPESTATUS[0]} > retcode.txt)
