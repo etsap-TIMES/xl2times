@@ -10,7 +10,7 @@ REF_demos_xlsx="34a2a5c044cc0bbea1357de50db2f5f02d575181"
 REF_demos_dd="2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
 REF_tim="e820d8002adc6b1526a3bffcc439219b28d0eed5"
 REF_tim_gams="703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
-REF_TIMES_NZ="c83f2d0e51d692cba27a55032c8f8a2a48e4d425"
+REF_TIMES_NZ="d6d7b14f43a89ceca7c4e77ba9122a2c757cdae3"
 
 # If no GitHub token is provided, try to clone using SSH
 if [ -z "$GH_PAT_DEMOS_XLSX" ]; then
