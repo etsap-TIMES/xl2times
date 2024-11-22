@@ -38,10 +38,12 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           pip install --upgrade pip build
+          pip install -e .[dev]
           # Build xl2times
           rm -rf dist || true
           python -m build
           # Install the built wheel file to imitiate users installing from PyPI:
+          pip uninstall --yes xl2times
           pip install --find-links=dist xl2times
 
       - name: Check code formatting
@@ -63,7 +65,7 @@ jobs:
         run: |
           source .venv/bin/activate
           pip uninstall --yes xl2times
-          pip install -e .[dev]
+          pip install -e .
 
       # ---------- Setup benchmark repositories
 
