@@ -2392,6 +2392,7 @@ def query(
     attribute: str | None,
     region: str | None,
     year: int | None,
+    val: int | float | None,
 ) -> pd.Index:
     qs = []
 
@@ -2419,6 +2420,8 @@ def query(
         qs.append(f"region == '{region}'")
     if year not in [None, ""]:
         qs.append(f"year == {year}")
+    if val not in [None, ""]:
+        qs.append(f"value == {val}")
     query_str = " and ".join(qs)
     row_idx = table.query(query_str).index
     return row_idx
@@ -2464,6 +2467,7 @@ def apply_transform_tables(
                 row["attribute"],
                 row["region"],
                 row["year"],
+                row["val_cond"],
             )
 
             if not any(rows_to_update):
@@ -2507,7 +2511,7 @@ def apply_transform_tables(
 
             # Query for rows with matching process/commodity and region
             rows_to_update = query(
-                table, row["process"], row["commodity"], None, row["region"], None
+                table, row["process"], row["commodity"], None, row["region"], None, None
             )
             # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
             # with the value from row
@@ -2537,6 +2541,7 @@ def apply_transform_tables(
                 row["attribute"],
                 row["region"],
                 row["year"],
+                row["val_cond"],
             )
 
             if not any(rows_to_update):
