@@ -333,13 +333,13 @@ def produce_times_tables(
                 df.drop_duplicates(inplace=True)
                 df.reset_index(drop=True, inplace=True)
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
-                i = (
-                    df[mapping.times_cols[-1]].notna()
-                    & (df != "None").all(axis=1)
-                    & (df != "nan").all(axis=1)
-                    & (df != "").all(axis=1)
-                )
-                df = df.loc[i, mapping.times_cols]
+                # i = (
+                #     df[mapping.times_cols[-1]].notna()
+                #     & (df != "None").all(axis=1)
+                #     & (df != "nan").all(axis=1)
+                #     & (df != "").all(axis=1)
+                # )
+                # df = df.loc[i, mapping.times_cols]
                 # Drop tables that are empty after filtering and dropping Nones:
                 if len(df) == 0:
                     continue
