@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from importlib import resources
 from itertools import chain
+from pathlib import PurePath
 
 from loguru import logger
 from pandas.core.frame import DataFrame
@@ -68,6 +69,29 @@ class Tag(str, Enum):
     @classmethod
     def has_tag(cls, tag):
         return tag in cls._value2member_map_
+
+
+class DataModule(str, Enum):
+    """Categorise data into modules based on the file they are coming from."""
+
+    base = "VT_*.*, BY_Trans.*"
+    syssettings = "SysSettings.*"
+    subres = "SubRES_TMPL/SubRES_*.*"
+    sets = "Set*.*"
+    lma = "LMA*.*"
+    demand = "SuppXLS/Demands/Dem_Alloc+Series.*, SuppXLS/Demands/ScenDem_*.*"
+    scen = "SuppXLS/Scen_*.*"
+    trade = "SuppXLS/Trades/ScenTrade_*.*"
+
+    @classmethod
+    def is_module(cls, path):
+        for data_module in cls:
+            if any(
+                PurePath(path.lower()).match(pattern.lower().strip())
+                for pattern in data_module.value.split(",")
+            ):
+                return data_module
+        return None
 
 
 @dataclass
