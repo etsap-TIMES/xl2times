@@ -90,7 +90,7 @@ class DataModule(str, Enum):
                 PurePath(path.lower()).match(pattern.lower().strip())
                 for pattern in data_module.value.split(",")
             ):
-                return data_module.name
+                return data_module
         return None
 
     @classmethod
