@@ -359,9 +359,9 @@ def include_tables_source(
     def include_table_source(table: EmbeddedXlTable):
         df = table.dataframe.copy()
         df["source_filename"] = Path(table.filename).stem
-        df["data_module_type"] = DataModule.is_module_type(table.filename)
-        df["data_submodule"] = DataModule.is_submodule_type(table.filename)
-        df["data_module_name"] = DataModule.is_module_name(table.filename)
+        df["data_module_type"] = DataModule.module_type(table.filename)
+        df["data_submodule"] = DataModule.submodule(table.filename)
+        df["data_module_name"] = DataModule.module_name(table.filename)
         return replace(table, dataframe=df)
 
     return [include_table_source(table) for table in tables]
