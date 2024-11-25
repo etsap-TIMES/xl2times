@@ -359,9 +359,9 @@ def include_tables_source(
     def include_table_source(table: EmbeddedXlTable):
         df = table.dataframe.copy()
         df["source_filename"] = Path(table.filename).stem
-        df["data_module_type"] = DataModule.module_type(table.filename)
-        df["data_submodule"] = DataModule.submodule(table.filename)
-        df["data_module_name"] = DataModule.module_name(table.filename)
+        df["module_type"] = DataModule.module_type(table.filename)
+        df["submodule"] = DataModule.submodule(table.filename)
+        df["module_name"] = DataModule.module_name(table.filename)
         return replace(table, dataframe=df)
 
     return [include_table_source(table) for table in tables]
@@ -3029,7 +3029,7 @@ def apply_final_fixup(
         "limtype",
         "sow",
         "stage",
-        "source_filename",
+        "module_name",
     ]
     df.dropna(subset="value", inplace=True)
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
