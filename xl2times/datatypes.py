@@ -84,7 +84,7 @@ class DataModule(str, Enum):
     trade = "SuppXLS/Trades/ScenTrade_*.*"
 
     @classmethod
-    def _find_type_(cls, path: str) -> Enum | None:
+    def determine_type(cls, path: str) -> "DataModule | None":
         for data_module in cls:
             if any(
                 PurePath(path.lower()).match(pattern.lower().strip())
@@ -95,7 +95,7 @@ class DataModule(str, Enum):
 
     @classmethod
     def module_type(cls, path: str) -> str | None:
-        module_type = cls._find_type_(path)
+        module_type = cls.determine_type(path)
         if module_type:
             return module_type.name
         else:
@@ -103,7 +103,7 @@ class DataModule(str, Enum):
 
     @classmethod
     def submodule(cls, path: str) -> str | None:
-        match cls._find_type_(path):
+        match cls.determine_type(path):
             case DataModule.base | DataModule.subres:
                 if PurePath(path.lower()).match("*_trans.*"):
                     return "trans"
@@ -116,7 +116,7 @@ class DataModule(str, Enum):
 
     @classmethod
     def module_name(cls, path: str) -> str | None:
-        module_type = cls._find_type_(path)
+        module_type = cls.determine_type(path)
         match module_type:
             case DataModule.base | DataModule.sets | DataModule.lma | DataModule.demand | DataModule.trade | DataModule.syssettings:
                 return module_type.name
