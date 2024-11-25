@@ -15,7 +15,7 @@ from pandas.core.frame import DataFrame
 from tqdm import tqdm
 
 from . import utils
-from .datatypes import Config, EmbeddedXlTable, Tag, TimesModel
+from .datatypes import Config, DataModule, EmbeddedXlTable, Tag, TimesModel
 from .utils import max_workers
 
 csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]
@@ -358,7 +358,10 @@ def include_tables_source(
 
     def include_table_source(table: EmbeddedXlTable):
         df = table.dataframe.copy()
-        df["source_filename"] = table.filename
+        df["source_filename"] = Path(table.filename).stem
+        df["data_module_type"] = DataModule.module_type(table.filename)
+        df["data_submodule"] = DataModule.submodule(table.filename)
+        df["data_module_name"] = DataModule.module_name(table.filename)
         return replace(table, dataframe=df)
 
     return [include_table_source(table) for table in tables]

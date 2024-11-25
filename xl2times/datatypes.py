@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from importlib import resources
 from itertools import chain
+from pathlib import PurePath
 
 from loguru import logger
 from pandas.core.frame import DataFrame
@@ -68,6 +69,63 @@ class Tag(str, Enum):
     @classmethod
     def has_tag(cls, tag):
         return tag in cls._value2member_map_
+
+
+class DataModule(str, Enum):
+    """Categorise data into modules based on the file they are coming from."""
+
+    base = "VT_*.*, BY_Trans.*"
+    syssettings = "SysSettings.*"
+    subres = "SubRES_TMPL/SubRES_*.*"
+    sets = "Set*.*"
+    lma = "LMA*.*"
+    demand = "SuppXLS/Demands/Dem_Alloc+Series.*, SuppXLS/Demands/ScenDem_*.*"
+    scen = "SuppXLS/Scen_*.*"
+    trade = "SuppXLS/Trades/ScenTrade_*.*"
+
+    @classmethod
+    def determine_type(cls, path: str) -> "DataModule | None":
+        for data_module in cls:
+            if any(
+                PurePath(path.lower()).match(pattern.lower().strip())
+                for pattern in data_module.value.split(",")
+            ):
+                return data_module
+        return None
+
+    @classmethod
+    def module_type(cls, path: str) -> str | None:
+        module_type = cls.determine_type(path)
+        if module_type:
+            return module_type.name
+        else:
+            return None
+
+    @classmethod
+    def submodule(cls, path: str) -> str | None:
+        match cls.determine_type(path):
+            case DataModule.base | DataModule.subres:
+                if PurePath(path.lower()).match("*_trans.*"):
+                    return "trans"
+                else:
+                    return "main"
+            case None:
+                return None
+            case _:
+                return "main"
+
+    @classmethod
+    def module_name(cls, path: str) -> str | None:
+        module_type = cls.determine_type(path)
+        match module_type:
+            case DataModule.base | DataModule.sets | DataModule.lma | DataModule.demand | DataModule.trade | DataModule.syssettings:
+                return module_type.name
+            case DataModule.subres:
+                return re.sub("_trans$", "", PurePath(path).stem.lower())
+            case None:
+                return None
+            case _:
+                return PurePath(path).stem
 
 
 @dataclass
