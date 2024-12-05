@@ -2448,6 +2448,57 @@ def apply_transform_tables(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Include data from transformation tables."""
+    if Tag.tfm_comgrp in tables:
+        table = model.commodity_groups
+        updates = tables[Tag.tfm_comgrp].filter(table.columns, axis=1)
+
+        commodity_groups = pd.concat([table, updates], ignore_index=True)
+        commodity_groups = commodity_groups.explode("commodity", ignore_index=True)
+        commodity_groups = commodity_groups.drop_duplicates()
+        commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
+        model.commodity_groups = commodity_groups.dropna()
+
+    if Tag.tfm_dins in tables:
+        table = tables[Tag.fi_t]
+        updates = tables[Tag.tfm_dins].filter(table.columns, axis=1)
+        tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
+
+    if Tag.tfm_ins in tables:
+        table = tables[Tag.fi_t]
+        updates = tables[Tag.tfm_ins].filter(table.columns, axis=1)
+        tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
+
+    if Tag.tfm_ins_txt in tables:
+        updates = tables[Tag.tfm_ins_txt]
+
+        # TFM_INS-TXT: expand row by wildcards, query FI_PROC/COMM for matching rows,
+        # evaluate the update formula, and inplace update the rows
+        for _, row in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Applying transformations from {Tag.tfm_ins_txt.value}",
+        ):
+            if row["commodity"] is not None:
+                table = model.commodities
+            elif row["process"] is not None:
+                table = model.processes
+            else:
+                assert False  # All rows match either a commodity or a process
+
+            # Query for rows with matching process/commodity and region
+            rows_to_update = query(
+                table, row["process"], row["commodity"], None, row["region"], None, None
+            )
+            # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
+            # with the value from row
+            # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
+            if row["attribute"] not in attr_prop:
+                logger.warning(
+                    f"Unknown attribute {row['attribute']}, skipping update."
+                )
+            else:
+                table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
+
     if Tag.tfm_upd in tables:
         updates = tables[Tag.tfm_upd]
         table = tables[Tag.fi_t]
@@ -2484,47 +2535,6 @@ def apply_transform_tables(
 
         # Add new rows to table
         tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
-
-    if Tag.tfm_ins in tables:
-        table = tables[Tag.fi_t]
-        updates = tables[Tag.tfm_ins].filter(table.columns, axis=1)
-        tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
-
-    if Tag.tfm_dins in tables:
-        table = tables[Tag.fi_t]
-        updates = tables[Tag.tfm_dins].filter(table.columns, axis=1)
-        tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
-
-    if Tag.tfm_ins_txt in tables:
-        updates = tables[Tag.tfm_ins_txt]
-
-        # TFM_INS-TXT: expand row by wildcards, query FI_PROC/COMM for matching rows,
-        # evaluate the update formula, and inplace update the rows
-        for _, row in tqdm(
-            updates.iterrows(),
-            total=len(updates),
-            desc=f"Applying transformations from {Tag.tfm_ins_txt.value}",
-        ):
-            if row["commodity"] is not None:
-                table = model.commodities
-            elif row["process"] is not None:
-                table = model.processes
-            else:
-                assert False  # All rows match either a commodity or a process
-
-            # Query for rows with matching process/commodity and region
-            rows_to_update = query(
-                table, row["process"], row["commodity"], None, row["region"], None, None
-            )
-            # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
-            # with the value from row
-            # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
-            if row["attribute"] not in attr_prop:
-                logger.warning(
-                    f"Unknown attribute {row['attribute']}, skipping update."
-                )
-            else:
-                table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
 
     if Tag.tfm_mig in tables:
         updates = tables[Tag.tfm_mig]
@@ -2564,16 +2574,6 @@ def apply_transform_tables(
         # Add new rows to table
         new_tables.append(tables[Tag.fi_t])
         tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
-
-    if Tag.tfm_comgrp in tables:
-        table = model.commodity_groups
-        updates = tables[Tag.tfm_comgrp].filter(table.columns, axis=1)
-
-        commodity_groups = pd.concat([table, updates], ignore_index=True)
-        commodity_groups = commodity_groups.explode("commodity", ignore_index=True)
-        commodity_groups = commodity_groups.drop_duplicates()
-        commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
-        model.commodity_groups = commodity_groups.dropna()
 
     return tables
 
