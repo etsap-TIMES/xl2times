@@ -234,6 +234,7 @@ class TimesModel:
     units: DataFrame = field(default_factory=DataFrame)
     start_year: int = field(default_factory=int)
     files: set[str] = field(default_factory=set)
+    data_modules: list[str] = field(default_factory=list)
 
     @property
     def external_regions(self) -> set[str]:
