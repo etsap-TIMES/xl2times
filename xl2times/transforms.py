@@ -1194,7 +1194,7 @@ def capitalise_some_values(
     # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
 
-    colnames = ["attribute", "tact", "tcap", "unit"]
+    colnames = ["attribute", "tact", "tcap", "unit", "sourcescen"]
 
     def capitalise_attributes_table(table: EmbeddedXlTable):
         df = table.dataframe.copy()
@@ -2396,6 +2396,7 @@ def query(
     region: str | None,
     year: int | None,
     val: int | float | None,
+    module: str | None,
 ) -> pd.Index:
     qs = []
 
@@ -2425,6 +2426,8 @@ def query(
         qs.append(f"year == {year}")
     if val not in [None, ""]:
         qs.append(f"value == {val}")
+    if module not in [None, ""]:
+        qs.append(f"data_module_name == '{module}'")
     query_str = " and ".join(qs)
     row_idx = table.query(query_str).index
     return row_idx
@@ -2508,6 +2511,7 @@ def apply_transform_tables(
                     row["region"],
                     None,
                     None,
+                    None,
                 )
                 # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
                 # with the value from row
@@ -2540,6 +2544,10 @@ def apply_transform_tables(
                 total=len(updates),
                 desc=f"Applying transformations from {Tag.tfm_upd.value} in {data_module}",
             ):
+                if row["data_module_type"] == "trans":
+                    source_module = row["data_module_name"]
+                else:
+                    source_module = row["sourcescen"]
                 rows_to_update = query(
                     table,
                     row["process"],
@@ -2548,6 +2556,7 @@ def apply_transform_tables(
                     row["region"],
                     row["year"],
                     row["val_cond"],
+                    source_module,
                 )
 
                 if not any(rows_to_update):
@@ -2576,6 +2585,10 @@ def apply_transform_tables(
                 total=len(updates),
                 desc=f"Applying transformations from {Tag.tfm_mig.value} in {data_module}",
             ):
+                if row["data_module_type"] == "trans":
+                    source_module = row["data_module_name"]
+                else:
+                    source_module = row["sourcescen"]
                 # TODO should we also query on limtype?
                 rows_to_update = query(
                     table,
@@ -2585,6 +2598,7 @@ def apply_transform_tables(
                     row["region"],
                     row["year"],
                     row["val_cond"],
+                    source_module,
                 )
 
                 if not any(rows_to_update):
