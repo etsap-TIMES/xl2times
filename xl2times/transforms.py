@@ -2566,7 +2566,9 @@ def apply_transform_tables(
 
                 new_rows = table.loc[rows_to_update].copy()
                 eval_and_update(new_rows, rows_to_update, row["value"])
-                # In case more than one data module is present in the table, select the one with the highest index
+                # In case more than one data module is present in the table, select the one with the highest index.
+                # TODO: The below code is commented out because it needs to be more sophisticated.
+                """
                 if new_rows["data_module_name"].nunique() > 1:
                     indices = {
                         model.data_modules.index(x)
@@ -2575,6 +2577,9 @@ def apply_transform_tables(
                     new_rows = new_rows[
                         new_rows["data_module_name"] == model.data_modules[max(indices)]
                     ]
+                """
+                if new_rows["data_module_name"].nunique() > 1:
+                    new_rows.to_csv(f"{data_module}_{Tag.tfm_upd.name}.csv")
                 new_rows["source_filename"] = row["source_filename"]
                 new_rows["data_module_name"] = row["data_module_name"]
                 new_rows["data_module_type"] = row["data_module_type"]
@@ -2626,6 +2631,8 @@ def apply_transform_tables(
                 # Evaluate 'value' column based on existing values
                 eval_and_update(new_rows, rows_to_update, row["value"])
                 # In case more than one data module is present in the table, select the one with the highest index
+                # TODO: The below code is commented out because it needs to be more sophisticated.
+                """
                 if new_rows["data_module_name"].nunique() > 1:
                     indices = {
                         model.data_modules.index(x)
@@ -2634,6 +2641,9 @@ def apply_transform_tables(
                     new_rows = new_rows[
                         new_rows["data_module_name"] == model.data_modules[max(indices)]
                     ]
+                """
+                if new_rows["data_module_name"].nunique() > 1:
+                    new_rows.to_csv(f"{data_module}_{Tag.tfm_mig.name}.csv")
                 new_rows["source_filename"] = row["source_filename"]
                 new_rows["data_module_name"] = row["data_module_name"]
                 new_rows["data_module_type"] = row["data_module_type"]
