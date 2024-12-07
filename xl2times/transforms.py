@@ -359,9 +359,9 @@ def include_tables_source(
     def include_table_source(table: EmbeddedXlTable):
         df = table.dataframe.copy()
         df["source_filename"] = Path(table.filename).stem
-        df["data_module_type"] = DataModule.module_type(table.filename)
-        df["data_submodule"] = DataModule.submodule(table.filename)
-        df["data_module_name"] = DataModule.module_name(table.filename)
+        df["module_type"] = DataModule.module_type(table.filename)
+        df["submodule"] = DataModule.submodule(table.filename)
+        df["module_name"] = DataModule.module_name(table.filename)
         return replace(table, dataframe=df)
 
     return [include_table_source(table) for table in tables]
@@ -1209,23 +1209,53 @@ def capitalise_some_values(
     return [capitalise_attributes_table(table) for table in tables]
 
 
+def _populate_defaults(
+    tag: Tag,
+    dataframe: DataFrame,
+    col_name: str,
+    config: Config,
+    attr_col_name: str = "attribute",
+):
+    """Fill in some of the missing values based on defaults in place."""
+    starting_na = (
+        dataframe[attr_col_name]
+        .str.upper()
+        .isin(config.veda_attr_defaults[col_name].keys())
+        & dataframe[col_name].isna()
+    )
+    if any(starting_na):
+        attributes = dataframe[starting_na][attr_col_name].unique()
+        for attr in attributes:
+            i_attr = dataframe[attr_col_name] == attr
+            default_values = config.veda_attr_defaults[col_name][attr.upper()]
+            for default_value in default_values:
+                # Ensure that previously filled values are not overwritten
+                current_na = dataframe[col_name].isna()
+                remaining_na = starting_na & i_attr & current_na
+                if any(remaining_na):
+                    if default_value not in config.known_columns[tag]:
+                        dataframe.loc[remaining_na, [col_name]] = default_value
+                    elif default_value in dataframe.columns:
+                        dataframe.loc[remaining_na, [col_name]] = dataframe[
+                            remaining_na
+                        ][default_value]
+
+
+def _populate_calculated_defaults(df: DataFrame, model: TimesModel):
+    """Determine values of and fill in some indexes."""
+    if any(df["other_indexes"] == "veda_cg"):
+        i = df["other_indexes"] == "veda_cg"
+        df.loc[i, "other_indexes"] = df[i].apply(
+            lambda x: model.veda_cgs.get((x["region"], x["process"], x["commodity"])),
+            axis=1,
+        )
+
+
 def apply_fixups(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-
-    # Generate Veda CG info
-    cols = ["region", "process", "commodity", "csets"]
-    # Exclude auxillary flows
-    index = model.topology["io"].isin({"IN", "OUT"})
-    veda_cgs = model.topology[cols + ["io"]][index].copy()
-    veda_cgs.drop_duplicates(subset=cols, keep="last", inplace=True)
-    veda_cgs["veda_cg"] = veda_cgs["csets"] + veda_cgs["io"].str[:1]
-    veda_cgs = veda_cgs.set_index(["region", "process", "commodity"])[
-        "veda_cg"
-    ].to_dict()
-
     def apply_fixups_table(table: EmbeddedXlTable):
         tag = Tag.fi_t
         if not table.tag == tag:
@@ -1237,41 +1267,9 @@ def apply_fixups(
         if "year" in df.columns:
             df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
-        def _populate_defaults(dataframe: DataFrame, col_name: str):
-            """Fill in some of the missing values based on defaults in place."""
-            i_na = (
-                dataframe["attribute"]
-                .str.upper()
-                .isin(config.veda_attr_defaults[col_name].keys())
-                & dataframe[col_name].isna()
-            )
-            if any(i_na):
-                for attr in dataframe[i_na]["attribute"].unique():
-                    i_attr = dataframe["attribute"] == attr
-                    for default_value in config.veda_attr_defaults[col_name][
-                        attr.upper()
-                    ]:
-                        # Ensure that previously filled values are not overwritten
-                        i_fill = i_na & i_attr & dataframe[col_name].isna()
-                        if any(i_fill):
-                            if default_value not in config.known_columns[tag]:
-                                dataframe.loc[i_fill, [col_name]] = default_value
-                            else:
-                                dataframe.loc[i_fill, [col_name]] = dataframe[i_fill][
-                                    default_value
-                                ]
-
         # Populate commodity and other_indexes based on defaults
         for col in ("commodity", "other_indexes"):
-            _populate_defaults(df, col)
-
-        # Determine values of and fill in some indexes
-        if any(df["other_indexes"] == "veda_cg"):
-            i = df["other_indexes"] == "veda_cg"
-            df.loc[i, "other_indexes"] = df[i].apply(
-                lambda x: veda_cgs.get((x["region"], x["process"], x["commodity"])),
-                axis=1,
-            )
+            _populate_defaults(tag, df, col, config)
 
         return replace(table, dataframe=df)
 
@@ -2165,7 +2163,7 @@ def get_matching_processes(
 ) -> pd.Series | None:
     matching_processes = None
     for col, key in process_map.items():
-        if col in row.index and row[col] is not None:
+        if col in row.index and row[col] not in {None, ""}:
             proc_set = topology[key]
             pattern = row[col].upper()
             filtered = filter_by_pattern(proc_set, pattern, col != "pset_pd")
@@ -2180,7 +2178,7 @@ def get_matching_processes(
 def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
     matching_commodities = None
     for col, key in commodity_map.items():
-        if col in row.index and row[col] is not None:
+        if col in row.index and row[col] not in {None, ""}:
             matching_commodities = intersect(
                 matching_commodities,
                 filter_by_pattern(topology[key], row[col].upper(), col != "cset_cd"),
@@ -2261,12 +2259,13 @@ def process_wildcards(
         Tag.uc_t,
     ]
 
+    dictionary = generate_topology_dictionary(tables, model)
+
     for tag in tags:
 
         if tag in tqdm(tables, desc=f"Processing wildcards in {tag.value} tables"):
             start_time = time.time()
             df = tables[tag]
-            dictionary = generate_topology_dictionary(tables, model)
 
             if set(df.columns).intersection(set(process_map.keys())):
                 df = _match_wildcards(
@@ -2333,7 +2332,7 @@ def _match_wildcards(
     wild_cols = list(col_map.keys())
 
     # drop duplicate sets of wildcard columns to save repeated (slow) regex matching.  This makes things much faster.
-    unique_filters = df[wild_cols].drop_duplicates().dropna(axis="rows", how="all")
+    unique_filters = df[wild_cols].drop_duplicates().dropna(axis=0, how="all")
 
     # match all the wildcards columns against the dictionary names
     matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
@@ -2598,6 +2597,9 @@ def explode_process_commodity_cols(
         if "commodity" in df.columns:
             df = df.explode("commodity", ignore_index=True)
 
+        if "other_indexes" in df.columns:
+            df = df.explode("other_indexes", ignore_index=True)
+
         tables[tag] = df
 
     return tables
@@ -2745,7 +2747,7 @@ def convert_aliases(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    # Ensure TIMES names for all attributes
+    """Ensure TIMES names for all attributes."""
     replacement_dict = {}
     for k, v in config.veda_attr_defaults["aliases"].items():
         for alias in v:
@@ -2753,17 +2755,10 @@ def convert_aliases(
 
     for table_type, df in tables.items():
         if "attribute" in df.columns:
+            df["original_attr"] = df["attribute"]
             df.replace({"attribute": replacement_dict}, inplace=True)
         tables[table_type] = df
 
-    # Drop duplicates generated due to renaming
-    # TODO: Clear values in irrelevant columns before doing this
-    # TODO: Do this comprehensively for all relevant tables
-    df = tables[Tag.fi_t]
-    df = df.dropna(subset="value").drop_duplicates(
-        subset=[col for col in df.columns if col != "value"], keep="last"
-    )
-    tables[Tag.fi_t] = df.reset_index(drop=True)
     return tables
 
 
@@ -2918,9 +2913,12 @@ def apply_final_fixup(
     reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
     df = tables[Tag.fi_t]
 
+    _populate_defaults(Tag.fi_t, df, "other_indexes", config, "original_attr")
+    _populate_calculated_defaults(df, model)
+
     # Fill other_indexes for COST
     cost_mapping = {"MIN": "IMP", "EXP": "EXP", "IMP": "IMP"}
-    cost_index = (df["attribute"] == "COST") & df["process"].notna()
+    cost_index = (df["original_attr"] == "COST") & df["process"].notna()
 
     if any(cost_index):
         processes = set(df[cost_index]["process"].unique())
@@ -2948,7 +2946,7 @@ def apply_final_fixup(
             )
 
     # Use CommName to store the active commodity for EXP / IMP
-    index = df["attribute"].isin({"COST", "IRE_PRICE"})
+    index = df["original_attr"].isin({"COST", "IRE_PRICE"})
     if any(index):
         i_exp = index & (df["other_indexes"] == "EXP")
         df.loc[i_exp, "commodity"] = df.loc[i_exp, "commodity-in"]
@@ -2956,19 +2954,19 @@ def apply_final_fixup(
         df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
 
     # Fill CommName for COST (alias of IRE_PRICE) if missing
-    i_com_na = (df["attribute"] == "COST") & df["commodity"].isna()
+    i_com_na = (df["original_attr"] == "COST") & df["commodity"].isna()
     if any(i_com_na):
         comm_rp = reg_com_flows.groupby(["region", "process"]).agg(set)
         comm_rp["commodity"] = comm_rp["commodity"].str.join(",")
         df.set_index(["region", "process"], inplace=True)
-        i_cost = df["attribute"] == "COST"
+        i_cost = df["original_attr"] == "COST"
         df.loc[i_cost, "commodity"] = df["commodity"][i_cost].fillna(
             comm_rp["commodity"].to_dict()
         )
         df.reset_index(inplace=True)
 
     # Handle STOCK specified for a single year
-    stock_index = (df["attribute"] == "STOCK") & df["process"].notna()
+    stock_index = (df["original_attr"] == "STOCK") & df["process"].notna()
     if any(stock_index):
         # Temporary solution to include only processes defined in BASE
         i_vt = stock_index & (df["source_filename"].str.contains("VT_", case=False))
@@ -2998,7 +2996,7 @@ def apply_final_fixup(
         if any(i_single_stock):
             default_life = 30
             life_rp = (
-                df[df["attribute"].isin({"NCAP_TLIFE", "LIFE"})]
+                df[df["original_attr"].isin({"NCAP_TLIFE", "LIFE"})]
                 .drop_duplicates(subset=["region", "process"], keep="last")
                 .set_index(["region", "process"])["value"]
             )
@@ -3017,7 +3015,29 @@ def apply_final_fixup(
 
         df = pd.concat(df_list)
 
-    tables[Tag.fi_t] = df
+    # Clean up
+    # TODO: Do this comprehensively for all relevant tables
+    # TODO: Duplicates should only be removed if in the same file/module
+    keep_cols = [
+        "attribute",
+        "region",
+        "process",
+        "commodity",
+        "other_indexes",
+        "year",
+        "year2",
+        "timeslice",
+        "currency",
+        "limtype",
+        "sow",
+        "stage",
+        "module_name",
+    ]
+    df.dropna(subset="value", inplace=True)
+    drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
+    df.drop(columns=drop_cols, inplace=True)
+    df = df.drop_duplicates(subset=keep_cols, keep="last")
+    tables[Tag.fi_t] = df.reset_index(drop=True)
 
     return tables
 
