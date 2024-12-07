@@ -117,6 +117,7 @@ def run_gams_gdxdiff(
             path.join(out_folder, "scenario.gdx"),
             path.join(out_folder, "diffile.gdx"),
             "Eps=0.000001",
+            "RelEps=0.000001",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -127,7 +128,21 @@ def run_gams_gdxdiff(
         logger.info(res.stdout)
         logger.info(res.stderr if res.stderr is not None else "")
     if res.returncode != 0:
-        return f"Diff ({len(res.stdout.splitlines())})"
+        # Report the number of lines in the gdxdump of the difffile
+        res = subprocess.run(
+            ["gdxdump", path.join(out_folder, "diffile.gdx")],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+        )
+        if verbose or res.returncode != 0:
+            logger.info(res.stdout)
+            logger.info(res.stderr if res.stderr is not None else "")
+        if res.returncode != 0:
+            logger.error(f"GAMS gdxdiff failed on {benchmark['name']}")
+            sys.exit(4)
+        return str(len(res.stdout.splitlines()))
 
     return "OK"
 

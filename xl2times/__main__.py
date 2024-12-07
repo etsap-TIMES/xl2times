@@ -206,7 +206,7 @@ def read_csv_tables(input_dir: str) -> dict[str, DataFrame]:
     result = {}
     csv_files = list(Path(input_dir).glob("*.csv"))
     for filename in csv_files:
-        result[filename.stem] = pd.read_csv(filename, dtype=str)
+        result[filename.stem] = pd.read_csv(filename)
     return result
 
 
@@ -522,6 +522,8 @@ def run(args: argparse.Namespace) -> str | None:
 
     if args.ground_truth_dir:
         ground_truth = read_csv_tables(args.ground_truth_dir)
+        # Use the same convert_to_string transform on GT so that comparisons are fair
+        ground_truth = transforms.convert_to_string(config, ground_truth, model)
         comparison = compare(tables, ground_truth, args.output_dir)
         return comparison
     else:
