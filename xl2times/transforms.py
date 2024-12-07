@@ -2578,8 +2578,6 @@ def apply_transform_tables(
                         new_rows["data_module_name"] == model.data_modules[max(indices)]
                     ]
                 """
-                if new_rows["data_module_name"].nunique() > 1:
-                    new_rows.to_csv(f"{data_module}_{Tag.tfm_upd.name}.csv")
                 new_rows["source_filename"] = row["source_filename"]
                 new_rows["data_module_name"] = row["data_module_name"]
                 new_rows["data_module_type"] = row["data_module_type"]
@@ -2642,8 +2640,6 @@ def apply_transform_tables(
                         new_rows["data_module_name"] == model.data_modules[max(indices)]
                     ]
                 """
-                if new_rows["data_module_name"].nunique() > 1:
-                    new_rows.to_csv(f"{data_module}_{Tag.tfm_mig.name}.csv")
                 new_rows["source_filename"] = row["source_filename"]
                 new_rows["data_module_name"] = row["data_module_name"]
                 new_rows["data_module_type"] = row["data_module_type"]
