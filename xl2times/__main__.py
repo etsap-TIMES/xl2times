@@ -15,7 +15,7 @@ from pandas.core.frame import DataFrame
 from xl2times.utils import max_workers
 
 from . import excel, transforms, utils
-from .datatypes import Config, EmbeddedXlTable, TimesModel
+from .datatypes import Config, DataModule, EmbeddedXlTable, TimesModel
 
 logger = utils.get_logger()
 
@@ -484,6 +484,20 @@ def run(args: argparse.Namespace) -> str | None:
         input_files = args.input
 
     model.files.update([Path(path).stem for path in input_files])
+
+    processing_order = ["base", "subres", "trade", "demand", "scen", "syssettings"]
+    for data_module in processing_order:
+        model.data_modules = model.data_modules + sorted(
+            [
+                item
+                for item in {
+                    DataModule.module_name(path)
+                    for path in input_files
+                    if DataModule.module_type(path) == data_module
+                }
+                if item is not None
+            ]
+        )
 
     if args.only_read:
         tables = convert_xl_to_times(
