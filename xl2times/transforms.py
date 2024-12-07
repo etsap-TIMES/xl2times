@@ -2548,6 +2548,7 @@ def apply_transform_tables(
                     source_module = row["data_module_name"]
                 else:
                     source_module = row["sourcescen"]
+
                 rows_to_update = query(
                     table,
                     row["process"],
@@ -2564,8 +2565,20 @@ def apply_transform_tables(
                     continue
 
                 new_rows = table.loc[rows_to_update].copy()
-                new_rows["source_filename"] = row["source_filename"]
                 eval_and_update(new_rows, rows_to_update, row["value"])
+                # In case more than one data module is present in the table, select the one with the highest index
+                if new_rows["data_module_name"].nunique() > 1:
+                    indices = {
+                        model.data_modules.index(x)
+                        for x in new_rows["data_module_name"].unique()
+                    }
+                    new_rows = new_rows[
+                        new_rows["data_module_name"] == model.data_modules[max(indices)]
+                    ]
+                new_rows["source_filename"] = row["source_filename"]
+                new_rows["data_module_name"] = row["data_module_name"]
+                new_rows["data_module_type"] = row["data_module_type"]
+                new_rows["data_submodule"] = row["data_submodule"]
                 new_tables.append(new_rows)
 
             # Add new rows to table
@@ -2612,7 +2625,19 @@ def apply_transform_tables(
                         new_rows.loc[:, c[:-1]] = v
                 # Evaluate 'value' column based on existing values
                 eval_and_update(new_rows, rows_to_update, row["value"])
+                # In case more than one data module is present in the table, select the one with the highest index
+                if new_rows["data_module_name"].nunique() > 1:
+                    indices = {
+                        model.data_modules.index(x)
+                        for x in new_rows["data_module_name"].unique()
+                    }
+                    new_rows = new_rows[
+                        new_rows["data_module_name"] == model.data_modules[max(indices)]
+                    ]
                 new_rows["source_filename"] = row["source_filename"]
+                new_rows["data_module_name"] = row["data_module_name"]
+                new_rows["data_module_type"] = row["data_module_type"]
+                new_rows["data_submodule"] = row["data_submodule"]
                 new_tables.append(new_rows)
 
             # Add new rows to table
