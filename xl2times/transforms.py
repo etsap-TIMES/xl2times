@@ -2735,7 +2735,7 @@ def convert_to_string(
 ) -> dict[str, DataFrame]:
     for key, value in tables.items():
         tables[key] = value.map(
-            lambda x: (str(int(x)) if x.is_integer() else f"{x:.8g}")
+            lambda x: (str(int(x)) if x.is_integer() else f"{x:.10g}")
             if isinstance(x, float)
             else str(x)
         )
