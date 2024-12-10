@@ -2011,6 +2011,7 @@ def process_transform_tables(
     regions = model.internal_regions
     # TODO: Add other tfm tags?
     tfm_tags = [
+        Tag.tfm_ava,
         Tag.tfm_dins,
         Tag.tfm_ins,
         Tag.tfm_ins_txt,
@@ -2111,27 +2112,18 @@ def process_transform_availability(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
+    """Process transform availability tables.
+    Steps include:
+    - Removing rows with missing values in the "value" column.
+    """
     result = []
-    dropped = []
     for table in tables:
-        if table.tag != Tag.tfm_ava:
-            result.append(table)
+        if table.tag == Tag.tfm_ava:
+            result.append(
+                replace(table, dataframe=table.dataframe.dropna(subset="value"))
+            )
         else:
-            dropped.append(table)
-
-    if len(dropped) > 0:
-        # TODO handle
-        by_tag = [
-            (key, list(group))
-            for key, group in groupby(
-                sorted(dropped, key=lambda t: t.tag), lambda t: t.tag
-            )
-        ]
-        for key, group in by_tag:
-            logger.warning(
-                f"Dropped {len(group)} transform availability tables ({key})"
-                f" rather than processing them"
-            )
+            result.append(table)
 
     return result
 
@@ -2253,6 +2245,7 @@ def process_wildcards(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     tags = [
+        Tag.tfm_ava,
         Tag.tfm_comgrp,
         Tag.tfm_ins,
         Tag.tfm_ins_txt,
@@ -2448,6 +2441,38 @@ def apply_transform_tables(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Include data from transformation tables."""
+    if Tag.tfm_ava in tables:
+        table = tables[Tag.fi_t]
+        modules_with_ava = tables[Tag.tfm_ava]["data_module_name"].unique()
+        updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
+        # Overwrite with the last value for each process/region pair
+        updates = updates.drop_duplicates(
+            subset=[col for col in updates.columns if col != "value"], keep="last"
+        )
+        # Remove rows with zero value
+        updates = updates[~(updates["value"] == 0)]
+        # Group back processes with multiple values
+        updates = updates.groupby(
+            [col for col in updates.columns if col != "process"], as_index=False
+        ).agg({"process": list})[updates.columns]
+        # Determine the rows that won't be updated
+        index = table[~table["data_module_name"].isin(modules_with_ava)].index
+        index = index.union(table[table["process"].isin(["", None])].index)
+        for _, row in updates.iterrows():
+            index = index.union(
+                query(
+                    table[table["data_module_name"] == row["data_module_name"]],
+                    row["process"],
+                    None,
+                    None,
+                    row["region"],
+                    None,
+                    None,
+                )
+            )
+        # Update the table
+        tables[Tag.fi_t] = table.loc[index]
+
     if Tag.tfm_upd in tables:
         updates = tables[Tag.tfm_upd]
         table = tables[Tag.fi_t]
