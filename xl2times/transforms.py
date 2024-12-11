@@ -2440,8 +2440,11 @@ def _remove_invalid_rows_(
 ) -> DataFrame:
     """Remove rows with invalid process / region combination."""
     df = df.copy()
+    # Index of rows that won't be checked
     index = df[~df["data_module_name"].isin(limit_to_modules)].index
+    # Don't check rows with empty process
     index = index.union(df[df["process"].isin(["", None])].index)
+    # Keep only the valid process / region combinations
     for _, row in updates.iterrows():
         index = index.union(
             query(
@@ -2484,6 +2487,14 @@ def apply_transform_tables(
         # TODO: This should happen much earlier in the process
         model.processes = _remove_invalid_rows_(
             model.processes, updates, modules_with_ava
+        )
+        # TODO: should be unnecessary if model.processes is updated early enough
+        # Remove topology rows that are not in the processes
+        model.topology = pd.merge(
+            model.topology,
+            model.processes[["region", "process"]].drop_duplicates(),
+            on=["region", "process"],
+            how="inner",
         )
 
     if Tag.tfm_upd in tables:
