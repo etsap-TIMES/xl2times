@@ -2435,6 +2435,29 @@ def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) 
         table.loc[rows_to_update, "value"] = new_value
 
 
+def _remove_invalid_rows_(
+    df: DataFrame, updates: DataFrame, limit_to_modules: list
+) -> DataFrame:
+    """Remove rows with invalid process / region combination."""
+    df = df.copy()
+    index = df[~df["data_module_name"].isin(limit_to_modules)].index
+    index = index.union(df[df["process"].isin(["", None])].index)
+    for _, row in updates.iterrows():
+        index = index.union(
+            query(
+                df[df["data_module_name"] == row["data_module_name"]],
+                row["process"],
+                None,
+                None,
+                row["region"],
+                None,
+                None,
+            )
+        )
+
+    return df.loc[index]
+
+
 def apply_transform_tables(
     config: Config,
     tables: dict[str, DataFrame],
@@ -2442,8 +2465,7 @@ def apply_transform_tables(
 ) -> dict[str, DataFrame]:
     """Include data from transformation tables."""
     if Tag.tfm_ava in tables:
-        table = tables[Tag.fi_t]
-        modules_with_ava = tables[Tag.tfm_ava]["data_module_name"].unique()
+        modules_with_ava = list(tables[Tag.tfm_ava]["data_module_name"].unique())
         updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
         # Overwrite with the last value for each process/region pair
         updates = updates.drop_duplicates(
@@ -2456,22 +2478,13 @@ def apply_transform_tables(
             [col for col in updates.columns if col != "process"], as_index=False
         ).agg({"process": list})[updates.columns]
         # Determine the rows that won't be updated
-        index = table[~table["data_module_name"].isin(modules_with_ava)].index
-        index = index.union(table[table["process"].isin(["", None])].index)
-        for _, row in updates.iterrows():
-            index = index.union(
-                query(
-                    table[table["data_module_name"] == row["data_module_name"]],
-                    row["process"],
-                    None,
-                    None,
-                    row["region"],
-                    None,
-                    None,
-                )
-            )
-        # Update the table
-        tables[Tag.fi_t] = table.loc[index]
+        tables[Tag.fi_t] = _remove_invalid_rows_(
+            tables[Tag.fi_t], updates, modules_with_ava
+        )
+        # TODO: This should happen much earlier in the process
+        model.processes = _remove_invalid_rows_(
+            model.processes, updates, modules_with_ava
+        )
 
     if Tag.tfm_upd in tables:
         updates = tables[Tag.tfm_upd]
