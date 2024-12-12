@@ -7,6 +7,7 @@ from dataclasses import replace
 from functools import reduce
 from itertools import groupby
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from loguru import logger
@@ -2731,12 +2732,17 @@ def convert_to_string(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
+    def convert(x: Any) -> str:
+        if isinstance(x, float):
+            if x.is_integer():
+                return str(int(x))
+            else:
+                return f"{x:.10g}"
+        # Convert all strings to lowercase to perform case insensitive comparisons
+        return str(x).lower()
+
     for key, value in tables.items():
-        tables[key] = value.map(
-            lambda x: (str(int(x)) if x.is_integer() else f"{x:.10g}")
-            if isinstance(x, float)
-            else str(x)
-        )
+        tables[key] = value.map(convert)
     return tables
 
 
