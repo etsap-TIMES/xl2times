@@ -124,13 +124,13 @@ def convert_xl_to_times(
         transforms.process_transform_table_variants,
         transforms.apply_tag_specified_defaults,
         transforms.process_transform_tables,
+        transforms.process_transform_availability,
         transforms.process_tradelinks,
         transforms.process_processes,
         transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
         transforms.process_commodity_emissions,
-        transforms.process_transform_availability,
         transforms.fill_in_missing_values,
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
