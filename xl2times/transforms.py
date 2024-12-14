@@ -2861,7 +2861,6 @@ def convert_to_string(
                 return str(int(x))
             else:
                 return f"{x:.10g}"
-        # Convert all strings to lowercase to perform case insensitive comparisons
         return str(x)
 
     for key, value in tables.items():
