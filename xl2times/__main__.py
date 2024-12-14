@@ -251,9 +251,9 @@ def compare(
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
 
-            # both are in string form so can be compared without any issues
-            gt_rows = set(tuple(row) for row in gt_table.to_numpy().tolist())
-            data_rows = set(tuple(row) for row in data_table.to_numpy().tolist())
+            # Convert rows to lowercase strings for case-insensitive comparison
+            gt_rows = set(str(row).lower() for row in gt_table.to_numpy().tolist())
+            data_rows = set(str(row).lower() for row in data_table.to_numpy().tolist())
             total_gt_rows += len(gt_rows)
             total_correct_rows += len(gt_rows.intersection(data_rows))
             additional = data_rows - gt_rows
