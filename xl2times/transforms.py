@@ -2387,6 +2387,7 @@ def query(
     attribute: str | None,
     region: str | None,
     year: int | None,
+    limtype: str | None,
     val: int | float | None,
     module: str | None,
 ) -> pd.Index:
@@ -2416,6 +2417,8 @@ def query(
         qs.append(f"region == '{region}'")
     if year not in [None, ""]:
         qs.append(f"year == {year}")
+    if limtype not in [None, ""]:
+        qs.append(f"limtype == '{limtype}'")
     if val not in [None, ""]:
         qs.append(f"value == {val}")
     if module not in [None, ""]:
@@ -2455,6 +2458,7 @@ def _remove_invalid_rows_(
                 None,
                 None,
                 row["region"],
+                None,
                 None,
                 None,
                 row["module_name"],
@@ -2559,6 +2563,7 @@ def apply_transform_tables(
                     None,
                     None,
                     None,
+                    None,
                 )
                 # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
                 # with the value from row
@@ -2603,6 +2608,7 @@ def apply_transform_tables(
                     row["attribute"],
                     row["region"],
                     row["year"],
+                    row["limtype"],
                     row["val_cond"],
                     source_module,
                 )
@@ -2652,7 +2658,7 @@ def apply_transform_tables(
                     source_module = row["module_name"]
                 else:
                     source_module = row["sourcescen"]
-                # TODO should we also query on limtype?
+
                 rows_to_update = query(
                     table,
                     row["process"],
@@ -2660,6 +2666,7 @@ def apply_transform_tables(
                     row["attribute"],
                     row["region"],
                     row["year"],
+                    row["limtype"],
                     row["val_cond"],
                     source_module,
                 )
