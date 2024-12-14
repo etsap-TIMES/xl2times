@@ -119,13 +119,15 @@ class DataModule(str, Enum):
         module_type = cls.determine_type(path)
         match module_type:
             case DataModule.base | DataModule.sets | DataModule.lma | DataModule.demand | DataModule.trade | DataModule.syssettings:
-                return module_type.name
+                return module_type.name.upper()
             case DataModule.subres:
-                return re.sub("_trans$", "", PurePath(path).stem.lower())
+                return re.sub(
+                    "^SUBRES_", "", re.sub("_TRANS$", "", PurePath(path).stem.upper())
+                )
+            case DataModule.scen:
+                return re.sub("^SCEN_", "", PurePath(path).stem.upper())
             case None:
                 return None
-            case _:
-                return PurePath(path).stem
 
 
 @dataclass
@@ -234,6 +236,7 @@ class TimesModel:
     units: DataFrame = field(default_factory=DataFrame)
     start_year: int = field(default_factory=int)
     files: set[str] = field(default_factory=set)
+    data_modules: list[str] = field(default_factory=list)
 
     @property
     def external_regions(self) -> set[str]:
