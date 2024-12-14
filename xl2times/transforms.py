@@ -1194,7 +1194,7 @@ def capitalise_some_values(
     # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
 
-    colnames = ["attribute", "tact", "tcap", "unit"]
+    colnames = ["attribute", "tact", "tcap", "unit", "sourcescen"]
 
     def capitalise_attributes_table(table: EmbeddedXlTable):
         df = table.dataframe.copy()
@@ -2009,6 +2009,7 @@ def process_transform_tables(
     regions = model.internal_regions
     # TODO: Add other tfm tags?
     tfm_tags = [
+        Tag.tfm_ava,
         Tag.tfm_dins,
         Tag.tfm_ins,
         Tag.tfm_ins_txt,
@@ -2109,27 +2110,18 @@ def process_transform_availability(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
+    """Process transform availability tables.
+    Steps include:
+    - Removing rows with missing values in the "value" column.
+    """
     result = []
-    dropped = []
     for table in tables:
-        if table.tag != Tag.tfm_ava:
-            result.append(table)
+        if table.tag == Tag.tfm_ava:
+            result.append(
+                replace(table, dataframe=table.dataframe.dropna(subset="value"))
+            )
         else:
-            dropped.append(table)
-
-    if len(dropped) > 0:
-        # TODO handle
-        by_tag = [
-            (key, list(group))
-            for key, group in groupby(
-                sorted(dropped, key=lambda t: t.tag), lambda t: t.tag
-            )
-        ]
-        for key, group in by_tag:
-            logger.warning(
-                f"Dropped {len(group)} transform availability tables ({key})"
-                f" rather than processing them"
-            )
+            result.append(table)
 
     return result
 
@@ -2251,6 +2243,7 @@ def process_wildcards(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     tags = [
+        Tag.tfm_ava,
         Tag.tfm_comgrp,
         Tag.tfm_ins,
         Tag.tfm_ins_txt,
@@ -2395,6 +2388,7 @@ def query(
     region: str | None,
     year: int | None,
     val: int | float | None,
+    module: str | None,
 ) -> pd.Index:
     qs = []
 
@@ -2424,6 +2418,8 @@ def query(
         qs.append(f"year == {year}")
     if val not in [None, ""]:
         qs.append(f"value == {val}")
+    if module not in [None, ""]:
+        qs.append(f"data_module_name == '{module}'")
     query_str = " and ".join(qs)
     row_idx = table.query(query_str).index
     return row_idx
@@ -2441,138 +2437,265 @@ def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) 
         table.loc[rows_to_update, "value"] = new_value
 
 
+def _remove_invalid_rows_(
+    df: DataFrame, updates: DataFrame, limit_to_modules: list
+) -> DataFrame:
+    """Remove rows with invalid process / region combination."""
+    df = df.copy()
+    # Index of rows that won't be checked
+    index = df[~df["data_module_name"].isin(limit_to_modules)].index
+    # Don't check rows with empty process
+    index = index.union(df[df["process"].isin(["", None])].index)
+    # Keep only the valid process / region combinations
+    for _, row in updates.iterrows():
+        index = index.union(
+            query(
+                df,
+                row["process"],
+                None,
+                None,
+                row["region"],
+                None,
+                None,
+                row["data_module_name"],
+            )
+        )
+
+    return df.loc[index]
+
+
 def apply_transform_tables(
     config: Config,
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Include data from transformation tables."""
-    if Tag.tfm_upd in tables:
-        updates = tables[Tag.tfm_upd]
-        table = tables[Tag.fi_t]
-        new_tables = [table]
-        # Reset FI_T index so that queries can determine unique rows to update
-        tables[Tag.fi_t].reset_index(inplace=True, drop=True)
-
-        # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
-        # evaluate the update formula, and add new rows to FI_T
-        # TODO perf: collect all updates and go through FI_T only once?
-        for _, row in tqdm(
-            updates.iterrows(),
-            total=len(updates),
-            desc=f"Applying transformations from {Tag.tfm_upd.value}",
-        ):
-            rows_to_update = query(
-                table,
-                row["process"],
-                row["commodity"],
-                row["attribute"],
-                row["region"],
-                row["year"],
-                row["val_cond"],
-            )
-
-            if not any(rows_to_update):
-                logger.info(f"A {Tag.tfm_upd.value} row generated no records.")
-                continue
-
-            new_rows = table.loc[rows_to_update].copy()
-            new_rows["source_filename"] = row["source_filename"]
-            eval_and_update(new_rows, rows_to_update, row["value"])
-            new_tables.append(new_rows)
-
-        # Add new rows to table
-        tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
-
-    if Tag.tfm_ins in tables:
-        table = tables[Tag.fi_t]
-        updates = tables[Tag.tfm_ins].filter(table.columns, axis=1)
-        tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
-
-    if Tag.tfm_dins in tables:
-        table = tables[Tag.fi_t]
-        updates = tables[Tag.tfm_dins].filter(table.columns, axis=1)
-        tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
-
-    if Tag.tfm_ins_txt in tables:
-        updates = tables[Tag.tfm_ins_txt]
-
-        # TFM_INS-TXT: expand row by wildcards, query FI_PROC/COMM for matching rows,
-        # evaluate the update formula, and inplace update the rows
-        for _, row in tqdm(
-            updates.iterrows(),
-            total=len(updates),
-            desc=f"Applying transformations from {Tag.tfm_ins_txt.value}",
-        ):
-            if row["commodity"] is not None:
-                table = model.commodities
-            elif row["process"] is not None:
-                table = model.processes
-            else:
-                assert False  # All rows match either a commodity or a process
-
-            # Query for rows with matching process/commodity and region
-            rows_to_update = query(
-                table, row["process"], row["commodity"], None, row["region"], None, None
-            )
-            # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
-            # with the value from row
-            # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
-            if row["attribute"] not in attr_prop:
-                logger.warning(
-                    f"Unknown attribute {row['attribute']}, skipping update."
-                )
-            else:
-                table.loc[rows_to_update, attr_prop[row["attribute"]]] = row["value"]
-
-    if Tag.tfm_mig in tables:
-        updates = tables[Tag.tfm_mig]
-        table = tables[Tag.fi_t]
-        new_tables = []
-
-        for _, row in tqdm(
-            updates.iterrows(),
-            total=len(updates),
-            desc=f"Applying transformations from {Tag.tfm_mig.value}",
-        ):
-            # TODO should we also query on limtype?
-            rows_to_update = query(
-                table,
-                row["process"],
-                row["commodity"],
-                row["attribute"],
-                row["region"],
-                row["year"],
-                row["val_cond"],
-            )
-
-            if not any(rows_to_update):
-                logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
-                continue
-
-            new_rows = table.loc[rows_to_update].copy()
-            # Modify values in all '*2' columns
-            for c, v in row.items():
-                if c.endswith("2") and v is not None:
-                    new_rows.loc[:, c[:-1]] = v
-            # Evaluate 'value' column based on existing values
-            eval_and_update(new_rows, rows_to_update, row["value"])
-            new_rows["source_filename"] = row["source_filename"]
-            new_tables.append(new_rows)
-
-        # Add new rows to table
-        new_tables.append(tables[Tag.fi_t])
-        tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+    if Tag.tfm_ava in tables:
+        modules_with_ava = list(tables[Tag.tfm_ava]["data_module_name"].unique())
+        updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
+        # Overwrite with the last value for each process/region pair
+        updates = updates.drop_duplicates(
+            subset=[col for col in updates.columns if col != "value"], keep="last"
+        )
+        # Remove rows with zero value
+        updates = updates[~(updates["value"] == 0)]
+        # Group back processes with multiple values
+        updates = updates.groupby(
+            [col for col in updates.columns if col != "process"], as_index=False
+        ).agg({"process": list})[updates.columns]
+        # Determine the rows that won't be updated
+        tables[Tag.fi_t] = _remove_invalid_rows_(
+            tables[Tag.fi_t], updates, modules_with_ava
+        )
+        # TODO: This should happen much earlier in the process
+        model.processes = _remove_invalid_rows_(
+            model.processes, updates, modules_with_ava
+        )
+        # TODO: should be unnecessary if model.processes is updated early enough
+        # Remove topology rows that are not in the processes
+        model.topology = pd.merge(
+            model.topology,
+            model.processes[["region", "process"]].drop_duplicates(),
+            on=["region", "process"],
+            how="inner",
+        )
 
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
         updates = tables[Tag.tfm_comgrp].filter(table.columns, axis=1)
-
         commodity_groups = pd.concat([table, updates], ignore_index=True)
         commodity_groups = commodity_groups.explode("commodity", ignore_index=True)
         commodity_groups = commodity_groups.drop_duplicates()
         commodity_groups.loc[commodity_groups["gmap"].isna(), ["gmap"]] = True
         model.commodity_groups = commodity_groups.dropna()
+
+    for data_module in model.data_modules:
+        if (
+            Tag.tfm_dins in tables
+            and data_module in tables[Tag.tfm_dins]["data_module_name"].unique()
+        ):
+            table = tables[Tag.fi_t]
+            index = tables[Tag.tfm_dins]["data_module_name"] == data_module
+            updates = tables[Tag.tfm_dins][index].filter(table.columns, axis=1)
+            tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
+
+        if (
+            Tag.tfm_ins in tables
+            and data_module in tables[Tag.tfm_ins]["data_module_name"].unique()
+        ):
+            table = tables[Tag.fi_t]
+            index = tables[Tag.tfm_ins]["data_module_name"] == data_module
+            updates = tables[Tag.tfm_ins][index].filter(table.columns, axis=1)
+            tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
+
+        if (
+            Tag.tfm_ins_txt in tables
+            and data_module in tables[Tag.tfm_ins_txt]["data_module_name"].unique()
+        ):
+            index = tables[Tag.tfm_ins_txt]["data_module_name"] == data_module
+            updates = tables[Tag.tfm_ins_txt][index]
+
+            # TFM_INS-TXT: expand row by wildcards, query FI_PROC/COMM for matching rows,
+            # evaluate the update formula, and inplace update the rows
+            for _, row in tqdm(
+                updates.iterrows(),
+                total=len(updates),
+                desc=f"Applying transformations from {Tag.tfm_ins_txt.value} in {data_module}",
+            ):
+                if row["commodity"] is not None:
+                    table = model.commodities
+                elif row["process"] is not None:
+                    table = model.processes
+                else:
+                    assert False  # All rows match either a commodity or a process
+
+                # Query for rows with matching process/commodity and region
+                rows_to_update = query(
+                    table,
+                    row["process"],
+                    row["commodity"],
+                    None,
+                    row["region"],
+                    None,
+                    None,
+                    None,
+                )
+                # Overwrite (inplace) the column given by the attribute (translated by attr_prop)
+                # with the value from row
+                # E.g. if row['attribute'] == 'PRC_TSL' then we overwrite 'tslvl'
+                if row["attribute"] not in attr_prop:
+                    logger.warning(
+                        f"Unknown attribute {row['attribute']}, skipping update."
+                    )
+                else:
+                    table.loc[rows_to_update, attr_prop[row["attribute"]]] = row[
+                        "value"
+                    ]
+
+        if (
+            Tag.tfm_upd in tables
+            and data_module in tables[Tag.tfm_upd]["data_module_name"].unique()
+        ):
+            index = tables[Tag.tfm_upd]["data_module_name"] == data_module
+            updates = tables[Tag.tfm_upd][index]
+            table = tables[Tag.fi_t]
+            new_tables = [table]
+            # Reset FI_T index so that queries can determine unique rows to update
+            tables[Tag.fi_t].reset_index(inplace=True, drop=True)
+
+            # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
+            # evaluate the update formula, and add new rows to FI_T
+            # TODO perf: collect all updates and go through FI_T only once?
+            for _, row in tqdm(
+                updates.iterrows(),
+                total=len(updates),
+                desc=f"Applying transformations from {Tag.tfm_upd.value} in {data_module}",
+            ):
+                if row["data_module_type"] == "trans":
+                    source_module = row["data_module_name"]
+                else:
+                    source_module = row["sourcescen"]
+
+                rows_to_update = query(
+                    table,
+                    row["process"],
+                    row["commodity"],
+                    row["attribute"],
+                    row["region"],
+                    row["year"],
+                    row["val_cond"],
+                    source_module,
+                )
+
+                if not any(rows_to_update):
+                    logger.info(f"A {Tag.tfm_upd.value} row generated no records.")
+                    continue
+
+                new_rows = table.loc[rows_to_update].copy()
+                eval_and_update(new_rows, rows_to_update, row["value"])
+                # In case more than one data module is present in the table, select the one with the highest index.
+                # TODO: The below code is commented out because it needs to be more sophisticated.
+                """
+                if new_rows["data_module_name"].nunique() > 1:
+                    indices = {
+                        model.data_modules.index(x)
+                        for x in new_rows["data_module_name"].unique()
+                    }
+                    new_rows = new_rows[
+                        new_rows["data_module_name"] == model.data_modules[max(indices)]
+                    ]
+                """
+                new_rows["source_filename"] = row["source_filename"]
+                new_rows["data_module_name"] = row["data_module_name"]
+                new_rows["data_module_type"] = row["data_module_type"]
+                new_rows["data_submodule"] = row["data_submodule"]
+                new_tables.append(new_rows)
+
+            # Add new rows to table
+            tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+
+        if (
+            Tag.tfm_mig in tables
+            and data_module in tables[Tag.tfm_mig]["data_module_name"].unique()
+        ):
+            index = tables[Tag.tfm_mig]["data_module_name"] == data_module
+            updates = tables[Tag.tfm_mig][index]
+            table = tables[Tag.fi_t]
+            new_tables = []
+
+            for _, row in tqdm(
+                updates.iterrows(),
+                total=len(updates),
+                desc=f"Applying transformations from {Tag.tfm_mig.value} in {data_module}",
+            ):
+                if row["data_module_type"] == "trans":
+                    source_module = row["data_module_name"]
+                else:
+                    source_module = row["sourcescen"]
+                # TODO should we also query on limtype?
+                rows_to_update = query(
+                    table,
+                    row["process"],
+                    row["commodity"],
+                    row["attribute"],
+                    row["region"],
+                    row["year"],
+                    row["val_cond"],
+                    source_module,
+                )
+
+                if not any(rows_to_update):
+                    logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
+                    continue
+
+                new_rows = table.loc[rows_to_update].copy()
+                # Modify values in all '*2' columns
+                for c, v in row.items():
+                    if c.endswith("2") and v is not None:
+                        new_rows.loc[:, c[:-1]] = v
+                # Evaluate 'value' column based on existing values
+                eval_and_update(new_rows, rows_to_update, row["value"])
+                # In case more than one data module is present in the table, select the one with the highest index
+                # TODO: The below code is commented out because it needs to be more sophisticated.
+                """
+                if new_rows["data_module_name"].nunique() > 1:
+                    indices = {
+                        model.data_modules.index(x)
+                        for x in new_rows["data_module_name"].unique()
+                    }
+                    new_rows = new_rows[
+                        new_rows["data_module_name"] == model.data_modules[max(indices)]
+                    ]
+                """
+                new_rows["source_filename"] = row["source_filename"]
+                new_rows["data_module_name"] = row["data_module_name"]
+                new_rows["data_module_type"] = row["data_module_type"]
+                new_rows["data_submodule"] = row["data_submodule"]
+                new_tables.append(new_rows)
+
+            # Add new rows to table
+            new_tables.append(tables[Tag.fi_t])
+            tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
 
     return tables
 
