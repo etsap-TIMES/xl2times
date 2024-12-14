@@ -2419,7 +2419,7 @@ def query(
     if val not in [None, ""]:
         qs.append(f"value == {val}")
     if module not in [None, ""]:
-        qs.append(f"data_module_name == '{module}'")
+        qs.append(f"module_name == '{module}'")
     query_str = " and ".join(qs)
     row_idx = table.query(query_str).index
     return row_idx
@@ -2443,7 +2443,7 @@ def _remove_invalid_rows_(
     """Remove rows with invalid process / region combination."""
     df = df.copy()
     # Index of rows that won't be checked
-    index = df[~df["data_module_name"].isin(limit_to_modules)].index
+    index = df[~df["module_name"].isin(limit_to_modules)].index
     # Don't check rows with empty process
     index = index.union(df[df["process"].isin(["", None])].index)
     # Keep only the valid process / region combinations
@@ -2457,7 +2457,7 @@ def _remove_invalid_rows_(
                 row["region"],
                 None,
                 None,
-                row["data_module_name"],
+                row["module_name"],
             )
         )
 
@@ -2471,7 +2471,7 @@ def apply_transform_tables(
 ) -> dict[str, DataFrame]:
     """Include data from transformation tables."""
     if Tag.tfm_ava in tables:
-        modules_with_ava = list(tables[Tag.tfm_ava]["data_module_name"].unique())
+        modules_with_ava = list(tables[Tag.tfm_ava]["module_name"].unique())
         updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
         # Overwrite with the last value for each process/region pair
         updates = updates.drop_duplicates(
@@ -2512,27 +2512,27 @@ def apply_transform_tables(
     for data_module in model.data_modules:
         if (
             Tag.tfm_dins in tables
-            and data_module in tables[Tag.tfm_dins]["data_module_name"].unique()
+            and data_module in tables[Tag.tfm_dins]["module_name"].unique()
         ):
             table = tables[Tag.fi_t]
-            index = tables[Tag.tfm_dins]["data_module_name"] == data_module
+            index = tables[Tag.tfm_dins]["module_name"] == data_module
             updates = tables[Tag.tfm_dins][index].filter(table.columns, axis=1)
             tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
 
         if (
             Tag.tfm_ins in tables
-            and data_module in tables[Tag.tfm_ins]["data_module_name"].unique()
+            and data_module in tables[Tag.tfm_ins]["module_name"].unique()
         ):
             table = tables[Tag.fi_t]
-            index = tables[Tag.tfm_ins]["data_module_name"] == data_module
+            index = tables[Tag.tfm_ins]["module_name"] == data_module
             updates = tables[Tag.tfm_ins][index].filter(table.columns, axis=1)
             tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
 
         if (
             Tag.tfm_ins_txt in tables
-            and data_module in tables[Tag.tfm_ins_txt]["data_module_name"].unique()
+            and data_module in tables[Tag.tfm_ins_txt]["module_name"].unique()
         ):
-            index = tables[Tag.tfm_ins_txt]["data_module_name"] == data_module
+            index = tables[Tag.tfm_ins_txt]["module_name"] == data_module
             updates = tables[Tag.tfm_ins_txt][index]
 
             # TFM_INS-TXT: expand row by wildcards, query FI_PROC/COMM for matching rows,
@@ -2574,9 +2574,9 @@ def apply_transform_tables(
 
         if (
             Tag.tfm_upd in tables
-            and data_module in tables[Tag.tfm_upd]["data_module_name"].unique()
+            and data_module in tables[Tag.tfm_upd]["module_name"].unique()
         ):
-            index = tables[Tag.tfm_upd]["data_module_name"] == data_module
+            index = tables[Tag.tfm_upd]["module_name"] == data_module
             updates = tables[Tag.tfm_upd][index]
             table = tables[Tag.fi_t]
             new_tables = [table]
@@ -2591,8 +2591,8 @@ def apply_transform_tables(
                 total=len(updates),
                 desc=f"Applying transformations from {Tag.tfm_upd.value} in {data_module}",
             ):
-                if row["data_module_type"] == "trans":
-                    source_module = row["data_module_name"]
+                if row["module_type"] == "trans":
+                    source_module = row["module_name"]
                 else:
                     source_module = row["sourcescen"]
 
@@ -2616,19 +2616,19 @@ def apply_transform_tables(
                 # In case more than one data module is present in the table, select the one with the highest index.
                 # TODO: The below code is commented out because it needs to be more sophisticated.
                 """
-                if new_rows["data_module_name"].nunique() > 1:
+                if new_rows["module_name"].nunique() > 1:
                     indices = {
                         model.data_modules.index(x)
-                        for x in new_rows["data_module_name"].unique()
+                        for x in new_rows["module_name"].unique()
                     }
                     new_rows = new_rows[
-                        new_rows["data_module_name"] == model.data_modules[max(indices)]
+                        new_rows["module_name"] == model.data_modules[max(indices)]
                     ]
                 """
                 new_rows["source_filename"] = row["source_filename"]
-                new_rows["data_module_name"] = row["data_module_name"]
-                new_rows["data_module_type"] = row["data_module_type"]
-                new_rows["data_submodule"] = row["data_submodule"]
+                new_rows["module_name"] = row["module_name"]
+                new_rows["module_type"] = row["module_type"]
+                new_rows["submodule"] = row["submodule"]
                 new_tables.append(new_rows)
 
             # Add new rows to table
@@ -2636,9 +2636,9 @@ def apply_transform_tables(
 
         if (
             Tag.tfm_mig in tables
-            and data_module in tables[Tag.tfm_mig]["data_module_name"].unique()
+            and data_module in tables[Tag.tfm_mig]["module_name"].unique()
         ):
-            index = tables[Tag.tfm_mig]["data_module_name"] == data_module
+            index = tables[Tag.tfm_mig]["module_name"] == data_module
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
             new_tables = []
@@ -2648,8 +2648,8 @@ def apply_transform_tables(
                 total=len(updates),
                 desc=f"Applying transformations from {Tag.tfm_mig.value} in {data_module}",
             ):
-                if row["data_module_type"] == "trans":
-                    source_module = row["data_module_name"]
+                if row["module_type"] == "trans":
+                    source_module = row["module_name"]
                 else:
                     source_module = row["sourcescen"]
                 # TODO should we also query on limtype?
@@ -2678,19 +2678,19 @@ def apply_transform_tables(
                 # In case more than one data module is present in the table, select the one with the highest index
                 # TODO: The below code is commented out because it needs to be more sophisticated.
                 """
-                if new_rows["data_module_name"].nunique() > 1:
+                if new_rows["module_name"].nunique() > 1:
                     indices = {
                         model.data_modules.index(x)
-                        for x in new_rows["data_module_name"].unique()
+                        for x in new_rows["module_name"].unique()
                     }
                     new_rows = new_rows[
-                        new_rows["data_module_name"] == model.data_modules[max(indices)]
+                        new_rows["module_name"] == model.data_modules[max(indices)]
                     ]
                 """
                 new_rows["source_filename"] = row["source_filename"]
-                new_rows["data_module_name"] = row["data_module_name"]
-                new_rows["data_module_type"] = row["data_module_type"]
-                new_rows["data_submodule"] = row["data_submodule"]
+                new_rows["module_name"] = row["module_name"]
+                new_rows["module_type"] = row["module_type"]
+                new_rows["submodule"] = row["submodule"]
                 new_tables.append(new_rows)
 
             # Add new rows to table
