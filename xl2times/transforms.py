@@ -2739,7 +2739,7 @@ def convert_to_string(
             else:
                 return f"{x:.10g}"
         # Convert all strings to lowercase to perform case insensitive comparisons
-        return str(x).lower()
+        return str(x)
 
     for key, value in tables.items():
         tables[key] = value.map(convert)
