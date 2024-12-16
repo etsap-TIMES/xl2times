@@ -2201,7 +2201,9 @@ def generate_topology_dictionary(
     dictionary = dict()
     pros = model.processes
     coms = model.commodities
-    pros_and_coms = tables[Tag.fi_t]
+    pros_and_coms = model.topology[["process", "commodity", "io"]].drop_duplicates()
+    i_comm_in = pros_and_coms["io"] == "IN"
+    i_comm_out = pros_and_coms["io"] == "OUT"
 
     dict_info = [
         {"key": "processes_by_name", "df": pros[["process"]], "col": "process"},
@@ -2213,12 +2215,12 @@ def generate_topology_dictionary(
         {"key": "processes_by_sets", "df": pros[["process", "sets"]], "col": "sets"},
         {
             "key": "processes_by_comm_in",
-            "df": pros_and_coms[["process", "commodity-in"]],
+            "df": pros_and_coms[["process", "commodity"]][i_comm_in],
             "col": "commodity-in",
         },
         {
             "key": "processes_by_comm_out",
-            "df": pros_and_coms[["process", "commodity-out"]],
+            "df": pros_and_coms[["process", "commodity"]][i_comm_out],
             "col": "commodity-out",
         },
         {"key": "commodities_by_name", "df": coms[["commodity"]], "col": "commodity"},
