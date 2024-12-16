@@ -2216,12 +2216,12 @@ def generate_topology_dictionary(
         {
             "key": "processes_by_comm_in",
             "df": pros_and_coms[["process", "commodity"]][i_comm_in],
-            "col": "commodity-in",
+            "col": "commodity",
         },
         {
             "key": "processes_by_comm_out",
             "df": pros_and_coms[["process", "commodity"]][i_comm_out],
-            "col": "commodity-out",
+            "col": "commodity",
         },
         {"key": "commodities_by_name", "df": coms[["commodity"]], "col": "commodity"},
         {
