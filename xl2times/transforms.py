@@ -3153,7 +3153,7 @@ def apply_final_fixup(
     # Clean up
     # TODO: Do this comprehensively for all relevant tables
     # TODO: Duplicates should only be removed if in the same file/module
-    keep_cols = [
+    keep_cols = {
         "attribute",
         "region",
         "process",
@@ -3167,11 +3167,11 @@ def apply_final_fixup(
         "sow",
         "stage",
         "module_name",
-    ]
+    }
     df.dropna(subset="value", inplace=True)
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
     df.drop(columns=drop_cols, inplace=True)
-    df = df.drop_duplicates(subset=keep_cols, keep="last")
+    df = df.drop_duplicates(subset=list(keep_cols), keep="last")
     tables[Tag.fi_t] = df.reset_index(drop=True)
 
     return tables
