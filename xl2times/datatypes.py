@@ -267,8 +267,8 @@ class TimesModel:
         """
         return self.past_years | set(self.time_periods["m"].values)
 
+    # TODO: Invalidate and recompute the below property when self.topology changes.
     @cached_property
-    # TODO: Invalidate and recompute this property when self.topology changes.
     def veda_cgs(self) -> dict[tuple[str, str, str], str]:
         """A dictionary mapping commodities to their Veda commodity groups."""
         cols = ["region", "process", "commodity", "csets"]
