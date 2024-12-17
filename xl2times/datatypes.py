@@ -294,6 +294,8 @@ class Config:
     attr_aliases: set[str]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: dict[Tag, dict[str, str]]
+    # For each tag, this dictionary maps each column name to its default value
+    column_default_value: dict[Tag, dict[str, str]]
     # For each tag, this dictionary specifies comment row symbols by column name
     row_comment_chars: dict[Tag, dict[str, list]]
     # List of tags for which empty tables should be discarded
@@ -327,11 +329,13 @@ class Config:
         self.times_sets = Config._read_times_sets(times_sets_file)
         (
             self.column_aliases,
+            self.column_default_value,
             self.row_comment_chars,
             self.discard_if_empty,
             self.query_columns,
             self.known_columns,
             self.required_columns,
+            self.forward_fill_cols,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
             veda_attr_defaults_file
@@ -493,8 +497,10 @@ class Config:
         veda_tags_file: str,
     ) -> tuple[
         dict[Tag, dict[str, str]],
+        dict[Tag, dict[str, str]],
         dict[Tag, dict[str, list]],
         Iterable[Tag],
+        dict[Tag, set[str]],
         dict[Tag, set[str]],
         dict[Tag, set[str]],
         dict[Tag, set[str]],
@@ -516,18 +522,20 @@ class Config:
                 )
 
         valid_column_names = {}
+        column_default_value = {}
         row_comment_chars = {}
         discard_if_empty = []
         query_cols = defaultdict(set)
         known_cols = defaultdict(set)
         required_cols = defaultdict(set)
+        forward_fill_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
             tag_name = to_tag(tag_info["tag_name"])
             if "valid_fields" in tag_info:
                 discard_if_empty.append(tag_name)
-
                 valid_column_names[tag_name] = {}
+                column_default_value[tag_name] = {}
                 row_comment_chars[tag_name] = {}
                 # Process column aliases and comment chars:
                 for valid_field in tag_info["valid_fields"]:
@@ -541,11 +549,19 @@ class Config:
                     else:
                         field_name = valid_field["name"]
 
+                    if "default_to" in valid_field:
+                        column_default_value[tag_name][field_name] = valid_field[
+                            "default_to"
+                        ]
+
                     if valid_field["query_field"]:
                         query_cols[tag_name].add(field_name)
 
                     if valid_field["remove_any_row_if_absent"]:
                         required_cols[tag_name].add(field_name)
+
+                    if valid_field["inherit_above"]:
+                        forward_fill_cols[tag_name].add(field_name)
 
                     known_cols[tag_name].add(field_name)
 
@@ -562,20 +578,26 @@ class Config:
                 if base_tag in valid_column_names:
                     valid_column_names[tag_name] = valid_column_names[base_tag]
                     discard_if_empty.append(tag_name)
+                if base_tag in column_default_value:
+                    column_default_value[tag_name] = column_default_value[base_tag]
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
                 if base_tag in query_cols:
                     query_cols[tag_name] = query_cols[base_tag]
                 if base_tag in known_cols:
                     known_cols[tag_name] = known_cols[base_tag]
+                if base_tag in forward_fill_cols:
+                    forward_fill_cols[tag_name] = forward_fill_cols[base_tag]
 
         return (
             valid_column_names,
+            column_default_value,
             row_comment_chars,
             discard_if_empty,
             query_cols,
             known_cols,
             required_cols,
+            forward_fill_cols,
         )
 
     @staticmethod

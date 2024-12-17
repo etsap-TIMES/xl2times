@@ -884,10 +884,19 @@ def fill_in_missing_values(
 
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
+        if config.column_default_value.get(table.tag) is not None:
+            default_values = config.column_default_value[table.tag]
+        else:
+            default_values = {}
+
         for colname in df.columns:
             # TODO make this more declarative
-            if colname in ["sets", "csets", "process"]:
+            # Forwards fill values in columns
+            if colname in config.forward_fill_cols[table.tag]:
                 df[colname] = df[colname].ffill()
+            # Apply default values to missing cells
+            if default_values.get(colname) is not None:
+                df[colname] = df[colname].fillna(default_values[colname])
             elif colname == "limtype" and table.tag == Tag.fi_comm and False:
                 isna = df[colname].isna()
                 ismat = df["csets"] == "MAT"
