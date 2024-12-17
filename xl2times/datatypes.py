@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import cached_property
 from importlib import resources
 from itertools import chain
 from pathlib import PurePath
@@ -265,6 +266,21 @@ class TimesModel:
         model (middleyears).
         """
         return self.past_years | set(self.time_periods["m"].values)
+
+    # TODO: Invalidate and recompute the below property when self.topology changes.
+    @cached_property
+    def veda_cgs(self) -> dict[tuple[str, str, str], str]:
+        """A dictionary mapping commodities to their Veda commodity groups."""
+        cols = ["region", "process", "commodity", "csets"]
+        # Exclude auxillary flows
+        index = self.topology["io"].isin({"IN", "OUT"})
+        veda_cgs = self.topology[cols + ["io"]][index].copy()
+        veda_cgs.drop_duplicates(subset=cols, keep="last", inplace=True)
+        veda_cgs["veda_cg"] = veda_cgs["csets"] + veda_cgs["io"].str[:1]
+        veda_cgs = veda_cgs.set_index(["region", "process", "commodity"])[
+            "veda_cg"
+        ].to_dict()
+        return veda_cgs
 
 
 class Config:
