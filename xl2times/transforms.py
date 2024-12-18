@@ -2168,7 +2168,7 @@ def get_matching_processes(
         if col in row.index and row[col] not in {None, ""}:
             proc_set = topology[key]
             pattern = row[col].upper()
-            filtered = filter_by_pattern(proc_set, pattern, col != "pset_pd")
+            filtered = filter_by_pattern(proc_set, pattern, True)
             matching_processes = intersect(matching_processes, filtered)
 
     if matching_processes is not None and any(matching_processes.duplicated()):
@@ -2183,7 +2183,7 @@ def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
         if col in row.index and row[col] not in {None, ""}:
             matching_commodities = intersect(
                 matching_commodities,
-                filter_by_pattern(topology[key], row[col].upper(), col != "cset_cd"),
+                filter_by_pattern(topology[key], row[col].upper(), True),
             )
     return matching_commodities
 
