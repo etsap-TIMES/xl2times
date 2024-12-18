@@ -247,17 +247,20 @@ def remove_positive_patterns(pattern: str) -> str:
     return ",".join([word[1:] for word in pattern.split(",") if word[0] == "-"])
 
 
+def remove_whitespace(pattern: str) -> str:
+    if len(pattern) == 0:
+        return pattern
+    return ",".join([word.strip() for word in pattern.split(",")])
+
+
 @functools.lru_cache(maxsize=int(1e6))
 def create_regexp(pattern: str, combined: bool = True) -> str:
-    # Distinguish comma-separated list of patterns vs a pattern with a comma(s)
-    if combined:
-        # Remove whitespaces
-        pattern = pattern.replace(" ", "")
-        # Exclude negative patterns
-        if has_negative_patterns(pattern):
-            pattern = remove_negative_patterns(pattern)
-        # Handle comma-separated values
-        pattern = pattern.replace(",", r"$|^")
+    pattern = remove_whitespace(pattern)
+    # Exclude negative patterns
+    if has_negative_patterns(pattern):
+        pattern = remove_negative_patterns(pattern)
+    # Handle comma-separated values
+    pattern = pattern.replace(",", r"$|^")
     if len(pattern) == 0:
         return r".*"  # matches everything
     # Handle substite VEDA wildcards with regex patterns
@@ -271,8 +274,7 @@ def create_regexp(pattern: str, combined: bool = True) -> str:
 
 @functools.lru_cache(maxsize=int(1e6))
 def create_negative_regexp(pattern: str) -> str:
-    # Remove whitespaces
-    pattern = pattern.replace(" ", "")
+    pattern = remove_whitespace(pattern)
     # Exclude positive patterns
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:

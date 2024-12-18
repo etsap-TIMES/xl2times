@@ -2136,22 +2136,16 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df: pd.DataFrame, pattern: str, combined: bool) -> pd.DataFrame:
+def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
     """
     Filter dataframe index by a regex pattern. Parameter combined indicates whether commas should
     be treated as a pattern separator or belong to the pattern.
     """
     # Duplicates can be created when a process has multiple commodities that match the pattern
-    df = df.filter(
-        regex=utils.create_regexp(pattern, combined), axis="index"
-    ).drop_duplicates()
-    if combined:
-        exclude = df.filter(
-            regex=utils.create_negative_regexp(pattern), axis="index"
-        ).index
-        return df.drop(exclude)
-    else:
-        return df
+    df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
+    exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
+
+    return df.drop(exclude)
 
 
 def intersect(acc, df):
@@ -2168,7 +2162,7 @@ def get_matching_processes(
         if col in row.index and row[col] not in {None, ""}:
             proc_set = topology[key]
             pattern = row[col].upper()
-            filtered = filter_by_pattern(proc_set, pattern, True)
+            filtered = filter_by_pattern(proc_set, pattern)
             matching_processes = intersect(matching_processes, filtered)
 
     if matching_processes is not None and any(matching_processes.duplicated()):
@@ -2183,7 +2177,7 @@ def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
         if col in row.index and row[col] not in {None, ""}:
             matching_commodities = intersect(
                 matching_commodities,
-                filter_by_pattern(topology[key], row[col].upper(), True),
+                filter_by_pattern(topology[key], row[col].upper()),
             )
     return matching_commodities
 
