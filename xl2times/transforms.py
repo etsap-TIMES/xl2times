@@ -953,8 +953,8 @@ def fill_in_missing_values(
         return replace(table, dataframe=df)
 
     for table in tables:
-        if table.tag == Tag.tfm_upd:
-            # Missing values in update tables are wildcards and should not be filled in
+        if table.tag in [Tag.tfm_mig, Tag.tfm_upd]:
+            # Missing values in these tables are wildcards and should not be filled in
             result.append(table)
         else:
             result.append(fill_in_missing_values_table(table))
