@@ -1204,7 +1204,7 @@ def capitalise_some_values(
     # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
 
-    colnames = ["attribute", "tact", "tcap", "unit", "sourcescen"]
+    colnames = ["attribute", "tact", "tcap", "unit", "sourcescen", "commodity"]
 
     def capitalise_attributes_table(table: EmbeddedXlTable):
         df = table.dataframe.copy()
