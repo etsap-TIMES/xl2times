@@ -884,10 +884,19 @@ def fill_in_missing_values(
 
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
+        if config.column_default_value.get(table.tag) is not None:
+            default_values = config.column_default_value[table.tag]
+        else:
+            default_values = {}
+
         for colname in df.columns:
             # TODO make this more declarative
-            if colname in ["sets", "csets", "process"]:
+            # Forwards fill values in columns
+            if colname in config.forward_fill_cols[table.tag]:
                 df[colname] = df[colname].ffill()
+            # Apply default values to missing cells
+            if default_values.get(colname) is not None:
+                df[colname] = df[colname].fillna(default_values[colname])
             elif colname == "limtype" and table.tag == Tag.fi_comm and False:
                 isna = df[colname].isna()
                 ismat = df["csets"] == "MAT"
@@ -944,8 +953,8 @@ def fill_in_missing_values(
         return replace(table, dataframe=df)
 
     for table in tables:
-        if table.tag == Tag.tfm_upd:
-            # Missing values in update tables are wildcards and should not be filled in
+        if table.tag in [Tag.tfm_mig, Tag.tfm_upd]:
+            # Missing values in these tables are wildcards and should not be filled in
             result.append(table)
         else:
             result.append(fill_in_missing_values_table(table))
@@ -1195,7 +1204,15 @@ def capitalise_some_values(
     # TODO: This should include other dimensions
     # TODO: This should be part of normalisation
 
-    colnames = ["attribute", "tact", "tcap", "unit", "sourcescen"]
+    colnames = [
+        "attribute",
+        "commodity",
+        "process",
+        "tact",
+        "tcap",
+        "unit",
+        "sourcescen",
+    ]
 
     def capitalise_attributes_table(table: EmbeddedXlTable):
         df = table.dataframe.copy()
@@ -2127,22 +2144,16 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df: pd.DataFrame, pattern: str, combined: bool) -> pd.DataFrame:
+def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
     """
     Filter dataframe index by a regex pattern. Parameter combined indicates whether commas should
     be treated as a pattern separator or belong to the pattern.
     """
     # Duplicates can be created when a process has multiple commodities that match the pattern
-    df = df.filter(
-        regex=utils.create_regexp(pattern, combined), axis="index"
-    ).drop_duplicates()
-    if combined:
-        exclude = df.filter(
-            regex=utils.create_negative_regexp(pattern), axis="index"
-        ).index
-        return df.drop(exclude)
-    else:
-        return df
+    df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
+    exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
+
+    return df.drop(exclude)
 
 
 def intersect(acc, df):
@@ -2159,7 +2170,7 @@ def get_matching_processes(
         if col in row.index and row[col] not in {None, ""}:
             proc_set = topology[key]
             pattern = row[col].upper()
-            filtered = filter_by_pattern(proc_set, pattern, col != "pset_pd")
+            filtered = filter_by_pattern(proc_set, pattern)
             matching_processes = intersect(matching_processes, filtered)
 
     if matching_processes is not None and any(matching_processes.duplicated()):
@@ -2174,7 +2185,7 @@ def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
         if col in row.index and row[col] not in {None, ""}:
             matching_commodities = intersect(
                 matching_commodities,
-                filter_by_pattern(topology[key], row[col].upper(), col != "cset_cd"),
+                filter_by_pattern(topology[key], row[col].upper()),
             )
     return matching_commodities
 
@@ -2199,7 +2210,9 @@ def generate_topology_dictionary(
     dictionary = dict()
     pros = model.processes
     coms = model.commodities
-    pros_and_coms = tables[Tag.fi_t]
+    pros_and_coms = model.topology[["process", "commodity", "io"]].drop_duplicates()
+    i_comm_in = pros_and_coms["io"] == "IN"
+    i_comm_out = pros_and_coms["io"] == "OUT"
 
     dict_info = [
         {"key": "processes_by_name", "df": pros[["process"]], "col": "process"},
@@ -2211,13 +2224,13 @@ def generate_topology_dictionary(
         {"key": "processes_by_sets", "df": pros[["process", "sets"]], "col": "sets"},
         {
             "key": "processes_by_comm_in",
-            "df": pros_and_coms[["process", "commodity-in"]],
-            "col": "commodity-in",
+            "df": pros_and_coms[["process", "commodity"]][i_comm_in],
+            "col": "commodity",
         },
         {
             "key": "processes_by_comm_out",
-            "df": pros_and_coms[["process", "commodity-out"]],
-            "col": "commodity-out",
+            "df": pros_and_coms[["process", "commodity"]][i_comm_out],
+            "col": "commodity",
         },
         {"key": "commodities_by_name", "df": coms[["commodity"]], "col": "commodity"},
         {
