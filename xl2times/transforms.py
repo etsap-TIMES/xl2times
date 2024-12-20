@@ -1207,6 +1207,8 @@ def capitalise_some_values(
     colnames = [
         "attribute",
         "commodity",
+        "commodity-in",
+        "commodity-out",
         "process",
         "tact",
         "tcap",
