@@ -1804,7 +1804,7 @@ def generate_dummy_processes(
         # TODO: Activity units below are arbitrary. Suggest Veda devs not to have any.
         dummy_processes = [
             ["IMP", "IMPNRGZ", "Dummy Import of NRG", "PJ", "", "NRG"],
-            ["IMP", "IMPMATZ", "Dummy Import of MAT", "Mt", "", "MAT"],
+            ["IMP", "IMPMATZ", "Dummy Import of MAT", "MT", "", "MAT"],
             ["IMP", "IMPDEMZ", "Dummy Import of DEM", "PJ", "", "DEM"],
         ]
 
