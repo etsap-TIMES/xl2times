@@ -1202,7 +1202,8 @@ def capitalise_table_values(
             for seen_col in seen_cols:
                 # Index of rows with string entries
                 i = df[seen_col].apply(lambda x: isinstance(x, str))
-                df.loc[i, seen_col] = df[seen_col][i].str.upper()
+                if any(i):
+                    df.loc[i, seen_col] = df[seen_col][i].str.upper()
             return replace(table, dataframe=df)
         else:
             return table
