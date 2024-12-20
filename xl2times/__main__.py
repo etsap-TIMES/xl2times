@@ -115,6 +115,7 @@ def convert_xl_to_times(
         transforms.normalize_column_aliases,
         transforms.remove_comment_rows,
         transforms.revalidate_input_tables,
+        transforms.capitalise_table_values,
         transforms.process_regions,
         transforms.process_commodities,
         transforms.process_time_periods,
@@ -135,7 +136,6 @@ def convert_xl_to_times(
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
-        transforms.capitalise_some_values,
         transforms.internalise_commodities,
         transforms.generate_commodity_groups,
         transforms.apply_fixups,
@@ -422,7 +422,7 @@ def strip_filename_prefix(table, prefix):
 
 def dump_tables(tables: list, filename: str) -> list:
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "w") as text_file:
+    with open(filename, "w", encoding="utf-8") as text_file:
         for t in tables if isinstance(tables, list) else tables.items():
             if isinstance(t, EmbeddedXlTable):
                 tag = t.tag
