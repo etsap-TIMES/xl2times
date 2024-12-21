@@ -417,7 +417,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-in-aux"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     },
@@ -585,7 +587,9 @@
     "defaults": {
       "commodity": [
         "commodity-in",
-        "commodity-in-aux"
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
       ],
       "ts-level": "ANNUAL"
     }
