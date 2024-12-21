@@ -3176,6 +3176,7 @@ def apply_final_fixup(
 
     # Control application of i/e rules from syssettings
     if not config.ie_override_in_syssettings:
+        df = df.reset_index(drop=True)
         # Remove i/e rules from syssettings if present in BASE and SubRES
         i = (df["year"] == 0) & (
             df["module_type"].isin(["base", "syssettings", "subres"])
