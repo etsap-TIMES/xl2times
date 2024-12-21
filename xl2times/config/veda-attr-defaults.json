@@ -781,6 +781,13 @@
   },
   "NCAP_AFC": {
     "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
+      ],
       "ts-level": "ANNUAL"
     }
   },
