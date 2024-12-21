@@ -619,10 +619,10 @@
   "FLO_MARK": {
     "defaults": {
       "commodity": [
-        "commodity-in",
         "commodity-out",
-        "commodity-in-aux",
-        "commodity-out-aux"
+        "commodity-in",
+        "commodity-out-aux",
+        "commodity-in-aux"
       ],
       "limtype": "UP"
     }
