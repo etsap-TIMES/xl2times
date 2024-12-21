@@ -134,7 +134,8 @@
         "query_field": false,
         "inherit_above": true,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "default_to": "NRG"
       },
       {
         "name": "ctslvl",
@@ -270,7 +271,8 @@
         "query_field": false,
         "inherit_above": true,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "default_to": "PRE"
       },
       {
         "name": "tact",
