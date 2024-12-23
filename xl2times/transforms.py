@@ -2905,7 +2905,32 @@ def assign_model_attributes(
 
     model.attributes = tables[Tag.fi_t]
     if Tag.uc_t in tables.keys():
-        model.uc_attributes = tables[Tag.uc_t]
+        df = tables[Tag.uc_t].copy()
+        # Expand timeslice levels for UC attributes that require timeslices
+        df_attrs = set(df["attribute"].unique())
+        ts_uc_attrs = {
+            attr.times_name
+            for attr in config.times_xl_maps
+            if attr.times_name in df_attrs and "TS" in attr.times_cols
+        }
+        if ts_uc_attrs:
+            index = df["attribute"].isin(ts_uc_attrs) & ~df["timeslice"].isin(
+                set(model.ts_tslvl["ts"].unique())
+            )
+            if any(index):
+                ts_list = model.ts_tslvl.groupby(["region", "tslvl"]).agg(list)
+                df["tslvl"] = df["timeslice"]
+                df.set_index(["region", "tslvl"], inplace=True)
+                df.loc[index, "timeslice"] = pd.NA
+                # Substitute entries in timeslice column with lists of timeslices
+                df.loc[index, "timeslice"] = df["timeslice"][index].fillna(
+                    ts_list["ts"].to_dict()
+                )
+                df.reset_index(inplace=True)
+                df.drop(columns="tslvl", inplace=True)
+                # Explode timeslice column
+                df = df.explode("timeslice", ignore_index=True)
+        model.uc_attributes = df
 
     return tables
 
