@@ -248,8 +248,6 @@ def remove_positive_patterns(pattern: str) -> str:
 
 
 def remove_whitespace(pattern: str) -> str:
-    if len(pattern) == 0:
-        return pattern
     return ",".join([word.strip() for word in pattern.split(",")])
 
 
