@@ -2902,25 +2902,30 @@ def assign_model_attributes(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-
+    """Assign model attributes to the model."""
     model.attributes = tables[Tag.fi_t]
+    # Also ssign UC attributes if present
     if Tag.uc_t in tables.keys():
         df = tables[Tag.uc_t].copy()
         # Expand timeslice levels for UC attributes that require timeslices
         df_attrs = set(df["attribute"].unique())
+        # Check if any UC attributes that require timeslices are present
         ts_uc_attrs = {
             attr.times_name
             for attr in config.times_xl_maps
             if attr.times_name in df_attrs and "TS" in attr.times_cols
         }
         if ts_uc_attrs:
+            # Index of rows with UC attributes that require timeslices, but don't have them
             index = df["attribute"].isin(ts_uc_attrs) & ~df["timeslice"].isin(
                 set(model.ts_tslvl["ts"].unique())
             )
             if any(index):
+                # Create a list of timeslices for each region / timeslice level combination
                 ts_list = model.ts_tslvl.groupby(["region", "tslvl"]).agg(list)
                 df["tslvl"] = df["timeslice"]
                 df.set_index(["region", "tslvl"], inplace=True)
+                # Assign NA to rows with missing timeslices
                 df.loc[index, "timeslice"] = pd.NA
                 # Substitute entries in timeslice column with lists of timeslices
                 df.loc[index, "timeslice"] = df["timeslice"][index].fillna(
