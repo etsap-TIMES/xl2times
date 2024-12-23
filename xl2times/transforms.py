@@ -1201,7 +1201,7 @@ def capitalise_table_values(
     """Ensure that all table entries are uppercase. Strip leading and trailing whitespace."""
 
     def capitalise_table_entries(table: EmbeddedXlTable):
-        df = table.dataframe.copy()
+        df = table.dataframe
         # Capitalise all entries if column type string
         colnames = df.select_dtypes(include="object").columns
         seen_cols = [colname for colname in colnames if colname in df.columns]
@@ -1210,8 +1210,7 @@ def capitalise_table_values(
                 # Index of rows with string entries
                 i = df[seen_col].apply(lambda x: isinstance(x, str))
                 if any(i):
-                    df.loc[i, seen_col] = df[seen_col][i].str.upper()
-                    df.loc[i, seen_col] = df[seen_col][i].str.strip()
+                    df.loc[i, seen_col] = df[seen_col][i].str.upper().str.strip()
             return replace(table, dataframe=df)
         else:
             return table
