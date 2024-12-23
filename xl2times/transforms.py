@@ -3171,11 +3171,32 @@ def apply_final_fixup(
         "sow",
         "stage",
         "module_name",
+        "module_type",
     }
     df.dropna(subset="value", inplace=True)
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
     df.drop(columns=drop_cols, inplace=True)
     df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+
+    # Control application of i/e rules from syssettings
+    if not config.ie_override_in_syssettings:
+        df = df.reset_index(drop=True)
+        # Remove i/e rules from syssettings if present in BASE and SubRES
+        i = (df["year"] == 0) & (
+            df["module_type"].isin(["base", "syssettings", "subres"])
+        )
+        duplicated = df[i].duplicated(
+            subset=[
+                col
+                for col in keep_cols
+                if col != "value" and col not in {"module_name", "module_type"}
+            ],
+            keep=False,
+        )
+        i = (df["module_type"] == "syssettings") & duplicated
+        if any(i):
+            df = df[~i]
+
     tables[Tag.fi_t] = df.reset_index(drop=True)
 
     return tables

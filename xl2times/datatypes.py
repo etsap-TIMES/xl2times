@@ -310,6 +310,8 @@ class Config:
     # Names of regions to include in the model; if empty, all regions are included.
     filter_regions: set[str]
     times_sets: dict[str, list[str]]
+    # Switch to prevent overwriting of I/E settings in BASE and SubRES
+    ie_override_in_syssettings: bool = False
 
     def __init__(
         self,
