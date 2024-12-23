@@ -2493,11 +2493,11 @@ def apply_transform_tables(
         # Determine the rows that won't be updated
         tables[Tag.fi_t] = _remove_invalid_rows_(
             tables[Tag.fi_t], updates, modules_with_ava
-        )
+        ).reset_index(drop=True)
         # TODO: This should happen much earlier in the process
         model.processes = _remove_invalid_rows_(
             model.processes, updates, modules_with_ava
-        )
+        ).reset_index(drop=True)
         # TODO: should be unnecessary if model.processes is updated early enough
         # Remove topology rows that are not in the processes
         model.topology = pd.merge(
@@ -2517,6 +2517,7 @@ def apply_transform_tables(
         model.commodity_groups = commodity_groups.dropna()
 
     for data_module in model.data_modules:
+        generated_records = []
         if (
             Tag.tfm_dins in tables
             and data_module in tables[Tag.tfm_dins]["module_name"].unique()
@@ -2524,8 +2525,7 @@ def apply_transform_tables(
             table = tables[Tag.fi_t]
             index = tables[Tag.tfm_dins]["module_name"] == data_module
             updates = tables[Tag.tfm_dins][index].filter(table.columns, axis=1)
-            tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
-
+            generated_records.append(updates)
         if (
             Tag.tfm_ins in tables
             and data_module in tables[Tag.tfm_ins]["module_name"].unique()
@@ -2533,7 +2533,7 @@ def apply_transform_tables(
             table = tables[Tag.fi_t]
             index = tables[Tag.tfm_ins]["module_name"] == data_module
             updates = tables[Tag.tfm_ins][index].filter(table.columns, axis=1)
-            tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
+            generated_records.append(updates)
 
         if (
             Tag.tfm_ins_txt in tables
@@ -2588,8 +2588,6 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_upd][index]
             table = tables[Tag.fi_t]
             new_tables = [table]
-            # Reset FI_T index so that queries can determine unique rows to update
-            tables[Tag.fi_t].reset_index(inplace=True, drop=True)
 
             # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
             # evaluate the update formula, and add new rows to FI_T
@@ -2640,8 +2638,7 @@ def apply_transform_tables(
                 new_rows["submodule"] = row["submodule"]
                 new_tables.append(new_rows)
 
-            # Add new rows to table
-            tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+            generated_records.append(pd.concat(new_tables, ignore_index=True))
 
         if (
             Tag.tfm_mig in tables
@@ -2703,9 +2700,16 @@ def apply_transform_tables(
                 new_rows["submodule"] = row["submodule"]
                 new_tables.append(new_rows)
 
-            # Add new rows to table
-            new_tables.append(tables[Tag.fi_t])
-            tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+            generated_records.append(pd.concat(new_tables, ignore_index=True))
+
+        if generated_records:
+            module_data = pd.concat(generated_records, ignore_index=True)
+            for col in ["process", "commodity"]:
+                if col in module_data.columns:
+                    module_data = module_data.explode(col, ignore_index=True)
+            tables[Tag.fi_t] = pd.concat(
+                [tables[Tag.fi_t], module_data], ignore_index=True
+            )
 
     return tables
 
