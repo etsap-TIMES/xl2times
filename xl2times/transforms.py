@@ -1195,38 +1195,30 @@ def complete_dictionary(
     return tables
 
 
-def capitalise_some_values(
+def capitalise_table_values(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Ensure that all attributes and units are uppercase."""
-    # TODO: This should include other dimensions
-    # TODO: This should be part of normalisation
+    """Ensure that all table entries are uppercase. Strip leading and trailing whitespace."""
 
-    colnames = [
-        "attribute",
-        "commodity",
-        "commodity-in",
-        "commodity-out",
-        "process",
-        "tact",
-        "tcap",
-        "unit",
-        "sourcescen",
-    ]
-
-    def capitalise_attributes_table(table: EmbeddedXlTable):
+    def capitalise_table_entries(table: EmbeddedXlTable):
         df = table.dataframe.copy()
+        # Capitalise all entries if column type string
+        colnames = df.select_dtypes(include="object").columns
         seen_cols = [colname for colname in colnames if colname in df.columns]
         if len(df) > 0:
             for seen_col in seen_cols:
-                df[seen_col] = df[seen_col].str.upper()
+                # Index of rows with string entries
+                i = df[seen_col].apply(lambda x: isinstance(x, str))
+                if any(i):
+                    df.loc[i, seen_col] = df[seen_col][i].str.upper()
+                    df.loc[i, seen_col] = df[seen_col][i].str.strip()
             return replace(table, dataframe=df)
         else:
             return table
 
-    return [capitalise_attributes_table(table) for table in tables]
+    return [capitalise_table_entries(table) for table in tables]
 
 
 def _populate_defaults(
@@ -1823,7 +1815,7 @@ def generate_dummy_processes(
         # TODO: Activity units below are arbitrary. Suggest Veda devs not to have any.
         dummy_processes = [
             ["IMP", "IMPNRGZ", "Dummy Import of NRG", "PJ", "", "NRG"],
-            ["IMP", "IMPMATZ", "Dummy Import of MAT", "Mt", "", "MAT"],
+            ["IMP", "IMPMATZ", "Dummy Import of MAT", "MT", "", "MAT"],
             ["IMP", "IMPDEMZ", "Dummy Import of DEM", "PJ", "", "DEM"],
         ]
 
