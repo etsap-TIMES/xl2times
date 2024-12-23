@@ -2136,10 +2136,7 @@ def process_transform_availability(
 
 
 def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
-    """
-    Filter dataframe index by a regex pattern. Parameter combined indicates whether commas should
-    be treated as a pattern separator or belong to the pattern.
-    """
+    """Filter dataframe index by a regex pattern."""
     # Duplicates can be created when a process has multiple commodities that match the pattern
     df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
     exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
