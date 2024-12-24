@@ -2507,6 +2507,13 @@ def apply_transform_tables(
             how="inner",
         )
 
+    # Create a dictionary of processes/commodities indexed by module name
+    # obj_by_module = dict()
+    process_by_module = (
+        model.processes.groupby("module_name")["process"].agg(set).to_dict()
+    )
+    # obj_by_module["commodity"] = model.commodities.groupby("module_name")["commodity"].agg(set).to_dict()
+
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
         updates = tables[Tag.tfm_comgrp].filter(table.columns, axis=1)
@@ -2704,9 +2711,19 @@ def apply_transform_tables(
 
         if generated_records:
             module_data = pd.concat(generated_records, ignore_index=True)
+            module_type = module_data["module_type"].iloc[0]
             for col in ["process", "commodity"]:
                 if col in module_data.columns:
                     module_data = module_data.explode(col, ignore_index=True)
+                    if col == "process" and module_type in {"base", "subres"}:
+                        keep = (
+                            module_data[col].isin(
+                                process_by_module.get(data_module, {})
+                            )
+                            | module_data[col].isna()
+                            | module_data[col].isin(["", None])
+                        )
+                        module_data = module_data[keep]
             tables[Tag.fi_t] = pd.concat(
                 [tables[Tag.fi_t], module_data], ignore_index=True
             )
