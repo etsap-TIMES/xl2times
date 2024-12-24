@@ -2512,6 +2512,9 @@ def apply_transform_tables(
     process_by_module = (
         model.processes.groupby("module_name")["process"].agg(set).to_dict()
     )
+    attr_with_prc = {
+        attr.times_name for attr in config.times_xl_maps if "process" in attr.xl_cols
+    }
     # obj_by_module["commodity"] = model.commodities.groupby("module_name")["commodity"].agg(set).to_dict()
 
     if Tag.tfm_comgrp in tables:
@@ -2594,7 +2597,7 @@ def apply_transform_tables(
             index = tables[Tag.tfm_upd]["module_name"] == data_module
             updates = tables[Tag.tfm_upd][index]
             table = tables[Tag.fi_t]
-            new_tables = [table]
+            new_tables = []
 
             # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
             # evaluate the update formula, and add new rows to FI_T
@@ -2716,14 +2719,11 @@ def apply_transform_tables(
                 if col in module_data.columns:
                     module_data = module_data.explode(col, ignore_index=True)
                     if col == "process" and module_type in {"base", "subres"}:
-                        keep = (
-                            module_data[col].isin(
-                                process_by_module.get(data_module, {})
-                            )
-                            | module_data[col].isna()
-                            | module_data[col].isin(["", None])
-                        )
-                        module_data = module_data[keep]
+                        drop = ~module_data[col].isin(
+                            process_by_module.get(data_module, {})
+                        ) & module_data["attribute"].isin(attr_with_prc)
+                        if any(drop):
+                            module_data = module_data[~drop]
             tables[Tag.fi_t] = pd.concat(
                 [tables[Tag.fi_t], module_data], ignore_index=True
             )
