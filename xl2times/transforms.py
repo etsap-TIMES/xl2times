@@ -1186,28 +1186,30 @@ def complete_dictionary(
     return tables
 
 
-def capitalise_some_values(
+def capitalise_table_values(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Ensure that all attributes and units are uppercase."""
-    # TODO: This should include other dimensions
-    # TODO: This should be part of normalisation
+    """Ensure that all table entries are uppercase. Strip leading and trailing whitespace."""
 
-    colnames = ["attribute", "tact", "tcap", "unit", "sourcescen"]
-
-    def capitalise_attributes_table(table: EmbeddedXlTable):
+    def capitalise_table_entries(table: EmbeddedXlTable):
         df = table.dataframe.copy()
+        # Capitalise all entries if column type string
+        colnames = df.select_dtypes(include="object").columns
         seen_cols = [colname for colname in colnames if colname in df.columns]
         if len(df) > 0:
             for seen_col in seen_cols:
-                df[seen_col] = df[seen_col].str.upper()
+                # Index of rows with string entries
+                i = df[seen_col].apply(lambda x: isinstance(x, str))
+                if any(i):
+                    df.loc[i, seen_col] = df[seen_col][i].str.upper()
+                    df.loc[i, seen_col] = df[seen_col][i].str.strip()
             return replace(table, dataframe=df)
         else:
             return table
 
-    return [capitalise_attributes_table(table) for table in tables]
+    return [capitalise_table_entries(table) for table in tables]
 
 
 def _populate_defaults(
@@ -1804,7 +1806,7 @@ def generate_dummy_processes(
         # TODO: Activity units below are arbitrary. Suggest Veda devs not to have any.
         dummy_processes = [
             ["IMP", "IMPNRGZ", "Dummy Import of NRG", "PJ", "", "NRG"],
-            ["IMP", "IMPMATZ", "Dummy Import of MAT", "Mt", "", "MAT"],
+            ["IMP", "IMPMATZ", "Dummy Import of MAT", "MT", "", "MAT"],
             ["IMP", "IMPDEMZ", "Dummy Import of DEM", "PJ", "", "DEM"],
         ]
 
@@ -3193,11 +3195,32 @@ def apply_final_fixup(
         "sow",
         "stage",
         "module_name",
+        "module_type",
     }
     df.dropna(subset="value", inplace=True)
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
     df.drop(columns=drop_cols, inplace=True)
     df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+
+    # Control application of i/e rules from syssettings
+    if not config.ie_override_in_syssettings:
+        df = df.reset_index(drop=True)
+        # Remove i/e rules from syssettings if present in BASE and SubRES
+        i = (df["year"] == 0) & (
+            df["module_type"].isin(["base", "syssettings", "subres"])
+        )
+        duplicated = df[i].duplicated(
+            subset=[
+                col
+                for col in keep_cols
+                if col != "value" and col not in {"module_name", "module_type"}
+            ],
+            keep=False,
+        )
+        i = (df["module_type"] == "syssettings") & duplicated
+        if any(i):
+            df = df[~i]
+
     tables[Tag.fi_t] = df.reset_index(drop=True)
 
     return tables
