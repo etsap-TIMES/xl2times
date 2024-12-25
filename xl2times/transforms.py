@@ -2507,15 +2507,20 @@ def apply_transform_tables(
             how="inner",
         )
 
-    # Create a dictionary of processes/commodities indexed by module name
-    # obj_by_module = dict()
+    # Create dictionaries of processes/commodities indexed by module name
     process_by_module = (
         model.processes.groupby("module_name")["process"].agg(set).to_dict()
     )
+    commodity_by_module = (
+        model.commodities.groupby("module_name")["commodity"].agg(set).to_dict()
+    )
+    # Create sets attributes that require a process/commodity index
     attr_with_prc = {
         attr.times_name for attr in config.times_xl_maps if "process" in attr.xl_cols
     }
-    # obj_by_module["commodity"] = model.commodities.groupby("module_name")["commodity"].agg(set).to_dict()
+    attr_with_com = {
+        attr.times_name for attr in config.times_xl_maps if "commodity" in attr.xl_cols
+    }
 
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
@@ -2715,15 +2720,25 @@ def apply_transform_tables(
         if generated_records:
             module_data = pd.concat(generated_records, ignore_index=True)
             module_type = module_data["module_type"].iloc[0]
-            for col in ["process", "commodity"]:
-                if col in module_data.columns:
-                    module_data = module_data.explode(col, ignore_index=True)
-                    if col == "process" and module_type in {"base", "subres"}:
-                        drop = ~module_data[col].isin(
-                            process_by_module.get(data_module, {})
-                        ) & module_data["attribute"].isin(attr_with_prc)
-                        if any(drop):
-                            module_data = module_data[~drop]
+            if "process" in module_data.columns:
+                module_data = module_data.explode("process", ignore_index=True)
+                if module_type in {"base", "subres"}:
+                    drop = ~module_data["process"].isin(
+                        process_by_module.get(data_module, set())
+                    ) & module_data["attribute"].isin(attr_with_prc)
+                    if any(drop):
+                        module_data = module_data[~drop]
+            if "commodity" in module_data.columns:
+                module_data = module_data.explode("commodity", ignore_index=True)
+                if module_type in {"base", "subres"}:
+                    valid_commodities = commodity_by_module.get(
+                        data_module, set()
+                    ).union(commodity_by_module.get("BASE", set()))
+                    drop = ~module_data["commodity"].isin(
+                        valid_commodities
+                    ) & module_data["attribute"].isin(attr_with_com)
+                    if any(drop):
+                        module_data = module_data[~drop]
             tables[Tag.fi_t] = pd.concat(
                 [tables[Tag.fi_t], module_data], ignore_index=True
             )
