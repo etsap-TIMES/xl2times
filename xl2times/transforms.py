@@ -2842,8 +2842,8 @@ def process_time_slices(
             ts_maps.drop_duplicates(keep="first", inplace=True)
             ts_maps.sort_values(by=list(ts_maps.columns), inplace=True)
 
-        model.ts_map = DataFrame(ts_maps)
-        model.ts_tslvl = DataFrame(ts_groups)
+        model.ts_map = DataFrame(ts_maps).dropna(ignore_index=True)
+        model.ts_tslvl = DataFrame(ts_groups).dropna(ignore_index=True)
 
     result = []
 
@@ -2916,23 +2916,19 @@ def assign_model_attributes(
             if attr.times_name in df_attrs and "TS" in attr.times_cols
         }
         if ts_uc_attrs:
-            # Index of rows with UC attributes that require timeslices, but don't have them
+            # Index of rows with UC attributes that require timeslices, but specify timeslice levels instead
             index = df["attribute"].isin(ts_uc_attrs) & ~df["timeslice"].isin(
                 set(model.ts_tslvl["ts"].unique())
             )
             if any(index):
                 # Create a list of timeslices for each region / timeslice level combination
-                ts_list = model.ts_tslvl.groupby(["region", "tslvl"]).agg(list)
-                df["tslvl"] = df["timeslice"]
-                df.set_index(["region", "tslvl"], inplace=True)
-                # Assign NA to rows with missing timeslices
-                df.loc[index, "timeslice"] = pd.NA
-                # Substitute entries in timeslice column with lists of timeslices
-                df.loc[index, "timeslice"] = df["timeslice"][index].fillna(
-                    ts_list["ts"].to_dict()
+                ts_list = (
+                    model.ts_tslvl.groupby(["region", "tslvl"]).agg(set).reset_index()
                 )
-                df.reset_index(inplace=True)
-                df.drop(columns="tslvl", inplace=True)
+                df["tslvl"] = df["timeslice"]
+                df = df.merge(ts_list, on=["region", "tslvl"], how="left")
+                df.loc[index, "timeslice"] = df["ts"][index]
+                df.drop(columns=["tslvl", "ts"], inplace=True)
                 # Explode timeslice column
                 df = df.explode("timeslice", ignore_index=True)
         model.uc_attributes = df
