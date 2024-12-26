@@ -93,7 +93,7 @@ def _remove_df_comment_rows(
     comment_rows = set()
 
     for colname in df.columns:
-        if colname in comment_chars.keys():
+        if colname in comment_chars:
             comment_rows.update(
                 list(
                     locate(
@@ -850,8 +850,8 @@ def fill_in_missing_values(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Attempt to fill in missing values for all tables except update tables (as these
-    contain wildcards). How the value is filled in depends on the name of the column the
+    """Attempt to fill in missing values for all tables except upd and mig tables (as these
+    query data). How the value is filled in depends on the name of the column the
     empty values belong to.
 
     Parameters
@@ -959,14 +959,18 @@ def fill_in_missing_values(
     return result
 
 
-def expand_rows(query_columns: set[str], table: EmbeddedXlTable) -> EmbeddedXlTable:
-    """Expand entries with commas into separate entries in the same column. Do this for
-    all tables except transformation update tables.
+def expand_rows(
+    query_columns: set[str], lists_columns: set[str], table: EmbeddedXlTable
+) -> EmbeddedXlTable:
+    """Expand entries with commas in lists_columns into separate entries in the same column. Do this for
+    all tables; keep entries in query_columns as lists.
 
     Parameters
     ----------
     query_columns
         List of query column names.
+    lists_columns
+        List of columns that may contain comma-separated lists.
     table
         Table in EmbeddedXlTable format.
 
@@ -976,7 +980,7 @@ def expand_rows(query_columns: set[str], table: EmbeddedXlTable) -> EmbeddedXlTa
         Table in EmbeddedXlTable format with expanded comma entries.
     """
 
-    def has_comma(s):
+    def has_comma(s) -> bool:
         return isinstance(s, str) and "," in s
 
     def split_by_commas(s):
@@ -985,19 +989,27 @@ def expand_rows(query_columns: set[str], table: EmbeddedXlTable) -> EmbeddedXlTa
         else:
             return s
 
+    # Exclude columns that have patterns
+    exclude_cols = set(process_map.keys()).union(set(commodity_map.keys()))
+    lists_columns = lists_columns - exclude_cols
     df = table.dataframe.copy()
     c = df.map(has_comma)
-    columns_with_commas = [
+    cols_to_make_lists = [
         colname
         for colname in c.columns
-        if colname not in query_columns and c[colname].any()
+        if colname in lists_columns and c[colname].any()
     ]
-    if len(columns_with_commas) > 0:
+    cols_to_explode = [
+        colname for colname in cols_to_make_lists if colname not in query_columns
+    ]
+
+    if len(cols_to_make_lists) > 0:
         # Transform comma-separated strings into lists
-        df[columns_with_commas] = df[columns_with_commas].map(split_by_commas)
-        for colname in columns_with_commas:
-            # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.explode.html#pandas.DataFrame.explode
-            df = df.explode(colname, ignore_index=True)
+        df[cols_to_make_lists] = df[cols_to_make_lists].map(split_by_commas)
+        if len(cols_to_explode) > 0:
+            for colname in cols_to_explode:
+                # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.explode.html#pandas.DataFrame.explode
+                df = df.explode(colname, ignore_index=True)
     return replace(table, dataframe=df)
 
 
@@ -2387,44 +2399,37 @@ def query(
     process: str | list | None,
     commodity: str | list | None,
     attribute: str | None,
-    region: str | None,
-    year: int | None,
-    limtype: str | None,
+    region: str | list | None,
+    year: int | list | None,
+    limtype: str | list | None,
     val: int | float | None,
-    module: str | None,
+    module: str | list | None,
 ) -> pd.Index:
+
+    query_fields = {
+        "process": process,
+        "commodity": commodity,
+        "attribute": attribute,
+        "region": region,
+        "year": year,
+        "limtype": limtype,
+        "value": val,
+        "module_name": module,
+    }
+
+    def is_missing(field):
+        return (
+            field in [None, ""] or pd.isna(field)
+            if not isinstance(field, list)
+            else pd.isna(field).all()
+        )
+
     qs = []
 
-    # special handling for commodity and process, which can be lists or arbitrary scalars
-    missing_commodity = (
-        commodity is None or pd.isna(commodity)
-        if not isinstance(commodity, list)
-        else pd.isna(commodity).all()
-    )
-    missing_process = (
-        process is None or pd.isna(process)
-        if not isinstance(process, list)
-        else pd.isna(process).all()
-    )
+    for k, v in query_fields.items():
+        if not is_missing(v):
+            qs.append(f"{k} in {v if isinstance(v, list) else [v]}")
 
-    if not missing_process:
-        qs.append(f"process in {process if isinstance(process, list) else [process]}")
-    if not missing_commodity:
-        qs.append(
-            f"commodity in {commodity if isinstance(commodity, list) else [commodity]}"
-        )
-    if attribute is not None:
-        qs.append(f"attribute == '{attribute}'")
-    if region is not None:
-        qs.append(f"region == '{region}'")
-    if year not in [None, ""]:
-        qs.append(f"year == {year}")
-    if limtype not in [None, ""]:
-        qs.append(f"limtype == '{limtype}'")
-    if val not in [None, ""]:
-        qs.append(f"value == {val}")
-    if module not in [None, ""]:
-        qs.append(f"module_name == '{module}'")
     query_str = " and ".join(qs)
     row_idx = table.query(query_str).index
     return row_idx
@@ -3285,5 +3290,11 @@ def expand_rows_parallel(
         (config.query_columns[Tag(table.tag)] if Tag.has_tag(table.tag) else set())
         for table in tables
     ]
+    lists_columns_lists = [
+        (config.lists_columns[Tag(table.tag)] if Tag.has_tag(table.tag) else set())
+        for table in tables
+    ]
     with ProcessPoolExecutor(max_workers) as executor:
-        return list(executor.map(expand_rows, query_columns_lists, tables))
+        return list(
+            executor.map(expand_rows, query_columns_lists, lists_columns_lists, tables)
+        )
