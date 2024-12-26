@@ -204,7 +204,8 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "comma-separated-list": true
       },
       {
         "name": "unit",

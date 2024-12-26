@@ -1045,7 +1045,16 @@ def remove_invalid_values(
     }
 
     # TODO: FI_T and UC_T should take into account whether a specific dimension is required
-    skip_tags = {Tag.uc_t}
+    skip_tags = {
+        Tag.tfm_ava,
+        Tag.tfm_comgrp,
+        Tag.tfm_ins,
+        Tag.tfm_ins_txt,
+        Tag.tfm_mig,
+        Tag.tfm_topins,
+        Tag.tfm_upd,
+        Tag.uc_t,
+    }
 
     def remove_table_invalid_values(
         table: EmbeddedXlTable,
@@ -1323,10 +1332,8 @@ def generate_commodity_groups(
     comm_set = model.commodities[columns].copy()
     comm_set.drop_duplicates(keep="first", inplace=True)
 
-    prc_top = utils.single_table(tables, "ProcessTopology").dataframe
-
     # Commodity groups by process, region and commodity
-    comm_groups = pd.merge(prc_top, comm_set, on=["region", "commodity"])
+    comm_groups = pd.merge(model.topology, comm_set, on=["region", "commodity"])
 
     # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)
@@ -1792,17 +1799,10 @@ def process_topology(
     )
     topology.dropna(how="any", subset=["process", "commodity"], inplace=True)
     topology.drop_duplicates(keep="first", inplace=True)
-
-    topology_table = EmbeddedXlTable(
-        tag="ProcessTopology",
-        uc_sets={},
-        sheetname="",
-        range="",
-        filename="",
-        dataframe=topology,
-    )
-
-    tables.append(topology_table)
+    # Populate region column if missing
+    topology.fillna({"region": ",".join(model.internal_regions)}, inplace=True)
+    topology["region"] = topology["region"].str.split(",")
+    model.topology = topology.explode("region", ignore_index=True)
 
     return tables
 
@@ -3115,7 +3115,7 @@ def apply_final_fixup(
 ) -> dict[str, DataFrame]:
 
     veda_process_sets = tables["VedaProcessSets"][["sets", "process"]]
-    reg_com_flows = tables["ProcessTopology"].drop(columns="io")
+    reg_com_flows = model.topology[["region", "process", "commodity"]].copy()
     reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
     df = tables[Tag.fi_t]
 
