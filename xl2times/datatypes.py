@@ -69,7 +69,7 @@ class Tag(str, Enum):
     unitconversion = "~UNITCONVERSION"
 
     @classmethod
-    def has_tag(cls, tag: "Tag") -> bool:
+    def has_tag(cls, tag: str) -> bool:
         return tag in cls._value2member_map_
 
 
