@@ -1,15 +1,12 @@
-from datetime import datetime
-
 import pandas as pd
 from pandas import DataFrame
 
-from xl2times import datatypes, transforms, utils
+from xl2times import transforms, utils
 from xl2times.transforms import (
     _count_comm_group_vectorised,
     _match_wildcards,
     _process_comm_groups_vectorised,
     commodity_map,
-    expand_rows,
     get_matching_commodities,
     get_matching_processes,
     process_map,
@@ -17,58 +14,11 @@ from xl2times.transforms import (
 
 logger = utils.get_logger()
 
-pd.set_option(
-    "display.max_rows",
-    20,
-    "display.max_columns",
-    20,
-    "display.width",
-    300,
-    "display.max_colwidth",
-    75,
-    "display.precision",
-    3,
-)
-
-
-def _match_uc_wildcards_old(
-    df: pd.DataFrame, dictionary: dict[str, pd.DataFrame]
-) -> pd.DataFrame:
-    """Old version of the process_uc_wildcards matching logic, for comparison with the
-    new vectorised version.
-
-    TODO remove this function once validated.
-    """
-
-    def make_str(df):
-        if df is not None and len(df) != 0:
-            list_from_df = df.iloc[:, 0].unique()
-            return ",".join(list_from_df)
-        else:
-            return None
-
-    df["process"] = df.apply(
-        lambda row: make_str(get_matching_processes(row, dictionary)), axis=1
-    )
-    df["commodity"] = df.apply(
-        lambda row: make_str(get_matching_commodities(row, dictionary)), axis=1
-    )
-
-    query_columns = transforms.process_map.keys() | transforms.commodity_map.keys()
-    cols_to_drop = [col for col in df.columns if col in query_columns]
-
-    df = expand_rows(
-        query_columns,
-        datatypes.EmbeddedXlTable(
-            tag="",
-            uc_sets={},
-            sheetname="",
-            range="",
-            filename="",
-            dataframe=df.drop(columns=cols_to_drop),
-        ),
-    ).dataframe
-    return df
+pd.set_option("display.max_rows", 20)
+pd.set_option("display.max_columns", 20)
+pd.set_option("display.width", 300)
+pd.set_option("display.max_colwidth", 75)
+pd.set_option("display.precision", 3)
 
 
 class TestTransforms:
@@ -91,12 +41,7 @@ class TestTransforms:
         assert df2["name"].equals(correct)
 
     def test_uc_wildcards(self):
-        """Tests logic that matches wildcards in the process_uc_wildcards transform .
-
-        Results on Ireland model:
-            Old method took 0:00:08.42 seconds
-            New method took 0:00:00.18 seconds, speedup: 46.5x
-        """
+        """Tests logic that matches wildcards in the process_uc_wildcards transform."""
         import pickle
 
         df_in = pd.read_parquet("tests/data/process_uc_wildcards_ireland_data.parquet")
@@ -104,41 +49,23 @@ class TestTransforms:
             dictionary = pickle.load(f)
         df = df_in.copy()
 
-        t0 = datetime.now()
-
-        # optimised functions
-        df_new = _match_wildcards(
+        df = _match_wildcards(
             df, process_map, dictionary, get_matching_processes, "process"
         )
-        df_new = _match_wildcards(
-            df_new, commodity_map, dictionary, get_matching_commodities, "commodity"
-        )
-
-        t1 = datetime.now()
-
-        # Unoptimised function
-        df_old = _match_uc_wildcards_old(df, dictionary)
-
-        t2 = datetime.now()
-
-        logger.info(f"Old method took {t2 - t1} seconds")
-        logger.info(
-            f"New method took {t1 - t0} seconds, speedup: {((t2 - t1) / (t1 - t0)):.1f}x"
+        df = _match_wildcards(
+            df, commodity_map, dictionary, get_matching_commodities, "commodity"
         )
 
         # unit tests
-        assert df_new is not None and not df_new.empty
+        assert df is not None and not df.empty
         assert (
-            df_new.shape[0] >= df_in.shape[0]
+            df.shape[0] >= df_in.shape[0]
         ), "should have more rows after processing uc_wildcards"
         assert (
-            df_new.shape[1] < df_in.shape[1]
+            df.shape[1] < df_in.shape[1]
         ), "should have fewer columns after processing uc_wildcards"
-        assert "process" in df_new.columns, "should have added process column"
-        assert "commodity" in df_new.columns, "should have added commodity column"
-
-        # consistency checks with old method
-        assert len(set(df_new.columns).symmetric_difference(set(df_old.columns))) == 0
+        assert "process" in df.columns, "should have added process column"
+        assert "commodity" in df.columns, "should have added commodity column"
 
     def test_generate_commodity_groups(self):
         """Tests that the _count_comm_group_vectorised function works as expected.
