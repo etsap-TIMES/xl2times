@@ -3223,6 +3223,18 @@ def apply_final_fixup(
 
     tables[Tag.fi_t] = df.reset_index(drop=True)
 
+    if Tag.uc_t in tables.keys():
+        df = tables[Tag.uc_t]
+        keep_cols.remove("year2")
+        keep_cols = keep_cols.union({"uc_n", "side"})
+        df.dropna(subset="value", inplace=True)
+        drop_cols = [
+            col for col in df.columns if col != "value" and col not in keep_cols
+        ]
+        df.drop(columns=drop_cols, inplace=True)
+        df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+        tables[Tag.uc_t] = df.reset_index(drop=True)
+
     return tables
 
 
