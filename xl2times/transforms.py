@@ -2883,8 +2883,8 @@ def process_time_slices(
             ts_maps.drop_duplicates(keep="first", inplace=True)
             ts_maps.sort_values(by=list(ts_maps.columns), inplace=True)
 
-        model.ts_map = DataFrame(ts_maps)
-        model.ts_tslvl = DataFrame(ts_groups)
+        model.ts_map = DataFrame(ts_maps).dropna(ignore_index=True)
+        model.ts_tslvl = DataFrame(ts_groups).dropna(ignore_index=True)
 
     result = []
 
@@ -2943,10 +2943,36 @@ def assign_model_attributes(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-
+    """Assign model attributes to the model."""
     model.attributes = tables[Tag.fi_t]
+    # Also ssign UC attributes if present
     if Tag.uc_t in tables.keys():
-        model.uc_attributes = tables[Tag.uc_t]
+        df = tables[Tag.uc_t].copy()
+        # Expand timeslice levels for UC attributes that require timeslices
+        df_attrs = set(df["attribute"].unique())
+        # Check if any UC attributes that require timeslices are present
+        ts_uc_attrs = {
+            attr.times_name
+            for attr in config.times_xl_maps
+            if attr.times_name in df_attrs and "TS" in attr.times_cols
+        }
+        if ts_uc_attrs:
+            # Index of rows with UC attributes that require timeslices, but specify timeslice levels instead
+            index = df["attribute"].isin(ts_uc_attrs) & ~df["timeslice"].isin(
+                set(model.ts_tslvl["ts"].unique())
+            )
+            if any(index):
+                # Create a list of timeslices for each region / timeslice level combination
+                ts_list = (
+                    model.ts_tslvl.groupby(["region", "tslvl"]).agg(set).reset_index()
+                )
+                df["tslvl"] = df["timeslice"]
+                df = df.merge(ts_list, on=["region", "tslvl"], how="left")
+                df.loc[index, "timeslice"] = df["ts"][index]
+                df.drop(columns=["tslvl", "ts"], inplace=True)
+                # Explode timeslice column
+                df = df.explode("timeslice", ignore_index=True)
+        model.uc_attributes = df
 
     return tables
 
@@ -3235,6 +3261,18 @@ def apply_final_fixup(
             df = df[~i]
 
     tables[Tag.fi_t] = df.reset_index(drop=True)
+
+    if Tag.uc_t in tables.keys():
+        df = tables[Tag.uc_t]
+        keep_cols.remove("year2")
+        keep_cols = keep_cols.union({"uc_n", "side"})
+        df.dropna(subset="value", inplace=True)
+        drop_cols = [
+            col for col in df.columns if col != "value" and col not in keep_cols
+        ]
+        df.drop(columns=drop_cols, inplace=True)
+        df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+        tables[Tag.uc_t] = df.reset_index(drop=True)
 
     return tables
 
