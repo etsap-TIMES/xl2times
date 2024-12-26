@@ -136,12 +136,12 @@ def convert_xl_to_times(
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
+        transforms.include_tables_source,
         transforms.internalise_commodities,
         transforms.generate_commodity_groups,
         transforms.apply_fixups,
         transforms.fill_in_missing_pcgs,
         transforms.generate_trade,
-        transforms.include_tables_source,
         transforms.merge_tables,
         transforms.complete_processes,
         transforms.process_units,

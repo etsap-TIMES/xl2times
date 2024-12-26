@@ -2492,11 +2492,11 @@ def apply_transform_tables(
         # Determine the rows that won't be updated
         tables[Tag.fi_t] = _remove_invalid_rows_(
             tables[Tag.fi_t], updates, modules_with_ava
-        )
+        ).reset_index(drop=True)
         # TODO: This should happen much earlier in the process
         model.processes = _remove_invalid_rows_(
             model.processes, updates, modules_with_ava
-        )
+        ).reset_index(drop=True)
         # TODO: should be unnecessary if model.processes is updated early enough
         # Remove topology rows that are not in the processes
         model.topology = pd.merge(
@@ -2505,6 +2505,28 @@ def apply_transform_tables(
             on=["region", "process"],
             how="inner",
         )
+
+    # Create a dictionary of processes/commodities indexed by module name
+    obj_by_module = dict()
+    obj_by_module["process"] = (
+        model.processes.groupby("module_name")["process"].agg(set).to_dict()
+    )
+    obj_by_module["commodity"] = (
+        model.commodities.groupby("module_name")["commodity"].agg(set).to_dict()
+    )
+    # Create a dictionary of processes/commodities available in addtion to those declared in a module
+    obj_suppl = dict()
+    obj_suppl["process"] = set()
+    obj_suppl["commodity"] = (
+        obj_by_module["commodity"]
+        .get("BASE", set())
+        .union(obj_by_module["commodity"].get("SYSSETTINGS", set()))
+    )
+    # Create sets attributes that require a process/commodity index
+    attr_with_obj = {
+        obj: {attr.times_name for attr in config.times_xl_maps if obj in attr.xl_cols}
+        for obj in ["process", "commodity"]
+    }
 
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
@@ -2516,6 +2538,7 @@ def apply_transform_tables(
         model.commodity_groups = commodity_groups.dropna()
 
     for data_module in model.data_modules:
+        generated_records = []
         if (
             Tag.tfm_dins in tables
             and data_module in tables[Tag.tfm_dins]["module_name"].unique()
@@ -2523,8 +2546,7 @@ def apply_transform_tables(
             table = tables[Tag.fi_t]
             index = tables[Tag.tfm_dins]["module_name"] == data_module
             updates = tables[Tag.tfm_dins][index].filter(table.columns, axis=1)
-            tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
-
+            generated_records.append(updates)
         if (
             Tag.tfm_ins in tables
             and data_module in tables[Tag.tfm_ins]["module_name"].unique()
@@ -2532,7 +2554,7 @@ def apply_transform_tables(
             table = tables[Tag.fi_t]
             index = tables[Tag.tfm_ins]["module_name"] == data_module
             updates = tables[Tag.tfm_ins][index].filter(table.columns, axis=1)
-            tables[Tag.fi_t] = pd.concat([table, updates], ignore_index=True)
+            generated_records.append(updates)
 
         if (
             Tag.tfm_ins_txt in tables
@@ -2586,9 +2608,7 @@ def apply_transform_tables(
             index = tables[Tag.tfm_upd]["module_name"] == data_module
             updates = tables[Tag.tfm_upd][index]
             table = tables[Tag.fi_t]
-            new_tables = [table]
-            # Reset FI_T index so that queries can determine unique rows to update
-            tables[Tag.fi_t].reset_index(inplace=True, drop=True)
+            new_tables = []
 
             # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
             # evaluate the update formula, and add new rows to FI_T
@@ -2639,8 +2659,7 @@ def apply_transform_tables(
                 new_rows["submodule"] = row["submodule"]
                 new_tables.append(new_rows)
 
-            # Add new rows to table
-            tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+            generated_records.append(pd.concat(new_tables, ignore_index=True))
 
         if (
             Tag.tfm_mig in tables
@@ -2702,9 +2721,29 @@ def apply_transform_tables(
                 new_rows["submodule"] = row["submodule"]
                 new_tables.append(new_rows)
 
-            # Add new rows to table
-            new_tables.append(tables[Tag.fi_t])
-            tables[Tag.fi_t] = pd.concat(new_tables, ignore_index=True)
+            generated_records.append(pd.concat(new_tables, ignore_index=True))
+
+        if generated_records:
+            module_data = pd.concat(generated_records, ignore_index=True)
+            module_type = module_data["module_type"].iloc[0]
+            # Explode process and commodity columns and remove invalid rows
+            for obj in ["process", "commodity"]:
+                if obj in module_data.columns:
+                    module_data = module_data.explode(obj, ignore_index=True)
+                    if module_type in {"base", "subres"}:
+                        valid_objs = (
+                            obj_by_module[obj]
+                            .get(data_module, set())
+                            .union(obj_suppl[obj])
+                        )
+                        drop = ~module_data[obj].isin(valid_objs) & module_data[
+                            "attribute"
+                        ].isin(attr_with_obj[obj])
+                        module_data = module_data[~drop]
+            if not module_data.empty:
+                tables[Tag.fi_t] = pd.concat(
+                    [tables[Tag.fi_t], module_data], ignore_index=True
+                )
 
     return tables
 
@@ -2843,8 +2882,8 @@ def process_time_slices(
             ts_maps.drop_duplicates(keep="first", inplace=True)
             ts_maps.sort_values(by=list(ts_maps.columns), inplace=True)
 
-        model.ts_map = DataFrame(ts_maps)
-        model.ts_tslvl = DataFrame(ts_groups)
+        model.ts_map = DataFrame(ts_maps).dropna(ignore_index=True)
+        model.ts_tslvl = DataFrame(ts_groups).dropna(ignore_index=True)
 
     result = []
 
@@ -2903,10 +2942,36 @@ def assign_model_attributes(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-
+    """Assign model attributes to the model."""
     model.attributes = tables[Tag.fi_t]
+    # Also ssign UC attributes if present
     if Tag.uc_t in tables.keys():
-        model.uc_attributes = tables[Tag.uc_t]
+        df = tables[Tag.uc_t].copy()
+        # Expand timeslice levels for UC attributes that require timeslices
+        df_attrs = set(df["attribute"].unique())
+        # Check if any UC attributes that require timeslices are present
+        ts_uc_attrs = {
+            attr.times_name
+            for attr in config.times_xl_maps
+            if attr.times_name in df_attrs and "TS" in attr.times_cols
+        }
+        if ts_uc_attrs:
+            # Index of rows with UC attributes that require timeslices, but specify timeslice levels instead
+            index = df["attribute"].isin(ts_uc_attrs) & ~df["timeslice"].isin(
+                set(model.ts_tslvl["ts"].unique())
+            )
+            if any(index):
+                # Create a list of timeslices for each region / timeslice level combination
+                ts_list = (
+                    model.ts_tslvl.groupby(["region", "tslvl"]).agg(set).reset_index()
+                )
+                df["tslvl"] = df["timeslice"]
+                df = df.merge(ts_list, on=["region", "tslvl"], how="left")
+                df.loc[index, "timeslice"] = df["ts"][index]
+                df.drop(columns=["tslvl", "ts"], inplace=True)
+                # Explode timeslice column
+                df = df.explode("timeslice", ignore_index=True)
+        model.uc_attributes = df
 
     return tables
 
@@ -3195,6 +3260,18 @@ def apply_final_fixup(
             df = df[~i]
 
     tables[Tag.fi_t] = df.reset_index(drop=True)
+
+    if Tag.uc_t in tables.keys():
+        df = tables[Tag.uc_t]
+        keep_cols.remove("year2")
+        keep_cols = keep_cols.union({"uc_n", "side"})
+        df.dropna(subset="value", inplace=True)
+        drop_cols = [
+            col for col in df.columns if col != "value" and col not in keep_cols
+        ]
+        df.drop(columns=drop_cols, inplace=True)
+        df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+        tables[Tag.uc_t] = df.reset_index(drop=True)
 
     return tables
 
