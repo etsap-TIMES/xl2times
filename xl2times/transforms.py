@@ -2740,11 +2740,11 @@ def apply_transform_tables(
                         drop = ~module_data[obj].isin(valid_objs) & module_data[
                             "attribute"
                         ].isin(attr_with_obj[obj])
-                        if any(drop):
-                            module_data = module_data[~drop]
-            tables[Tag.fi_t] = pd.concat(
-                [tables[Tag.fi_t], module_data], ignore_index=True
-            )
+                        module_data = module_data[~drop]
+            if not module_data.empty:
+                tables[Tag.fi_t] = pd.concat(
+                    [tables[Tag.fi_t], module_data], ignore_index=True
+                )
 
     return tables
 
