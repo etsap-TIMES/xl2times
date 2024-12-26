@@ -38,6 +38,7 @@ class Tag(str, Enum):
     milestoneyears = "~MILESTONEYEARS"
     start_year = "~STARTYEAR"
     tfm_ava = "~TFM_AVA"
+    tfm_ava_c = "~TFM_AVA-C"
     tfm_comgrp = "~TFM_COMGRP"
     tfm_csets = "~TFM_CSETS"
     tfm_dins = "~TFM_DINS"
