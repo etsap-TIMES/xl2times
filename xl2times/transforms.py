@@ -1374,12 +1374,12 @@ def generate_commodity_groups(
             subset=["region", "process", "io", "commodity", "csets", "commoditygroup"],
             keep="first",
             inplace=True,
+            ignore_index=True,
         )
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
     model.topology = comm_groups
-    print(model.topology)
 
     return tables
 
@@ -1813,7 +1813,6 @@ def process_topology(
         for col in cols_with_comma:
             topology = topology.explode(col, ignore_index=True)
     model.topology = topology
-    print(model.topology)
 
     return tables
 
@@ -2521,7 +2520,6 @@ def apply_transform_tables(
             on=["region", "process"],
             how="inner",
         )
-        print(model.topology)
 
     # Create a dictionary of processes/commodities indexed by module name
     obj_by_module = dict()
@@ -3052,7 +3050,6 @@ def fix_topology(
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
     model.topology.replace({"io": mapping}, inplace=True)
-    print(model.topology)
 
     return tables
 
