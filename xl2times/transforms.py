@@ -959,6 +959,17 @@ def fill_in_missing_values(
     return result
 
 
+def _has_comma(s) -> bool:
+    return isinstance(s, str) and "," in s
+
+
+def _split_by_commas(s):
+    if _has_comma(s):
+        return [x.strip() for x in s.split(",")]
+    else:
+        return s
+
+
 def expand_rows(
     query_columns: set[str], lists_columns: set[str], table: EmbeddedXlTable
 ) -> EmbeddedXlTable:
@@ -979,21 +990,11 @@ def expand_rows(
     EmbeddedXlTable
         Table in EmbeddedXlTable format with expanded comma entries.
     """
-
-    def has_comma(s) -> bool:
-        return isinstance(s, str) and "," in s
-
-    def split_by_commas(s):
-        if has_comma(s):
-            return [x.strip() for x in s.split(",")]
-        else:
-            return s
-
     # Exclude columns that have patterns
     exclude_cols = set(process_map.keys()).union(set(commodity_map.keys()))
     lists_columns = lists_columns - exclude_cols
     df = table.dataframe.copy()
-    c = df.map(has_comma)
+    c = df.map(_has_comma)
     cols_to_make_lists = [
         colname
         for colname in c.columns
@@ -1005,7 +1006,7 @@ def expand_rows(
 
     if len(cols_to_make_lists) > 0:
         # Transform comma-separated strings into lists
-        df[cols_to_make_lists] = df[cols_to_make_lists].map(split_by_commas)
+        df[cols_to_make_lists] = df[cols_to_make_lists].map(_split_by_commas)
         if len(cols_to_explode) > 0:
             for colname in cols_to_explode:
                 # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.explode.html#pandas.DataFrame.explode
@@ -1378,6 +1379,7 @@ def generate_commodity_groups(
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
     model.topology = comm_groups
+    print(model.topology)
 
     return tables
 
@@ -1801,8 +1803,17 @@ def process_topology(
     topology.drop_duplicates(keep="first", inplace=True)
     # Populate region column if missing
     topology.fillna({"region": ",".join(model.internal_regions)}, inplace=True)
-    topology["region"] = topology["region"].str.split(",")
-    model.topology = topology.explode("region", ignore_index=True)
+    # Check if dataframe contains entries with commas
+    df = topology.map(_has_comma)
+    cols_with_comma = [col for col in df.columns if df[col].any()]
+    if cols_with_comma:
+        # Convert entries with commas to lists
+        topology = topology.map(_split_by_commas)
+        # Explode lists to rows
+        for col in cols_with_comma:
+            topology = topology.explode(col, ignore_index=True)
+    model.topology = topology
+    print(model.topology)
 
     return tables
 
@@ -2510,6 +2521,7 @@ def apply_transform_tables(
             on=["region", "process"],
             how="inner",
         )
+        print(model.topology)
 
     # Create a dictionary of processes/commodities indexed by module name
     obj_by_module = dict()
@@ -3040,6 +3052,7 @@ def fix_topology(
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
 
     model.topology.replace({"io": mapping}, inplace=True)
+    print(model.topology)
 
     return tables
 
