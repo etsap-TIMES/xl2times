@@ -1048,11 +1048,7 @@ def remove_invalid_values(
     # TODO: FI_T and UC_T should take into account whether a specific dimension is required
     skip_tags = {
         Tag.tfm_ava,
-        Tag.tfm_comgrp,
-        Tag.tfm_ins,
-        Tag.tfm_ins_txt,
         Tag.tfm_mig,
-        Tag.tfm_topins,
         Tag.tfm_upd,
         Tag.uc_t,
     }
