@@ -38,6 +38,7 @@ class Tag(str, Enum):
     milestoneyears = "~MILESTONEYEARS"
     start_year = "~STARTYEAR"
     tfm_ava = "~TFM_AVA"
+    tfm_ava_c = "~TFM_AVA-C"
     tfm_comgrp = "~TFM_COMGRP"
     tfm_csets = "~TFM_CSETS"
     tfm_dins = "~TFM_DINS"
@@ -68,7 +69,7 @@ class Tag(str, Enum):
     unitconversion = "~UNITCONVERSION"
 
     @classmethod
-    def has_tag(cls, tag):
+    def has_tag(cls, tag: str) -> bool:
         return tag in cls._value2member_map_
 
 
@@ -305,6 +306,8 @@ class Config:
     known_columns: dict[Tag, set[str]]
     # Query columns for each tag
     query_columns: dict[Tag, set[str]]
+    # Columns that may contain lists for each tag
+    lists_columns: dict[Tag, set[str]]
     # Required columns for each tag
     required_columns: dict[Tag, set[str]]
     # Names of regions to include in the model; if empty, all regions are included.
@@ -335,6 +338,7 @@ class Config:
             self.row_comment_chars,
             self.discard_if_empty,
             self.query_columns,
+            self.lists_columns,
             self.known_columns,
             self.required_columns,
             self.forward_fill_cols,
@@ -506,6 +510,7 @@ class Config:
         dict[Tag, set[str]],
         dict[Tag, set[str]],
         dict[Tag, set[str]],
+        dict[Tag, set[str]],
     ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
@@ -528,6 +533,7 @@ class Config:
         row_comment_chars = {}
         discard_if_empty = []
         query_cols = defaultdict(set)
+        lists_cols = defaultdict(set)
         known_cols = defaultdict(set)
         required_cols = defaultdict(set)
         forward_fill_cols = defaultdict(set)
@@ -559,6 +565,12 @@ class Config:
                     if valid_field["query_field"]:
                         query_cols[tag_name].add(field_name)
 
+                    if (
+                        "comma-separated-list" in valid_field
+                        and valid_field["comma-separated-list"]
+                    ):
+                        lists_cols[tag_name].add(field_name)
+
                     if valid_field["remove_any_row_if_absent"]:
                         required_cols[tag_name].add(field_name)
 
@@ -586,6 +598,8 @@ class Config:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
                 if base_tag in query_cols:
                     query_cols[tag_name] = query_cols[base_tag]
+                if base_tag in lists_cols:
+                    lists_cols[tag_name] = lists_cols[base_tag]
                 if base_tag in known_cols:
                     known_cols[tag_name] = known_cols[base_tag]
                 if base_tag in forward_fill_cols:
@@ -597,6 +611,7 @@ class Config:
             row_comment_chars,
             discard_if_empty,
             query_cols,
+            lists_cols,
             known_cols,
             required_cols,
             forward_fill_cols,
