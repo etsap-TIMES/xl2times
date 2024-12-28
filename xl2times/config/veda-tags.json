@@ -2129,7 +2129,12 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "valid_values": [
+          "A",
+          "I",
+          "O"
+        ]
       },
       {
         "name": "ts_filter",
@@ -2961,7 +2966,12 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "valid_values": [
+          "A",
+          "I",
+          "O"
+        ]
       },
       {
         "name": "uc_n",
@@ -3953,7 +3963,12 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "valid_values": [
+          "A",
+          "I",
+          "O"
+        ]
       },
       {
         "name": "uc_n",
@@ -4555,7 +4570,14 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "valid_values": [
+          "A",
+          "I",
+          "O",
+          "NO"
+        ],
+        "default_to": "A"
       },
       {
         "name": "uc_attr",
