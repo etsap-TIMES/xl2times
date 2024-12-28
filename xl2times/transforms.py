@@ -1284,8 +1284,8 @@ def apply_fixups(
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
     def apply_fixups_table(table: EmbeddedXlTable):
-        tag = Tag.fi_t
-        if not table.tag == tag:
+        tags = [Tag.fi_t, Tag.uc_t]
+        if table.tag not in tags:
             return table
 
         df = table.dataframe.copy()
@@ -1296,7 +1296,8 @@ def apply_fixups(
 
         # Populate commodity and other_indexes based on defaults
         for col in ("commodity", "other_indexes"):
-            _populate_defaults(tag, df, col, config)
+            if col in df.columns:
+                _populate_defaults(table.tag, df, col, config)
 
         return replace(table, dataframe=df)
 
