@@ -2937,6 +2937,42 @@ def convert_aliases(
     return tables
 
 
+top_check_map = {
+    "A": {"IN", "OUT"},
+    "I": {"IN"},
+    "O": {"OUT"},
+}
+
+
+def verify_uc_topology(
+    config: Config,
+    tables: dict[str, DataFrame],
+    model: TimesModel,
+) -> dict[str, DataFrame]:
+    """Verify if region / process / commodity in UC_T are present in the topology."""
+    df = tables[Tag.uc_t].copy()
+    result = []
+    # Explode process and commodity columns
+    for col in ["process", "commodity"]:
+        df = df.explode(col, ignore_index=True)
+    cols = ["region", "process", "commodity"]
+    requested_checks = df["top_check"].unique()
+    for check in requested_checks:
+        i = df["top_check"] == check
+        if check in top_check_map:
+            topology = model.topology[cols][
+                model.topology["io"].isin(top_check_map[check])
+            ].drop_duplicates()
+            result.append(df[i].merge(topology, on=cols, how="inner"))
+
+    if result:
+        df = pd.concat(result).sort_index()
+
+    tables[Tag.uc_t] = df
+
+    return tables
+
+
 def assign_model_attributes(
     config: Config,
     tables: dict[str, DataFrame],
