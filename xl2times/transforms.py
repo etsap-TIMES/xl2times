@@ -2534,11 +2534,6 @@ def apply_transform_tables(
         .get("BASE", set())
         .union(obj_by_module["commodity"].get("SYSSETTINGS", set()))
     )
-    # Create sets attributes that require a process/commodity index
-    attr_with_obj = {
-        obj: {attr.times_name for attr in config.times_xl_maps if obj in attr.xl_cols}
-        for obj in ["process", "commodity"]
-    }
 
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
@@ -2750,7 +2745,7 @@ def apply_transform_tables(
                         )
                         drop = ~module_data[obj].isin(valid_objs) & module_data[
                             "attribute"
-                        ].isin(attr_with_obj[obj])
+                        ].isin(config.attr_by_type[obj])
                         module_data = module_data[~drop]
             if not module_data.empty:
                 tables[Tag.fi_t] = pd.concat(
@@ -2962,6 +2957,9 @@ def verify_uc_topology(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Verify if region / process / commodity in UC_T are present in the topology."""
+    if Tag.uc_t not in tables:
+        return tables
+
     df = tables[Tag.uc_t].copy()
     result = []
     # Explode process and commodity columns
@@ -2969,8 +2967,9 @@ def verify_uc_topology(
         df = df.explode(col, ignore_index=True)
     cols = ["region", "process", "commodity"]
     requested_checks = df["top_check"].unique()
+    i_verify_attrs = df["attribute"].isin(config.attr_by_type["flow"])
     for check in requested_checks:
-        i = df["top_check"] == check
+        i = (df["top_check"] == check) & i_verify_attrs
         if check in top_check_map:
             topology = model.topology[cols][
                 model.topology["io"].isin(top_check_map[check])

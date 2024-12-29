@@ -293,6 +293,8 @@ class Config:
     dd_table_order: Iterable[str]
     all_attributes: set[str]
     attr_aliases: set[str]
+    # Attribute by type
+    attr_by_type: dict[str, set[str]]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: dict[Tag, dict[str, str]]
     # For each tag, this dictionary maps each column name to its default value
@@ -329,6 +331,7 @@ class Config:
         (
             self.dd_table_order,
             self.all_attributes,
+            self.attr_by_type,
             param_mappings,
         ) = Config._process_times_info(times_info_file)
         self.times_sets = Config._read_times_sets(times_sets_file)
@@ -366,7 +369,7 @@ class Config:
     @staticmethod
     def _process_times_info(
         times_info_file: str,
-    ) -> tuple[Iterable[str], set[str], list[TimesXlMap]]:
+    ) -> tuple[Iterable[str], set[str], dict[str, set[str]], list[TimesXlMap]]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
         with resources.open_text("xl2times.config", times_info_file) as f:
@@ -388,6 +391,25 @@ class Config:
             for item in table_info
             if item["gams-cat"] == "parameter"
         }
+
+        # Determine the attributes by type
+        attr_by_type = dict()
+
+        attr_type_conditions = {
+            "commodity": {"commodity": True, "process": False},
+            "process": {"process": True, "commodity": False},
+            "flow": {"process": True, "commodity": True},
+        }
+
+        for attr_type, conditions in attr_type_conditions.items():
+            attr_by_type[attr_type] = {
+                attr["name"]
+                for attr in table_info
+                if all(
+                    (index in attr["mapping"]) is is_present
+                    for index, is_present in conditions.items()
+                )
+            }
 
         # Compute the mapping for attributes / parameters:
         def create_mapping(entity):
@@ -417,7 +439,7 @@ class Config:
             and "type" not in x  # TODO Generalise derived parameters?
         ]
 
-        return dd_table_order, attributes, param_mappings
+        return dd_table_order, attributes, attr_by_type, param_mappings
 
     @staticmethod
     def _read_mappings(filename: str) -> list[TimesXlMap]:
