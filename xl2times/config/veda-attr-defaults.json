@@ -1101,6 +1101,20 @@
       "ts-level": "ANNUAL"
     }
   },
+  "UC_IRE-E": {
+    "defaults": {
+      "other_indexes": ["EXP"],
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "UC_IRE"
+  },
+  "UC_IRE-I": {
+    "defaults": {
+      "other_indexes": ["IMP"],
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "UC_IRE"
+  },
   "UC_RHS": {
     "defaults": {
       "limtype": "UP"
