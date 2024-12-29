@@ -2968,6 +2968,7 @@ def verify_uc_topology(
     cols = ["region", "process", "commodity"]
     requested_checks = df["top_check"].unique()
     i_verify_attrs = df["attribute"].isin(config.attr_by_type["flow"])
+    checked = []
     for check in requested_checks:
         i = (df["top_check"] == check) & i_verify_attrs
         if check in top_check_map:
@@ -2975,8 +2976,12 @@ def verify_uc_topology(
                 model.topology["io"].isin(top_check_map[check])
             ].drop_duplicates()
             result.append(df[i].merge(topology, on=cols, how="inner"))
+            checked.append(i)
 
     if result:
+        i_checked = pd.concat(checked)
+        if any(~i_checked):
+            result.insert(0, df[~i_checked])
         df = pd.concat(result).sort_index()
 
     tables[Tag.uc_t] = df
