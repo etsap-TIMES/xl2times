@@ -5107,8 +5107,8 @@
     "indexes": [
       "REG",
       "YEAR",
-      "COM",
-      "COM2"
+      "COM2",
+      "COM"
     ],
     "mapping": [
       "region",
