@@ -1629,35 +1629,29 @@ def process_commodity_emissions(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
+    """Transform comemi tables to fi_t."""
     result = []
     for table in tables:
         if table.tag != Tag.comemi:
             result.append(table)
         else:
             df = table.dataframe.copy()
-            index_columns = ["region", "year", "commodity"]
+            # Remove columns that are not allowed
+            # TODO: Base this on the config file instead
+            remove_cols = ["region", "year"]
+            df.drop(columns=remove_cols, errors="ignore", inplace=True)
+
+            index_columns = ["commodity"]
             data_columns = [
                 colname for colname in df.columns if colname not in index_columns
             ]
             df, names = utils.explode(df, data_columns)
-            df.rename(columns={"value": "emcb"}, inplace=True)
+            df.rename(columns={"value": "vda_emcb"}, inplace=True)
             df["other_indexes"] = names
             df["other_indexes"] = df["other_indexes"].str.upper()
 
-            if "region" in df.columns:
-                df = df.astype({"region": "string"})
-                df["region"] = df["region"].map(
-                    lambda s: s.split(",") if isinstance(s, str) else s
-                )
-                df = df.explode("region", ignore_index=True)
-                df = df[df["region"].isin(model.internal_regions)]
-
-            nrows = df.shape[0]
-            for colname in index_columns:
-                if colname not in df.columns:
-                    df[colname] = [None] * nrows
-
-            result.append(replace(table, dataframe=df))
+            df = df.reset_index(drop=True)
+            result.append(replace(table, dataframe=df, tag=Tag.fi_t))
 
     return result
 
@@ -3090,6 +3084,22 @@ def fix_topology(
             on=["region", "process"],
             how="inner",
         )
+
+    return tables
+
+
+def generate_implied_topology(
+    config: Config,
+    tables: dict[str, DataFrame],
+    model: TimesModel,
+) -> dict[str, DataFrame]:
+    """Generate implied topology i.e., niether part of model.topology nor model.trade."""
+    check_attributes = {"FLO_EMIS", "VDA_EMCB"}
+    source = tables[Tag.fi_t].copy()
+    i = source["attribute"].isin(check_attributes)
+    if any(i):
+        # Create a dataframe with the required columns
+        source = source[i]
 
     return tables
 

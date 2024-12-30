@@ -228,6 +228,7 @@ class TimesModel:
     commodities: DataFrame = field(default_factory=DataFrame)
     commodity_groups: DataFrame = field(default_factory=DataFrame)
     topology: DataFrame = field(default_factory=DataFrame)
+    implied_topology: DataFrame = field(default_factory=DataFrame)
     trade: DataFrame = field(default_factory=DataFrame)
     attributes: DataFrame = field(default_factory=DataFrame)
     user_constraints: DataFrame = field(default_factory=DataFrame)

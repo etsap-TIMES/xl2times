@@ -5104,12 +5104,11 @@
   {
     "name": "VDA_EMCB",
     "gams-cat": "parameter",
-    "type": "special",
     "indexes": [
       "REG",
       "YEAR",
       "COM",
-      "COM"
+      "COM2"
     ],
     "mapping": [
       "region",
