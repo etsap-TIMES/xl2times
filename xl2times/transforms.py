@@ -2487,37 +2487,7 @@ def apply_transform_tables(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Include data from transformation tables."""
-    if Tag.tfm_ava in tables:
-        modules_with_ava = list(tables[Tag.tfm_ava]["module_name"].unique())
-        updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
-        # Overwrite with the last value for each process/region pair
-        updates = updates.drop_duplicates(
-            subset=[col for col in updates.columns if col != "value"], keep="last"
-        )
-        # Remove rows with zero value
-        updates = updates[~(updates["value"] == 0)]
-        # Group back processes with multiple values
-        updates = updates.groupby(
-            [col for col in updates.columns if col != "process"], as_index=False
-        ).agg({"process": list})[updates.columns]
-        # Determine the rows that won't be updated
-        tables[Tag.fi_t] = _remove_invalid_rows_(
-            tables[Tag.fi_t], updates, modules_with_ava
-        ).reset_index(drop=True)
-        # TODO: This should happen much earlier in the process
-        model.processes = _remove_invalid_rows_(
-            model.processes, updates, modules_with_ava
-        ).reset_index(drop=True)
-        # TODO: should be unnecessary if model.processes is updated early enough
-        # Remove topology rows that are not in the processes
-        model.topology = pd.merge(
-            model.topology,
-            model.processes[["region", "process"]].drop_duplicates(),
-            on=["region", "process"],
-            how="inner",
-        )
-
+    """Include data from transformation tables (excl. availability)."""
     # Create a dictionary of processes/commodities indexed by module name
     obj_by_module = dict()
     obj_by_module["process"] = (
@@ -3084,9 +3054,42 @@ def fix_topology(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
+    """Include information on process availability by region in model.topology,
+    model.processes, and the fi_t table. Remove indication of auxillary flows from
+    model.topology.
+    """
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
-
     model.topology.replace({"io": mapping}, inplace=True)
+
+    if Tag.tfm_ava in tables:
+        modules_with_ava = list(tables[Tag.tfm_ava]["module_name"].unique())
+        updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
+        # Overwrite with the last value for each process/region pair
+        updates = updates.drop_duplicates(
+            subset=[col for col in updates.columns if col != "value"], keep="last"
+        )
+        # Remove rows with zero value
+        updates = updates[~(updates["value"] == 0)]
+        # Group back processes with multiple values
+        updates = updates.groupby(
+            [col for col in updates.columns if col != "process"], as_index=False
+        ).agg({"process": list})[updates.columns]
+        # Determine the rows that won't be updated
+        tables[Tag.fi_t] = _remove_invalid_rows_(
+            tables[Tag.fi_t], updates, modules_with_ava
+        ).reset_index(drop=True)
+        # TODO: This should happen much earlier in the process
+        model.processes = _remove_invalid_rows_(
+            model.processes, updates, modules_with_ava
+        ).reset_index(drop=True)
+        # TODO: should be unnecessary if model.processes is updated early enough
+        # Remove topology rows that are not in the processes
+        model.topology = pd.merge(
+            model.topology,
+            model.processes[["region", "process"]].drop_duplicates(),
+            on=["region", "process"],
+            how="inner",
+        )
 
     return tables
 
