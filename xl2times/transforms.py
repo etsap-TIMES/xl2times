@@ -2925,6 +2925,7 @@ def verify_uc_topology(
         return tables
 
     df = tables[Tag.uc_t].copy()
+    topology = pd.concat([model.topology, model.implied_topology], ignore_index=True)
     result = []
     # Explode process and commodity columns
     for col in ["process", "commodity"]:
@@ -2936,10 +2937,10 @@ def verify_uc_topology(
     for check in requested_checks:
         i = (df["top_check"] == check) & i_verify_attrs
         if check in top_check_map:
-            topology = model.topology[cols][
-                model.topology["io"].isin(top_check_map[check])
+            specific_topology = topology[cols][
+                topology["io"].isin(top_check_map[check])
             ].drop_duplicates()
-            result.append(df[i].merge(topology, on=cols, how="inner"))
+            result.append(df[i].merge(specific_topology, on=cols, how="inner"))
             checked.append(i)
 
     if result:
@@ -3094,12 +3095,23 @@ def generate_implied_topology(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Generate implied topology i.e., niether part of model.topology nor model.trade."""
-    check_attributes = {"FLO_EMIS", "VDA_EMCB"}
-    source = tables[Tag.fi_t].copy()
-    i = source["attribute"].isin(check_attributes)
+    # Only done for FLO_EMIS at the moment and is oversimplified.
+    # TODO: Generalize for other relevant attributes and improve the logic.
+    source = tables[Tag.fi_t]
+    i = source["attribute"] == "FLO_EMIS"
     if any(i):
-        # Create a dataframe with the required columns
-        source = source[i]
+        df = source[i].copy()
+        df = df[["region", "process", "commodity"]].drop_duplicates()
+        # Only keep those commodities that are ENV
+        i_env = model.commodities["csets"] == "ENV"
+        df = df.merge(
+            model.commodities.loc[i_env, ["region", "commodity"]].drop_duplicates()
+        )
+        df["io"] = "OUT"
+        # Exclude any existing entries in model.topology
+        df = df.merge(model.topology, how="left", indicator=True)
+        df = df[["region", "process", "commodity", "io"]][df["_merge"] == "left_only"]
+        model.implied_topology = df.reset_index(drop=True)
 
     return tables
 
