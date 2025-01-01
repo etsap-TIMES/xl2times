@@ -2539,6 +2539,10 @@ def apply_transform_tables(
         obj: {attr.times_name for attr in config.times_xl_maps if obj in attr.xl_cols}
         for obj in ["process", "commodity"]
     }
+    # Create a dictionary of validd region/process and region/commodity combinations
+    obj_region = dict()
+    obj_region["process"] = model.topology[["region", "process"]].drop_duplicates()
+    obj_region["commodity"] = model.topology[["region", "commodity"]].drop_duplicates()
 
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
@@ -2752,6 +2756,16 @@ def apply_transform_tables(
                             "attribute"
                         ].isin(attr_with_obj[obj])
                         module_data = module_data[~drop]
+                    # Remove rows with invalid process/region and commodity/region combinations
+                    drop = module_data.merge(
+                        obj_region[obj], how="left", indicator=True
+                    )
+                    module_data = module_data[
+                        ~(
+                            (drop["_merge"] == "only_left")
+                            & module_data["attribute"].isin(attr_with_obj[obj])
+                        )
+                    ]
             if not module_data.empty:
                 tables[Tag.fi_t] = pd.concat(
                     [tables[Tag.fi_t], module_data], ignore_index=True
