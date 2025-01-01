@@ -2746,26 +2746,25 @@ def apply_transform_tables(
             for obj in ["process", "commodity"]:
                 if obj in module_data.columns:
                     module_data = module_data.explode(obj, ignore_index=True)
+                    # Index of rows with relevant attributes
+                    i = module_data["attribute"].isin(attr_with_obj[obj])
+                    # Create an index to control which rows to keep
+                    keep = pd.Series(True, index=module_data.index)
                     if module_type in {"base", "subres"}:
                         valid_objs = (
                             obj_by_module[obj]
                             .get(data_module, set())
                             .union(obj_suppl[obj])
                         )
-                        drop = ~module_data[obj].isin(valid_objs) & module_data[
-                            "attribute"
-                        ].isin(attr_with_obj[obj])
-                        module_data = module_data[~drop]
+                        # Rows with illegal process/commodity names in the module
+                        keep = keep & ~(~module_data[obj].isin(valid_objs) & i)
                     # Remove rows with invalid process/region and commodity/region combinations
-                    drop = module_data.merge(
+                    invalid = module_data.merge(
                         obj_region[obj], how="left", indicator=True
                     )
-                    module_data = module_data[
-                        ~(
-                            (drop["_merge"] == "only_left")
-                            & module_data["attribute"].isin(attr_with_obj[obj])
-                        )
-                    ]
+                    keep = keep & ~((invalid["_merge"] == "only_left") & i)
+                    module_data = module_data[keep]
+
             if not module_data.empty:
                 tables[Tag.fi_t] = pd.concat(
                     [tables[Tag.fi_t], module_data], ignore_index=True
