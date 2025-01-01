@@ -2541,8 +2541,10 @@ def apply_transform_tables(
     }
     # Create a dictionary of validd region/process and region/commodity combinations
     obj_region = dict()
-    obj_region["process"] = model.topology[["region", "process"]].drop_duplicates()
-    obj_region["commodity"] = model.topology[["region", "commodity"]].drop_duplicates()
+    obj_region["process"] = model.processes[["region", "process"]].drop_duplicates()
+    obj_region["commodity"] = model.commodities[
+        ["region", "commodity"]
+    ].drop_duplicates()
 
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
