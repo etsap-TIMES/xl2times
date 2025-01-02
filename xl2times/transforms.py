@@ -2744,11 +2744,6 @@ def apply_transform_tables(
         if generated_records:
             module_data = pd.concat(generated_records, ignore_index=True)
             module_type = module_data["module_type"].iloc[0]
-            # Exclude IRE_PRICE specified as COST, because commodity is populated later on
-            # TODO: Fill in commodity earlier?
-            exclude = (module_data["original_attr"] == "COST") & module_data[
-                "commodity"
-            ].isna()
             # Explode process and commodity columns and remove invalid rows
             for obj in ["process", "commodity"]:
                 module_data = module_data.explode(obj, ignore_index=True)
@@ -2756,6 +2751,8 @@ def apply_transform_tables(
                 i = module_data["attribute"].isin(attr_with_obj[obj])
                 # Create an index to control which rows to keep
                 keep = pd.Series(True, index=module_data.index)
+                # NA values, they may be populated later on
+                i_na = module_data[obj].isna()
                 if module_type in {"base", "subres"}:
                     valid_objs = (
                         obj_by_module[obj].get(data_module, set()).union(obj_suppl[obj])
@@ -2766,9 +2763,7 @@ def apply_transform_tables(
                 invalid = module_data.merge(
                     obj_region[obj], on=["region", obj], how="left", indicator=True
                 )
-                keep = keep & ~((invalid["_merge"] == "left_only") & i)
-                if obj == "commodity" and any(exclude):
-                    keep = keep | exclude
+                keep = keep & ~((invalid["_merge"] == "left_only") & i) | i_na
                 module_data = module_data[keep]
 
             if not module_data.empty:
