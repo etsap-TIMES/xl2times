@@ -2762,9 +2762,9 @@ def apply_transform_tables(
                         keep = keep & ~(~module_data[obj].isin(valid_objs) & i)
                     # Remove rows with invalid process/region and commodity/region combinations
                     invalid = module_data.merge(
-                        obj_region[obj], how="left", indicator=True
+                        obj_region[obj], on=["region", obj], how="left", indicator=True
                     )
-                    keep = keep & ~((invalid["_merge"] == "only_left") & i)
+                    keep = keep & ~((invalid["_merge"] == "left_only") & i)
                     module_data = module_data[keep]
 
             if not module_data.empty:
