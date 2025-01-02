@@ -967,7 +967,11 @@ def _split_by_commas(s):
     if _has_comma(s):
         return [x.strip() for x in s.split(",")]
     else:
-        return s
+        return _remove_empty_str(s)
+
+
+def _remove_empty_str(s):
+    return s if s != "" else pd.NA
 
 
 def expand_rows(
@@ -2425,11 +2429,7 @@ def query(
     }
 
     def is_missing(field):
-        return (
-            field in [None, ""] or pd.isna(field)
-            if not isinstance(field, list)
-            else pd.isna(field).all()
-        )
+        return pd.isna(field) if not isinstance(field, list) else pd.isna(field).all()
 
     qs = []
 
@@ -2462,7 +2462,7 @@ def _remove_invalid_rows_(
     # Index of rows that won't be checked
     index = df[~df["module_name"].isin(limit_to_modules)].index
     # Don't check rows with empty process
-    index = index.union(df[df["process"].isin(["", None])].index)
+    index = index.union(df[df["process"].isna()].index)
     # Keep only the valid process / region combinations
     for _, row in updates.iterrows():
         index = index.union(
@@ -2752,7 +2752,7 @@ def apply_transform_tables(
                 # Create an index to control which rows to keep
                 keep = pd.Series(True, index=module_data.index)
                 # NA values, they may be populated later on
-                i_na = module_data[obj].isna()
+                i_na = i & module_data[obj].isna()
                 if module_type in {"base", "subres"}:
                     valid_objs = (
                         obj_by_module[obj].get(data_module, set()).union(obj_suppl[obj])
