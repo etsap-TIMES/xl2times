@@ -2539,7 +2539,7 @@ def apply_transform_tables(
         obj: {attr.times_name for attr in config.times_xl_maps if obj in attr.xl_cols}
         for obj in ["process", "commodity"]
     }
-    # Create a dictionary of validd region/process and region/commodity combinations
+    # Create a dictionary of valid region/process and region/commodity combinations
     obj_region = dict()
     obj_region["process"] = model.processes[["region", "process"]].drop_duplicates()
     obj_region["commodity"] = model.commodities[
@@ -2749,22 +2749,22 @@ def apply_transform_tables(
                 module_data = module_data.explode(obj, ignore_index=True)
                 # Index of rows with relevant attributes
                 i = module_data["attribute"].isin(attr_with_obj[obj])
-                # Create an index to control which rows to keep
-                keep = pd.Series(True, index=module_data.index)
-                # NA values, they may be populated later on
-                i_na = i & module_data[obj].isna()
+                # Create an index to control which rows to drop
+                drop = pd.Series(False, index=module_data.index)
+                # Exclude NA values, they may be populated later on
+                i = i & module_data[obj].notna()
                 if module_type in {"base", "subres"}:
                     valid_objs = (
                         obj_by_module[obj].get(data_module, set()).union(obj_suppl[obj])
                     )
                     # Rows with illegal process/commodity names in the module
-                    keep = keep & ~(~module_data[obj].isin(valid_objs) & i)
+                    drop = drop | (~module_data[obj].isin(valid_objs) & i)
                 # Remove rows with invalid process/region and commodity/region combinations
-                invalid = module_data.merge(
+                module_data = module_data.merge(
                     obj_region[obj], on=["region", obj], how="left", indicator=True
                 )
-                keep = keep & ~((invalid["_merge"] == "left_only") & i) | i_na
-                module_data = module_data[keep]
+                drop = drop | (i & (module_data["_merge"] == "left_only"))
+                module_data = module_data[~drop].drop(columns="_merge")
 
             if not module_data.empty:
                 tables[Tag.fi_t] = pd.concat(
