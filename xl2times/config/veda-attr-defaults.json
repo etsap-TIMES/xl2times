@@ -43,11 +43,23 @@
   },
   "ACT_EFF": {
     "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ],
       "ts-level": "ANNUAL"
     }
   },
   "ACT_FLO": {
     "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
+      ],
       "ts-level": "ANNUAL"
     }
   },
@@ -869,6 +881,15 @@
   },
   "PKFLX": {
     "times-attribute": "COM_PKFLX"
+  },
+  "PRC_ACTFLO":{
+    "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ]
+    }
   },
   "PRC_FOFF": {
     "defaults": {
