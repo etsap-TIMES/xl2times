@@ -408,7 +408,10 @@ def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str
                 else:
                     fout.write(f"PARAMETER\n{tablename} ' '/\n")
                     lines = convert_parameter(tablename, df)
-                fout.writelines(sorted(lines))
+                # Sort lines to ensure consistent output, except for ALL_TS
+                if tablename != "ALL_TS":
+                    lines = sorted(lines)
+                fout.writelines(lines)
                 fout.write("\n/;\n")
     pass
 
