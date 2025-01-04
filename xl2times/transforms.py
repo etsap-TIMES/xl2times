@@ -1624,31 +1624,44 @@ def remove_fill_tables(
     return result
 
 
-def process_commodity_emissions(
+def convert_com_tables(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Transform comemi tables to fi_t."""
+    """Transform comemi and comagg tables to fi_t."""
+    convert_tags = {
+        Tag.comemi: {
+            "attribute": "vda_emcb",
+            "index_column": "commodity",
+            "other_column": "other_indexes",
+        },
+        Tag.comagg: {
+            "attribute": "com_agg",
+            "index_column": "other_indexes",
+            "other_column": "commodity",
+        },
+    }
     result = []
     for table in tables:
-        if table.tag != Tag.comemi:
+        if table.tag not in convert_tags:
             result.append(table)
         else:
+            info = convert_tags[table.tag]
+            index_column = info["index_column"]
+            other_column = info["other_column"]
             df = table.dataframe.copy()
             # Remove columns that are not allowed
             # TODO: Base this on the config file instead
             remove_cols = ["region", "year"]
             df.drop(columns=remove_cols, errors="ignore", inplace=True)
-
-            index_columns = ["commodity"]
             data_columns = [
-                colname for colname in df.columns if colname not in index_columns
+                colname for colname in df.columns if colname != index_column
             ]
             df, names = utils.explode(df, data_columns)
-            df.rename(columns={"value": "vda_emcb"}, inplace=True)
-            df["other_indexes"] = names
-            df["other_indexes"] = df["other_indexes"].str.upper()
+            df.rename(columns={"value": info["attribute"]}, inplace=True)
+            df[other_column] = names
+            df[other_column] = df[other_column].str.upper()
 
             df = df.reset_index(drop=True)
             result.append(replace(table, dataframe=df, tag=Tag.fi_t))

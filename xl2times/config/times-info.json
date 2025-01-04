@@ -775,13 +775,13 @@
       "REG",
       "YEAR",
       "COM",
-      "COM"
+      "COM2"
     ],
     "mapping": [
       "region",
       "year",
       "commodity",
-      "commodity"
+      "other_indexes"
     ]
   },
   {
