@@ -775,13 +775,13 @@
       "REG",
       "YEAR",
       "COM",
-      "COM"
+      "COM2"
     ],
     "mapping": [
       "region",
       "year",
       "commodity",
-      "commodity"
+      "other_indexes"
     ]
   },
   {
@@ -5104,11 +5104,10 @@
   {
     "name": "VDA_EMCB",
     "gams-cat": "parameter",
-    "type": "special",
     "indexes": [
       "REG",
       "YEAR",
-      "COM",
+      "COM2",
       "COM"
     ],
     "mapping": [
