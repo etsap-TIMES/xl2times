@@ -1,5 +1,12 @@
 {
   "ACT2FLO": {
+    "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ]
+    },
     "times-attribute": "PRC_ACTFLO"
   },
   "ACTBND": {
@@ -13,6 +20,13 @@
     "times-attribute": "ACT_COST"
   },
   "ACTFLO": {
+    "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ]
+    },
     "times-attribute": "PRC_ACTFLO"
   },
   "ACT_BND": {
@@ -43,11 +57,23 @@
   },
   "ACT_EFF": {
     "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ],
       "ts-level": "ANNUAL"
     }
   },
   "ACT_FLO": {
     "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
+      ],
       "ts-level": "ANNUAL"
     }
   },
@@ -235,8 +261,7 @@
     "defaults": {
       "other_indexes": [
         "commodity",
-        "commodity-in",
-        "commodity-in-aux"
+        "commodity-in"
       ],
       "ts-level": "ANNUAL"
     },
@@ -246,8 +271,7 @@
     "defaults": {
       "other_indexes": [
         "commodity",
-        "commodity-out",
-        "commodity-out-aux"
+        "commodity-out"
       ],
       "ts-level": "ANNUAL"
     },
@@ -258,9 +282,7 @@
       "other_indexes": [
         "commodity",
         "commodity-in",
-        "commodity-out",
-        "commodity-in-aux",
-        "commodity-out-aux"
+        "commodity-out"
       ],
       "ts-level": "ANNUAL"
     },
@@ -870,6 +892,15 @@
   "PKFLX": {
     "times-attribute": "COM_PKFLX"
   },
+  "PRC_ACTFLO":{
+    "defaults": {
+      "other_indexes": [
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ]
+    }
+  },
   "PRC_FOFF": {
     "defaults": {
       "ts-level": "ANNUAL"
@@ -1154,6 +1185,12 @@
     "times-attribute": "ACT_COST"
   },
   "VDA_EFF": {
+    "defaults": {
+      "other_indexes": [
+        "ACT"
+      ],
+      "ts-level": "ANNUAL"
+    },
     "times-attribute": "ACT_EFF"
   },
   "VDA_FLOP": {
