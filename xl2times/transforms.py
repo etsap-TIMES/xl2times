@@ -967,7 +967,11 @@ def _split_by_commas(s):
     if _has_comma(s):
         return [x.strip() for x in s.split(",")]
     else:
-        return s
+        return _remove_empty_str(s)
+
+
+def _remove_empty_str(s):
+    return s if s != "" else pd.NA
 
 
 def expand_rows(
@@ -1624,40 +1628,47 @@ def remove_fill_tables(
     return result
 
 
-def process_commodity_emissions(
+def convert_com_tables(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
+    """Transform comemi and comagg tables to fi_t."""
+    convert_tags = {
+        Tag.comemi: {
+            "attribute": "vda_emcb",
+            "index_column": "commodity",
+            "other_column": "other_indexes",
+        },
+        Tag.comagg: {
+            "attribute": "com_agg",
+            "index_column": "other_indexes",
+            "other_column": "commodity",
+        },
+    }
     result = []
     for table in tables:
-        if table.tag != Tag.comemi:
+        if table.tag not in convert_tags:
             result.append(table)
         else:
+            info = convert_tags[table.tag]
+            index_column = info["index_column"]
+            other_column = info["other_column"]
             df = table.dataframe.copy()
-            index_columns = ["region", "year", "commodity"]
+            # Remove columns that are not allowed
+            # TODO: Base this on the config file instead
+            remove_cols = ["region", "year"]
+            df.drop(columns=remove_cols, errors="ignore", inplace=True)
             data_columns = [
-                colname for colname in df.columns if colname not in index_columns
+                colname for colname in df.columns if colname != index_column
             ]
             df, names = utils.explode(df, data_columns)
-            df.rename(columns={"value": "emcb"}, inplace=True)
-            df["other_indexes"] = names
-            df["other_indexes"] = df["other_indexes"].str.upper()
+            df.rename(columns={"value": info["attribute"]}, inplace=True)
+            df[other_column] = names
+            df[other_column] = df[other_column].str.upper()
 
-            if "region" in df.columns:
-                df = df.astype({"region": "string"})
-                df["region"] = df["region"].map(
-                    lambda s: s.split(",") if isinstance(s, str) else s
-                )
-                df = df.explode("region", ignore_index=True)
-                df = df[df["region"].isin(model.internal_regions)]
-
-            nrows = df.shape[0]
-            for colname in index_columns:
-                if colname not in df.columns:
-                    df[colname] = [None] * nrows
-
-            result.append(replace(table, dataframe=df))
+            df = df.reset_index(drop=True)
+            result.append(replace(table, dataframe=df, tag=Tag.fi_t))
 
     return result
 
@@ -2425,11 +2436,7 @@ def query(
     }
 
     def is_missing(field):
-        return (
-            field in [None, ""] or pd.isna(field)
-            if not isinstance(field, list)
-            else pd.isna(field).all()
-        )
+        return pd.isna(field) if not isinstance(field, list) else pd.isna(field).all()
 
     qs = []
 
@@ -2462,7 +2469,7 @@ def _remove_invalid_rows_(
     # Index of rows that won't be checked
     index = df[~df["module_name"].isin(limit_to_modules)].index
     # Don't check rows with empty process
-    index = index.union(df[df["process"].isin(["", None])].index)
+    index = index.union(df[df["process"].isna()].index)
     # Keep only the valid process / region combinations
     for _, row in updates.iterrows():
         index = index.union(
@@ -2487,37 +2494,7 @@ def apply_transform_tables(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Include data from transformation tables."""
-    if Tag.tfm_ava in tables:
-        modules_with_ava = list(tables[Tag.tfm_ava]["module_name"].unique())
-        updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
-        # Overwrite with the last value for each process/region pair
-        updates = updates.drop_duplicates(
-            subset=[col for col in updates.columns if col != "value"], keep="last"
-        )
-        # Remove rows with zero value
-        updates = updates[~(updates["value"] == 0)]
-        # Group back processes with multiple values
-        updates = updates.groupby(
-            [col for col in updates.columns if col != "process"], as_index=False
-        ).agg({"process": list})[updates.columns]
-        # Determine the rows that won't be updated
-        tables[Tag.fi_t] = _remove_invalid_rows_(
-            tables[Tag.fi_t], updates, modules_with_ava
-        ).reset_index(drop=True)
-        # TODO: This should happen much earlier in the process
-        model.processes = _remove_invalid_rows_(
-            model.processes, updates, modules_with_ava
-        ).reset_index(drop=True)
-        # TODO: should be unnecessary if model.processes is updated early enough
-        # Remove topology rows that are not in the processes
-        model.topology = pd.merge(
-            model.topology,
-            model.processes[["region", "process"]].drop_duplicates(),
-            on=["region", "process"],
-            how="inner",
-        )
-
+    """Include data from transformation tables (excl. availability)."""
     # Create a dictionary of processes/commodities indexed by module name
     obj_by_module = dict()
     obj_by_module["process"] = (
@@ -2536,9 +2513,15 @@ def apply_transform_tables(
     )
     # Create sets attributes that require a process/commodity index
     attr_with_obj = {
-        obj: {attr.times_name for attr in config.times_xl_maps if obj in attr.xl_cols}
+        obj: config.attr_by_type[obj].union(config.attr_by_type["flow"])
         for obj in ["process", "commodity"]
     }
+    # Create a dictionary of valid region/process and region/commodity combinations
+    obj_region = dict()
+    obj_region["process"] = model.processes[["region", "process"]].drop_duplicates()
+    obj_region["commodity"] = model.commodities[
+        ["region", "commodity"]
+    ].drop_duplicates()
 
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
@@ -2740,18 +2723,26 @@ def apply_transform_tables(
             module_type = module_data["module_type"].iloc[0]
             # Explode process and commodity columns and remove invalid rows
             for obj in ["process", "commodity"]:
-                if obj in module_data.columns:
-                    module_data = module_data.explode(obj, ignore_index=True)
-                    if module_type in {"base", "subres"}:
-                        valid_objs = (
-                            obj_by_module[obj]
-                            .get(data_module, set())
-                            .union(obj_suppl[obj])
-                        )
-                        drop = ~module_data[obj].isin(valid_objs) & module_data[
-                            "attribute"
-                        ].isin(attr_with_obj[obj])
-                        module_data = module_data[~drop]
+                module_data = module_data.explode(obj, ignore_index=True)
+                # Index of rows with relevant attributes
+                i = module_data["attribute"].isin(attr_with_obj[obj])
+                # Create an index to control which rows to drop
+                drop = pd.Series(False, index=module_data.index)
+                # Exclude NA values, they may be populated later on
+                i = i & module_data[obj].notna()
+                if module_type in {"base", "subres"}:
+                    valid_objs = (
+                        obj_by_module[obj].get(data_module, set()).union(obj_suppl[obj])
+                    )
+                    # Rows with illegal process/commodity names in the module
+                    drop = drop | (~module_data[obj].isin(valid_objs) & i)
+                # Remove rows with invalid process/region and commodity/region combinations
+                module_data = module_data.merge(
+                    obj_region[obj], on=["region", obj], how="left", indicator=True
+                )
+                drop = drop | (i & (module_data["_merge"] == "left_only"))
+                module_data = module_data[~drop].drop(columns="_merge")
+
             if not module_data.empty:
                 tables[Tag.fi_t] = pd.concat(
                     [tables[Tag.fi_t], module_data], ignore_index=True
@@ -2949,6 +2940,52 @@ def convert_aliases(
     return tables
 
 
+top_check_map = {
+    "A": {"IN", "OUT"},
+    "I": {"IN"},
+    "O": {"OUT"},
+}
+
+
+def verify_uc_topology(
+    config: Config,
+    tables: dict[str, DataFrame],
+    model: TimesModel,
+) -> dict[str, DataFrame]:
+    """Verify if region / process / commodity in UC_T are present in the topology."""
+    if Tag.uc_t not in tables:
+        return tables
+
+    df = tables[Tag.uc_t].copy()
+    topology = pd.concat([model.topology, model.implied_topology], ignore_index=True)
+    result = []
+    # Explode process and commodity columns
+    for col in ["process", "commodity"]:
+        df = df.explode(col, ignore_index=True)
+    cols = ["region", "process", "commodity"]
+    requested_checks = df["top_check"].unique()
+    i_verify_attrs = df["attribute"].isin(config.attr_by_type["flow"])
+    checked = []
+    for check in requested_checks:
+        i = (df["top_check"] == check) & i_verify_attrs
+        if check in top_check_map:
+            specific_topology = topology[cols][
+                topology["io"].isin(top_check_map[check])
+            ].drop_duplicates()
+            result.append(df[i].merge(specific_topology, on=cols, how="inner"))
+            checked.append(i)
+
+    if result:
+        i_checked = pd.concat(checked)
+        if any(~i_checked):
+            result.insert(0, df[~i_checked])
+        df = pd.concat(result).sort_index()
+
+    tables[Tag.uc_t] = df
+
+    return tables
+
+
 def assign_model_attributes(
     config: Config,
     tables: dict[str, DataFrame],
@@ -3044,9 +3081,69 @@ def fix_topology(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
+    """Include information on process availability by region in model.topology,
+    model.processes, and the fi_t table. Remove indication of auxillary flows from
+    model.topology.
+    """
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
-
     model.topology.replace({"io": mapping}, inplace=True)
+
+    if Tag.tfm_ava in tables:
+        modules_with_ava = list(tables[Tag.tfm_ava]["module_name"].unique())
+        updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
+        # Overwrite with the last value for each process/region pair
+        updates = updates.drop_duplicates(
+            subset=[col for col in updates.columns if col != "value"], keep="last"
+        )
+        # Remove rows with zero value
+        updates = updates[~(updates["value"] == 0)]
+        # Group back processes with multiple values
+        updates = updates.groupby(
+            [col for col in updates.columns if col != "process"], as_index=False
+        ).agg({"process": list})[updates.columns]
+        # Determine the rows that won't be updated
+        tables[Tag.fi_t] = _remove_invalid_rows_(
+            tables[Tag.fi_t], updates, modules_with_ava
+        ).reset_index(drop=True)
+        # TODO: This should happen much earlier in the process
+        model.processes = _remove_invalid_rows_(
+            model.processes, updates, modules_with_ava
+        ).reset_index(drop=True)
+        # TODO: should be unnecessary if model.processes is updated early enough
+        # Remove topology rows that are not in the processes
+        model.topology = pd.merge(
+            model.topology,
+            model.processes[["region", "process"]].drop_duplicates(),
+            on=["region", "process"],
+            how="inner",
+        )
+
+    return tables
+
+
+def generate_implied_topology(
+    config: Config,
+    tables: dict[str, DataFrame],
+    model: TimesModel,
+) -> dict[str, DataFrame]:
+    """Generate implied topology i.e., niether part of model.topology nor model.trade."""
+    # Only done for FLO_EMIS at the moment and is oversimplified.
+    # TODO: Generalize for other relevant attributes and improve the logic.
+    source = tables[Tag.fi_t]
+    i = source["attribute"] == "FLO_EMIS"
+    if any(i):
+        df = source[i].copy()
+        df = df[["region", "process", "commodity"]].drop_duplicates()
+        # Only keep those commodities that are ENV
+        i_env = model.commodities["csets"] == "ENV"
+        df = df.merge(
+            model.commodities.loc[i_env, ["region", "commodity"]].drop_duplicates()
+        )
+        df["io"] = "OUT"
+        # Exclude any existing entries in model.topology
+        df = df.merge(model.topology, how="left", indicator=True)
+        df = df[["region", "process", "commodity", "io"]][df["_merge"] == "left_only"]
+        model.implied_topology = df.reset_index(drop=True)
 
     return tables
 
@@ -3158,7 +3255,7 @@ def apply_final_fixup(
                 subst_df.set_index("process")["sets"].replace(cost_mapping).to_dict()
             )
 
-    # Use CommName to store the active commodity for EXP / IMP
+    # Use Commodity to store the active commodity for EXP / IMP
     index = df["original_attr"].isin({"COST", "IRE_PRICE"})
     if any(index):
         i_exp = index & (df["other_indexes"] == "EXP")
@@ -3166,7 +3263,7 @@ def apply_final_fixup(
         i_imp = index & (df["other_indexes"] == "IMP")
         df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
 
-    # Fill CommName for COST (alias of IRE_PRICE) if missing
+    # Fill Commodity for COST (alias of IRE_PRICE) if missing
     i_com_na = (df["original_attr"] == "COST") & df["commodity"].isna()
     if any(i_com_na):
         comm_rp = reg_com_flows.groupby(["region", "process"]).agg(set)
