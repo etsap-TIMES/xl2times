@@ -967,7 +967,11 @@ def _split_by_commas(s):
     if _has_comma(s):
         return [x.strip() for x in s.split(",")]
     else:
-        return s
+        return _remove_empty_str(s)
+
+
+def _remove_empty_str(s):
+    return s if s != "" else pd.NA
 
 
 def expand_rows(
@@ -2432,11 +2436,7 @@ def query(
     }
 
     def is_missing(field):
-        return (
-            field in [None, ""] or pd.isna(field)
-            if not isinstance(field, list)
-            else pd.isna(field).all()
-        )
+        return pd.isna(field) if not isinstance(field, list) else pd.isna(field).all()
 
     qs = []
 
@@ -2469,7 +2469,7 @@ def _remove_invalid_rows_(
     # Index of rows that won't be checked
     index = df[~df["module_name"].isin(limit_to_modules)].index
     # Don't check rows with empty process
-    index = index.union(df[df["process"].isin(["", None])].index)
+    index = index.union(df[df["process"].isna()].index)
     # Keep only the valid process / region combinations
     for _, row in updates.iterrows():
         index = index.union(
@@ -2511,6 +2511,17 @@ def apply_transform_tables(
         .get("BASE", set())
         .union(obj_by_module["commodity"].get("SYSSETTINGS", set()))
     )
+    # Create sets attributes that require a process/commodity index
+    attr_with_obj = {
+        obj: config.attr_by_type[obj].union(config.attr_by_type["flow"])
+        for obj in ["process", "commodity"]
+    }
+    # Create a dictionary of valid region/process and region/commodity combinations
+    obj_region = dict()
+    obj_region["process"] = model.processes[["region", "process"]].drop_duplicates()
+    obj_region["commodity"] = model.commodities[
+        ["region", "commodity"]
+    ].drop_duplicates()
 
     if Tag.tfm_comgrp in tables:
         table = model.commodity_groups
@@ -2712,18 +2723,26 @@ def apply_transform_tables(
             module_type = module_data["module_type"].iloc[0]
             # Explode process and commodity columns and remove invalid rows
             for obj in ["process", "commodity"]:
-                if obj in module_data.columns:
-                    module_data = module_data.explode(obj, ignore_index=True)
-                    if module_type in {"base", "subres"}:
-                        valid_objs = (
-                            obj_by_module[obj]
-                            .get(data_module, set())
-                            .union(obj_suppl[obj])
-                        )
-                        drop = ~module_data[obj].isin(valid_objs) & module_data[
-                            "attribute"
-                        ].isin(config.attr_by_type[obj])
-                        module_data = module_data[~drop]
+                module_data = module_data.explode(obj, ignore_index=True)
+                # Index of rows with relevant attributes
+                i = module_data["attribute"].isin(attr_with_obj[obj])
+                # Create an index to control which rows to drop
+                drop = pd.Series(False, index=module_data.index)
+                # Exclude NA values, they may be populated later on
+                i = i & module_data[obj].notna()
+                if module_type in {"base", "subres"}:
+                    valid_objs = (
+                        obj_by_module[obj].get(data_module, set()).union(obj_suppl[obj])
+                    )
+                    # Rows with illegal process/commodity names in the module
+                    drop = drop | (~module_data[obj].isin(valid_objs) & i)
+                # Remove rows with invalid process/region and commodity/region combinations
+                module_data = module_data.merge(
+                    obj_region[obj], on=["region", obj], how="left", indicator=True
+                )
+                drop = drop | (i & (module_data["_merge"] == "left_only"))
+                module_data = module_data[~drop].drop(columns="_merge")
+
             if not module_data.empty:
                 tables[Tag.fi_t] = pd.concat(
                     [tables[Tag.fi_t], module_data], ignore_index=True
@@ -3236,7 +3255,7 @@ def apply_final_fixup(
                 subst_df.set_index("process")["sets"].replace(cost_mapping).to_dict()
             )
 
-    # Use CommName to store the active commodity for EXP / IMP
+    # Use Commodity to store the active commodity for EXP / IMP
     index = df["original_attr"].isin({"COST", "IRE_PRICE"})
     if any(index):
         i_exp = index & (df["other_indexes"] == "EXP")
@@ -3244,7 +3263,7 @@ def apply_final_fixup(
         i_imp = index & (df["other_indexes"] == "IMP")
         df.loc[i_imp, "commodity"] = df.loc[i_imp, "commodity-out"]
 
-    # Fill CommName for COST (alias of IRE_PRICE) if missing
+    # Fill Commodity for COST (alias of IRE_PRICE) if missing
     i_com_na = (df["original_attr"] == "COST") & df["commodity"].isna()
     if any(i_com_na):
         comm_rp = reg_com_flows.groupby(["region", "process"]).agg(set)
