@@ -34,6 +34,30 @@
     ]
   },
   {
+    "tag_name": "comagg",
+    "tag_allowed_in": [
+      "BY",
+      "SubRES"
+    ],
+    "valid_fields": [
+      {
+        "name": "commname",
+        "aliases": [
+          "commodity"
+        ],
+        "use_name": "other_indexes",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "query_field": false,
+        "inherit_above": false,
+        "remove_first_row_if_absent": false,
+        "remove_any_row_if_absent": true
+      }
+    ]
+  },
+  {
     "tag_name": "comemi",
     "tag_allowed_in": [
       "BY",
@@ -53,7 +77,7 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": true
       }
     ]
   },
@@ -2160,7 +2184,12 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "valid_values": [
+          "A",
+          "I",
+          "O"
+        ]
       },
       {
         "name": "ts_filter",
@@ -3016,7 +3045,12 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "valid_values": [
+          "A",
+          "I",
+          "O"
+        ]
       },
       {
         "name": "uc_n",
@@ -4031,7 +4065,12 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "valid_values": [
+          "A",
+          "I",
+          "O"
+        ]
       },
       {
         "name": "uc_n",
@@ -4644,7 +4683,14 @@
         "query_field": false,
         "inherit_above": false,
         "remove_first_row_if_absent": false,
-        "remove_any_row_if_absent": false
+        "remove_any_row_if_absent": false,
+        "valid_values": [
+          "A",
+          "I",
+          "O",
+          "NO"
+        ],
+        "default_to": "A"
       },
       {
         "name": "uc_attr",
