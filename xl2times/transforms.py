@@ -1862,8 +1862,7 @@ def generate_dummy_processes(
         )
 
         process_data_specs = process_declarations[["process", "description"]].copy()
-        # Use this as default activity cost for dummy processes
-        # TODO: Should this be included in settings instead?
+        # Provide an empty value in case an upd table is used to provide data
         process_data_specs["ACTCOST"] = ""
 
         tables.append(
