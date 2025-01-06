@@ -2438,11 +2438,11 @@ def query(
     def is_missing(field):
         return pd.isna(field) if not isinstance(field, list) else pd.isna(field).all()
 
-    qs = []
-
-    for k, v in query_fields.items():
-        if not is_missing(v):
-            qs.append(f"{k} in {v if isinstance(v, list) else [v]}")
+    qs = [
+        f"{k} in {v if isinstance(v, list) else [v]}"
+        for k, v in query_fields.items()
+        if not is_missing(v)
+    ]
 
     query_str = " and ".join(qs)
     row_idx = table.query(query_str).index
@@ -2454,6 +2454,10 @@ def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) 
     which can be a update formula like `*2.3`.
     """
     if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
+        if "year" in table.columns:
+            rows_to_update = rows_to_update.intersection(
+                table.index[table["year"] != 0]
+            )
         old_values = table.loc[rows_to_update, "value"]
         updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
         table.loc[rows_to_update, "value"] = updated
