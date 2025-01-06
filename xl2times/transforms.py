@@ -2454,6 +2454,7 @@ def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) 
     which can be a update formula like `*2.3`.
     """
     if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
+        # Do not perform arithmetic operations on rows with i/e options
         if "year" in table.columns:
             rows_to_update = rows_to_update.intersection(
                 table.index[table["year"] != 0]
