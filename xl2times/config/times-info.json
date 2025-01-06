@@ -3295,11 +3295,11 @@
     "indexes": [
       "REG",
       "PRC",
-      "PRC"
+      "PRC2"
     ],
     "mapping": [
       "region",
-      "process",
+      "other_indexes",
       "process"
     ]
   },
