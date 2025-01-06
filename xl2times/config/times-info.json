@@ -2017,14 +2017,14 @@
     "indexes": [
       "ALL_R",
       "COM",
-      "ALL_R",
-      "COM"
+      "REG2",
+      "COM2"
     ],
     "mapping": [
       "region",
       "commodity",
-      "region",
-      "commodity"
+      "region2",
+      "commodity2"
     ]
   },
   {
@@ -2035,18 +2035,18 @@
       "YEAR",
       "PRC",
       "COM",
-      "ALL_R",
-      "COM",
-      "TS"
+      "REG2",
+      "COM2",
+      "TS2"
     ],
     "mapping": [
       "region",
       "year",
       "process",
       "commodity",
-      "region",
-      "commodity",
-      "timeslice"
+      "region2",
+      "commodity2",
+      "timeslice2"
     ]
   },
   {
@@ -2059,7 +2059,7 @@
       "COM",
       "TS",
       "IE",
-      "COM",
+      "COM2",
       "IO"
     ],
     "mapping": [
@@ -2069,7 +2069,7 @@
       "commodity",
       "timeslice",
       "other_indexes",
-      "commodity",
+      "commodity2",
       "other_indexes"
     ]
   },
