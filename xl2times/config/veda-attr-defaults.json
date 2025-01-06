@@ -889,7 +889,16 @@
     },
     "times-attribute": "NCAP_PKCNT"
   },
+  "PEAK(CON)": {
+    "defaults": {
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "NCAP_PKCNT"
+  },
   "PKCNT": {
+    "defaults": {
+      "ts-level": "ANNUAL"
+    },
     "times-attribute": "NCAP_PKCNT"
   },
   "PKCOI": {
