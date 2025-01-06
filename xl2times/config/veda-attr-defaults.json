@@ -646,6 +646,12 @@
   },
   "FLO_FUNC": {
     "defaults": {
+      "commodity": [
+        "commodity-in",
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
+      ],
       "ts-level": "ANNUAL"
     }
   },

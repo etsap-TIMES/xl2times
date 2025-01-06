@@ -1619,7 +1619,7 @@
       "YEAR",
       "PRC",
       "CG",
-      "CG",
+      "CG2",
       "TS"
     ],
     "mapping": [
@@ -1627,7 +1627,7 @@
       "year",
       "process",
       "other_indexes",
-      "other_indexes",
+      "commodity",
       "timeslice"
     ]
   },
