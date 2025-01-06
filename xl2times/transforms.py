@@ -2017,6 +2017,8 @@ def process_transform_table_variants(
                 value_name="value",
                 ignore_index=False,
             )
+            # Convert the attribute column to uppercase
+            df["attribute"] = df["attribute"].str.upper()
             result.append(
                 replace(table, dataframe=df, tag=Tag(tag.value.split("-")[0]))
             )
