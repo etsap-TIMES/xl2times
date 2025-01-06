@@ -1829,7 +1829,6 @@ def generate_dummy_processes(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
-    include_dummy_processes=True,
 ) -> list[EmbeddedXlTable]:
     """Define dummy processes and specify default cost data for them to ensure that a
     TIMES model can always be solved.
@@ -1838,7 +1837,7 @@ def generate_dummy_processes(
     Significant cost is usually associated with the activity of these processes to
     ensure that they are used as a last resort
     """
-    if include_dummy_processes:
+    if config.include_dummy_imports:
         # TODO: Activity units below are arbitrary. Suggest Veda devs not to have any.
         dummy_processes = [
             ["IMP", "IMPNRGZ", "Dummy Import of NRG", "PJ", "", "NRG"],
@@ -1865,7 +1864,7 @@ def generate_dummy_processes(
         process_data_specs = process_declarations[["process", "description"]].copy()
         # Use this as default activity cost for dummy processes
         # TODO: Should this be included in settings instead?
-        process_data_specs["ACTCOST"] = 1111
+        process_data_specs["ACTCOST"] = ""
 
         tables.append(
             EmbeddedXlTable(
