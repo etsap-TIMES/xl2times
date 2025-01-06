@@ -885,6 +885,7 @@ def fill_in_missing_values(
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
         default_values = config.column_default_value.get(table.tag, {})
+        mapping_to_defaults = {"limtype": "limtype", "timeslice": "tslvl"}
 
         for colname in df.columns:
             # TODO make this more declarative
@@ -900,30 +901,18 @@ def fill_in_missing_values(
                 ismat = df["csets"] == "MAT"
                 df.loc[isna & ismat, colname] = "FX"
                 df.loc[isna & ~ismat, colname] = "LO"
-            elif (
-                colname == "limtype"
-                and (table.tag == Tag.fi_t or table.tag.startswith("~TFM"))
-                and len(df) > 0
-            ):
+            elif colname in {"limtype", "timeslice"} and "attribute" in df.columns:
                 isna = df[colname].isna()
-                for lim in config.veda_attr_defaults["limtype"].keys():
-                    df.loc[
-                        isna
-                        & df["attribute"]
-                        .str.upper()
-                        .isin(config.veda_attr_defaults["limtype"][lim]),
-                        colname,
-                    ] = lim
-            elif colname == "timeslice" and len(df) > 0 and "attribute" in df.columns:
-                isna = df[colname].isna()
-                for timeslice in config.veda_attr_defaults["tslvl"].keys():
-                    df.loc[
-                        isna
-                        & df["attribute"]
-                        .str.upper()
-                        .isin(config.veda_attr_defaults["tslvl"][timeslice]),
-                        colname,
-                    ] = timeslice
+                if any(isna):
+                    key = mapping_to_defaults[colname]
+                    for value in config.veda_attr_defaults[key].keys():
+                        df.loc[
+                            isna
+                            & df["attribute"].isin(
+                                config.veda_attr_defaults[key][value]
+                            ),
+                            colname,
+                        ] = value
             elif (
                 colname == "tslvl" and table.tag == Tag.fi_process
             ):  # or colname == "CTSLvl" or colname == "PeakTS":
