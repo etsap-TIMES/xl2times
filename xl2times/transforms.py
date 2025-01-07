@@ -3082,6 +3082,14 @@ def fix_topology(
     if Tag.tfm_ava in tables:
         modules_with_ava = list(tables[Tag.tfm_ava]["module_name"].unique())
         updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
+        # Ensure valid combinations of process / module_name
+        updates = updates.merge(
+            model.processes[["process", "module_name"]].drop_duplicates(),
+            how="inner",
+            on=["process", "module_name"],
+        )
+        # Update tfm_ava
+        tables[Tag.tfm_ava] = updates
         # Overwrite with the last value for each process/region pair
         updates = updates.drop_duplicates(
             subset=[col for col in updates.columns if col != "value"], keep="last"
