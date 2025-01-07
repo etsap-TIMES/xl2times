@@ -2154,7 +2154,7 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
+def filter_by_pattern(df: pd.Series, pattern: str) -> pd.Series:
     """Filter dataframe index by a regex pattern."""
     # Duplicates can be created when a process has multiple commodities that match the pattern
     df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
@@ -2163,18 +2163,18 @@ def filter_by_pattern(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
     return df.drop(exclude)
 
 
-def intersect(acc, df):
+def intersect(acc: pd.Series | None, df: pd.Series) -> pd.Series | None:
     if acc is None:
         return df
     return acc.merge(df)
 
 
 def get_matching_processes(
-    row: pd.Series, topology: dict[str, DataFrame]
+    row: pd.Series, topology: dict[str, pd.Series]
 ) -> pd.Series | None:
     matching_processes = None
     for col, key in process_map.items():
-        if col in row.index and row[col] not in {None, ""}:
+        if col in row.index and pd.notna(row[col]):
             proc_set = topology[key]
             pattern = row[col].upper()
             filtered = filter_by_pattern(proc_set, pattern)
@@ -2186,10 +2186,12 @@ def get_matching_processes(
     return matching_processes
 
 
-def get_matching_commodities(row: pd.Series, topology: dict[str, DataFrame]):
+def get_matching_commodities(
+    row: pd.Series, topology: dict[str, pd.Series]
+) -> pd.Series | None:
     matching_commodities = None
     for col, key in commodity_map.items():
-        if col in row.index and row[col] not in {None, ""}:
+        if col in row.index and pd.notna(row[col]):
             matching_commodities = intersect(
                 matching_commodities,
                 filter_by_pattern(topology[key], row[col].upper()),
@@ -2210,7 +2212,7 @@ def df_indexed_by_col(df, col):
 
 def generate_topology_dictionary(
     tables: dict[str, DataFrame], model: TimesModel
-) -> dict[str, DataFrame]:
+) -> dict[str, pd.Series]:
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
 
@@ -2315,7 +2317,7 @@ def process_wildcards(
 def _match_wildcards(
     df: pd.DataFrame,
     col_map: dict[str, str],
-    dictionary: dict[str, pd.DataFrame],
+    dictionary: dict[str, pd.Series],
     matcher: Callable,
     result_col: str,
     explode: bool = False,
@@ -2351,12 +2353,7 @@ def _match_wildcards(
     # match all the wildcards columns against the dictionary names
     matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
 
-    # we occasionally get a Dataframe back from  the matchers.  convert these to Series.
-    matches = (
-        matches.iloc[:, 0].to_list()
-        if isinstance(matches, pd.DataFrame)
-        else matches.to_list()
-    )
+    matches = matches.to_list()
     matches = [
         df.iloc[:, 0].to_list() if df is not None and len(df) != 0 else None
         for df in matches
@@ -2688,8 +2685,8 @@ def apply_transform_tables(
                 new_rows = table.loc[rows_to_update].copy()
                 # Modify values in all '*2' columns
                 for c, v in row.items():
-                    if c.endswith("2") and v is not None:
-                        new_rows.loc[:, c[:-1]] = v
+                    if str(c).endswith("2") and v is not None:
+                        new_rows.loc[:, str(c)[:-1]] = v
                 # Evaluate 'value' column based on existing values
                 eval_and_update(new_rows, rows_to_update, row["value"])
                 # In case more than one data module is present in the table, select the one with the highest index
@@ -2788,7 +2785,7 @@ def process_time_slices(
 
         # Ensure that all timeslice levels are uppercase
         timeslices = {
-            col.upper(): list(values.unique())
+            str(col).upper(): list(values.unique())
             for col, values in table.dataframe.items()
         }
 
