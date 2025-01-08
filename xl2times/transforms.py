@@ -2172,34 +2172,21 @@ def intersect(acc: pd.Series | None, df: pd.Series) -> pd.Series | None:
     return acc.merge(df)
 
 
-def get_matching_processes(
-    row: pd.Series, topology: dict[str, pd.Series]
+def get_matching_items(
+    row: pd.Series, topology: dict[str, pd.Series], item_map: dict[str, str]
 ) -> pd.Series | None:
-    matching_processes = None
-    for col, key in process_map.items():
+    matching_items = None
+    for col, key in item_map.items():
         if col in row.index and pd.notna(row[col]):
-            proc_set = topology[key]
+            item_set = topology[key]
             pattern = row[col].upper()
-            filtered = filter_by_pattern(proc_set, pattern)
-            matching_processes = intersect(matching_processes, filtered)
+            filtered = filter_by_pattern(item_set, pattern)
+            matching_items = intersect(matching_items, filtered)
 
-    if matching_processes is not None and any(matching_processes.duplicated()):
+    if matching_items is not None and any(matching_items.duplicated()):
         raise ValueError("duplicated")
 
-    return matching_processes
-
-
-def get_matching_commodities(
-    row: pd.Series, topology: dict[str, pd.Series]
-) -> pd.Series | None:
-    matching_commodities = None
-    for col, key in commodity_map.items():
-        if col in row.index and pd.notna(row[col]):
-            matching_commodities = intersect(
-                matching_commodities,
-                filter_by_pattern(topology[key], row[col].upper()),
-            )
-    return matching_commodities
+    return matching_items
 
 
 def df_indexed_by_col(df, col):
@@ -2268,6 +2255,7 @@ def process_wildcards(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
+    """Process wildcards in the tables."""
     tags = [
         Tag.tfm_ava,
         Tag.tfm_comgrp,
@@ -2277,43 +2265,37 @@ def process_wildcards(
         Tag.tfm_upd,
         Tag.uc_t,
     ]
-
     dictionary = generate_topology_dictionary(tables, model)
+    item_maps = {
+        "process": process_map,
+        "commodity": commodity_map,
+    }
 
     for tag in tags:
-
         if tag in tqdm(tables, desc=f"Processing wildcards in {tag.value} tables"):
+
             start_time = time.time()
             df = tables[tag]
 
-            if set(df.columns).intersection(set(process_map.keys())):
-                df = _match_wildcards(
-                    df,
-                    process_map,
-                    dictionary,
-                    get_matching_processes,
-                    "process",
-                    explode=False,
-                )
-            if set(df.columns).intersection(set(commodity_map.keys())):
-                df = _match_wildcards(
-                    df,
-                    commodity_map,
-                    dictionary,
-                    get_matching_commodities,
-                    "commodity",
-                    explode=False,
-                )
+            for item_type in ["process", "commodity"]:
+                item_map = item_maps[item_type]
+                if set(df.columns).intersection(set(item_map.keys())):
+                    df = _match_wildcards(
+                        df,
+                        item_map,
+                        dictionary,
+                        get_matching_items,
+                        item_type,
+                        explode=False,
+                    )
 
             tables[tag] = df
 
             # TODO: Should the tool alert about the following?
             # logger.warning("a row matched no processes or commodities")
-
             logger.info(
                 f"  process_wildcards: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
             )
-
     return tables
 
 
@@ -2354,7 +2336,9 @@ def _match_wildcards(
     unique_filters = df[wild_cols].drop_duplicates().dropna(axis=0, how="all")
 
     # match all the wildcards columns against the dictionary names
-    matches = unique_filters.apply(lambda row: matcher(row, dictionary), axis=1)
+    matches = unique_filters.apply(
+        lambda row: matcher(row, dictionary, col_map), axis=1
+    )
 
     matches = matches.to_list()
     matches = [
