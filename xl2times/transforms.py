@@ -1,7 +1,6 @@
 import re
 import time
 from collections import defaultdict
-from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
@@ -2183,9 +2182,6 @@ def get_matching_items(
             filtered = filter_by_pattern(item_set, pattern)
             matching_items = intersect(matching_items, filtered)
 
-    if matching_items is not None and any(matching_items.duplicated()):
-        raise ValueError("duplicated")
-
     return matching_items
 
 
@@ -2284,7 +2280,6 @@ def process_wildcards(
                         df,
                         item_map,
                         dictionary,
-                        get_matching_items,
                         item_type,
                         explode=False,
                     )
@@ -2303,7 +2298,6 @@ def _match_wildcards(
     df: pd.DataFrame,
     col_map: dict[str, str],
     dictionary: dict[str, pd.Series],
-    matcher: Callable,
     result_col: str,
     explode: bool = False,
 ) -> pd.DataFrame:
@@ -2337,7 +2331,7 @@ def _match_wildcards(
 
     # match all the wildcards columns against the dictionary names
     matches = unique_filters.apply(
-        lambda row: matcher(row, dictionary, col_map), axis=1
+        lambda row: get_matching_items(row, dictionary, col_map), axis=1
     )
 
     matches = matches.to_list()
