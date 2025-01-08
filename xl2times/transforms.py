@@ -2154,13 +2154,16 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df: pd.Series, pattern: str) -> pd.Series:
+def filter_by_pattern(df: DataFrame, pattern: str) -> pd.Series:
     """Filter dataframe index by a regex pattern."""
     # Duplicates can be created when a process has multiple commodities that match the pattern
     df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
-    exclude = df.filter(regex=utils.create_negative_regexp(pattern), axis="index").index
+    exclude_values = df.filter(
+        regex=utils.create_negative_regexp(pattern), axis="index"
+    )
+    exclude = df.iloc[:, 0].isin(set(exclude_values.iloc[:, 0].to_list()))
 
-    return df.drop(exclude)
+    return df[~exclude]
 
 
 def intersect(acc: pd.Series | None, df: pd.Series) -> pd.Series | None:
