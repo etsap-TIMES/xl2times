@@ -7,8 +7,6 @@ from xl2times.transforms import (
     _match_wildcards,
     _process_comm_groups_vectorised,
     commodity_map,
-    get_matching_commodities,
-    get_matching_processes,
     process_map,
 )
 
@@ -49,12 +47,8 @@ class TestTransforms:
             dictionary = pickle.load(f)
         df = df_in.copy()
 
-        df = _match_wildcards(
-            df, process_map, dictionary, get_matching_processes, "process"
-        )
-        df = _match_wildcards(
-            df, commodity_map, dictionary, get_matching_commodities, "commodity"
-        )
+        df = _match_wildcards(df, process_map, dictionary, "process")
+        df = _match_wildcards(df, commodity_map, dictionary, "commodity")
 
         # unit tests
         assert df is not None and not df.empty
