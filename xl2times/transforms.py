@@ -3323,6 +3323,8 @@ def apply_final_fixup(
                 stock_rows.loc[~i_integer, "value"] = stock_rows["value"][
                     ~i_integer
                 ].apply(lambda x: round(x))
+            # Exclude rows with a lifetime of 1 year
+            stock_rows = stock_rows[stock_rows["value"] != 1]
             # Calculate the year in which STOCK is zero
             stock_rows["year"] = stock_rows["year"] + stock_rows["value"]
             # Specify stock value zero
