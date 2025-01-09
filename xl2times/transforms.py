@@ -3275,8 +3275,8 @@ def apply_final_fixup(
         )
         df.reset_index(inplace=True)
 
-    # Handle STOCK specified for a single year
-    stock_index = (df["original_attr"] == "STOCK") & df["process"].notna()
+    # Handle PRC_RESID specified for a single year
+    stock_index = (df["attribute"] == "PRC_RESID") & df["process"].notna()
     if any(stock_index):
         # Temporary solution to include only processes defined in BASE
         i_vt = stock_index & (df["source_filename"].str.contains("VT_", case=False))
