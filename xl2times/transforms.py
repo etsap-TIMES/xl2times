@@ -2153,34 +2153,35 @@ def process_transform_availability(
     return result
 
 
-def filter_by_pattern(df: DataFrame, pattern: str) -> pd.Series:
-    """Filter dataframe index by a regex pattern."""
-    # Duplicates can be created when a process has multiple commodities that match the pattern
-    df = df.filter(regex=utils.create_regexp(pattern), axis="index").drop_duplicates()
-    exclude_values = df.filter(
-        regex=utils.create_negative_regexp(pattern), axis="index"
-    )
-    exclude = df.iloc[:, 0].isin(set(exclude_values.iloc[:, 0].to_list()))
+def filter_by_pattern(df: DataFrame, pattern: str) -> set[str]:
+    """Filter dataframe index by a regex pattern. Return a set of corresponding items."""
+    map = {"include": utils.create_regexp, "exclude": utils.create_negative_regexp}
+    sets = dict()
+    for action, regex_maker in map.items():
+        sets[action] = set(
+            df.filter(regex=regex_maker(pattern), axis="index").iloc[:, 0].to_list()
+        )
 
-    return df[~exclude]
-
-
-def intersect(acc: pd.Series | None, df: pd.Series) -> pd.Series | None:
-    if acc is None:
-        return df
-    return acc.merge(df)
+    return sets["include"] - sets["exclude"]
 
 
 def get_matching_items(
-    row: pd.Series, topology: dict[str, pd.Series], item_map: dict[str, str]
-) -> pd.Series | None:
+    row: pd.Series, topology: dict[str, DataFrame], item_map: dict[str, str]
+) -> list[str] | None:
+    """Return a list of items that match conditions in the given row."""
     matching_items = None
     for col, key in item_map.items():
         if col in row.index and pd.notna(row[col]):
             item_set = topology[key]
             pattern = row[col].upper()
             filtered = filter_by_pattern(item_set, pattern)
-            matching_items = intersect(matching_items, filtered)
+            matching_items = (
+                matching_items.intersection(filtered)
+                if matching_items is not None
+                else filtered
+            )
+    if matching_items is not None:
+        matching_items = list(matching_items) if len(matching_items) > 0 else None
 
     return matching_items
 
@@ -2330,29 +2331,19 @@ def _match_wildcards(
     unique_filters = df[wild_cols].drop_duplicates().dropna(axis=0, how="all")
 
     # match all the wildcards columns against the dictionary names
-    matches = unique_filters.apply(
+    unique_filters[result_col] = unique_filters.apply(
         lambda row: get_matching_items(row, dictionary, col_map), axis=1
-    )
-
-    matches = matches.to_list()
-    matches = [
-        df.iloc[:, 0].to_list() if df is not None and len(df) != 0 else None
-        for df in matches
-    ]
-    matches = pd.DataFrame({result_col: matches})
-
-    # then join with the wildcard cols to their list of matched names so we can join them back into the table df.
-    filter_matches = unique_filters.reset_index(drop=True).merge(
-        matches, left_index=True, right_index=True
     )
 
     # Finally we merge the matches back into the original table.
     # This join re-duplicates the duplicate filters dropped above for speed.
     df = (
-        df.merge(filter_matches, on=wild_cols, how="left", suffixes=("_old", ""))
+        df.merge(unique_filters, on=wild_cols, how="left", suffixes=("_old", ""))
         .reset_index(drop=True)
         .drop(columns=wild_cols)
     )
+
+    print(f"df: {df}")
 
     # TODO TFM_UPD has existing (but empty) 'process' and 'commodity' columns. Is it ok to drop existing columns here?
     if f"{result_col}_old" in df.columns:
