@@ -936,6 +936,8 @@ def fill_in_missing_values(
                 matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).stem)
                 isna = df[colname].isna()
                 if matches is not None:
+                    if "csets" in df.columns:
+                        print(df)
                     book = matches.group(1)
                     if book in vt_regions:
                         df.loc[isna, [colname]] = ",".join(vt_regions[book])
@@ -1679,8 +1681,6 @@ def process_commodities(
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
     """Process commodities."""
-    regions = ",".join(model.internal_regions)
-
     result = []
     for table in tables:
         if table.tag != Tag.fi_comm:
@@ -1689,9 +1689,9 @@ def process_commodities(
             df = table.dataframe.copy()
             nrows = df.shape[0]
             if "region" not in table.dataframe.columns:
-                df.insert(1, "region", [regions] * nrows)
+                df.insert(1, "region", [pd.NA] * nrows)
             if "limtype" not in table.dataframe.columns:
-                df["limtype"] = [None] * nrows
+                df["limtype"] = [pd.NA] * nrows
             result.append(replace(table, dataframe=df, tag=Tag.fi_comm))
 
     return result
