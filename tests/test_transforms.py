@@ -47,8 +47,8 @@ class TestTransforms:
             dictionary = pickle.load(f)
         df = df_in.copy()
 
-        df = _match_wildcards(df, process_map, dictionary, "process")
-        df = _match_wildcards(df, commodity_map, dictionary, "commodity")
+        df = _match_wildcards(df, process_map, dictionary, "process", explode=False)
+        df = _match_wildcards(df, commodity_map, dictionary, "commodity", explode=False)
 
         # unit tests
         assert df is not None and not df.empty
