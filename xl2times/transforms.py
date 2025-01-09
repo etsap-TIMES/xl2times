@@ -3278,8 +3278,9 @@ def apply_final_fixup(
     # Handle PRC_RESID specified for a single year
     stock_index = (df["attribute"] == "PRC_RESID") & df["process"].notna()
     if any(stock_index):
-        # Temporary solution to include only processes defined in BASE
-        i_vt = stock_index & (df["source_filename"].str.contains("VT_", case=False))
+        # Include only processes defined in BASE, but not SUP
+        i_vt = stock_index & (df["module_name"] == "BASE")
+        # & (~df["source_filename"].str.contains("_SUP", case=False))
         # Create (region, process) index for data defined in vt
         i_df_rp_vt = df[i_vt].set_index(["region", "process"]).index.drop_duplicates()
         # Create extra rows with NCAP_BND
@@ -3316,6 +3317,12 @@ def apply_final_fixup(
             )
             # Use default if lifetime not specified
             stock_rows.loc[stock_rows["value"].isna(), "value"] = default_life
+            # TODO: Validate that lifetime is integer and warn user if not?
+            i_integer = stock_rows["value"].apply(lambda x: isinstance(x, int))
+            if any(~i_integer):
+                stock_rows.loc[~i_integer, "value"] = stock_rows["value"][
+                    ~i_integer
+                ].apply(lambda x: round(x))
             # Calculate the year in which STOCK is zero
             stock_rows["year"] = stock_rows["year"] + stock_rows["value"]
             # Specify stock value zero
