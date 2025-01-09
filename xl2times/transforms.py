@@ -75,7 +75,7 @@ def remove_comment_rows(
 
 
 def _remove_df_comment_rows(
-    df: pd.DataFrame,
+    df: DataFrame,
     comment_chars: dict[str, list],
 ) -> None:
     """Modify a dataframe in-place by deleting rows with cells starting with symbols
@@ -1328,7 +1328,7 @@ def generate_commodity_groups(
     # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)
 
-    def name_comm_group(df):
+    def name_comm_group(df: pd.Series) -> str | None:
         """Generate the name of a commodity group based on the member count."""
         if df["commoditygroup"] > 1:
             return df["process"] + "_" + df["csets"] + df["io"][:1]
@@ -1373,7 +1373,7 @@ def generate_commodity_groups(
     return tables
 
 
-def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
+def _count_comm_group_vectorised(comm_groups: DataFrame) -> None:
     """Store the number of IN/OUT commodities of the same type per Region and Process in
     CommodityGroup. `comm_groups` is modified in-place.
 
@@ -1392,8 +1392,8 @@ def _count_comm_group_vectorised(comm_groups: pd.DataFrame) -> None:
 
 
 def _process_comm_groups_vectorised(
-    comm_groups: pd.DataFrame, csets_ordered_for_pcg: list[str]
-) -> pd.DataFrame:
+    comm_groups: DataFrame, csets_ordered_for_pcg: list[str]
+) -> DataFrame:
     """Sets the first commodity group in the list of csets_ordered_for_pcg as the
     default pcg for each region/process/io combination, but setting the io="OUT" subset
     as default before "IN".
@@ -1957,6 +1957,7 @@ def process_transform_table_variants(
                 and "*" not in x
                 and "," not in x
                 and "?" not in x
+                and "_" not in x
             )
         )
 
@@ -2186,8 +2187,8 @@ def get_matching_items(
     return matching_items
 
 
-def df_indexed_by_col(df, col):
-    # Set df index using an existing column; make index is uppercase
+def df_indexed_by_col(df: DataFrame, col: str) -> DataFrame:
+    """Set df index using an existing column; make index uppercase."""
     df = df.dropna().drop_duplicates()
     index = df[col].str.upper()
     df = df.set_index(index).rename_axis("index")
@@ -2199,7 +2200,7 @@ def df_indexed_by_col(df, col):
 
 def generate_topology_dictionary(
     tables: dict[str, DataFrame], model: TimesModel
-) -> dict[str, pd.Series]:
+) -> dict[str, DataFrame]:
     # We need to be able to fetch processes based on any combination of name, description, set, comm-in, or comm-out
     # So we construct tables whose indices are names, etc. and use pd.filter
 
@@ -2296,12 +2297,12 @@ def process_wildcards(
 
 
 def _match_wildcards(
-    df: pd.DataFrame,
+    df: DataFrame,
     col_map: dict[str, str],
-    dictionary: dict[str, pd.Series],
+    dictionary: dict[str, DataFrame],
     result_col: str,
     explode: bool = False,
-) -> pd.DataFrame:
+) -> DataFrame:
     """Match wildcards in the given table using the given process map and dictionary.
 
     Parameters
