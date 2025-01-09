@@ -3278,11 +3278,18 @@ def apply_final_fixup(
     # Handle PRC_RESID specified for a single year
     stock_index = (df["attribute"] == "PRC_RESID") & df["process"].notna()
     if any(stock_index):
-        # Include only processes defined in BASE, but not SUP
+        # Include only processes defined in BASE
         i_vt = stock_index & (df["module_name"] == "BASE")
-        # & (~df["source_filename"].str.contains("_SUP", case=False))
         # Create (region, process) index for data defined in vt
-        i_df_rp_vt = df[i_vt].set_index(["region", "process"]).index.drop_duplicates()
+        i_rp_vt = df[i_vt].set_index(["region", "process"]).index.drop_duplicates()
+        # Create (region, process) index for which NCAP_BND is specified
+        i_rp_ncap_bnd = (
+            df[(df["attribute"] == "NCAP_BND") & df["process"].notna()]
+            .set_index(["region", "process"])
+            .index.drop_duplicates()
+        )
+        # Exclude processes with NCAP_BND already defined
+        i_rp_vt = i_rp_vt.difference(i_rp_ncap_bnd)
         # Create extra rows with NCAP_BND
         ncap_bnd_data = {
             "attribute": "NCAP_BND",
@@ -3290,7 +3297,7 @@ def apply_final_fixup(
             "year": 0,
             "value": 2,
         }
-        ncap_bnd_rows = pd.DataFrame(ncap_bnd_data, index=i_df_rp_vt).reset_index()
+        ncap_bnd_rows = pd.DataFrame(ncap_bnd_data, index=i_rp_vt).reset_index()
         # Create df list to concatenate later on
         df_list = [df, ncap_bnd_rows]
         # Stock indexed by process/region
@@ -3323,7 +3330,7 @@ def apply_final_fixup(
                 stock_rows.loc[~i_integer, "value"] = stock_rows["value"][
                     ~i_integer
                 ].apply(lambda x: round(x))
-            # Exclude rows with a lifetime of 1 year
+            # Exclude rows with a lifetime of 1 year, since inserting a zero would not matter
             stock_rows = stock_rows[stock_rows["value"] != 1]
             # Calculate the year in which STOCK is zero
             stock_rows["year"] = stock_rows["year"] + stock_rows["value"]
