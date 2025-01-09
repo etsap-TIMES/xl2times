@@ -220,14 +220,14 @@ def compare(
         f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
     )
 
-    missing = set(ground_truth.keys()) - set(data.keys())
+    missing = set(ground_truth.keys()).difference(data.keys())
     missing_str = ", ".join(
         [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
     )
     if len(missing) > 0:
         logger.warning(f"Missing {len(missing)} tables: {missing_str}")
 
-    additional_tables = set(data.keys()) - set(ground_truth.keys())
+    additional_tables = set(data.keys()).difference(ground_truth.keys())
     additional_str = ", ".join(
         [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
     )
@@ -258,9 +258,9 @@ def compare(
             data_rows = set(str(row).lower() for row in data_table.to_numpy().tolist())
             total_gt_rows += len(gt_rows)
             total_correct_rows += len(gt_rows.intersection(data_rows))
-            additional = data_rows - gt_rows
+            additional = data_rows.difference(gt_rows)
             total_additional_rows += len(additional)
-            missing = gt_rows - data_rows
+            missing = gt_rows.difference(data_rows)
             if len(additional) != 0 or len(missing) != 0:
                 logger.warning(
                     f"Table {table_name} ({data_table.shape[0]} rows,"
@@ -320,7 +320,7 @@ def produce_times_tables(
             if "techgroup" in mapping.xl_cols:
                 df["techgroup"] = df["techname"]
             if not all(c in df.columns for c in mapping.xl_cols):
-                missing = set(mapping.xl_cols) - set(df.columns)
+                missing = set(mapping.xl_cols).difference(df.columns)
                 logger.warning(
                     f"Cannot produce table {mapping.times_name} because"
                     f" {mapping.xl_name} does not contain the required columns"
@@ -347,7 +347,7 @@ def produce_times_tables(
                     continue
                 result[mapping.times_name] = df
 
-    unused_tables = set(input.keys()) - used_tables
+    unused_tables = set(input.keys()).difference(used_tables)
     if len(unused_tables) > 0:
         logger.warning(
             f"{len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"

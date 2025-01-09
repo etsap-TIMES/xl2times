@@ -260,10 +260,10 @@ def revalidate_input_tables(
     for table in tables:
         tag = Tag(table.tag)
         required_cols = config.required_columns[tag]
-        unique_table_cols = set(table.dataframe.columns)
         if required_cols:
+            df = table.dataframe
             # Drop table if any column in required columns is missing
-            missing_cols = required_cols - unique_table_cols
+            missing_cols = required_cols.difference(df.columns)
             if missing_cols:
                 logger.warning(
                     f"Dropping {tag.value} table withing range {table.range} on sheet {table.sheetname}"
@@ -273,7 +273,6 @@ def revalidate_input_tables(
                 continue
             # Check whether any of the required columns is empty
             else:
-                df = table.dataframe
                 empty_required_cols = {c for c in required_cols if all(df[c].isna())}
                 if empty_required_cols:
                     logger.warning(
@@ -405,7 +404,7 @@ def merge_tables(
         # VEDA appears to support merging tables where come columns are optional, e.g. ctslvl and ctype from ~FI_COMM.
         # So just print detailed warning if we find tables with fewer columns than the concat'ed table.
         concat_cols = set(df.columns)
-        missing_cols = [concat_cols - set(t.dataframe.columns) for t in group]
+        missing_cols = [concat_cols.difference(t.dataframe.columns) for t in group]
 
         if any([len(m) for m in missing_cols]):
             err = (
@@ -984,7 +983,7 @@ def expand_rows(
     """
     # Exclude columns that have patterns
     exclude_cols = set(process_map.keys()).union(set(commodity_map.keys()))
-    lists_columns = lists_columns - exclude_cols
+    lists_columns = lists_columns.difference(exclude_cols)
     df = table.dataframe.copy()
     c = df.map(_has_comma)
     cols_to_make_lists = [
@@ -3207,7 +3206,7 @@ def apply_final_fixup(
         ].isin(cost_mapping.keys())
 
         ire_processes = set(veda_process_sets["process"][sets_index].unique())
-        other_processes = processes - ire_processes
+        other_processes = processes.difference(ire_processes)
 
         if other_processes:
             logger.warning(
