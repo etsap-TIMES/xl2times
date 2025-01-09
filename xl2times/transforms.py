@@ -2312,8 +2312,6 @@ def _match_wildcards(
         Mapping of column names to sets.
     dictionary
         Dictionary of process sets to match against.
-    matcher
-        Matching function to use, e.g. get_matching_processes or get_matching_commodities.
     result_col
         Name of the column to store the matched results in.
     explode
@@ -2343,9 +2341,8 @@ def _match_wildcards(
         .drop(columns=wild_cols)
     )
 
-    print(f"df: {df}")
-
-    # TODO TFM_UPD has existing (but empty) 'process' and 'commodity' columns. Is it ok to drop existing columns here?
+    # Pre-existing 'process' and 'commodity' are handled during renaming.
+    # The below should not be necessary, but is left just in case.
     if f"{result_col}_old" in df.columns:
         if not df[f"{result_col}_old"].isna().all():
             logger.warning(
