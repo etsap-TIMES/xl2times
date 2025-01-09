@@ -2163,7 +2163,7 @@ def filter_by_pattern(df: DataFrame, pattern: str) -> set[str]:
             df.filter(regex=regex_maker(pattern), axis="index").iloc[:, 0].to_list()
         )
 
-    return sets["include"] - sets["exclude"]
+    return sets["include"].difference(sets["exclude"])
 
 
 def get_matching_items(
