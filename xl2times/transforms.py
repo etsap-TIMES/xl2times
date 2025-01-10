@@ -2421,17 +2421,26 @@ def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) 
         table.loc[rows_to_update, "value"] = new_value
 
 
-def _remove_invalid_rows_(
-    df: DataFrame, updates: DataFrame, limit_to_modules: list
+def _remove_invalid_rows(
+    df: DataFrame,
+    valid_combinations: DataFrame,
+    limit_to_modules: list | None = None,
+    limit_to_attributes: list | None = None,
+    include_na_dimensions: bool = False,
 ) -> DataFrame:
     """Remove rows with invalid process / region combination."""
     df = df.copy()
     # Index of rows that won't be checked
-    index = df[~df["module_name"].isin(limit_to_modules)].index
-    # Don't check rows with empty process
-    index = index.union(df[df["process"].isna()].index)
+    index = pd.RangeIndex(0)
+    map = {"module_name": limit_to_modules, "attribute": limit_to_attributes}
+    for col, values in map.items():
+        if values:
+            index = index.union(df[~df[col].isin(values)].index)
+    # Don't check rows with empty dimensions
+    if not include_na_dimensions:
+        index = index.union(df[df["process"].isna()].index)
     # Keep only the valid process / region combinations
-    for _, row in updates.iterrows():
+    for _, row in valid_combinations.iterrows():
         index = index.union(
             query(
                 df,
@@ -3050,32 +3059,32 @@ def fix_topology(
 
     if Tag.tfm_ava in tables:
         modules_with_ava = list(tables[Tag.tfm_ava]["module_name"].unique())
-        updates = tables[Tag.tfm_ava].explode("process", ignore_index=True)
+        df = tables[Tag.tfm_ava].explode("process", ignore_index=True)
         # Ensure valid combinations of process / module_name
-        updates = updates.merge(
+        df = df.merge(
             model.processes[["process", "module_name"]].drop_duplicates(),
             how="inner",
             on=["process", "module_name"],
         )
         # Update tfm_ava
-        tables[Tag.tfm_ava] = updates
+        tables[Tag.tfm_ava] = df
         # Overwrite with the last value for each process/region pair
-        updates = updates.drop_duplicates(
-            subset=[col for col in updates.columns if col != "value"], keep="last"
+        df = df.drop_duplicates(
+            subset=[col for col in df.columns if col != "value"], keep="last"
         )
         # Remove rows with zero value
-        updates = updates[~(updates["value"] == 0)]
+        df = df[~(df["value"] == 0)]
         # Group back processes with multiple values
-        updates = updates.groupby(
-            [col for col in updates.columns if col != "process"], as_index=False
-        ).agg({"process": list})[updates.columns]
+        df = df.groupby(
+            [col for col in df.columns if col != "process"], as_index=False
+        ).agg({"process": list})[df.columns]
         # Determine the rows that won't be updated
-        tables[Tag.fi_t] = _remove_invalid_rows_(
-            tables[Tag.fi_t], updates, modules_with_ava
+        tables[Tag.fi_t] = _remove_invalid_rows(
+            tables[Tag.fi_t], df, modules_with_ava
         ).reset_index(drop=True)
         # TODO: This should happen much earlier in the process
-        model.processes = _remove_invalid_rows_(
-            model.processes, updates, modules_with_ava
+        model.processes = _remove_invalid_rows(
+            model.processes, df, modules_with_ava
         ).reset_index(drop=True)
         # TODO: should be unnecessary if model.processes is updated early enough
         # Remove topology rows that are not in the processes
