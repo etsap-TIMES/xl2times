@@ -2369,14 +2369,14 @@ def _match_wildcards(
 
 def query(
     table: DataFrame,
-    process: str | list | None,
-    commodity: str | list | None,
+    process: str | list[str] | None,
+    commodity: str | list[str] | None,
     attribute: str | None,
-    region: str | list | None,
+    region: str | list[str] | None,
     year: int | list | None,
-    limtype: str | list | None,
+    limtype: str | list[str] | None,
     val: int | float | None,
-    module: str | list | None,
+    module: str | list[str] | None,
 ) -> pd.Index:
 
     query_fields = {
@@ -2424,28 +2424,41 @@ def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) 
 def _remove_invalid_rows(
     df: DataFrame,
     valid_combinations: DataFrame,
+    verify_cols: list[str],
     limit_to_modules: list | None = None,
     limit_to_attributes: list | None = None,
     include_na_dimensions: bool = False,
 ) -> DataFrame:
     """Remove rows with invalid process / region combination."""
     df = df.copy()
+    # Limit verification to specific dimensions
+    allow_to_verify = {"process", "commodity", "region", "module_name"}
+    wont_verify = set(verify_cols).difference(allow_to_verify)
+    verify_cols = list(allow_to_verify.intersection(verify_cols))
+    if wont_verify:
+        logger.warning(
+            f"Verification of {wont_verify} is not supported. Only {verify_cols} will be verified."
+        )
     # Index of rows that won't be checked
-    index = pd.RangeIndex(0)
+    keep = pd.RangeIndex(0)
     map = {"module_name": limit_to_modules, "attribute": limit_to_attributes}
     for col, values in map.items():
         if values:
-            index = index.union(df[~df[col].isin(values)].index)
+            keep = keep.union(df[~df[col].isin(values)].index)
     # Don't check rows with empty dimensions
     if not include_na_dimensions:
-        index = index.union(df[df["process"].isna()].index)
-    # Keep only the valid process / region combinations
+        keep = keep.union(df[df[verify_cols].isna().any(axis=1)].index)
+    # Ensure that valid_combinations has a specific set of columns
+    for col in allow_to_verify:
+        if col not in valid_combinations.columns:
+            valid_combinations[col] = pd.NA
+    # Keep only valid combinations of dimensions
     for _, row in valid_combinations.iterrows():
-        index = index.union(
+        keep = keep.union(
             query(
                 df,
                 row["process"],
-                None,
+                row["commodity"],
                 None,
                 row["region"],
                 None,
@@ -2455,7 +2468,7 @@ def _remove_invalid_rows(
             )
         )
 
-    return df.loc[index]
+    return df.loc[keep]
 
 
 def apply_transform_tables(
@@ -3078,13 +3091,14 @@ def fix_topology(
         df = df.groupby(
             [col for col in df.columns if col != "process"], as_index=False
         ).agg({"process": list})[df.columns]
-        # Determine the rows that won't be updated
+        # Remove invalid rows from fi_t, processes, and topology
+        verify_cols = ["region", "process", "module_name"]
         tables[Tag.fi_t] = _remove_invalid_rows(
-            tables[Tag.fi_t], df, modules_with_ava
+            tables[Tag.fi_t], df, verify_cols, modules_with_ava
         ).reset_index(drop=True)
         # TODO: This should happen much earlier in the process
         model.processes = _remove_invalid_rows(
-            model.processes, df, modules_with_ava
+            model.processes, df, verify_cols, modules_with_ava
         ).reset_index(drop=True)
         # TODO: should be unnecessary if model.processes is updated early enough
         # Remove topology rows that are not in the processes
