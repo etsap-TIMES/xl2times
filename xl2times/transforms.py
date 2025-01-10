@@ -533,7 +533,7 @@ def process_flexible_import_tables(
         if any(index):
             for attr in df["attribute"][index].unique():
                 i = index & (df["attribute"] == attr)
-                parts = attr.split("~")
+                parts = [part.strip() for part in attr.split("~")]
                 for value in parts:
                     colname, typed_value = _get_colname(value, legal_values)
                     if colname is None:
@@ -692,7 +692,7 @@ def process_user_constraint_tables(
         for attr in df["attribute"].unique():
             if "~" in attr:
                 i = df["attribute"] == attr
-                parts = attr.split("~")
+                parts = [part.strip() for part in attr.split("~")]
                 for value in parts:
                     colname, typed_value = _get_colname(value, legal_values)
                     if colname is None:
