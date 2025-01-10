@@ -1679,8 +1679,6 @@ def process_commodities(
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
     """Process commodities."""
-    regions = ",".join(model.internal_regions)
-
     result = []
     for table in tables:
         if table.tag != Tag.fi_comm:
@@ -1689,9 +1687,9 @@ def process_commodities(
             df = table.dataframe.copy()
             nrows = df.shape[0]
             if "region" not in table.dataframe.columns:
-                df.insert(1, "region", [regions] * nrows)
+                df.insert(1, "region", [pd.NA] * nrows)
             if "limtype" not in table.dataframe.columns:
-                df["limtype"] = [None] * nrows
+                df["limtype"] = [pd.NA] * nrows
             result.append(replace(table, dataframe=df, tag=Tag.fi_comm))
 
     return result
