@@ -2425,8 +2425,7 @@ def _remove_invalid_rows(
     df: DataFrame,
     valid_combinations: DataFrame,
     verify_cols: list[str],
-    limit_to_modules: list | None = None,
-    limit_to_attributes: list | None = None,
+    limit_to: dict[str, list] | None = None,
     include_na_dimensions: bool = False,
 ) -> DataFrame:
     """Remove rows with invalid process / region combination."""
@@ -2441,10 +2440,12 @@ def _remove_invalid_rows(
         )
     # Index of rows that won't be checked
     keep = pd.RangeIndex(0)
-    map = {"module_name": limit_to_modules, "attribute": limit_to_attributes}
-    for col, values in map.items():
-        if values:
-            keep = keep.union(df[~df[col].isin(values)].index)
+    if limit_to:
+        for col, values in limit_to.items():
+            if col in df.columns:
+                keep = keep.union(df[~df[col].isin(values)].index)
+            else:
+                logger.warning(f"Column {col} not found in the dataframe.")
     # Don't check rows with empty dimensions
     if not include_na_dimensions:
         keep = keep.union(df[df[verify_cols].isna().any(axis=1)].index)
@@ -3094,11 +3095,14 @@ def fix_topology(
         # Remove invalid rows from fi_t, processes, and topology
         verify_cols = ["region", "process", "module_name"]
         tables[Tag.fi_t] = _remove_invalid_rows(
-            tables[Tag.fi_t], df, verify_cols, modules_with_ava
+            tables[Tag.fi_t],
+            df,
+            verify_cols,
+            limit_to={"module_name": modules_with_ava},
         ).reset_index(drop=True)
         # TODO: This should happen much earlier in the process
         model.processes = _remove_invalid_rows(
-            model.processes, df, verify_cols, modules_with_ava
+            model.processes, df, verify_cols, limit_to={"module_name": modules_with_ava}
         ).reset_index(drop=True)
         # TODO: should be unnecessary if model.processes is updated early enough
         # Remove topology rows that are not in the processes
