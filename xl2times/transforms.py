@@ -2425,7 +2425,7 @@ def _remove_invalid_rows(
     df: DataFrame,
     valid_combinations: DataFrame,
     verify_cols: list[str],
-    limit_to: dict[str, list] | None = None,
+    limit_to: dict[str, set] | None = None,
     include_na_dimensions: bool = False,
 ) -> DataFrame:
     """Remove rows with invalid process / region combination."""
@@ -2935,16 +2935,39 @@ def verify_uc_topology(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Verify if region / process / commodity in UC_T are present in the topology."""
+    """Verify if region / process / commodity in UC_T are present in the topology.
+    Remove rows with invalid region/process or region/commodity combinations.
+    """
     if Tag.uc_t not in tables:
         return tables
 
     df = tables[Tag.uc_t].copy()
     topology = pd.concat([model.topology, model.implied_topology], ignore_index=True)
     result = []
-    # Explode process and commodity columns
+    items_in_region = {
+        "process": model.processes.groupby(["region", "process"], as_index=False).agg(
+            {"process": list}
+        )[["region", "process"]],
+        "commodity": model.commodities.groupby(
+            ["region", "commodity"], as_index=False
+        ).agg({"commodity": list})[["region", "commodity"]],
+    }
+    relevant_attrs = {
+        "process": config.attr_by_type["process"].union(config.attr_by_type["flow"]),
+        "commodity": config.attr_by_type["commodity"].union(
+            config.attr_by_type["flow"]
+        ),
+    }
+    # Explode process/commodity columns and remove any row with invalid region/process or region/commodity combination.
     for col in ["process", "commodity"]:
         df = df.explode(col, ignore_index=True)
+        df = _remove_invalid_rows(
+            df,
+            items_in_region[col],
+            ["region", col],
+            limit_to={"attribute": relevant_attrs[col]},
+        )
+    # Proceed with topology verification
     cols = ["region", "process", "commodity"]
     requested_checks = df["top_check"].unique()
     i_verify_attrs = df["attribute"].isin(config.attr_by_type["flow"])
@@ -3072,7 +3095,7 @@ def fix_topology(
     model.topology.replace({"io": mapping}, inplace=True)
 
     if Tag.tfm_ava in tables:
-        modules_with_ava = list(tables[Tag.tfm_ava]["module_name"].unique())
+        modules_with_ava = set(tables[Tag.tfm_ava]["module_name"].unique())
         df = tables[Tag.tfm_ava].explode("process", ignore_index=True)
         # Ensure valid combinations of process / module_name
         df = df.merge(
