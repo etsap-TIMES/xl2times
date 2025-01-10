@@ -2152,12 +2152,14 @@ def process_transform_availability(
 
 
 def filter_by_pattern(df: DataFrame, pattern: str) -> set[str]:
-    """Filter dataframe index by a regex pattern. Return a set of corresponding items."""
+    """Filter dataframe index by a pattern specifying which items to include and/or exclude.
+    Return a set of corresponding items from the first (and only) column in the dataframe.
+    """
     map = {"include": utils.create_regexp, "exclude": utils.create_negative_regexp}
     sets = dict()
     for action, regex_maker in map.items():
         sets[action] = set(
-            df.filter(regex=regex_maker(pattern), axis="index").iloc[:, 0].to_list()
+            df.filter(regex=regex_maker(pattern), axis="index").iloc[:, 0]
         )
 
     return sets["include"].difference(sets["exclude"])
