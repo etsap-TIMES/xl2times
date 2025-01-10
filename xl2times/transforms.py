@@ -2945,12 +2945,12 @@ def verify_uc_topology(
     topology = pd.concat([model.topology, model.implied_topology], ignore_index=True)
     result = []
     items_in_region = {
-        "process": model.processes.groupby(["region", "process"], as_index=False).agg(
+        "process": model.processes.groupby(["region"], as_index=False).agg(
             {"process": list}
         )[["region", "process"]],
-        "commodity": model.commodities.groupby(
-            ["region", "commodity"], as_index=False
-        ).agg({"commodity": list})[["region", "commodity"]],
+        "commodity": model.commodities.groupby(["region"], as_index=False).agg(
+            {"commodity": list}
+        )[["region", "commodity"]],
     }
     relevant_attrs = {
         "process": config.attr_by_type["process"].union(config.attr_by_type["flow"]),
