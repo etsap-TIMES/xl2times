@@ -318,6 +318,8 @@ class Config:
     times_sets: dict[str, list[str]]
     # Switch to prevent overwriting of I/E settings in BASE and SubRES
     ie_override_in_syssettings: bool = False
+    # Switch to include dummy imports in the model
+    include_dummy_imports: bool = True
 
     def __init__(
         self,

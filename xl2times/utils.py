@@ -261,9 +261,11 @@ def create_regexp(pattern: str, combined: bool = True) -> str:
     pattern = pattern.replace(",", r"$|^")
     if len(pattern) == 0:
         return r".*"  # matches everything
-    # Handle substite VEDA wildcards with regex patterns
-    for substition in (("*", ".*"), ("?", ".")):
-        old, new = substition
+    # Substite VEDA wildcards with regex patterns; escape metacharacters.
+    # ("_", ".") and ("[.]", "_") are meant to apply one after another to handle
+    # the usage of "_" equivalent to "?" and "[_]" as literal "_".
+    substitute = [(".", "\\."), ("_", "."), ("[.]", "_"), ("*", ".*"), ("?", ".")]
+    for old, new in substitute:
         pattern = pattern.replace(old, new)
     # Do not match substrings
     pattern = rf"^{pattern}$"

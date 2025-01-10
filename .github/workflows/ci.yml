@@ -44,7 +44,7 @@ jobs:
           python -m build
           # Install the built wheel file to imitiate users installing from PyPI:
           pip uninstall --yes xl2times
-          pip install --find-links=dist xl2times
+          pip install --no-index --find-links=dist xl2times
 
       - name: Check code formatting
         working-directory: xl2times
