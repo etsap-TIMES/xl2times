@@ -209,6 +209,11 @@ def run_benchmark(
         csv_folder,
     ]
     args += ["--dd"] if run_gams else []
+    args += (
+        ["--include_dummy_imports"]
+        if benchmark.get("include_dummy_imports", False)
+        else []
+    )
     if "regions" in benchmark:
         args.extend(["--regions", benchmark["regions"]])
     if "inputs" in benchmark:
