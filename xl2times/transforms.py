@@ -2535,7 +2535,12 @@ def apply_transform_tables(
                 elif row["process"] is not None:
                     table = model.processes
                 else:
-                    assert False  # All rows match either a commodity or a process
+                    # Skip if neither process nor commodity is given
+                    # TODO: Remove this kind of rows from the table earlier
+                    logger.warning(
+                        f"A {Tag.tfm_ins_txt.value} row generated no records."
+                    )
+                    continue
 
                 # Query for rows with matching process/commodity and region
                 rows_to_update = query(
