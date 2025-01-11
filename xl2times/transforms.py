@@ -3281,8 +3281,7 @@ def apply_final_fixup(
         )
         # Index of region/process with STOCK specified only once
         i_single_stock = ~df_rp.index.duplicated(keep=False)
-        # TODO: Also remove any row where that value is zero (after updating DemoS benchmarks)
-        # i_single_stock = i_single_stock & (df_rp["value"] != 0)
+        i_single_stock = i_single_stock & (df_rp["value"] != 0)
         # TODO: TIMES already handles this. Drop?
         if any(i_single_stock):
             default_life = 30
