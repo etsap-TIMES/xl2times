@@ -319,7 +319,7 @@ class Config:
     # Switch to prevent overwriting of I/E settings in BASE and SubRES
     ie_override_in_syssettings: bool = False
     # Switch to include dummy imports in the model
-    include_dummy_imports: bool = True
+    include_dummy_imports: bool = False
 
     def __init__(
         self,
