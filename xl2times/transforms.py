@@ -2185,10 +2185,8 @@ def get_matching_items(
                 if matching_items is not None
                 else filtered
             )
-    if matching_items is not None:
-        matching_items = list(matching_items) if len(matching_items) > 0 else None
 
-    return matching_items
+    return list(matching_items) if matching_items is not None else None
 
 
 def df_indexed_by_col(df: DataFrame, col: str) -> DataFrame:
@@ -2396,7 +2394,7 @@ def query(
     }
 
     def is_missing(field):
-        return pd.isna(field) if not isinstance(field, list) else pd.isna(field).all()
+        return pd.isna(field) if not isinstance(field, list) else False
 
     qs = [
         f"{k} in {v if isinstance(v, list) else [v]}"
@@ -2624,7 +2622,8 @@ def apply_transform_tables(
                 new_rows["submodule"] = row["submodule"]
                 new_tables.append(new_rows)
 
-            generated_records.append(pd.concat(new_tables, ignore_index=True))
+            if new_tables:
+                generated_records.append(pd.concat(new_tables, ignore_index=True))
 
         if (
             Tag.tfm_mig in tables
@@ -2686,7 +2685,8 @@ def apply_transform_tables(
                 new_rows["submodule"] = row["submodule"]
                 new_tables.append(new_rows)
 
-            generated_records.append(pd.concat(new_tables, ignore_index=True))
+            if new_tables:
+                generated_records.append(pd.concat(new_tables, ignore_index=True))
 
         if generated_records:
             module_data = pd.concat(generated_records, ignore_index=True)
