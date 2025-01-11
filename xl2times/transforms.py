@@ -1470,7 +1470,6 @@ def generate_trade(
 ) -> list[EmbeddedXlTable]:
     """Generate inter-regional exchange topology."""
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
-    dummy_process_cset = [["NRG", "IMPNRGZ"], ["MAT", "IMPMATZ"], ["DEM", "IMPDEMZ"]]
     veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
 
     ire_prc = pd.DataFrame(columns=["region", "process"])
@@ -1482,22 +1481,28 @@ def generate_trade(
             )
     ire_prc.drop_duplicates(keep="first", inplace=True)
 
-    internal_regions = pd.DataFrame(model.internal_regions, columns=["region"])
-
     # Generate inter-regional exchange topology
-    top_ire = pd.DataFrame(dummy_process_cset, columns=["csets", "process"])
-    top_ire = pd.merge(top_ire, internal_regions, how="cross")
-    top_ire = pd.merge(top_ire, model.topology[["region", "csets", "commodity"]])
-    top_ire.drop(columns=["csets"], inplace=True)
-    top_ire["io"] = "OUT"
-    top_ire = pd.concat(
-        [top_ire, model.topology[["region", "process", "commodity", "io"]]]
-    )
-    top_ire = pd.merge(top_ire, ire_prc)
-    top_ire = pd.merge(top_ire, veda_process_sets)
+    top_ire = model.topology[["region", "process", "commodity", "io"]].copy()
+    if config.include_dummy_imports:
+        dummy_process_cset = [
+            ["NRG", "IMPNRGZ"],
+            ["MAT", "IMPMATZ"],
+            ["DEM", "IMPDEMZ"],
+        ]
+        dummy_ire = pd.DataFrame(dummy_process_cset, columns=["csets", "process"])
+        dummy_ire = dummy_ire.merge(
+            pd.DataFrame(model.internal_regions, columns=["region"]), how="cross"
+        )
+        dummy_ire = dummy_ire.merge(model.topology[["region", "csets", "commodity"]])
+        dummy_ire.drop(columns=["csets"], inplace=True)
+        dummy_ire["io"] = "OUT"
+        top_ire = pd.concat([top_ire, dummy_ire])
+
+    top_ire = top_ire.merge(ire_prc)
+    top_ire = top_ire.merge(veda_process_sets)
     top_ire["region2"] = top_ire["sets"].replace(veda_set_ext_reg_mapping)
     top_ire[["origin", "destination", "in", "out"]] = None
-    for io in ["IN", "OUT"]:
+    for io in ("IN", "OUT"):
         index = top_ire["io"] == io
         top_ire.loc[index, [io.lower()]] = top_ire["commodity"].loc[index]
     na_out = top_ire["out"].isna()
