@@ -33,7 +33,8 @@ def extract_tables(filename: str) -> list[datatypes.EmbeddedXlTable]:
         # Creating dataframe with dtype=object solves problems with ints being cast to floats
         # https://stackoverflow.com/questions/40251948/stop-pandas-from-converting-int-to-float-due-to-an-insertion-in-another-column
         df = DataFrame(sheet.values, dtype=object)
-        uc_sets = {}
+        active_uc_sets = {}
+        formatted_uc_sets = {}
         sheet_tables = []
 
         for row_index, row in df.iterrows():
@@ -44,23 +45,31 @@ def extract_tables(filename: str) -> list[datatypes.EmbeddedXlTable]:
                         f"{datatypes.Tag.uc_sets.value}:(.*)", value, re.IGNORECASE
                     )
                     if match:
-                        parts = match.group(1).split(":")
-                        if len(parts) == 2:
-                            uc_sets[parts[0].strip()] = parts[1].strip()
+                        updated, active_uc_sets = _update_uc_sets(
+                            active_uc_sets, match.group(1)
+                        )
+                        if updated:
+                            formatted_uc_sets = {
+                                k: v
+                                for type, values in active_uc_sets.items()
+                                for k, v in values.items()
+                            }
                         else:
                             logger.warning(
-                                f"Malformed UC_SET in {sheet.title}, {filename}"
+                                f"Malformed {match.group(0)} in {sheet.title}, {filename}"
                             )
                     else:
                         col_index = df.columns.get_loc(colname)
                         sheet_tables.append(
                             extract_table(
-                                row_index, col_index, uc_sets, df, sheet.title, filename
+                                row_index,
+                                col_index,
+                                formatted_uc_sets,
+                                df,
+                                sheet.title,
+                                filename,
                             )
                         )
-
-        for sheet_table in sheet_tables:
-            sheet_table.uc_sets = uc_sets
 
         tables += sheet_tables
 
@@ -224,3 +233,28 @@ def cell_is_empty(value) -> bool:
         or (isinstance(value, numpy.floating) and numpy.isnan(value))
         or (isinstance(value, str) and len(value.strip()) == 0)
     )
+
+
+def _update_uc_sets(
+    uc_sets: dict[str, dict[str, str]], new_element: str
+) -> tuple[bool, dict[str, dict[str, str]]]:
+
+    # Overview of the sets: https://times.readthedocs.io/en/latest/part-4/part-4.html#uc-sets-in-veda2
+    # Categorise by type
+    mapping = {
+        "R_E": "region",
+        "R_S": "region",
+        "T_E": "period",
+        "T_S": "period",
+        "T_SUC": "period",
+        "TS_E": "timeslice",
+        "TS_S": "timeslice",
+    }
+    updated = False
+    parts = [new_element.strip() for new_element in new_element.split(":")]
+    # Check if the new element seems valid and if it is, update the uc_sets
+    if len(parts) == 2 and parts[0] in mapping:
+        uc_sets[mapping[parts[0]]] = {parts[0]: parts[1]}
+        updated = True
+
+    return updated, uc_sets
