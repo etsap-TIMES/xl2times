@@ -46,6 +46,8 @@ commodity_map = {
     "cset_set": "commodities_by_sets",
 }
 
+dm_cols = {"source_filename", "module_type", "submodule", "module_name"}
+
 
 def remove_comment_rows(
     config: Config,
@@ -1514,6 +1516,7 @@ def generate_trade(
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
 
     cols_list = ["origin", "in", "destination", "out", "process"]
+    cols_list.extend(dm_cols)
     # Include trade between internal regions
     for table in tables:
         if table.tag == Tag.tradelinks_dins:
@@ -3123,12 +3126,18 @@ def complete_processes(
 ) -> dict[str, DataFrame]:
     """Generate processes based on trade links if not defined elsewhere."""
     # Dataframe with region, process and commodity columns (no trade direction)
+    cols_in = ["origin", "process", "in"]
+    cols_in.extend(dm_cols)
+    cols_out = ["destination", "process", "out"]
+    cols_out.extend(dm_cols)
+    cols = ["region", "process", "commodity"]
+    cols.extend(dm_cols)
     trade_processes = pd.concat(
         [
-            model.trade.loc[:, ["origin", "process", "in"]].rename(
+            model.trade.loc[:, cols_in].rename(
                 columns={"origin": "region", "in": "commodity"}
             ),
-            model.trade.loc[:, ["destination", "process", "out"]].rename(
+            model.trade.loc[:, cols_out].rename(
                 columns={"destination": "region", "out": "commodity"}
             ),
         ],
@@ -3146,7 +3155,7 @@ def complete_processes(
             undeclared_td["region"].isin(model.internal_regions)
             & (undeclared_td["_merge"] == "left_only")
         ),
-        ["region", "process", "commodity"],
+        cols,
     ]
     # Include additional info from model.commodities
     undeclared_td = undeclared_td.merge(
