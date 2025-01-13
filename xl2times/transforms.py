@@ -1235,12 +1235,19 @@ def _populate_defaults(
     attr_col_name: str = "attribute",
 ):
     """Fill in some of the missing values based on defaults in place."""
-    starting_na = (
-        dataframe[attr_col_name]
-        .str.upper()
-        .isin(config.veda_attr_defaults[col_name].keys())
-        & dataframe[col_name].isna()
+    i_relevant_attributes = dataframe[attr_col_name].isin(
+        config.veda_attr_defaults[col_name].keys()
     )
+    if col_name in dataframe.columns:
+        starting_na = i_relevant_attributes & dataframe[col_name].isna()
+    else:
+        # Add the column if it does not exist, but is needed
+        if any(i_relevant_attributes):
+            starting_na = i_relevant_attributes
+            dataframe[col_name] = pd.NA
+        else:
+            starting_na = pd.Series(False, index=dataframe.index)
+
     if any(starting_na):
         attributes = dataframe[starting_na][attr_col_name].unique()
         for attr in attributes:
@@ -1286,9 +1293,8 @@ def apply_fixups(
             df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
         # Populate commodity and other_indexes based on defaults
-        for col in ("commodity", "other_indexes"):
-            if col in df.columns:
-                _populate_defaults(table.tag, df, col, config)
+        for col in ("commodity", "other_indexes", "cg"):
+            _populate_defaults(table.tag, df, col, config)
 
         return replace(table, dataframe=df)
 
@@ -3323,6 +3329,7 @@ def apply_final_fixup(
         "process",
         "commodity",
         "other_indexes",
+        "cg",
         "year",
         "year2",
         "timeslice",
@@ -3361,7 +3368,7 @@ def apply_final_fixup(
 
     if Tag.uc_t in tables.keys():
         df = tables[Tag.uc_t]
-        keep_cols.remove("year2")
+        keep_cols = keep_cols.difference({"year2", "cg"})
         keep_cols = keep_cols.union({"uc_n", "side"})
         df.dropna(subset="value", inplace=True)
         drop_cols = [
