@@ -2690,7 +2690,7 @@ def apply_transform_tables(
                 drop = pd.Series(False, index=module_data.index)
                 # Exclude NA values, they may be populated later on
                 i = i & module_data[obj].notna()
-                if module_type in {"base", "subres"}:
+                if module_type in {"base", "subres", "trade"}:
                     valid_objs = (
                         obj_by_module[obj].get(data_module, set()).union(obj_suppl[obj])
                     )
