@@ -678,7 +678,6 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "cg": ["other_indexes"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     }

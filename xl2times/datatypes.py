@@ -350,7 +350,7 @@ class Config:
             self.forward_fill_cols,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
-            veda_attr_defaults_file
+            veda_attr_defaults_file, param_mappings
         )
         # Migration in progress: use parameter mappings from times_info_file for now
         name_to_map = {m.times_name: m for m in self.times_xl_maps}
@@ -644,7 +644,7 @@ class Config:
 
     @staticmethod
     def _read_veda_attr_defaults(
-        veda_attr_defaults_file: str,
+        veda_attr_defaults_file: str, attr_mappings: list[TimesXlMap]
     ) -> tuple[dict[str, dict[str, list]], set[str]]:
         # Read veda_tags_file
         with resources.open_text("xl2times.config", veda_attr_defaults_file) as f:
@@ -690,6 +690,15 @@ class Config:
                 if "ts-level" in attr_defaults:
                     tslvl = attr_defaults["ts-level"]
                     veda_attr_defaults["tslvl"][tslvl].append(attr)
+
+        # Specify default values for the attributes that are not defined in the file
+        attr_with_cg = {
+            attr_mapping.times_name
+            for attr_mapping in attr_mappings
+            if "cg" in set(attr_mapping.xl_cols)
+        }
+        for attr in attr_with_cg.difference(veda_attr_defaults["cg"].keys()):
+            veda_attr_defaults["cg"][attr] = ["other_indexes"]
 
         return veda_attr_defaults, attr_aliases
 
