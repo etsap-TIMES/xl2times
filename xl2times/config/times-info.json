@@ -155,7 +155,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   },
@@ -697,7 +697,7 @@
     "mapping": [
       "region",
       "commodity",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -1470,7 +1470,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice",
       "limtype"
     ]
@@ -1550,7 +1550,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "commodity",
       "timeslice"
     ]
@@ -1570,7 +1570,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "commodity",
       "timeslice"
     ]
@@ -1626,7 +1626,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "commodity",
       "timeslice"
     ]
@@ -1902,7 +1902,7 @@
       "region",
       "year",
       "commodity",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -2208,7 +2208,7 @@
       "region",
       "year",
       "process",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -2225,7 +2225,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   },
@@ -2243,7 +2243,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   },
@@ -4403,7 +4403,7 @@
     ],
     "mapping": [
       "region",
-      "other_indexes",
+      "cg",
       "limtype"
     ]
   },
@@ -4419,7 +4419,7 @@
     "mapping": [
       "region",
       "year",
-      "other_indexes",
+      "cg",
       "limtype"
     ]
   },
@@ -4754,7 +4754,7 @@
       "region",
       "year",
       "process",
-      "other_indexes"
+      "cg"
     ]
   },
   {

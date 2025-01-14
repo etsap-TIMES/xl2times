@@ -70,7 +70,8 @@
   },
   "ACT_FLO": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out",
@@ -120,11 +121,15 @@
     "times-attribute": "NCAP_AFA"
   },
   "AFAC": {
+    "defaults": {
+      "cg": ["other_indexes"]
+    },
     "times-attribute": "NCAP_AFAC"
   },
   "AFC": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out",
@@ -136,6 +141,9 @@
     "times-attribute": "NCAP_AFC"
   },
   "AFCS": {
+    "defaults": {
+      "cg": ["other_indexes"]
+    },
     "times-attribute": "NCAP_AFCS"
   },
   "AFM": {
@@ -512,7 +520,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
-      "other_indexes": [
+      "cg": [
         "ACT"
       ],
       "ts-level": "ANNUAL"
@@ -539,7 +547,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
-      "other_indexes": [
+      "cg": [
         "ACT"
       ],
       "ts-level": "ANNUAL"
@@ -566,6 +574,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
+      "cg": ["other_indexes"],
       "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_EMIS"
@@ -824,7 +833,8 @@
   },
   "NCAP_AFC": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out",
