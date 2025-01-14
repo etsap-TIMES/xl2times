@@ -1268,9 +1268,9 @@ def _populate_defaults(
 
 def _populate_calculated_defaults(df: DataFrame, model: TimesModel):
     """Determine values of and fill in some indexes."""
-    if any(df["other_indexes"] == "veda_cg"):
-        i = df["other_indexes"] == "veda_cg"
-        df.loc[i, "other_indexes"] = df[i].apply(
+    if any(df["cg"] == "veda_cg"):
+        i = df["cg"] == "veda_cg"
+        df.loc[i, "cg"] = df[i].apply(
             lambda x: model.veda_cgs.get((x["region"], x["process"], x["commodity"])),
             axis=1,
         )
@@ -3001,28 +3001,26 @@ def resolve_remaining_cgs(
     Supplement model.commodity_groups with resolved commodity groups.
     """
     if not model.attributes.empty:
-        i = model.attributes["other_indexes"].isin(default_pcg_suffixes)
+        i = model.attributes["cg"].isin(default_pcg_suffixes)
         if any(i):
             # Store processes with unresolved commodity groups
             check_cgs = model.attributes.loc[
-                i, ["region", "process", "other_indexes"]
+                i, ["region", "process", "cg"]
             ].drop_duplicates(ignore_index=True)
             # Resolve commodity group names in model.attribues
-            model.attributes.loc[i, "other_indexes"] = (
+            model.attributes.loc[i, "cg"] = (
                 model.attributes["process"].astype(str)
                 + "_"
-                + model.attributes["other_indexes"].astype(str)
+                + model.attributes["cg"].astype(str)
             )
             # TODO: Combine with above to avoid repetition
             check_cgs["commoditygroup"] = (
-                check_cgs["process"].astype(str)
-                + "_"
-                + check_cgs["other_indexes"].astype(str)
+                check_cgs["process"].astype(str) + "_" + check_cgs["cg"].astype(str)
             )
-            check_cgs["csets"] = check_cgs["other_indexes"].str[:3]
-            check_cgs["io"] = check_cgs["other_indexes"].str[3:]
+            check_cgs["csets"] = check_cgs["cg"].str[:3]
+            check_cgs["io"] = check_cgs["cg"].str[3:]
             check_cgs["io"] = check_cgs["io"].replace({"I": "IN", "O": "OUT"})
-            check_cgs = check_cgs.drop(columns="other_indexes")
+            check_cgs = check_cgs.drop(columns="cg")
             check_cgs = check_cgs.merge(
                 model.topology[
                     ["region", "process", "commodity", "csets", "io"]
@@ -3196,8 +3194,8 @@ def apply_final_fixup(
     reg_com_flows = model.topology[["region", "process", "commodity"]].copy()
     reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
     df = tables[Tag.fi_t]
-
-    _populate_defaults(Tag.fi_t, df, "other_indexes", config, "original_attr")
+    for col in ["other_indexes", "cg"]:
+        _populate_defaults(Tag.fi_t, df, col, config, "original_attr")
     _populate_calculated_defaults(df, model)
 
     # Fill other_indexes for COST

@@ -1702,7 +1702,7 @@
       "year",
       "process",
       "commodity",
-      "other_indexes",
+      "cg",
       "timeslice",
       "limtype"
     ]
@@ -3054,7 +3054,7 @@
       "region",
       "year",
       "process",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -5131,7 +5131,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   }

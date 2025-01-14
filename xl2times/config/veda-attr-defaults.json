@@ -1,7 +1,8 @@
 {
   "ACT2FLO": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out"
@@ -21,7 +22,8 @@
   },
   "ACTFLO": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out"
@@ -579,6 +581,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
+      "cg": ["other_indexes"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -675,6 +678,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
+      "cg": ["other_indexes"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     }
@@ -910,7 +914,8 @@
   },
   "PRC_ACTFLO":{
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out"
@@ -962,7 +967,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "other_indexes": ["veda_cg"],
+      "cg": ["veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -974,7 +979,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "other_indexes": ["veda_cg"],
+      "cg": ["veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -986,7 +991,7 @@
         "commodity-out",
         "commodity-in"
       ],
-      "other_indexes": ["veda_cg"],
+      "cg": ["veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
