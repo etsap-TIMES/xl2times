@@ -339,7 +339,7 @@ class Config:
         veda_tags_file: str,
         veda_attr_defaults_file: str,
         regions: str,
-        include_dummy_imports: bool = False,
+        include_dummy_imports: bool = True,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         (
