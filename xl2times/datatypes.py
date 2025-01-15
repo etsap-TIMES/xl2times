@@ -111,6 +111,16 @@ class DataModule(str, Enum):
                     return "trans"
                 else:
                     return "main"
+            case DataModule.trade:
+                if PurePath(path.lower()).match("scentrade__trade_links.*"):
+                    return "main"
+                else:
+                    return "trans"
+            case DataModule.demand:
+                if PurePath(path.lower()).match("dem_alloc+series.*"):
+                    return "main"
+                else:
+                    return "trans"
             case None:
                 return None
             case _:
