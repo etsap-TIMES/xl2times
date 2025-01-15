@@ -329,7 +329,7 @@ class Config:
     # Switch to prevent overwriting of I/E settings in BASE and SubRES
     ie_override_in_syssettings: bool = False
     # Switch to include dummy imports in the model
-    include_dummy_imports: bool
+    include_dummy_imports: bool = True
 
     def __init__(
         self,
@@ -339,7 +339,7 @@ class Config:
         veda_tags_file: str,
         veda_attr_defaults_file: str,
         regions: str,
-        include_dummy_imports: bool = True,
+        include_dummy_imports: bool,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         (
