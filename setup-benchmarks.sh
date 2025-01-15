@@ -7,10 +7,10 @@ set -eo pipefail
 # Commit SHA for each repository:
 REF_TIMES_model="b488fb07f0899ee8b7e710c230b1a9414fa06f7d"
 REF_demos_xlsx="34a2a5c044cc0bbea1357de50db2f5f02d575181"
-REF_demos_dd="2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
-REF_tim="e820d8002adc6b1526a3bffcc439219b28d0eed5"
-REF_tim_gams="703f6a4e1d0bedd95c3ebdae534496f3a7e1b7cc"
-REF_TIMES_NZ="4170d720e1c5cb0e31537a3168188169209ceb4d"
+REF_demos_dd="82f03395b5ffa70f37de94525d0aca605c092803"
+REF_tim="5fffa7cb894078a3ffad22d8fff3e3f6f7c73f2c"
+REF_tim_gams="0d6d1283408f207d997d917294c0ff4722b33d87"
+REF_TIMES_NZ="64c48461690fd2458d112b97c68e788c63490461"
 
 # If no GitHub token is provided, try to clone using SSH
 if [ -z "$GH_PAT_DEMOS_XLSX" ]; then
