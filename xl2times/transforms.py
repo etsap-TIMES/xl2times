@@ -3095,7 +3095,7 @@ def fix_topology(
     model.topology.replace({"io": mapping}, inplace=True)
 
     if Tag.tfm_ava in tables:
-        modules_with_ava = set(tables[Tag.tfm_ava]["module_name"].unique())
+        modules_with_ava = set(tables[Tag.tfm_ava]["module_name"])
         df = tables[Tag.tfm_ava].explode("process", ignore_index=True)
         # Ensure valid combinations of process / module_name
         df = df.merge(
