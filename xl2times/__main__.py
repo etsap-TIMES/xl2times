@@ -468,6 +468,8 @@ def run(args: argparse.Namespace) -> str | None:
         "veda-tags.json",
         "veda-attr-defaults.json",
         args.regions,
+        True,
+        # args.include_dummy_imports,
     )
 
     model = TimesModel()
@@ -559,6 +561,11 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
         type=str,
         default="",
         help="Comma-separated list of regions to include in the model",
+    )
+    args_parser.add_argument(
+        "--include_dummy_imports",
+        action="store_true",
+        help="Include dummy import processes in the model",
     )
     args_parser.add_argument(
         "--output_dir", type=str, default="output", help="Output directory"
