@@ -173,9 +173,8 @@ def generate_headers_by_attr() -> dict[str, list[str]]:
 
 
 def convert_dd_to_tabular(
-    basedir: str, output_dir: str, headers_by_attr: dict[str, list[str]]
+    dd_files: list[Path], output_dir: str, headers_by_attr: dict[str, list[str]]
 ) -> None:
-    dd_files = [p for p in Path(basedir).rglob("*.dd")]
 
     all_sets = defaultdict(list)
     all_parameters = defaultdict(list)
@@ -226,8 +225,18 @@ def main(arg_list: None | list[str] = None):
     args_parser.add_argument(
         "output_dir", type=str, help="Output directory to save the .csv files in."
     )
+    args_parser.add_argument(
+        "--include_files",
+        type=str,
+        nargs="*",
+        help="List of .dd file stems to process.",
+    )
     args = args_parser.parse_args(arg_list)
-    convert_dd_to_tabular(args.input_dir, args.output_dir, generate_headers_by_attr())
+    dd_files = [p for p in Path(args.input_dir).rglob("*.dd")]
+    if args.include_files:
+        valid_stems = {stem.lower() for stem in args.include_files}
+        dd_files = [p for p in dd_files if p.stem.lower() in valid_stems]
+    convert_dd_to_tabular(dd_files, args.output_dir, generate_headers_by_attr())
 
 
 if __name__ == "__main__":
