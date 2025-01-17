@@ -253,17 +253,20 @@ def revalidate_input_tables(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Perform further validation of input tables by checking whether required columns
-    are present / non-empty.
+    """Perform further validation of input tables by dropping any empty column and
+    checking whether required columns are present.
 
-    Remove tables without required columns or if they are empty.
+    Remove tables without required columns.
     """
     result = []
     for table in tables:
         tag = Tag(table.tag)
+        # Replace empty strings with NA
+        df = table.dataframe.replace("", pd.NA)
+        # Drop columns that are all NA
+        df = df.dropna(axis=1, how="all")
         required_cols = config.required_columns[tag]
         if required_cols:
-            df = table.dataframe
             # Drop table if any column in required columns is missing
             missing_cols = required_cols.difference(df.columns)
             if missing_cols:
@@ -273,18 +276,8 @@ def revalidate_input_tables(
                 )
                 # Discard the table
                 continue
-            # Check whether any of the required columns is empty
-            else:
-                empty_required_cols = {c for c in required_cols if all(df[c].isna())}
-                if empty_required_cols:
-                    logger.warning(
-                        f"Dropping {tag.value} table within range {table.range} on sheet {table.sheetname}"
-                        f" in file {table.filename} due to empty required columns: {empty_required_cols}"
-                    )
-                    # Discard the table
-                    continue
         # Append table to the list if reached this far
-        result.append(table)
+        result.append(replace(table, dataframe=df))
 
     return result
 
