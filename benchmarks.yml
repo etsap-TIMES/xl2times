@@ -327,7 +327,7 @@ benchmarks:
       - "SuppXLS/Scen_B_TRA_Emissions.xlsx"
       - "SuppXLS/Scen_B_TRA_EV_Parity.xlsx"
       - "SuppXLS/Scen_B_TRA_F_ModalShares.xlsx"
-    dd_folder: Ireland
+    dd_folder: Ireland/model
     dd_files:
       - "base"
       - "pwr_dh"
