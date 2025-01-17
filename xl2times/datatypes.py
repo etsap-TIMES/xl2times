@@ -262,8 +262,16 @@ class TimesModel:
         for attributes in [self.attributes, self.uc_attributes]:
             if not attributes.empty:
                 # Index of the year column with non-empty values
-                index = attributes["year"] != ""
-                data_years.update(attributes["year"][index].astype(int).values)
+                # index = attributes["year"] != ""
+                # data_years.update(attributes["year"][index].astype(int).values)
+                # TODO: Ensure that non-parseble vals don't get this far
+                int_years = attributes["year"].astype(
+                    int, errors="ignore"
+                )  # leave non-parseable vals alone
+                int_years = [
+                    y for y in int_years if isinstance(y, int)
+                ]  # remove non-parseable years
+                data_years.update(int_years)
         # Remove interpolation rules before return
         return {y for y in data_years if y >= 1000}
 
