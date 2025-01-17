@@ -337,7 +337,7 @@ benchmarks:
       - "SuppXLS/Scen_SYS_Demands_LED.xlsx"
       - "SuppXLS/Scen_SYS_WAM_Emissions.xlsx"
       - "SuppXLS/Scen_TRA_P_ModalShares_LED.xlsx"
-    dd_folder: TIM
+    dd_folder: TIM/model
     dd_files:
       - "base-bulk"
       - "ind_ccs"
@@ -483,7 +483,7 @@ benchmarks:
       - "milestonyr"
     include_dummy_imports: true
   - name: TIMES-IE-MCB
-    input_folder: TIM/model
+    input_folder: TIM
     regions: "IE"
     inputs:
       - "VT_IE_AGR.xlsx"
