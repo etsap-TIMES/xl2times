@@ -443,7 +443,7 @@ benchmarks:
       - "SuppXLS/Scen_B_TRA_Emissions.xlsx"
       - "SuppXLS/Scen_B_TRA_EV_Parity.xlsx"
       - "SuppXLS/Scen_B_TRA_F_ModalShares.xlsx"
-    dd_folder: TIM
+    dd_folder: TIM/model
     dd_files:
       - "base"
       - "pwr_dh"
@@ -483,7 +483,7 @@ benchmarks:
       - "milestonyr"
     include_dummy_imports: true
   - name: TIMES-IE-MCB
-    input_folder: TIM
+    input_folder: TIM/model
     regions: "IE"
     inputs:
       - "VT_IE_AGR.xlsx"
@@ -545,7 +545,7 @@ benchmarks:
       - "SuppXLS/Scen_B_TRA_Emissions.xlsx"
       - "SuppXLS/Scen_B_TRA_EV_Parity.xlsx"
       - "SuppXLS/Scen_B_TRA_F_ModalShares.xlsx"
-    dd_folder: TIM
+    dd_folder: TIM/model
     dd_files:
       - "base-bulk"
       - "ind_ccs"
