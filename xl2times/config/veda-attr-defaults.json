@@ -976,7 +976,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "cg": ["veda_cg"],
+      "cg": ["other_indexes", "veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
