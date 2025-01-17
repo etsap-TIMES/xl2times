@@ -489,7 +489,9 @@ def process_flexible_import_tables(
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, Tag.currencies, "currency"),
-        "other_indexes": {"IN", "OUT", "DEMO", "DEMI"},
+        "other_indexes": set(config.times_sets["IN_OUT"])
+        .union(config.times_sets["IMPEXT"])
+        .union(default_pcg_suffixes),
     }
 
     def process_flexible_import_table(
