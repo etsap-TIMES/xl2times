@@ -232,7 +232,7 @@ def main(arg_list: None | list[str] = None):
         help="List of .dd file stems to process.",
     )
     args = args_parser.parse_args(arg_list)
-    dd_files = [p for p in Path(args.input_dir).rglob("*.dd")]
+    dd_files = [p for p in Path(args.input_dir).glob("*.dd")]
     if args.include_files:
         valid_stems = {stem.lower() for stem in args.include_files}
         dd_files = [p for p in dd_files if p.stem.lower() in valid_stems]
