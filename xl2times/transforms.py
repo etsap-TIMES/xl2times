@@ -490,7 +490,7 @@ def process_flexible_import_tables(
         "region": model.internal_regions,
         "currency": utils.single_column(tables, Tag.currencies, "currency"),
         "other_indexes": set(config.times_sets["IN_OUT"])
-        .union(config.times_sets["IMPEXT"])
+        .union(config.times_sets["IMPEXP"])
         .union(default_pcg_suffixes),
     }
 
