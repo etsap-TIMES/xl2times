@@ -315,9 +315,6 @@ def produce_times_tables(
                 filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
                 df = df.loc[i, :]
-            # TODO find the correct tech group
-            if "techgroup" in mapping.xl_cols:
-                df["techgroup"] = df["techname"]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols).difference(df.columns)
                 logger.warning(
@@ -339,6 +336,7 @@ def produce_times_tables(
                     & (df != "None").all(axis=1)
                     & (df != "nan").all(axis=1)
                     & (df != "").all(axis=1)
+                    & (df != "<NA>").all(axis=1)
                 )
                 df = df.loc[i, mapping.times_cols]
                 # Drop tables that are empty after filtering and dropping Nones:
