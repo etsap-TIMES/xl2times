@@ -253,9 +253,11 @@ def revalidate_input_tables(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Perform further validation of input tables by dropping any empty column and checking whether required columns are present.
-
-    Remove tables without required columns. Remove any row with missing values in any of the required columns. Add any columns expected for processing downstream.
+    """Perform further validation of input tables:
+    - remove tables without required columns;
+    - remove any row with missing values in any of the required columns;
+    - add any column expected for processing downstream;
+    - forward fill values in columns as specified in the config.
     """
     result = []
     for table in tables:
@@ -286,6 +288,10 @@ def revalidate_input_tables(
             cols_to_add = add_columns.difference(df.columns)
             for col in cols_to_add:
                 df[col] = pd.NA
+        # Forwards fill values in columns
+        ff_cols = config.forward_fill_cols[tag].intersection(df.columns)
+        for col in ff_cols:
+            df[col] = df[col].ffill()
         # Append table to the list if reached this far
         result.append(replace(table, dataframe=df))
 
@@ -645,8 +651,6 @@ def process_user_constraint_tables(
 
         df = table.dataframe
 
-        # Fill in UC_N blank cells with value from above
-        df["uc_n"] = df["uc_n"].ffill()
         # TODO: Handle pseudo-attributes in a more general way
         known_columns = config.known_columns[Tag.uc_t].copy()
         known_columns.remove("uc_attr")
@@ -894,9 +898,6 @@ def fill_in_missing_values(
 
         for colname in df.columns:
             # TODO make this more declarative
-            # Forwards fill values in columns
-            if colname in config.forward_fill_cols[table.tag]:
-                df[colname] = df[colname].ffill()
             # Apply default values to missing cells
             col_default_value = default_values.get(colname)
             if col_default_value is not None:
@@ -1132,7 +1133,6 @@ def process_regions(
     # Read region settings
     region_def = utils.single_table(tables, Tag.book_regions_map).dataframe
     # Harmonise the dataframe
-    region_def["bookname"] = region_def[["bookname"]].ffill()
     region_def = (
         region_def.dropna(how="any")
         .apply(lambda x: x.str.upper())
@@ -1702,37 +1702,31 @@ def process_processes(
     """Process processes."""
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
-
-    processes_and_sets = pd.DataFrame({"sets": [], "process": []})
+    original_dfs = []
 
     for table in tables:
         if table.tag != Tag.fi_process:
             result.append(table)
         else:
+            original_dfs.append(table.dataframe)
             df = table.dataframe.copy()
-            processes_and_sets = pd.concat(
-                [processes_and_sets, df[["sets", "process"]].ffill()]
-            )
             df.replace({"sets": veda_sets_to_times}, inplace=True)
-            # TODO: Use info from config instead. Introduce required columns in the meta file?
-            add_columns = {"region", "tslvl", "primarycg", "vintage"}
-            for column in add_columns:
-                if column in table.dataframe.columns:
-                    df[column] = pd.NA
             result.append(replace(table, dataframe=df))
 
-    veda_process_sets = EmbeddedXlTable(
+    veda_process_sets = pd.concat(original_dfs, ignore_index=True)
+    i = veda_process_sets["sets"].isin(veda_sets_to_times.keys())
+    veda_process_sets = veda_process_sets[i].reset_index(drop=True)
+
+    veda_process_sets_table = EmbeddedXlTable(
         tag="VedaProcessSets",
         uc_sets={},
         sheetname="",
         range="",
         filename="",
-        dataframe=processes_and_sets.loc[
-            processes_and_sets["sets"].isin(veda_sets_to_times.keys())
-        ],
+        dataframe=veda_process_sets,
     )
 
-    result.append(veda_process_sets)
+    result.append(veda_process_sets_table)
 
     return result
 
@@ -1767,7 +1761,6 @@ def process_topology(
         value_name="commodity",
     )
 
-    topology["process"] = topology["process"].ffill()
     topology.replace(
         {
             "io": {
