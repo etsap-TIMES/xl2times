@@ -117,7 +117,6 @@ def convert_xl_to_times(
         transforms.revalidate_input_tables,
         transforms.capitalise_table_values,
         transforms.process_regions,
-        transforms.process_commodities,
         transforms.convert_com_tables,
         transforms.process_time_periods,
         transforms.remove_exreg_cols,

@@ -253,10 +253,9 @@ def revalidate_input_tables(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Perform further validation of input tables by dropping any empty column and
-    checking whether required columns are present.
+    """Perform further validation of input tables by dropping any empty column and checking whether required columns are present.
 
-    Remove tables without required columns.
+    Remove tables without required columns. Remove any row with missing values in any of the required columns. Add any columns expected for processing downstream.
     """
     result = []
     for table in tables:
@@ -264,7 +263,7 @@ def revalidate_input_tables(
         # Replace empty strings with NA
         df = table.dataframe.replace("", pd.NA)
         # Drop columns that are all NA
-        df = df.dropna(axis=1, how="all")
+        df = df.dropna(axis=1, how="all", ignore_index=True)
         required_cols = config.required_columns[tag]
         if required_cols:
             # Drop table if any column in required columns is missing
@@ -276,6 +275,17 @@ def revalidate_input_tables(
                 )
                 # Discard the table
                 continue
+            # Drop any rows with missing values in required columns
+            df = df.dropna(
+                subset=list(required_cols), axis=0, how="any", ignore_index=True
+            )
+
+        # Add columns in config.add_columns if missing
+        add_columns = config.add_columns[tag]
+        if add_columns and not add_columns.issubset(df.columns):
+            cols_to_add = add_columns.difference(df.columns)
+            for col in cols_to_add:
+                df[col] = pd.NA
         # Append table to the list if reached this far
         result.append(replace(table, dataframe=df))
 
@@ -1569,14 +1579,6 @@ def fill_in_missing_pcgs(
 
     Expand primary commodity groups specified in FI_Process tables by a suffix.
     """
-
-    def expand_pcg_from_suffix(df):
-        """Generate the name of a default primary commodity group based on suffix and process name."""
-        if df["primarycg"] in default_pcg_suffixes:
-            return df["process"] + "_" + df["primarycg"]
-        else:
-            return df["primarycg"]
-
     result = []
 
     for table in tables:
@@ -1584,7 +1586,11 @@ def fill_in_missing_pcgs(
             result.append(table)
         else:
             df = table.dataframe.copy()
-            df["primarycg"] = df.apply(expand_pcg_from_suffix, axis=1)
+            # Expand primary commodity groups specified in primarycg column by a suffix
+            i = df["primarycg"].isin(default_pcg_suffixes) & df["process"].notna()
+            if any(i):
+                # Specify primary commodity group based on suffix and the process name.
+                df.loc[i, "primarycg"] = df["process"][i] + "_" + df["primarycg"][i]
             default_pcgs = model.topology.copy()
             default_pcgs = default_pcgs.loc[
                 default_pcgs["DefaultVedaPCG"] == 1,
@@ -1669,28 +1675,6 @@ def convert_com_tables(
     return result
 
 
-def process_commodities(
-    config: Config,
-    tables: list[EmbeddedXlTable],
-    model: TimesModel,
-) -> list[EmbeddedXlTable]:
-    """Process commodities."""
-    result = []
-    for table in tables:
-        if table.tag != Tag.fi_comm:
-            result.append(table)
-        else:
-            df = table.dataframe.copy()
-            nrows = df.shape[0]
-            if "region" not in table.dataframe.columns:
-                df.insert(1, "region", [pd.NA] * nrows)
-            if "limtype" not in table.dataframe.columns:
-                df["limtype"] = [pd.NA] * nrows
-            result.append(replace(table, dataframe=df, tag=Tag.fi_comm))
-
-    return result
-
-
 def internalise_commodities(
     config: Config,
     tables: list[EmbeddedXlTable],
@@ -1730,17 +1714,11 @@ def process_processes(
                 [processes_and_sets, df[["sets", "process"]].ffill()]
             )
             df.replace({"sets": veda_sets_to_times}, inplace=True)
-            nrows = df.shape[0]
             # TODO: Use info from config instead. Introduce required columns in the meta file?
-            add_columns = [
-                (1, "region"),
-                (6, "tslvl"),
-                (7, "primarycg"),
-                (8, "vintage"),
-            ]
+            add_columns = {"region", "tslvl", "primarycg", "vintage"}
             for column in add_columns:
-                if column[1] not in table.dataframe.columns:
-                    df.insert(column[0], column[1], [None] * nrows)
+                if column in table.dataframe.columns:
+                    df[column] = pd.NA
             result.append(replace(table, dataframe=df))
 
     veda_process_sets = EmbeddedXlTable(
@@ -1834,15 +1812,27 @@ def generate_dummy_processes(
     if config.include_dummy_imports:
         # TODO: Activity units below are arbitrary. Suggest Veda devs not to have any.
         dummy_processes = [
-            ["IMP", "IMPNRGZ", "Dummy Import of NRG", "PJ", "", "NRG"],
-            ["IMP", "IMPMATZ", "Dummy Import of MAT", "MT", "", "MAT"],
-            ["IMP", "IMPDEMZ", "Dummy Import of DEM", "PJ", "", "DEM"],
+            ["IMPNRGZ", "Dummy Import of NRG", "PJ", "NRG"],
+            ["IMPMATZ", "Dummy Import of MAT", "MT", "MAT"],
+            ["IMPDEMZ", "Dummy Import of DEM", "PJ", "DEM"],
         ]
 
         process_declarations = pd.DataFrame(
             dummy_processes,
-            columns=["sets", "process", "description", "tact", "tcap", "primarycg"],
+            columns=["process", "description", "tact", "primarycg"],
         )
+
+        # Data that is the same for all dummy processes
+        additional_cols = {
+            "region": pd.NA,
+            "sets": "IMP",
+            "tcap": pd.NA,
+            "tslvl": "ANNUAL",
+            "vintage": pd.NA,
+        }
+
+        for col, value in additional_cols.items():
+            process_declarations[col] = value
 
         tables.append(
             EmbeddedXlTable(
