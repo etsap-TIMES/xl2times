@@ -382,10 +382,8 @@ def merge_tables(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Merge all tables in 'tables' with the same table tag, as long as they share the
-    same column field values. Print a warning for those that don't share the same column
-    values. Return a dictionary linking each table tag with its merged table or populate
-    TimesModel class.
+    """Merge all tables in 'tables' with the same table tag. Return a dictionary
+    linking each table tag with its merged table or populate TimesModel class.
 
     Parameters
     ----------
@@ -411,23 +409,6 @@ def merge_tables(
 
         df = pd.concat([table.dataframe for table in group], ignore_index=True)
         result[key] = df
-
-        # VEDA appears to support merging tables where come columns are optional, e.g. ctslvl and ctype from ~FI_COMM.
-        # So just print detailed warning if we find tables with fewer columns than the concat'ed table.
-        concat_cols = set(df.columns)
-        missing_cols = [concat_cols.difference(t.dataframe.columns) for t in group]
-
-        if any([len(m) for m in missing_cols]):
-            err = (
-                f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual "
-                f"table(s), see details below:"
-            )
-            for table in group:
-                err += (
-                    f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, "
-                    f"{table.filename}"
-                )
-            logger.warning(err)
 
         match key:
             case Tag.fi_process:
