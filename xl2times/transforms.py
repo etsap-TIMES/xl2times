@@ -1495,7 +1495,9 @@ def generate_trade(
     ire_prc.drop_duplicates(keep="first", inplace=True)
 
     # Generate inter-regional exchange topology
-    top_ire = model.topology[["region", "process", "commodity", "io"]].copy()
+    top_ire = model.topology[
+        ["region", "process", "commodity", "io"] + list(dm_cols)
+    ].copy()
     if config.include_dummy_imports:
         dummy_process_cset = [
             ["NRG", "IMPNRGZ"],
@@ -1730,24 +1732,24 @@ def process_topology(
     """Create topology."""
     fit_tables = [t for t in tables if t.tag == Tag.fi_t]
 
-    columns = [
+    columns = {
         "region",
         "process",
         "commodity-in",
         "commodity-in-aux",
         "commodity-out",
         "commodity-out-aux",
-    ]
-    topology = pd.DataFrame(columns=columns)
+    }.union(dm_cols)
+    topology = pd.DataFrame(columns=list(columns))
 
     for fit_table in fit_tables:
-        cols = [col for col in columns if col in fit_table.dataframe.columns]
+        cols = [col for col in columns.intersection(fit_table.dataframe.columns)]
         df = fit_table.dataframe[cols]
         topology = pd.concat([topology, df])
 
     topology = pd.melt(
         topology,
-        id_vars=["region", "process"],
+        id_vars=["region", "process"] + list(dm_cols),
         var_name="io",
         value_name="commodity",
     )
