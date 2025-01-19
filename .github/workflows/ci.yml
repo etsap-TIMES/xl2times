@@ -180,7 +180,12 @@ jobs:
               }
             }
 
-            const commentBody = `<!-- ${distinctiveKeyword} --> ${comment}`;
+            // Strip out the ANSI color codes, and wrap it in a nice code block
+            const header = `### Regression test results on commit ${context.sha}`
+            const cleaned = comment.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+            const codeDelim = '\n```\n';
+            const footer = '\n\n_This comment will be updated when new commits are added to the PR._'
+            const commentBody = `<!-- ${distinctiveKeyword} --> ${header}${codeDelim}${cleaned}${codeDelim}${footer}`;
 
             if (botsComment) {
               // If found, update comment
