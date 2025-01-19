@@ -869,7 +869,7 @@ def fill_in_missing_values(
             vt_regions[row["bookname"]].append(row["region"])
 
     ele_default_tslvl = (
-        "DAYNITE" if "DAYNITE" in model.ts_tslvl["tslvl"].unique() else "ANNUAL"
+        "DAYNITE" if "DAYNITE" in set(model.ts_tslvl["tslvl"]) else "ANNUAL"
     )
 
     def fill_in_missing_values_table(table):
@@ -2762,9 +2762,9 @@ def process_time_slices(
         # Create a dataframe containing regions and timeslices
         reg_ts = pd.DataFrame({"region": regions})
         for ts_level in user_ts_levels:
-            if timeslices[ts_level] != [None]:
-                reg_ts = pd.merge(
-                    reg_ts, pd.DataFrame({ts_level: timeslices[ts_level]}), how="cross"
+            if timeslices[ts_level]:
+                reg_ts = reg_ts.merge(
+                    pd.DataFrame({ts_level: timeslices[ts_level]}), how="cross"
                 )
 
         # Include expanded names of timeslices in the dataframe
