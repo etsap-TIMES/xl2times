@@ -28,130 +28,132 @@ jobs:
         with:
           path: xl2times
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: ${{ env.PY_VERSION }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
 
-      # - name: Build and install xl2times
-      #   working-directory: xl2times
-      #   run: |
-      #     python -m venv .venv
-      #     source .venv/bin/activate
-      #     pip install --upgrade pip build
-      #     pip install -e .[dev]
-      #     # Build xl2times
-      #     rm -rf dist || true
-      #     python -m build
-      #     # Install the built wheel file to imitiate users installing from PyPI:
-      #     pip uninstall --yes xl2times
-      #     pip install --no-index --find-links=dist xl2times
+      - name: Build and install xl2times
+        working-directory: xl2times
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip build
+          pip install -e .[dev]
+          # Build xl2times
+          rm -rf dist || true
+          python -m build
+          # Install the built wheel file to imitiate users installing from PyPI:
+          pip uninstall --yes xl2times
+          pip install --no-index --find-links=dist xl2times
 
-      # - name: Check code formatting
-      #   working-directory: xl2times
-      #   # Run this step after install so that pyright can find dependencies like pandas
-      #   run: |
-      #     source .venv/bin/activate
-      #     pre-commit install
-      #     pre-commit run --all-files
+      - name: Check code formatting
+        working-directory: xl2times
+        # Run this step after install so that pyright can find dependencies like pandas
+        run: |
+          source .venv/bin/activate
+          pre-commit install
+          pre-commit run --all-files
 
-      # - name: Run unit tests
-      #   working-directory: xl2times
-      #   run: |
-      #     source .venv/bin/activate
-      #     pytest
+      - name: Run unit tests
+        working-directory: xl2times
+        run: |
+          source .venv/bin/activate
+          pytest
 
-      # - name: Reinstall as editable for regression tests
-      #   working-directory: xl2times
-      #   run: |
-      #     source .venv/bin/activate
-      #     pip uninstall --yes xl2times
-      #     pip install -e .
+      - name: Reinstall as editable for regression tests
+        working-directory: xl2times
+        run: |
+          source .venv/bin/activate
+          pip uninstall --yes xl2times
+          pip install -e .
 
-      # # ---------- Setup benchmark repositories
+      # ---------- Setup benchmark repositories
 
-      # - name: Setup benchmark repositories
-      #   working-directory: xl2times
-      #   run: |
-      #     ./setup-benchmarks.sh
-      #   env:
-      #     GH_PAT_DEMOS_XLSX: ${{ secrets.GH_PAT_DEMOS_XLSX }}
+      - name: Setup benchmark repositories
+        working-directory: xl2times
+        run: |
+          ./setup-benchmarks.sh
+        env:
+          GH_PAT_DEMOS_XLSX: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
-      # # ---------- Install GAMS
+      - name: Convert Times-NZ to XLSX
+        working-directory: xl2times
+        run: |
+          sudo apt update
+          sudo apt install libreoffice-calc default-jre libreoffice-java-common
+          find benchmarks/TIMES-NZ -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
 
-      # - name: Install GAMS
-      #   env:
-      #     GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
-      #   if: ${{ env.GAMS_LICENSE != '' }}
-      #   run: |
-      #     curl https://d37drm4t2jghv5.cloudfront.net/distributions/48.2.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
-      #     chmod +x linux_x64_64_sfx.exe
-      #     mkdir GAMS
-      #     pushd  GAMS
-      #     ../linux_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
-      #     export PATH=$PATH:$(pwd)/gams48.2_linux_x64_64_sfx
-      #     popd
+      # ---------- Install GAMS
 
-      # # ---------- Run tool, check for regressions
+      - name: Install GAMS
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE != '' }}
+        run: |
+          curl https://d37drm4t2jghv5.cloudfront.net/distributions/48.2.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
+          chmod +x linux_x64_64_sfx.exe
+          mkdir GAMS
+          pushd  GAMS
+          ../linux_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
+          export PATH=$PATH:$(pwd)/gams48.2_linux_x64_64_sfx
+          popd
 
-      # - name: Restore XLSX cache directory from cache
-      #   id: cache
-      #   uses: actions/cache/restore@v4
-      #   with:
-      #     path: ~/.cache/xl2times
-      #     # Cache key is manual key + python version
-      #     key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}
+      # ---------- Run tool, check for regressions
 
-      # - name: Run tool on all benchmarks
-      #   env:
-      #     GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
-      #   if: ${{ env.GAMS_LICENSE != '' }}
-      #   working-directory: xl2times
-      #   # Use tee to also save the output to out.txt so that the summary table can be
-      #   # printed again in the next step.
-      #   # Save the return code to retcode.txt so that the next step can fail the action
-      #   run: |
-      #     source .venv/bin/activate
-      #     export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams48.2_linux_x64_64_sfx
-      #     (python utils/run_benchmarks.py benchmarks.yml \
-      #         --dd --times_dir $GITHUB_WORKSPACE/xl2times/TIMES_model \
-      #         --verbose \
-      #         | tee out.txt; \
-      #       echo ${PIPESTATUS[0]} > retcode.txt)
+      - name: Restore XLSX cache directory from cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/xl2times
+          # Cache key is manual key + python version
+          key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}
 
-      # - name: Run CSV-only regression tests (no GAMS license)
-      #   env:
-      #     GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
-      #   if: ${{ env.GAMS_LICENSE == '' }}
-      #   working-directory: xl2times
-      #   # Run without --dd flag if GAMS license secret doesn't exist.
-      #   # Useful for testing for (CSV) regressions in forks before creating PRs.
-      #   run: |
-      #     source .venv/bin/activate
-      #     (python utils/run_benchmarks.py benchmarks.yml \
-      #         --verbose \
-      #         | tee out.txt; \
-      #     echo ${PIPESTATUS[0]} > retcode.txt)
+      - name: Run tool on all benchmarks
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE != '' }}
+        working-directory: xl2times
+        # Use tee to also save the output to out.txt so that the summary table can be
+        # printed again in the next step.
+        # Save the return code to retcode.txt so that the next step can fail the action
+        run: |
+          source .venv/bin/activate
+          export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams48.2_linux_x64_64_sfx
+          (python utils/run_benchmarks.py benchmarks.yml \
+              --dd --times_dir $GITHUB_WORKSPACE/xl2times/TIMES_model \
+              --verbose \
+              | tee out.txt; \
+            echo ${PIPESTATUS[0]} > retcode.txt)
 
-      # - name: Print summary
-      #   working-directory: xl2times
-      #   run: |
-      #     sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt | tee $GITHUB_WORKSPACE/summary.txt
-      #     exit $(cat retcode.txt)
-
-      # - uses: actions/cache/save@v4
-      #   # Save the cache even if the regression tests fail
-      #   if: always() && !steps.cache-restore.outputs.cache-hit
-      #   with:
-      #     path: ~/.cache/xl2times
-      #     key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
-
-      # ---------- Post the results of regression testing to the PR as a comment
+      - name: Run CSV-only regression tests (no GAMS license)
+        env:
+          GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
+        if: ${{ env.GAMS_LICENSE == '' }}
+        working-directory: xl2times
+        # Run without --dd flag if GAMS license secret doesn't exist.
+        # Useful for testing for (CSV) regressions in forks before creating PRs.
+        run: |
+          source .venv/bin/activate
+          (python utils/run_benchmarks.py benchmarks.yml \
+              --verbose \
+              | tee out.txt; \
+          echo ${PIPESTATUS[0]} > retcode.txt)
 
       - name: Print summary
         working-directory: xl2times
         run: |
-          echo 'Test test test' | tee $GITHUB_WORKSPACE/summary.txt
+          sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt | tee $GITHUB_WORKSPACE/summary.txt
+          exit $(cat retcode.txt)
+
+      - uses: actions/cache/save@v4
+        # Save the cache even if the regression tests fail
+        if: always() && !steps.cache-restore.outputs.cache-hit
+        with:
+          path: ~/.cache/xl2times
+          key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
+
+      # ---------- Post the results of regression testing to the PR as a comment
 
       - name: If PR, post or update comment
         if: github.event_name == 'pull_request'
@@ -186,7 +188,6 @@ jobs:
             }
 
             // Strip out the ANSI color codes, and wrap it in a nice code block
-            console.log(JSON.stringify(context, null, 2));
             const pullRequest = context.payload.pull_request;
             const header = '\n' + `### Regression test results on commit ${pullRequest.head.sha} `
             const cleaned = comment.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
