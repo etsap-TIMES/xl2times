@@ -1317,6 +1317,7 @@ def generate_commodity_groups(
 
     # Commodity groups by process, region and commodity
     comm_groups = pd.merge(model.topology, comm_set, on=["region", "commodity"])
+    comm_groups.drop_duplicates(keep="last", inplace=True)
 
     # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)

@@ -4744,7 +4744,7 @@
           "*"
         ],
         "query_field": false,
-        "inherit_above": false,
+        "inherit_above": true,
         "remove_first_row_if_absent": true,
         "remove_any_row_if_absent": false
       },
