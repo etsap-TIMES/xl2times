@@ -181,7 +181,7 @@ jobs:
             }
 
             // Strip out the ANSI color codes, and wrap it in a nice code block
-            const header = `### Regression test results on commit ${context.sha}`
+            const header = '\n' + `### Regression test results on commit ${context.sha} ${context.ref} ${process.env.GITHUB_HEAD_REF} `
             const cleaned = comment.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
             const codeDelim = '\n```\n';
             const footer = '\n\n_This comment will be updated when new commits are added to the PR._'
