@@ -250,6 +250,7 @@ class TimesModel:
     start_year: int = field(default_factory=int)
     files: set[str] = field(default_factory=set)
     data_modules: list[str] = field(default_factory=list)
+    custom_sets: DataFrame = field(default_factory=DataFrame)
 
     @property
     def external_regions(self) -> set[str]:

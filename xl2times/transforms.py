@@ -1483,7 +1483,7 @@ def generate_trade(
 ) -> list[EmbeddedXlTable]:
     """Generate inter-regional exchange topology."""
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
-    veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
+    veda_ire_sets = model.custom_sets
 
     ire_prc = pd.DataFrame(columns=["region", "process"])
     for table in tables:
@@ -1512,7 +1512,7 @@ def generate_trade(
         top_ire = pd.concat([top_ire, dummy_ire])
 
     top_ire = top_ire.merge(ire_prc)
-    top_ire = top_ire.merge(veda_process_sets)
+    top_ire = top_ire.merge(veda_ire_sets)
     top_ire["region2"] = top_ire["sets"].replace(veda_set_ext_reg_mapping)
     top_ire[["origin", "destination", "in", "out"]] = None
     for io in ("IN", "OUT"):
@@ -1713,20 +1713,11 @@ def process_processes(
             df.replace({"sets": veda_sets_to_times}, inplace=True)
             result.append(replace(table, dataframe=df))
 
-    veda_process_sets = pd.concat(original_dfs, ignore_index=True)
-    i = veda_process_sets["sets"].isin(veda_sets_to_times.keys())
-    veda_process_sets = veda_process_sets[i].reset_index(drop=True)
-
-    veda_process_sets_table = EmbeddedXlTable(
-        tag="VedaProcessSets",
-        uc_sets={},
-        sheetname="",
-        range="",
-        filename="",
-        dataframe=veda_process_sets,
+    merged_tables = pd.concat(original_dfs, ignore_index=True)
+    i = merged_tables["sets"].isin(veda_sets_to_times.keys())
+    model.custom_sets = merged_tables[["sets", "process"]][i].drop_duplicates(
+        ignore_index=True
     )
-
-    result.append(veda_process_sets_table)
 
     return result
 
@@ -3231,7 +3222,7 @@ def apply_final_fixup(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
 
-    veda_process_sets = tables["VedaProcessSets"][["sets", "process"]]
+    veda_ire_sets = model.custom_sets
     reg_com_flows = model.topology[["region", "process", "commodity"]].copy()
     reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
     df = tables[Tag.fi_t]
@@ -3246,11 +3237,11 @@ def apply_final_fixup(
     if any(cost_index):
         processes = set(df[cost_index]["process"].unique())
         # Index of IRE processes and their IRE sets specification
-        sets_index = veda_process_sets["process"].isin(processes) & veda_process_sets[
+        sets_index = veda_ire_sets["process"].isin(processes) & veda_ire_sets[
             "sets"
         ].isin(cost_mapping.keys())
 
-        ire_processes = set(veda_process_sets["process"][sets_index].unique())
+        ire_processes = set(veda_ire_sets["process"][sets_index])
         other_processes = processes.difference(ire_processes)
 
         if other_processes:
@@ -3260,7 +3251,7 @@ def apply_final_fixup(
 
         if any(ire_processes):
             # Ensure only one IRE set is specified per process
-            subst_df = veda_process_sets[sets_index].drop_duplicates(
+            subst_df = veda_ire_sets[sets_index].drop_duplicates(
                 subset="process", keep="last"
             )
             index = cost_index & df["process"].isin(ire_processes)
