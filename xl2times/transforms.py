@@ -549,7 +549,7 @@ def process_flexible_import_tables(
         if len(df.columns) != (len(index_columns) + 1):
             # TODO: Should be ok to drop as long as the topology info is stored.
             if len(df.columns) == len(index_columns) and "value" not in df.columns:
-                df["value"] = None
+                df["value"] = pd.NA
             else:
                 raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
@@ -1712,7 +1712,7 @@ def process_topology(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Create topology."""
+    """Create model.topology. Drop rows with missing values in fi_t tables."""
     fit_tables = [t for t in tables if t.tag == Tag.fi_t]
 
     columns = {
@@ -1725,10 +1725,16 @@ def process_topology(
     }.union(dm_cols)
     topology = pd.DataFrame(columns=list(columns))
 
+    top_info = []
+
     for fit_table in fit_tables:
-        cols = [col for col in columns.intersection(fit_table.dataframe.columns)]
-        df = fit_table.dataframe[cols]
-        topology = pd.concat([topology, df])
+        df = fit_table.dataframe
+        cols = [col for col in columns.intersection(df.columns)]
+        top_info.append(df[cols].copy())
+        # Rows with missing values in fi_t tables can now safely be dropped.
+        df.dropna(subset=["value"], axis=0, ignore_index=True, inplace=True)
+
+    topology = pd.concat(top_info, ignore_index=True)
 
     topology = pd.melt(
         topology,
