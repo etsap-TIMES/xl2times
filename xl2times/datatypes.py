@@ -596,7 +596,7 @@ class Config:
                 row_comment_chars[tag_name] = {}
                 # Process column aliases and comment chars:
                 for valid_field in tag_info["valid_fields"]:
-                    valid_field_names = valid_field["aliases"]
+                    valid_field_names = valid_field.get("aliases", list())
                     if (
                         "use_name" in valid_field
                         and valid_field["use_name"] != valid_field["name"]
@@ -631,9 +631,9 @@ class Config:
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
 
-                    row_comment_chars[tag_name][field_name] = valid_field[
-                        "row_ignore_symbol"
-                    ]
+                    row_comment_chars[tag_name][field_name] = valid_field.get(
+                        "row_ignore_symbol", list()
+                    )
 
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
