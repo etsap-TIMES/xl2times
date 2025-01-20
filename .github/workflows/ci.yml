@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+      pull-requests: write
 
     env:
       PY_VERSION: "3.11"
@@ -142,7 +143,7 @@ jobs:
       - name: Print summary
         working-directory: xl2times
         run: |
-          sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt
+          sed -n '/Benchmark *Time.*Accuracy/h;//!H;$!d;x;//p' out.txt | tee $GITHUB_WORKSPACE/summary.txt
           exit $(cat retcode.txt)
 
       - uses: actions/cache/save@v4
@@ -151,6 +152,66 @@ jobs:
         with:
           path: ~/.cache/xl2times
           key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
+
+      # ---------- Post the results of regression testing to the PR as a comment
+
+      - name: If PR, post or update comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          # Adapted from https://github.com/PyPSA/pypsa-validator/blob/main/action.yml
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/summary.txt`, 'utf8');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
+            // Fetch all comments of PR
+            const comments = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number
+            });
+
+            // Distinctive keyword present in bot's comments
+            const distinctiveKeyword = '_regression-summary-comment-distinctive-keyword_';
+
+            // Searching for existing comment with the distinctive keyword
+            let botsComment;
+            for (let { user, id, body } of comments.data.reverse()) {
+              if (body.includes(distinctiveKeyword)) {
+                botsComment = { id, body };
+                break;
+              }
+            }
+
+            // Strip out the ANSI color codes, and wrap it in a nice code block
+            const pullRequest = context.payload.pull_request;
+            const header = '\n' + `### Regression test results on commit ${pullRequest.head.sha} `
+            const cleaned = comment.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+            const codeDelim = '\n```\n';
+            const footer = '\n\n_This comment will be updated when new commits are added to the PR._'
+            const commentBody = `<!-- ${distinctiveKeyword} --> ${header}${codeDelim}${cleaned}${codeDelim}${footer}`;
+
+            if (botsComment) {
+              // If found, update comment
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botsComment.id,
+                body: commentBody
+              });
+            } else {
+              // Else, create a new comment
+              const { data: newComment } = await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: commentBody
+              });
+            }
 
       # ---------- Upload package to PyPI on release
 
