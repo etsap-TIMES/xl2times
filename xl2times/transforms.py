@@ -1355,7 +1355,7 @@ def generate_commodity_groups(
         comm_groups = pd.concat([comm_groups, df])
         comm_groups.drop_duplicates(
             subset=["region", "process", "io", "commodity", "csets", "commoditygroup"],
-            keep="first",
+            keep="last",
             inplace=True,
             ignore_index=True,
         )
@@ -1379,7 +1379,9 @@ def _count_comm_group_vectorised(comm_groups: DataFrame) -> None:
     comm_groups["commoditygroup"] = 0
 
     comm_groups["commoditygroup"] = (
-        comm_groups.groupby(["region", "process", "csets", "io"]).transform("count")
+        comm_groups.groupby(
+            ["region", "process", "csets", "io"] + list(dm_cols)
+        ).transform("count")
     )["commoditygroup"]
     # set commodity group to 0 for io rows that aren't IN or OUT
     comm_groups.loc[~comm_groups["io"].isin(["IN", "OUT"]), "commoditygroup"] = 0
