@@ -27,8 +27,8 @@ class TestUtils:
         data_cols1 = ["act_bnd", "actbnd", "act_bnd"]
         data_cols2 = ["act_bnd", "actbnd"]
 
-        correct_index1 = pd.RangeIndex(8)
-        correct_index2 = pd.RangeIndex(5)
+        correct_index1 = pd.RangeIndex(9)
+        correct_index2 = pd.RangeIndex(6)
 
         correct_result1 = (
             pd.DataFrame(
