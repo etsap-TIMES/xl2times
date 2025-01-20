@@ -27,8 +27,8 @@ class TestUtils:
         data_cols1 = ["act_bnd", "actbnd", "act_bnd"]
         data_cols2 = ["act_bnd", "actbnd"]
 
-        correct_index1 = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        correct_index2 = [0, 1, 2, 3, 4, 5]
+        correct_index1 = pd.RangeIndex(8)
+        correct_index2 = pd.RangeIndex(5)
 
         correct_result1 = (
             pd.DataFrame(
@@ -50,13 +50,13 @@ class TestUtils:
             pd.Series(
                 [
                     "act_bnd",
-                    "act_bnd",
-                    "act_bnd",
-                    "actbnd",
-                    "actbnd",
                     "actbnd",
                     "act_bnd",
                     "act_bnd",
+                    "actbnd",
+                    "act_bnd",
+                    "act_bnd",
+                    "actbnd",
                     "act_bnd",
                 ],
                 index=correct_index1,
@@ -78,7 +78,7 @@ class TestUtils:
                 dtype=object,
             ),
             pd.Series(
-                ["act_bnd", "act_bnd", "act_bnd", "actbnd", "actbnd", "actbnd"],
+                ["act_bnd", "actbnd", "act_bnd", "actbnd", "act_bnd", "actbnd"],
                 index=correct_index2,
             ),
         )
