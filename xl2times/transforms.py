@@ -1376,12 +1376,11 @@ def _count_comm_group_vectorised(comm_groups: DataFrame) -> None:
     comm_groups
         'Process' DataFrame with additional columns "commoditygroup"
     """
+    cols_to_groupby = comm_groups.columns.difference(["commodity"])
     comm_groups["commoditygroup"] = 0
 
     comm_groups["commoditygroup"] = (
-        comm_groups.groupby(
-            ["region", "process", "csets", "io"] + list(dm_cols)
-        ).transform("count")
+        comm_groups.groupby(list(cols_to_groupby)).transform("count")
     )["commoditygroup"]
     # set commodity group to 0 for io rows that aren't IN or OUT
     comm_groups.loc[~comm_groups["io"].isin(["IN", "OUT"]), "commoditygroup"] = 0
