@@ -497,10 +497,11 @@ def process_flexible_import_tables(
         # Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
 
-        index_columns = config.known_columns[Tag.fi_t].intersection(df.columns)
+        index_columns = config.known_columns[Tag.fi_t]
         data_columns = set(df.columns).difference(index_columns)
 
-        df = table.dataframe
+        for colname in index_columns.difference(df.columns):
+            df[colname] = None
 
         if data_columns:
             df, attribute_suffix = utils.explode(df, list(data_columns))
@@ -543,26 +544,21 @@ def process_flexible_import_tables(
         if "value" not in df.columns:
             df["value"] = pd.NA
 
-        if "year" in df.columns:
-            # Index of rows strings that contain a hyphen
-            # check whether the value is string
-            index = df["year"].apply(lambda x: isinstance(x, str) and "-" in x)
-            # Split year column into year and year2
-            df.loc[index, "year2"] = df[index].apply(
-                lambda row: (
-                    int(row["year"].split("-")[1]) if "-" in str(row["year"]) else "EOH"
-                ),
-                axis=1,
-            )
+        df["year2"] = df.apply(
+            lambda row: (
+                int(row["year"].split("-")[1]) if "-" in str(row["year"]) else "EOH"
+            ),
+            axis=1,
+        )
 
-            df["year"] = df.apply(
-                lambda row: (
-                    int(row["year"].split("-")[0])
-                    if "-" in str(row["year"])
-                    else (row["year"] if row["year"] != "" else "BOH")
-                ),
-                axis=1,
-            )
+        df["year"] = df.apply(
+            lambda row: (
+                int(row["year"].split("-")[0])
+                if "-" in str(row["year"])
+                else (row["year"] if row["year"] != "" else "BOH")
+            ),
+            axis=1,
+        )
 
         return replace(table, dataframe=df)
 
