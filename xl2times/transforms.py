@@ -253,17 +253,21 @@ def revalidate_input_tables(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Perform further validation of input tables by checking whether required columns
-    are present / non-empty.
-
-    Remove tables without required columns or if they are empty.
+    """Perform further validation of input tables:
+    - remove tables without required columns;
+    - remove any row with missing values in any of the required columns;
+    - add any column expected for processing downstream;
+    - forward fill values in columns as specified in the config.
     """
     result = []
     for table in tables:
         tag = Tag(table.tag)
+        # Replace empty strings with NA
+        df = table.dataframe.replace("", pd.NA)
+        # Drop columns that are all NA
+        df = df.dropna(axis=1, how="all", ignore_index=True)
         required_cols = config.required_columns[tag]
         if required_cols:
-            df = table.dataframe
             # Drop table if any column in required columns is missing
             missing_cols = required_cols.difference(df.columns)
             if missing_cols:
@@ -273,18 +277,23 @@ def revalidate_input_tables(
                 )
                 # Discard the table
                 continue
-            # Check whether any of the required columns is empty
-            else:
-                empty_required_cols = {c for c in required_cols if all(df[c].isna())}
-                if empty_required_cols:
-                    logger.warning(
-                        f"Dropping {tag.value} table within range {table.range} on sheet {table.sheetname}"
-                        f" in file {table.filename} due to empty required columns: {empty_required_cols}"
-                    )
-                    # Discard the table
-                    continue
+            # Drop any rows with missing values in required columns
+            df = df.dropna(
+                subset=list(required_cols), axis=0, how="any", ignore_index=True
+            )
+
+        # Add columns in config.add_columns if missing
+        add_columns = config.add_columns[tag]
+        if add_columns and not add_columns.issubset(df.columns):
+            cols_to_add = add_columns.difference(df.columns)
+            for col in cols_to_add:
+                df[col] = pd.NA
+        # Forwards fill values in columns
+        ff_cols = config.forward_fill_cols[tag].intersection(df.columns)
+        for col in ff_cols:
+            df[col] = df[col].ffill()
         # Append table to the list if reached this far
-        result.append(table)
+        result.append(replace(table, dataframe=df))
 
     return result
 
@@ -373,10 +382,8 @@ def merge_tables(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Merge all tables in 'tables' with the same table tag, as long as they share the
-    same column field values. Print a warning for those that don't share the same column
-    values. Return a dictionary linking each table tag with its merged table or populate
-    TimesModel class.
+    """Merge all tables in 'tables' with the same table tag. Return a dictionary
+    linking each table tag with its merged table or populate TimesModel class.
 
     Parameters
     ----------
@@ -402,23 +409,6 @@ def merge_tables(
 
         df = pd.concat([table.dataframe for table in group], ignore_index=True)
         result[key] = df
-
-        # VEDA appears to support merging tables where come columns are optional, e.g. ctslvl and ctype from ~FI_COMM.
-        # So just print detailed warning if we find tables with fewer columns than the concat'ed table.
-        concat_cols = set(df.columns)
-        missing_cols = [concat_cols.difference(t.dataframe.columns) for t in group]
-
-        if any([len(m) for m in missing_cols]):
-            err = (
-                f"WARNING: Possible merge error for table: '{key}'! Merged table has more columns than individual "
-                f"table(s), see details below:"
-            )
-            for table in group:
-                err += (
-                    f"\n\tColumns: {list(table.dataframe.columns)} from {table.range}, {table.sheetname}, "
-                    f"{table.filename}"
-                )
-            logger.warning(err)
 
         match key:
             case Tag.fi_process:
@@ -489,7 +479,9 @@ def process_flexible_import_tables(
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, Tag.currencies, "currency"),
-        "other_indexes": {"IN", "OUT", "DEMO", "DEMI"},
+        "other_indexes": set(config.times_sets["IN_OUT"])
+        .union(config.times_sets["IMPEXP"])
+        .union(default_pcg_suffixes),
     }
 
     def process_flexible_import_table(
@@ -557,7 +549,7 @@ def process_flexible_import_tables(
         if len(df.columns) != (len(index_columns) + 1):
             # TODO: Should be ok to drop as long as the topology info is stored.
             if len(df.columns) == len(index_columns) and "value" not in df.columns:
-                df["value"] = None
+                df["value"] = pd.NA
             else:
                 raise ValueError(f"len(df.columns) = {len(df.columns)}")
 
@@ -640,8 +632,6 @@ def process_user_constraint_tables(
 
         df = table.dataframe
 
-        # Fill in UC_N blank cells with value from above
-        df["uc_n"] = df["uc_n"].ffill()
         # TODO: Handle pseudo-attributes in a more general way
         known_columns = config.known_columns[Tag.uc_t].copy()
         known_columns.remove("uc_attr")
@@ -879,7 +869,7 @@ def fill_in_missing_values(
             vt_regions[row["bookname"]].append(row["region"])
 
     ele_default_tslvl = (
-        "DAYNITE" if "DAYNITE" in model.ts_tslvl["tslvl"].unique() else "ANNUAL"
+        "DAYNITE" if "DAYNITE" in set(model.ts_tslvl["tslvl"]) else "ANNUAL"
     )
 
     def fill_in_missing_values_table(table):
@@ -889,9 +879,6 @@ def fill_in_missing_values(
 
         for colname in df.columns:
             # TODO make this more declarative
-            # Forwards fill values in columns
-            if colname in config.forward_fill_cols[table.tag]:
-                df[colname] = df[colname].ffill()
             # Apply default values to missing cells
             col_default_value = default_values.get(colname)
             if col_default_value is not None:
@@ -1127,7 +1114,6 @@ def process_regions(
     # Read region settings
     region_def = utils.single_table(tables, Tag.book_regions_map).dataframe
     # Harmonise the dataframe
-    region_def["bookname"] = region_def[["bookname"]].ffill()
     region_def = (
         region_def.dropna(how="any")
         .apply(lambda x: x.str.upper())
@@ -1331,6 +1317,7 @@ def generate_commodity_groups(
 
     # Commodity groups by process, region and commodity
     comm_groups = pd.merge(model.topology, comm_set, on=["region", "commodity"])
+    comm_groups.drop_duplicates(keep="last", inplace=True)
 
     # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)
@@ -1368,7 +1355,7 @@ def generate_commodity_groups(
         comm_groups = pd.concat([comm_groups, df])
         comm_groups.drop_duplicates(
             subset=["region", "process", "io", "commodity", "csets", "commoditygroup"],
-            keep="first",
+            keep="last",
             inplace=True,
             ignore_index=True,
         )
@@ -1389,10 +1376,11 @@ def _count_comm_group_vectorised(comm_groups: DataFrame) -> None:
     comm_groups
         'Process' DataFrame with additional columns "commoditygroup"
     """
+    cols_to_groupby = comm_groups.columns.difference(["commodity"])
     comm_groups["commoditygroup"] = 0
 
     comm_groups["commoditygroup"] = (
-        comm_groups.groupby(["region", "process", "csets", "io"]).transform("count")
+        comm_groups.groupby(list(cols_to_groupby)).transform("count")
     )["commoditygroup"]
     # set commodity group to 0 for io rows that aren't IN or OUT
     comm_groups.loc[~comm_groups["io"].isin(["IN", "OUT"]), "commoditygroup"] = 0
@@ -1478,7 +1466,7 @@ def generate_trade(
 ) -> list[EmbeddedXlTable]:
     """Generate inter-regional exchange topology."""
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
-    veda_process_sets = utils.single_table(tables, "VedaProcessSets").dataframe
+    veda_ire_sets = model.custom_sets
 
     ire_prc = pd.DataFrame(columns=["region", "process"])
     for table in tables:
@@ -1490,7 +1478,9 @@ def generate_trade(
     ire_prc.drop_duplicates(keep="first", inplace=True)
 
     # Generate inter-regional exchange topology
-    top_ire = model.topology[["region", "process", "commodity", "io"]].copy()
+    top_ire = model.topology[
+        ["region", "process", "commodity", "io"] + list(dm_cols)
+    ].copy()
     if config.include_dummy_imports:
         dummy_process_cset = [
             ["NRG", "IMPNRGZ"],
@@ -1507,7 +1497,7 @@ def generate_trade(
         top_ire = pd.concat([top_ire, dummy_ire])
 
     top_ire = top_ire.merge(ire_prc)
-    top_ire = top_ire.merge(veda_process_sets)
+    top_ire = top_ire.merge(veda_ire_sets)
     top_ire["region2"] = top_ire["sets"].replace(veda_set_ext_reg_mapping)
     top_ire[["origin", "destination", "in", "out"]] = None
     for io in ("IN", "OUT"):
@@ -1574,14 +1564,6 @@ def fill_in_missing_pcgs(
 
     Expand primary commodity groups specified in FI_Process tables by a suffix.
     """
-
-    def expand_pcg_from_suffix(df):
-        """Generate the name of a default primary commodity group based on suffix and process name."""
-        if df["primarycg"] in default_pcg_suffixes:
-            return df["process"] + "_" + df["primarycg"]
-        else:
-            return df["primarycg"]
-
     result = []
 
     for table in tables:
@@ -1589,7 +1571,11 @@ def fill_in_missing_pcgs(
             result.append(table)
         else:
             df = table.dataframe.copy()
-            df["primarycg"] = df.apply(expand_pcg_from_suffix, axis=1)
+            # Expand primary commodity groups specified in primarycg column by a suffix
+            i = df["primarycg"].isin(default_pcg_suffixes) & df["process"].notna()
+            if any(i):
+                # Specify primary commodity group based on suffix and the process name.
+                df.loc[i, "primarycg"] = df["process"][i] + "_" + df["primarycg"][i]
             default_pcgs = model.topology.copy()
             default_pcgs = default_pcgs.loc[
                 default_pcgs["DefaultVedaPCG"] == 1,
@@ -1674,28 +1660,6 @@ def convert_com_tables(
     return result
 
 
-def process_commodities(
-    config: Config,
-    tables: list[EmbeddedXlTable],
-    model: TimesModel,
-) -> list[EmbeddedXlTable]:
-    """Process commodities."""
-    result = []
-    for table in tables:
-        if table.tag != Tag.fi_comm:
-            result.append(table)
-        else:
-            df = table.dataframe.copy()
-            nrows = df.shape[0]
-            if "region" not in table.dataframe.columns:
-                df.insert(1, "region", [pd.NA] * nrows)
-            if "limtype" not in table.dataframe.columns:
-                df["limtype"] = [pd.NA] * nrows
-            result.append(replace(table, dataframe=df, tag=Tag.fi_comm))
-
-    return result
-
-
 def internalise_commodities(
     config: Config,
     tables: list[EmbeddedXlTable],
@@ -1723,43 +1687,22 @@ def process_processes(
     """Process processes."""
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
-
-    processes_and_sets = pd.DataFrame({"sets": [], "process": []})
+    original_dfs = []
 
     for table in tables:
         if table.tag != Tag.fi_process:
             result.append(table)
         else:
+            original_dfs.append(table.dataframe)
             df = table.dataframe.copy()
-            processes_and_sets = pd.concat(
-                [processes_and_sets, df[["sets", "process"]].ffill()]
-            )
             df.replace({"sets": veda_sets_to_times}, inplace=True)
-            nrows = df.shape[0]
-            # TODO: Use info from config instead. Introduce required columns in the meta file?
-            add_columns = [
-                (1, "region"),
-                (6, "tslvl"),
-                (7, "primarycg"),
-                (8, "vintage"),
-            ]
-            for column in add_columns:
-                if column[1] not in table.dataframe.columns:
-                    df.insert(column[0], column[1], [None] * nrows)
             result.append(replace(table, dataframe=df))
 
-    veda_process_sets = EmbeddedXlTable(
-        tag="VedaProcessSets",
-        uc_sets={},
-        sheetname="",
-        range="",
-        filename="",
-        dataframe=processes_and_sets.loc[
-            processes_and_sets["sets"].isin(veda_sets_to_times.keys())
-        ],
+    merged_tables = pd.concat(original_dfs, ignore_index=True)
+    i = merged_tables["sets"].isin(veda_sets_to_times.keys())
+    model.custom_sets = merged_tables[["sets", "process"]][i].drop_duplicates(
+        ignore_index=True
     )
-
-    result.append(veda_process_sets)
 
     return result
 
@@ -1769,32 +1712,37 @@ def process_topology(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Create topology."""
+    """Create model.topology. Drop rows with missing values in fi_t tables."""
     fit_tables = [t for t in tables if t.tag == Tag.fi_t]
 
-    columns = [
+    columns = {
         "region",
         "process",
         "commodity-in",
         "commodity-in-aux",
         "commodity-out",
         "commodity-out-aux",
-    ]
-    topology = pd.DataFrame(columns=columns)
+    }.union(dm_cols)
+    topology = pd.DataFrame(columns=list(columns))
+
+    top_info = []
 
     for fit_table in fit_tables:
-        cols = [col for col in columns if col in fit_table.dataframe.columns]
-        df = fit_table.dataframe[cols]
-        topology = pd.concat([topology, df])
+        df = fit_table.dataframe
+        cols = [col for col in columns.intersection(df.columns)]
+        top_info.append(df[cols].copy())
+        # Rows with missing values in fi_t tables can now safely be dropped.
+        df.dropna(subset=["value"], axis=0, ignore_index=True, inplace=True)
+
+    topology = pd.concat(top_info, ignore_index=True)
 
     topology = pd.melt(
         topology,
-        id_vars=["region", "process"],
+        id_vars=["region", "process"] + list(dm_cols),
         var_name="io",
         value_name="commodity",
     )
 
-    topology["process"] = topology["process"].ffill()
     topology.replace(
         {
             "io": {
@@ -1839,15 +1787,27 @@ def generate_dummy_processes(
     if config.include_dummy_imports:
         # TODO: Activity units below are arbitrary. Suggest Veda devs not to have any.
         dummy_processes = [
-            ["IMP", "IMPNRGZ", "Dummy Import of NRG", "PJ", "", "NRG"],
-            ["IMP", "IMPMATZ", "Dummy Import of MAT", "MT", "", "MAT"],
-            ["IMP", "IMPDEMZ", "Dummy Import of DEM", "PJ", "", "DEM"],
+            ["IMPNRGZ", "Dummy Import of NRG", "PJ", "NRG"],
+            ["IMPMATZ", "Dummy Import of MAT", "MT", "MAT"],
+            ["IMPDEMZ", "Dummy Import of DEM", "PJ", "DEM"],
         ]
 
         process_declarations = pd.DataFrame(
             dummy_processes,
-            columns=["sets", "process", "description", "tact", "tcap", "primarycg"],
+            columns=["process", "description", "tact", "primarycg"],
         )
+
+        # Data that is the same for all dummy processes
+        additional_cols = {
+            "region": pd.NA,
+            "sets": "IMP",
+            "tcap": pd.NA,
+            "tslvl": "ANNUAL",
+            "vintage": pd.NA,
+        }
+
+        for col, value in additional_cols.items():
+            process_declarations[col] = value
 
         tables.append(
             EmbeddedXlTable(
@@ -2810,9 +2770,9 @@ def process_time_slices(
         # Create a dataframe containing regions and timeslices
         reg_ts = pd.DataFrame({"region": regions})
         for ts_level in user_ts_levels:
-            if timeslices[ts_level] != [None]:
-                reg_ts = pd.merge(
-                    reg_ts, pd.DataFrame({ts_level: timeslices[ts_level]}), how="cross"
+            if timeslices[ts_level]:
+                reg_ts = reg_ts.merge(
+                    pd.DataFrame({ts_level: timeslices[ts_level]}), how="cross"
                 )
 
         # Include expanded names of timeslices in the dataframe
@@ -3253,7 +3213,7 @@ def apply_final_fixup(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
 
-    veda_process_sets = tables["VedaProcessSets"][["sets", "process"]]
+    veda_ire_sets = model.custom_sets
     reg_com_flows = model.topology[["region", "process", "commodity"]].copy()
     reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
     df = tables[Tag.fi_t]
@@ -3268,11 +3228,11 @@ def apply_final_fixup(
     if any(cost_index):
         processes = set(df[cost_index]["process"].unique())
         # Index of IRE processes and their IRE sets specification
-        sets_index = veda_process_sets["process"].isin(processes) & veda_process_sets[
+        sets_index = veda_ire_sets["process"].isin(processes) & veda_ire_sets[
             "sets"
         ].isin(cost_mapping.keys())
 
-        ire_processes = set(veda_process_sets["process"][sets_index].unique())
+        ire_processes = set(veda_ire_sets["process"][sets_index])
         other_processes = processes.difference(ire_processes)
 
         if other_processes:
@@ -3282,7 +3242,7 @@ def apply_final_fixup(
 
         if any(ire_processes):
             # Ensure only one IRE set is specified per process
-            subst_df = veda_process_sets[sets_index].drop_duplicates(
+            subst_df = veda_ire_sets[sets_index].drop_duplicates(
                 subset="process", keep="last"
             )
             index = cost_index & df["process"].isin(ire_processes)

@@ -250,6 +250,7 @@ class TimesModel:
     start_year: int = field(default_factory=int)
     files: set[str] = field(default_factory=set)
     data_modules: list[str] = field(default_factory=list)
+    custom_sets: DataFrame = field(default_factory=DataFrame)
 
     @property
     def external_regions(self) -> set[str]:
@@ -366,6 +367,7 @@ class Config:
             self.lists_columns,
             self.known_columns,
             self.required_columns,
+            self.add_columns,
             self.forward_fill_cols,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
@@ -556,6 +558,7 @@ class Config:
         dict[Tag, set[str]],
         dict[Tag, set[str]],
         dict[Tag, set[str]],
+        dict[Tag, set[str]],
     ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
@@ -581,6 +584,7 @@ class Config:
         lists_cols = defaultdict(set)
         known_cols = defaultdict(set)
         required_cols = defaultdict(set)
+        add_cols = defaultdict(set)
         forward_fill_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
@@ -592,7 +596,7 @@ class Config:
                 row_comment_chars[tag_name] = {}
                 # Process column aliases and comment chars:
                 for valid_field in tag_info["valid_fields"]:
-                    valid_field_names = valid_field["aliases"]
+                    valid_field_names = valid_field.get("aliases", list())
                     if (
                         "use_name" in valid_field
                         and valid_field["use_name"] != valid_field["name"]
@@ -607,19 +611,19 @@ class Config:
                             "default_to"
                         ]
 
-                    if valid_field["query_field"]:
+                    if valid_field.get("query_field", False):
                         query_cols[tag_name].add(field_name)
 
-                    if (
-                        "comma-separated-list" in valid_field
-                        and valid_field["comma-separated-list"]
-                    ):
+                    if valid_field.get("comma-separated-list", False):
                         lists_cols[tag_name].add(field_name)
 
-                    if valid_field["remove_any_row_if_absent"]:
+                    if valid_field.get("add_if_absent", False):
+                        add_cols[tag_name].add(field_name)
+
+                    if valid_field.get("remove_any_row_if_absent", False):
                         required_cols[tag_name].add(field_name)
 
-                    if valid_field["inherit_above"]:
+                    if valid_field.get("inherit_above", False):
                         forward_fill_cols[tag_name].add(field_name)
 
                     known_cols[tag_name].add(field_name)
@@ -627,9 +631,9 @@ class Config:
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
 
-                    row_comment_chars[tag_name][field_name] = valid_field[
-                        "row_ignore_symbol"
-                    ]
+                    row_comment_chars[tag_name][field_name] = valid_field.get(
+                        "row_ignore_symbol", list()
+                    )
 
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
@@ -647,6 +651,8 @@ class Config:
                     lists_cols[tag_name] = lists_cols[base_tag]
                 if base_tag in known_cols:
                     known_cols[tag_name] = known_cols[base_tag]
+                if base_tag in add_cols:
+                    add_cols[tag_name] = add_cols[base_tag]
                 if base_tag in forward_fill_cols:
                     forward_fill_cols[tag_name] = forward_fill_cols[base_tag]
 
@@ -659,6 +665,7 @@ class Config:
             lists_cols,
             known_cols,
             required_cols,
+            add_cols,
             forward_fill_cols,
         )
 

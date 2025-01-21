@@ -54,7 +54,9 @@
   },
   "ACT_CUM": {
     "defaults": {
-      "limtype": "UP"
+      "limtype": "UP",
+      "year": "BOH",
+      "year2": "EOH"
     }
   },
   "ACT_EFF": {
@@ -418,7 +420,9 @@
   },
   "CUM": {
     "defaults": {
-      "limtype": "UP"
+      "limtype": "UP",
+      "year": "BOH",
+      "year2": "EOH"
     },
     "times-attribute": "ACT_CUM"
   },
@@ -976,7 +980,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "cg": ["veda_cg"],
+      "cg": ["other_indexes", "veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
