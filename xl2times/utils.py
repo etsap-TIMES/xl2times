@@ -117,10 +117,7 @@ def explode(df: DataFrame, data_columns: list[str]) -> tuple[DataFrame, pd.Serie
     nrows = df.shape[0]
     df = df.explode(value_column, ignore_index=True)
     names = pd.Series(data_columns * nrows, index=df.index, dtype=str)
-    # Remove rows with no VALUE
-    index = df[value_column].notna()
-    df = df[index]
-    names = names[index]
+
     return df, names
 
 

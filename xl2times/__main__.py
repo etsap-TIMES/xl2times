@@ -117,7 +117,6 @@ def convert_xl_to_times(
         transforms.revalidate_input_tables,
         transforms.capitalise_table_values,
         transforms.process_regions,
-        transforms.process_commodities,
         transforms.convert_com_tables,
         transforms.process_time_periods,
         transforms.remove_exreg_cols,
@@ -127,16 +126,16 @@ def convert_xl_to_times(
         transforms.apply_tag_specified_defaults,
         transforms.process_transform_tables,
         transforms.process_transform_availability,
-        transforms.process_tradelinks,
-        transforms.process_processes,
-        transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
+        transforms.process_tradelinks,
+        transforms.include_tables_source,
+        transforms.process_processes,
+        transforms.process_topology,
         transforms.fill_in_missing_values,
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
-        transforms.include_tables_source,
         transforms.internalise_commodities,
         transforms.generate_commodity_groups,
         transforms.apply_fixups,
@@ -316,9 +315,6 @@ def produce_times_tables(
                 filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
                 df = df.loc[i, :]
-            # TODO find the correct tech group
-            if "techgroup" in mapping.xl_cols:
-                df["techgroup"] = df["techname"]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols).difference(df.columns)
                 logger.warning(
@@ -340,6 +336,7 @@ def produce_times_tables(
                     & (df != "None").all(axis=1)
                     & (df != "nan").all(axis=1)
                     & (df != "").all(axis=1)
+                    & (df != "<NA>").all(axis=1)
                 )
                 df = df.loc[i, mapping.times_cols]
                 # Drop tables that are empty after filtering and dropping Nones:
