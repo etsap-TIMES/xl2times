@@ -461,6 +461,7 @@
           "\\I:",
           "*"
         ],
+        "add_if_absent": true,
         "comma-separated-list": true
       },
       {

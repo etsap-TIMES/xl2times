@@ -497,47 +497,41 @@ def process_flexible_import_tables(
         # Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
 
-        known_columns = config.known_columns[Tag.fi_t]
-        # TODO: Verify this list against other lists
-        data_columns = [x for x in df.columns if x not in known_columns]
-
-        # Populate index columns (same as known columns for this table type)
-        index_columns = known_columns
-        for colname in index_columns:
-            if colname not in df.columns:
-                df[colname] = None
-        table = replace(table, dataframe=df)
+        index_columns = config.known_columns[Tag.fi_t].intersection(df.columns)
+        data_columns = set(df.columns).difference(index_columns)
 
         df = table.dataframe
 
         if data_columns:
-            df, attribute_suffix = utils.explode(df, data_columns)
+            df, attribute_suffix = utils.explode(df, list(data_columns))
             # Append the data column name to the Attribute column values
+            if "attribute" not in df.columns:
+                df["attribute"] = pd.NA
             i = df["attribute"].notna()
             df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
             i = df["attribute"].isna()
             df.loc[i, "attribute"] = attribute_suffix[i]
 
-        # Capitalise all attributes, unless column type float
-        if df["attribute"].dtype != float:
-            df["attribute"] = df["attribute"].str.upper()
+            # Capitalise all attributes, unless column type float
+            if df["attribute"].dtype != float:
+                df["attribute"] = df["attribute"].str.upper()
 
-        # Handle Attribute containing tilde, such as 'STOCK~2030'
-        index = df["attribute"].str.contains("~")
-        if any(index):
-            for attr in df["attribute"][index].unique():
-                i = index & (df["attribute"] == attr)
-                parts = [part.strip() for part in attr.split("~")]
-                for value in parts:
-                    colname, typed_value = _get_colname(value, legal_values)
-                    if colname is None:
-                        df.loc[i, "attribute"] = typed_value
-                    else:
-                        df.loc[i, colname] = typed_value
+            # Handle Attribute containing tilde, such as 'STOCK~2030'
+            index = df["attribute"].str.contains("~")
+            if any(index):
+                for attr in df["attribute"][index].unique():
+                    i = index & (df["attribute"] == attr)
+                    parts = [part.strip() for part in attr.split("~")]
+                    for value in parts:
+                        colname, typed_value = _get_colname(value, legal_values)
+                        if colname is None:
+                            df.loc[i, "attribute"] = typed_value
+                        else:
+                            df.loc[i, colname] = typed_value
 
         # Handle Other_Indexes
         other = "other_indexes"
-        if "END" in df["attribute"]:
+        if "attribute" in df.columns and "END" in df["attribute"]:
             i = df["attribute"] == "END"
             df.loc[i, "year"] = df.loc[i, "value"].astype("int") + 1
             df.loc[i, other] = "EOH"
@@ -545,29 +539,30 @@ def process_flexible_import_tables(
 
         df = df.reset_index(drop=True)
 
-        # Should have all index_columns and VALUE
-        if len(df.columns) != (len(index_columns) + 1):
-            # TODO: Should be ok to drop as long as the topology info is stored.
-            if len(df.columns) == len(index_columns) and "value" not in df.columns:
-                df["value"] = pd.NA
-            else:
-                raise ValueError(f"len(df.columns) = {len(df.columns)}")
+        # The rows below will be dropped later on when the topology info is stored.
+        if "value" not in df.columns:
+            df["value"] = pd.NA
 
-        df["year2"] = df.apply(
-            lambda row: (
-                int(row["year"].split("-")[1]) if "-" in str(row["year"]) else "EOH"
-            ),
-            axis=1,
-        )
+        if "year" in df.columns:
+            # Index of rows strings that contain a hyphen
+            # check whether the value is string
+            index = df["year"].apply(lambda x: isinstance(x, str) and "-" in x)
+            # Split year column into year and year2
+            df.loc[index, "year2"] = df[index].apply(
+                lambda row: (
+                    int(row["year"].split("-")[1]) if "-" in str(row["year"]) else "EOH"
+                ),
+                axis=1,
+            )
 
-        df["year"] = df.apply(
-            lambda row: (
-                int(row["year"].split("-")[0])
-                if "-" in str(row["year"])
-                else (row["year"] if row["year"] != "" else "BOH")
-            ),
-            axis=1,
-        )
+            df["year"] = df.apply(
+                lambda row: (
+                    int(row["year"].split("-")[0])
+                    if "-" in str(row["year"])
+                    else (row["year"] if row["year"] != "" else "BOH")
+                ),
+                axis=1,
+            )
 
         return replace(table, dataframe=df)
 
@@ -3343,7 +3338,7 @@ def apply_final_fixup(
     # Clean up
     # TODO: Do this comprehensively for all relevant tables
     # TODO: Duplicates should only be removed if in the same file/module
-    keep_cols = {
+    cols_to_keep = {
         "attribute",
         "region",
         "process",
@@ -3357,9 +3352,12 @@ def apply_final_fixup(
         "limtype",
         "sow",
         "stage",
+        "uc_n",
+        "side",
         "module_name",
         "module_type",
     }
+    keep_cols = cols_to_keep.intersection(df.columns)
     df.dropna(subset="value", inplace=True)
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
     df.drop(columns=drop_cols, inplace=True)
@@ -3388,8 +3386,7 @@ def apply_final_fixup(
 
     if Tag.uc_t in tables.keys():
         df = tables[Tag.uc_t]
-        keep_cols = keep_cols.difference({"year2", "cg"})
-        keep_cols = keep_cols.union({"uc_n", "side"})
+        keep_cols = cols_to_keep.intersection(df.columns)
         df.dropna(subset="value", inplace=True)
         drop_cols = [
             col for col in df.columns if col != "value" and col not in keep_cols
