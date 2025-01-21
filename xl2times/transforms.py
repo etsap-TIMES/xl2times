@@ -501,7 +501,7 @@ def process_flexible_import_tables(
         data_columns = set(df.columns).difference(index_columns)
 
         for colname in index_columns.difference(df.columns):
-            df[colname] = None
+            df[colname] = pd.NA
 
         if data_columns:
             df, attribute_suffix = utils.explode(df, list(data_columns))
@@ -544,18 +544,20 @@ def process_flexible_import_tables(
         if "value" not in df.columns:
             df["value"] = pd.NA
 
-        df["year2"] = df.apply(
+        i = df["year"].notna()
+
+        df.loc[i, "year2"] = df[i].apply(
             lambda row: (
-                int(row["year"].split("-")[1]) if "-" in str(row["year"]) else "EOH"
+                int(row["year"].split("-")[1]) if "-" in str(row["year"]) else pd.NA
             ),
             axis=1,
         )
 
-        df["year"] = df.apply(
+        df.loc[i, "year"] = df[i].apply(
             lambda row: (
                 int(row["year"].split("-")[0])
                 if "-" in str(row["year"])
-                else (row["year"] if row["year"] != "" else "BOH")
+                else (row["year"] if row["year"] != "" else pd.NA)
             ),
             axis=1,
         )
@@ -859,10 +861,6 @@ def fill_in_missing_values(
         if row["region"] in model.internal_regions:
             vt_regions[row["bookname"]].append(row["region"])
 
-    ele_default_tslvl = (
-        "DAYNITE" if "DAYNITE" in set(model.ts_tslvl["tslvl"]) else "ANNUAL"
-    )
-
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
         default_values = config.column_default_value.get(table.tag, {})
@@ -891,13 +889,6 @@ def fill_in_missing_values(
                             ),
                             colname,
                         ] = value
-            elif (
-                colname == "tslvl" and table.tag == Tag.fi_process
-            ):  # or colname == "CTSLvl" or colname == "PeakTS":
-                isna = df[colname].isna()
-                isele = df["sets"] == "ELE"
-                df.loc[isna & isele, colname] = ele_default_tslvl
-                df.loc[isna & ~isele, colname] = "ANNUAL"
             elif colname == "region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
                 matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).stem)
@@ -1675,10 +1666,18 @@ def process_processes(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Process processes."""
+    """Process processes. The steps include:
+    - Replace custom sets with standard TIMES sets.
+    - Fill in missing ts level values for processes.
+
+    Create model.custom_sets.
+    """
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
     original_dfs = []
+    ele_default_tslvl = (
+        "DAYNITE" if "DAYNITE" in set(model.ts_tslvl["tslvl"]) else "ANNUAL"
+    )
 
     for table in tables:
         if table.tag != Tag.fi_process:
@@ -1687,6 +1686,12 @@ def process_processes(
             original_dfs.append(table.dataframe)
             df = table.dataframe.copy()
             df.replace({"sets": veda_sets_to_times}, inplace=True)
+            isna = df["tslvl"].isna()
+            if any(isna):
+                is_ele = df["sets"] == "ELE"
+                if any(is_ele):
+                    df.loc[isna & is_ele, "tslvl"] = ele_default_tslvl
+                df.loc[isna & ~is_ele, "tslvl"] = "ANNUAL"
             result.append(replace(table, dataframe=df))
 
     merged_tables = pd.concat(original_dfs, ignore_index=True)
