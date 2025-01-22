@@ -2535,9 +2535,9 @@ def apply_transform_tables(
                 total=len(updates),
                 desc=f"Applying transformations from {Tag.tfm_ins_txt.value} in {data_module}",
             ):
-                if row["commodity"] is not None:
+                if row.get("commodity") is not None:
                     table = model.commodities
-                elif row["process"] is not None:
+                elif row.get("process") is not None:
                     table = model.processes
                 else:
                     assert False  # All rows match either a commodity or a process
@@ -2545,10 +2545,10 @@ def apply_transform_tables(
                 # Query for rows with matching process/commodity and region
                 rows_to_update = query(
                     table,
-                    row["process"],
-                    row["commodity"],
+                    row.get("process"),
+                    row.get("commodity"),
                     None,
-                    row["region"],
+                    row.get("region"),
                     None,
                     None,
                     None,
@@ -2644,7 +2644,7 @@ def apply_transform_tables(
                 if row["module_type"] == "trans":
                     source_module = row["module_name"]
                 else:
-                    source_module = row["sourcescen"]
+                    source_module = row.get("sourcescen")
 
                 rows_to_update = query(
                     table,
@@ -2694,7 +2694,7 @@ def apply_transform_tables(
             module_data = pd.concat(generated_records, ignore_index=True)
             module_type = module_data["module_type"].iloc[0]
             # Explode process and commodity columns and remove invalid rows
-            for obj in ["process", "commodity"]:
+            for obj in {"process", "commodity"}.intersection(module_data.columns):
                 module_data = module_data.explode(obj, ignore_index=True)
                 # Index of rows with relevant attributes
                 i = module_data["attribute"].isin(attr_with_obj[obj])
