@@ -684,7 +684,11 @@ class Config:
             "cg": {},
             "limtype": {"FX": [], "LO": [], "UP": []},
             "tslvl": {"DAYNITE": [], "ANNUAL": []},
+            "year2": {"EOH": []},
         }
+
+        group_defaults = {"limtype", "tslvl", "year2"}
+        individual_defaults = {"commodity", "other_indexes", "cg"}
 
         attr_aliases = {
             attr for attr in defaults if "times-attribute" in defaults[attr]
@@ -699,24 +703,12 @@ class Config:
             if "defaults" in attr_info:
                 attr_defaults = attr_info["defaults"]
 
-                if "commodity" in attr_defaults:
-                    veda_attr_defaults["commodity"][attr] = attr_defaults["commodity"]
+                for item in group_defaults.intersection(attr_defaults.keys()):
+                    group_value = attr_defaults[item]
+                    veda_attr_defaults[item][group_value].append(attr)
 
-                if "other_indexes" in attr_defaults:
-                    veda_attr_defaults["other_indexes"][attr] = attr_defaults[
-                        "other_indexes"
-                    ]
-
-                if "cg" in attr_defaults:
-                    veda_attr_defaults["cg"][attr] = attr_defaults["cg"]
-
-                if "limtype" in attr_defaults:
-                    limtype = attr_defaults["limtype"]
-                    veda_attr_defaults["limtype"][limtype].append(attr)
-
-                if "ts-level" in attr_defaults:
-                    tslvl = attr_defaults["ts-level"]
-                    veda_attr_defaults["tslvl"][tslvl].append(attr)
+                for item in individual_defaults.intersection(attr_defaults.keys()):
+                    veda_attr_defaults[item][attr] = attr_defaults[item]
 
         # Specify default values for the attributes that are not defined in the file
         attr_with_cg = {

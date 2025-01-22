@@ -299,7 +299,8 @@
           "\\I:",
           "*"
         ],
-        "add_if_absent": true
+        "add_if_absent": true,
+        "default_to": "ANNUAL"
       },
       {
         "name": "vintage",

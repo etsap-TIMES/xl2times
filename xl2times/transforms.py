@@ -843,7 +843,7 @@ def fill_in_missing_values(
         List of tables in EmbeddedXlTable format with empty values filled in.
     """
     result = []
-    # TODO there are multiple currencies
+    # The first currency in the currencies table is the default currency
     currency = utils.single_column(tables, Tag.currencies, "currency")[0]
     # The default regions for VT_* files is given by ~BookRegions_Map:
     vt_regions = defaultdict(list)
@@ -855,7 +855,11 @@ def fill_in_missing_values(
     def fill_in_missing_values_table(table):
         df = table.dataframe.copy()
         default_values = config.column_default_value.get(table.tag, {})
-        mapping_to_defaults = {"limtype": "limtype", "timeslice": "tslvl"}
+        mapping_to_defaults = {
+            "limtype": "limtype",
+            "timeslice": "tslvl",
+            "year2": "year2",
+        }
 
         for colname in df.columns:
             # TODO make this more declarative
@@ -868,7 +872,7 @@ def fill_in_missing_values(
                 ismat = df["csets"] == "MAT"
                 df.loc[isna & ismat, colname] = "FX"
                 df.loc[isna & ~ismat, colname] = "LO"
-            elif colname in {"limtype", "timeslice"} and "attribute" in df.columns:
+            elif colname in mapping_to_defaults and "attribute" in df.columns:
                 isna = df[colname].isna()
                 if any(isna):
                     key = mapping_to_defaults[colname]
@@ -1671,9 +1675,7 @@ def process_processes(
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
     original_dfs = []
-    ele_default_tslvl = (
-        "DAYNITE" if "DAYNITE" in set(model.ts_tslvl["tslvl"]) else "ANNUAL"
-    )
+    daynite = True if "DAYNITE" in set(model.ts_tslvl["tslvl"]) else False
 
     for table in tables:
         if table.tag != Tag.fi_process:
@@ -1682,12 +1684,10 @@ def process_processes(
             original_dfs.append(table.dataframe)
             df = table.dataframe.copy()
             df.replace({"sets": veda_sets_to_times}, inplace=True)
-            isna = df["tslvl"].isna()
-            if any(isna):
-                is_ele = df["sets"] == "ELE"
-                if any(is_ele):
-                    df.loc[isna & is_ele, "tslvl"] = ele_default_tslvl
-                df.loc[isna & ~is_ele, "tslvl"] = "ANNUAL"
+            # Fill in missing ts level values for ELE processes
+            if daynite:
+                i = (df["sets"] == "ELE") & df["tslvl"].isna()
+                df.loc[i, "tslvl"] = "DAYNITE"
             result.append(replace(table, dataframe=df))
 
     merged_tables = pd.concat(original_dfs, ignore_index=True)
