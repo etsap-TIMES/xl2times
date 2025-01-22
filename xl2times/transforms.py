@@ -498,13 +498,15 @@ def process_flexible_import_tables(
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
 
         index_columns = config.known_columns[Tag.fi_t]
-        data_columns = set(df.columns).difference(index_columns)
+        # This take care of the case where the table has repeated column names
+        # TODO: ensure that the columns are unique upstream
+        data_columns = [col for col in df.columns if col not in index_columns]
 
         for colname in index_columns.difference(df.columns):
             df[colname] = pd.NA
 
         if data_columns:
-            df, attribute_suffix = utils.explode(df, list(data_columns))
+            df, attribute_suffix = utils.explode(df, data_columns)
             # Append the data column name to the Attribute column values
             if "attribute" not in df.columns:
                 df["attribute"] = pd.NA
