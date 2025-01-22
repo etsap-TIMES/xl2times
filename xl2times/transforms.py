@@ -2098,9 +2098,6 @@ def process_transform_tables(
                 if col_name not in known_columns | {"region", "value"}
             ]
             df.drop(columns=unknown_columns, inplace=True)
-            for standard_col in known_columns:
-                if standard_col not in df.columns:
-                    df[standard_col] = [None] * len(df)
 
             result.append(replace(table, dataframe=df))
         else:
@@ -2313,7 +2310,7 @@ def _match_wildcards(
         The table with the wildcard columns removed and the results of the wildcard matches added as a
         column named `results_col`
     """
-    wild_cols = list(col_map.keys())
+    wild_cols = list(set(df.columns).intersection(col_map.keys()))
 
     # drop duplicate sets of wildcard columns to save repeated (slow) regex matching.  This makes things much faster.
     unique_filters = df[wild_cols].drop_duplicates().dropna(axis=0, how="all")
@@ -2589,17 +2586,17 @@ def apply_transform_tables(
                 if row["module_type"] == "trans":
                     source_module = row["module_name"]
                 else:
-                    source_module = row["sourcescen"]
+                    source_module = row.get("sourcescen")
 
                 rows_to_update = query(
                     table,
-                    row["process"],
-                    row["commodity"],
+                    row.get("process"),
+                    row.get("commodity"),
                     row["attribute"],
-                    row["region"],
-                    row["year"],
-                    row["limtype"],
-                    row["val_cond"],
+                    row.get("region"),
+                    row.get("year"),
+                    row.get("limtype"),
+                    row.get("val_cond"),
                     source_module,
                 )
 
@@ -2651,13 +2648,13 @@ def apply_transform_tables(
 
                 rows_to_update = query(
                     table,
-                    row["process"],
-                    row["commodity"],
+                    row.get("process"),
+                    row.get("commodity"),
                     row["attribute"],
-                    row["region"],
-                    row["year"],
-                    row["limtype"],
-                    row["val_cond"],
+                    row.get("region"),
+                    row.get("year"),
+                    row.get("limtype"),
+                    row.get("val_cond"),
                     source_module,
                 )
 
