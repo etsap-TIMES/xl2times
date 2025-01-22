@@ -426,6 +426,8 @@ def merge_tables(
                         )
                 # Exclude records with non-TIMES sets
                 model.processes = df.loc[index]
+            case Tag.fi_comm:
+                model.commodities = df
             case _:
                 result[key] = df
 
@@ -849,14 +851,13 @@ def generate_uc_properties(
     return tables
 
 
-def fill_in_missing_values(
+def fill_in_column_defaults(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Attempt to fill in missing values for all tables except upd and mig tables (as these
-    query data). How the value is filled in depends on the name of the column the
-    empty values belong to.
+    """Fill-in defaults specified by column. Also populate region column if the value
+    is dependent on the file path. A column should be existing for the defaults to be applied.
 
     Parameters
     ----------
@@ -872,9 +873,6 @@ def fill_in_missing_values(
     list[EmbeddedXlTable]
         List of tables in EmbeddedXlTable format with empty values filled in.
     """
-    result = []
-    # The first currency in the currencies table is the default currency
-    currency = utils.single_column(tables, Tag.currencies, "currency")[0]
     # The default regions for VT_* files is given by ~BookRegions_Map:
     vt_regions = defaultdict(list)
     brm = utils.single_table(tables, Tag.book_regions_map).dataframe
@@ -882,38 +880,16 @@ def fill_in_missing_values(
         if row["region"] in model.internal_regions:
             vt_regions[row["bookname"]].append(row["region"])
 
-    def fill_in_missing_values_table(table):
+    def fill_in_column_defaults_table(table):
         df = table.dataframe.copy()
         default_values = config.column_default_value.get(table.tag, {})
-        mapping_to_defaults = {
-            "limtype": "limtype",
-            "timeslice": "tslvl",
-            "year2": "year2",
-        }
 
         for colname in df.columns:
-            # TODO make this more declarative
-            # Apply default values to missing cells
+            # Get the default value for the column if it exists
             col_default_value = default_values.get(colname)
             if col_default_value is not None:
+                # Apply default values to cells that are empty
                 df[colname] = df[colname].fillna(col_default_value)
-            elif colname == "limtype" and table.tag == Tag.fi_comm and False:
-                isna = df[colname].isna()
-                ismat = df["csets"] == "MAT"
-                df.loc[isna & ismat, colname] = "FX"
-                df.loc[isna & ~ismat, colname] = "LO"
-            elif colname in mapping_to_defaults and "attribute" in df.columns:
-                isna = df[colname].isna()
-                if any(isna):
-                    key = mapping_to_defaults[colname]
-                    for value in config.veda_attr_defaults[key].keys():
-                        df.loc[
-                            isna
-                            & df["attribute"].isin(
-                                config.veda_attr_defaults[key][value]
-                            ),
-                            colname,
-                        ] = value
             elif colname == "region":
                 # Use BookRegions_Map to fill VT_* files, and all regions for other files
                 matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).stem)
@@ -926,20 +902,9 @@ def fill_in_missing_values(
                         logger.warning(f"book name {book} not in BookRegions_Map")
                 else:
                     df.loc[isna, [colname]] = ",".join(model.internal_regions)
-            elif colname == "year":
-                df.loc[df[colname].isna(), [colname]] = model.start_year
-            elif colname == "currency":
-                df.loc[df[colname].isna(), [colname]] = currency
-
         return replace(table, dataframe=df)
 
-    for table in tables:
-        if table.tag in [Tag.tfm_mig, Tag.tfm_upd]:
-            # Missing values in these tables are wildcards and should not be filled in
-            result.append(table)
-        else:
-            result.append(fill_in_missing_values_table(table))
-    return result
+    return [fill_in_column_defaults_table(t) for t in tables]
 
 
 def _has_comma(s) -> bool:
@@ -1003,9 +968,9 @@ def expand_rows(
 
 def remove_invalid_values(
     config: Config,
-    tables: list[EmbeddedXlTable],
+    tables: dict[str, DataFrame],
     model: TimesModel,
-) -> list[EmbeddedXlTable]:
+) -> dict[str, DataFrame]:
     """Remove all entries of any dataframes that are considered invalid. The rules for
     allowing an entry can be seen in the 'constraints' dictionary below.
 
@@ -1040,26 +1005,22 @@ def remove_invalid_values(
         Tag.uc_t,
     }
 
-    def remove_table_invalid_values(
-        table: EmbeddedXlTable,
-    ) -> EmbeddedXlTable:
-        """Remove invalid entries in a table dataframe."""
-        df = table.dataframe.copy()
-        is_valid_list = [
-            df[colname].isin(values)
-            for colname, values in constraints.items()
-            if colname in df.columns
-        ]
-        if is_valid_list:
-            is_valid = reduce(lambda a, b: a & b, is_valid_list)
-            df = df[is_valid]
-            df.reset_index(drop=True, inplace=True)
-        table = replace(table, dataframe=df)
-        return table
+    for tag, dataframe in tables.items():
+        if tag not in skip_tags:
+            df = dataframe.copy()
+            is_valid_list = [
+                df[colname].isin(values)
+                for colname, values in constraints.items()
+                if colname in df.columns
+            ]
+            if is_valid_list:
+                is_valid = reduce(lambda a, b: a & b, is_valid_list)
+                df = df[is_valid]
+                df.reset_index(drop=True, inplace=True)
 
-    return [
-        remove_table_invalid_values(t) if t.tag not in skip_tags else t for t in tables
-    ]
+            tables[tag] = df
+
+    return tables
 
 
 def process_units(
@@ -1273,44 +1234,66 @@ def _populate_calculated_defaults(df: DataFrame, model: TimesModel):
 
 def apply_fixups(
     config: Config,
-    tables: list[EmbeddedXlTable],
+    tables: dict[str, DataFrame],
     model: TimesModel,
-) -> list[EmbeddedXlTable]:
-    def apply_fixups_table(table: EmbeddedXlTable):
-        tags = [Tag.fi_t, Tag.uc_t]
-        if table.tag not in tags:
-            return table
+) -> dict[str, DataFrame]:
+    """Apply fixups to the tables."""
+    exclude_tags = {Tag.tfm_mig, Tag.tfm_upd}
+    attribute_tags = [Tag.fi_t, Tag.uc_t]
+    currency = tables[Tag.currencies]["currency"][0]
+    mapping_to_defaults = {
+        "limtype": "limtype",
+        "timeslice": "tslvl",
+        "year2": "year2",
+    }
+    for tag, dataframe in tables.items():
+        df = dataframe.copy()
+        if tag not in exclude_tags:
+            for colname in df.columns:
+                # TODO make this more declarative
+                # Apply default values to missing cells
 
-        df = table.dataframe.copy()
+                if colname in mapping_to_defaults and "attribute" in df.columns:
+                    isna = df[colname].isna()
+                    if any(isna):
+                        key = mapping_to_defaults[colname]
+                        for value in config.veda_attr_defaults[key].keys():
+                            df.loc[
+                                isna
+                                & df["attribute"].isin(
+                                    config.veda_attr_defaults[key][value]
+                                ),
+                                colname,
+                            ] = value
+                elif colname == "year":
+                    df.loc[df[colname].isna(), [colname]] = model.start_year
+                elif colname == "currency":
+                    df.loc[df[colname].isna(), [colname]] = currency
 
-        # TODO: should we have a global list of column name -> type?
-        if "year" in df.columns:
-            df["year"] = pd.to_numeric(df["year"], errors="coerce")
+        # Do some additional processing for the tables
+        if tag in attribute_tags:
+            # TODO: should we have a global list of column name -> type?
+            if "year" in df.columns:
+                df["year"] = pd.to_numeric(df["year"], errors="coerce")
+            # Populate commodity and other_indexes based on defaults
+            for col in ("commodity", "other_indexes", "cg"):
+                _populate_defaults(tag, df, col, config)
 
-        # Populate commodity and other_indexes based on defaults
-        for col in ("commodity", "other_indexes", "cg"):
-            _populate_defaults(table.tag, df, col, config)
+        tables[tag] = df
 
-        return replace(table, dataframe=df)
-
-    return [apply_fixups_table(table) for table in tables]
+    return tables
 
 
 def generate_commodity_groups(
     config: Config,
-    tables: list[EmbeddedXlTable],
+    tables: dict[str, DataFrame],
     model: TimesModel,
-) -> list[EmbeddedXlTable]:
+) -> dict[str, DataFrame]:
     """Generate commodity groups."""
-    process_tables = [t for t in tables if t.tag == Tag.fi_process]
-
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
     columns = ["region", "process", "primarycg"]
-    reg_prc_pcg = pd.DataFrame(columns=columns)
-    for process_table in process_tables:
-        df = process_table.dataframe[columns]
-        reg_prc_pcg = pd.concat([reg_prc_pcg, df])
-    reg_prc_pcg.drop_duplicates(keep="first", inplace=True)
+    reg_prc_pcg = tables[Tag.fi_process][columns].copy()
+    reg_prc_pcg.drop_duplicates(keep="last", inplace=True)
 
     # DataFrame with Veda PCGs specified in the process declaration tables
     reg_prc_veda_pcg = reg_prc_pcg.loc[
@@ -1466,23 +1449,69 @@ def complete_commodity_groups(
     return tables
 
 
-def generate_trade(
+def process_trade_links(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
+    """Process trade links."""
+    cols_list = ["origin", "in", "destination", "out", "process"]
+    cols_list.extend(dm_cols)
+    result = []
+    # Include trade between internal regions
+    for table in tables:
+        if table.tag == Tag.tradelinks_dins:
+            df = table.dataframe
+            f_links = df.rename(
+                columns={
+                    "reg1": "origin",
+                    "comm1": "in",
+                    "reg2": "destination",
+                    "comm2": "out",
+                }
+            ).copy()
+            result.append(f_links[cols_list])
+            # Check if any of the links are bi-directional
+            if "b" in df["tradelink"].str.lower().unique():
+                b_links = (
+                    df[df["tradelink"].str.lower() == "b"]
+                    .rename(
+                        columns={
+                            "reg1": "destination",
+                            "comm1": "out",
+                            "reg2": "origin",
+                            "comm2": "in",
+                        }
+                    )
+                    .copy()
+                )
+                result.append(b_links[cols_list])
+    if result:
+        top_ire = pd.concat(result).reset_index(drop=True)
+        # Discard tradelinks if none of the regions is internal
+        i = top_ire["origin"].isin(model.internal_regions) | top_ire[
+            "destination"
+        ].isin(model.internal_regions)
+        model.trade = top_ire[i].reset_index(drop=True)
+    else:
+        model.trade = pd.DataFrame(columns=cols_list)
+
+    return tables
+
+
+def complete_trade(
+    config: Config,
+    tables: dict[str, DataFrame],
+    model: TimesModel,
+) -> dict[str, DataFrame]:
     """Generate inter-regional exchange topology."""
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
     veda_ire_sets = model.custom_sets
 
     ire_prc = pd.DataFrame(columns=["region", "process"])
-    for table in tables:
-        if table.tag == Tag.fi_process:
-            df = table.dataframe
-            ire_prc = pd.concat(
-                [ire_prc, df.loc[df["sets"] == "IRE", ["region", "process"]]]
-            )
-    ire_prc.drop_duplicates(keep="first", inplace=True)
+    df = model.processes.copy()
+    ire_prc = pd.concat([ire_prc, df.loc[df["sets"] == "IRE", ["region", "process"]]])
+    ire_prc.drop_duplicates(keep="last", inplace=True)
 
     # Generate inter-regional exchange topology
     top_ire = model.topology[
@@ -1498,6 +1527,7 @@ def generate_trade(
         dummy_ire = dummy_ire.merge(
             pd.DataFrame(model.internal_regions, columns=["region"]), how="cross"
         )
+        print(model.topology)
         dummy_ire = dummy_ire.merge(model.topology[["region", "csets", "commodity"]])
         dummy_ire.drop(columns=["csets"], inplace=True)
         dummy_ire["io"] = "OUT"
@@ -1523,88 +1553,48 @@ def generate_trade(
     top_ire.drop(columns=["region", "region2", "sets", "io"], inplace=True)
     top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
 
-    cols_list = ["origin", "in", "destination", "out", "process"]
-    cols_list.extend(dm_cols)
-    # Include trade between internal regions
-    for table in tables:
-        if table.tag == Tag.tradelinks_dins:
-            df = table.dataframe
-            f_links = df.rename(
-                columns={
-                    "reg1": "origin",
-                    "comm1": "in",
-                    "reg2": "destination",
-                    "comm2": "out",
-                }
-            ).copy()
-            top_ire = pd.concat([top_ire, f_links[cols_list]])
-            # Check if any of the links are bi-directional
-            if "b" in df["tradelink"].str.lower().unique():
-                b_links = (
-                    df[df["tradelink"].str.lower() == "b"]
-                    .rename(
-                        columns={
-                            "reg1": "destination",
-                            "comm1": "out",
-                            "reg2": "origin",
-                            "comm2": "in",
-                        }
-                    )
-                    .copy()
-                )
-                top_ire = pd.concat([top_ire, b_links[cols_list]])
-    # Discard tradelinks if none of the regions is internal
-    i = top_ire["origin"].isin(model.internal_regions) | top_ire["destination"].isin(
-        model.internal_regions
-    )
-    model.trade = top_ire[i].reset_index(drop=True)
+    model.trade = pd.concat([top_ire, model.trade]).reset_index(drop=True)
 
     return tables
 
 
 def fill_in_missing_pcgs(
     config: Config,
-    tables: list[EmbeddedXlTable],
+    tables: dict[str, DataFrame],
     model: TimesModel,
-) -> list[EmbeddedXlTable]:
-    """Fill in missing primary commodity groups in FI_Process tables.
+) -> dict[str, DataFrame]:
+    """Fill in missing primary commodity groups in model.processes.
 
-    Expand primary commodity groups specified in FI_Process tables by a suffix.
+    Expand primary commodity groups specified by a suffix.
     """
-    result = []
+    df = model.processes.copy()
+    # Expand primary commodity groups specified in primarycg column by a suffix
+    i = df["primarycg"].isin(default_pcg_suffixes) & df["process"].notna()
+    if any(i):
+        # Specify primary commodity group based on suffix and the process name.
+        df.loc[i, "primarycg"] = df["process"][i] + "_" + df["primarycg"][i]
+    default_pcgs = model.topology.copy()
+    default_pcgs = default_pcgs.loc[
+        default_pcgs["DefaultVedaPCG"] == 1,
+        ["region", "process", "commoditygroup"],
+    ]
+    default_pcgs.rename(columns={"commoditygroup": "primarycg"}, inplace=True)
+    default_pcgs = pd.merge(
+        default_pcgs,
+        df.loc[df["primarycg"].isna(), df.columns != "primarycg"],
+        how="right",
+    )
+    df = pd.concat([df, default_pcgs])
+    # Keep last if a row appears more than once (disregard primarycg)
+    df.drop_duplicates(
+        subset=[c for c in df.columns if c != "primarycg"],
+        keep="last",
+        inplace=True,
+    )
 
-    for table in tables:
-        if table.tag != Tag.fi_process:
-            result.append(table)
-        else:
-            df = table.dataframe.copy()
-            # Expand primary commodity groups specified in primarycg column by a suffix
-            i = df["primarycg"].isin(default_pcg_suffixes) & df["process"].notna()
-            if any(i):
-                # Specify primary commodity group based on suffix and the process name.
-                df.loc[i, "primarycg"] = df["process"][i] + "_" + df["primarycg"][i]
-            default_pcgs = model.topology.copy()
-            default_pcgs = default_pcgs.loc[
-                default_pcgs["DefaultVedaPCG"] == 1,
-                ["region", "process", "commoditygroup"],
-            ]
-            default_pcgs.rename(columns={"commoditygroup": "primarycg"}, inplace=True)
-            default_pcgs = pd.merge(
-                default_pcgs,
-                df.loc[df["primarycg"].isna(), df.columns != "primarycg"],
-                how="right",
-            )
-            df = pd.concat([df, default_pcgs])
-            # Keep last if a row appears more than once (disregard primarycg)
-            df.drop_duplicates(
-                subset=[c for c in df.columns if c != "primarycg"],
-                keep="last",
-                inplace=True,
-            )
+    model.processes = df
 
-            result.append(replace(table, dataframe=df))
-
-    return result
+    return tables
 
 
 def remove_fill_tables(
@@ -1668,25 +1658,6 @@ def convert_com_tables(
             for col in add_columns:
                 df[col] = pd.NA
             result.append(replace(table, dataframe=df, tag=target_tag))
-
-    return result
-
-
-def internalise_commodities(
-    config: Config,
-    tables: list[EmbeddedXlTable],
-    model: TimesModel,
-) -> list[EmbeddedXlTable]:
-    """Populate model.commodities."""
-    result = []
-    comm_dfs = []
-    for table in tables:
-        if table.tag != Tag.fi_comm:
-            result.append(table)
-        else:
-            comm_dfs.append(table.dataframe)
-
-    model.commodities = pd.concat(comm_dfs, ignore_index=True)
 
     return result
 
