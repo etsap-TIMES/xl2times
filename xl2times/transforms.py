@@ -532,14 +532,6 @@ def process_flexible_import_tables(
                         else:
                             df.loc[i, colname] = typed_value
 
-        # Handle Other_Indexes
-        other = "other_indexes"
-        if "attribute" in df.columns and "END" in df["attribute"]:
-            i = df["attribute"] == "END"
-            df.loc[i, "year"] = df.loc[i, "value"].astype("int") + 1
-            df.loc[i, other] = "EOH"
-            df.loc[i, "attribute"] = "PRC_NOFF"
-
         df = df.reset_index(drop=True)
 
         # The rows below will be dropped later on when the topology info is stored.
@@ -3337,6 +3329,11 @@ def apply_final_fixup(
             df_list.append(stock_rows)
 
         df = pd.concat(df_list)
+
+    # Handle END
+    i_end = df["original_attr"] == "END"
+    if any(i_end):
+        df.loc[i_end, "year"] = df.loc[i_end, "value"].astype("int") + 1
 
     # Clean up
     # TODO: Do this comprehensively for all relevant tables

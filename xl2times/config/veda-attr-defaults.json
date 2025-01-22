@@ -516,6 +516,12 @@
   "EMCB": {
     "times-attribute": "VDA_EMCB"
   },
+  "END": {
+    "defaults": {
+      "year2": "EOH"
+    },
+    "times-attribute": "PRC_NOFF"
+  },
   "ENVACT": {
     "defaults": {
       "commodity": [
