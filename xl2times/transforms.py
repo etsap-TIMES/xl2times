@@ -497,13 +497,10 @@ def process_flexible_import_tables(
         # Tag column no longer used to identify data columns
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
 
-        index_columns = config.known_columns[Tag.fi_t]
+        index_columns = config.known_columns[Tag.fi_t].intersection(df.columns)
         # This take care of the case where the table has repeated column names
         # TODO: ensure that the columns are unique upstream
         data_columns = [col for col in df.columns if col not in index_columns]
-
-        for colname in index_columns.difference(df.columns):
-            df[colname] = pd.NA
 
         if data_columns:
             df, attribute_suffix = utils.explode(df, data_columns)
@@ -1614,6 +1611,7 @@ def convert_com_tables(
         if table.tag not in convert_tags:
             result.append(table)
         else:
+            target_tag = Tag.fi_t
             info = convert_tags[table.tag]
             index_column = info["index_column"]
             other_column = info["other_column"]
@@ -1631,7 +1629,11 @@ def convert_com_tables(
             df[other_column] = df[other_column].str.upper()
 
             df = df.reset_index(drop=True)
-            result.append(replace(table, dataframe=df, tag=Tag.fi_t))
+            # Ensure consistency with tables of the same type
+            add_columns = config.add_columns[target_tag].difference(df.columns)
+            for col in add_columns:
+                df[col] = pd.NA
+            result.append(replace(table, dataframe=df, tag=target_tag))
 
     return result
 
@@ -1724,6 +1726,9 @@ def process_topology(
         # Rows with missing values in fi_t tables can now safely be dropped.
         df.dropna(subset=["value"], axis=0, ignore_index=True, inplace=True)
 
+    # Drop any table with an emtpy dataframe
+    tables = [t for t in tables if not t.dataframe.empty]
+
     topology = pd.concat(top_info, ignore_index=True)
 
     topology = pd.melt(
@@ -1786,44 +1791,36 @@ def generate_dummy_processes(
             dummy_processes,
             columns=["process", "description", "tact", "primarycg"],
         )
-
-        # Data that is the same for all dummy processes
+        # Characteristics that are the same for all dummy processes
         additional_cols = {
-            "region": pd.NA,
             "sets": "IMP",
-            "tcap": pd.NA,
             "tslvl": "ANNUAL",
-            "vintage": pd.NA,
         }
-
         for col, value in additional_cols.items():
             process_declarations[col] = value
-
-        tables.append(
-            EmbeddedXlTable(
-                tag="~FI_PROCESS",
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=process_declarations,
-            )
-        )
 
         process_data_specs = process_declarations[["process", "description"]].copy()
         # Provide an empty value in case an upd table is used to provide data
         process_data_specs["ACTCOST"] = ""
 
-        tables.append(
-            EmbeddedXlTable(
-                tag="~FI_T",
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=process_data_specs,
+        mapping = {Tag.fi_process: process_declarations, Tag.fi_t: process_data_specs}
+
+        for tag, df in mapping.items():
+            # Ensure consistency with tables of the same type
+            add_columns = config.add_columns[tag].difference(df.columns)
+            for col in add_columns:
+                df[col] = pd.NA
+            # Append the table to the list of tables
+            tables.append(
+                EmbeddedXlTable(
+                    tag=tag,
+                    uc_sets={},
+                    sheetname="",
+                    range="",
+                    filename="",
+                    dataframe=df,
+                )
             )
-        )
 
     return tables
 
