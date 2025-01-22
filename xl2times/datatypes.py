@@ -412,7 +412,7 @@ class Config:
 
         # Compute the set of all attributes, i.e. all entities with category = parameter
         attributes = {
-            item["name"].lower()
+            item["name"].upper()
             for item in table_info
             if item["gams-cat"] == "parameter"
         }

@@ -484,6 +484,8 @@ def process_flexible_import_tables(
         .union(default_pcg_suffixes),
     }
 
+    attributes = config.all_attributes.union(config.attr_aliases)
+
     def process_flexible_import_table(
         table: EmbeddedXlTable,
     ) -> EmbeddedXlTable:
@@ -498,20 +500,45 @@ def process_flexible_import_tables(
         # https://veda-documentation.readthedocs.io/en/latest/pages/introduction.html#veda2-0-enhanced-features
 
         index_columns = config.known_columns[Tag.fi_t].intersection(df.columns)
-        # This take care of the case where the table has repeated column names
-        # TODO: ensure that the columns are unique upstream
+        # This takes care of the case where the table has repeated column names
+        # There can be aliases in between the columns, so it should probably stay this way
         data_columns = [col for col in df.columns if col not in index_columns]
 
-        if data_columns:
-            df, attribute_suffix = utils.explode(df, data_columns)
-            # Append the data column name to the Attribute column values
-            if "attribute" not in df.columns:
-                df["attribute"] = pd.NA
-            i = df["attribute"].notna()
-            df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
-            i = df["attribute"].isna()
-            df.loc[i, "attribute"] = attribute_suffix[i]
+        is_all_year = all([is_year(col) for col in data_columns])
+        is_all_attr = all(
+            [col.split("~")[0].upper() in attributes for col in data_columns]
+        )
 
+        if data_columns:
+            if is_all_attr and "attribute" not in df.columns:
+                df = pd.melt(
+                    df,
+                    id_vars=list(index_columns),
+                    var_name="attribute",
+                    value_name="value",
+                    ignore_index=False,
+                )
+            elif is_all_year and "year" not in df.columns:
+                df = pd.melt(
+                    df,
+                    id_vars=list(index_columns),
+                    var_name="year",
+                    value_name="value",
+                    ignore_index=False,
+                )
+            else:
+                df, attribute_suffix = utils.explode(df, data_columns)
+                # Append the data column name to the Attribute column values
+                if "attribute" not in df.columns:
+                    df["attribute"] = pd.NA
+                i = df["attribute"].notna()
+                df.loc[i, "attribute"] = (
+                    df.loc[i, "attribute"] + "~" + attribute_suffix[i]
+                )
+                i = df["attribute"].isna()
+                df.loc[i, "attribute"] = attribute_suffix[i]
+
+        if "attribute" in df.columns:
             # Capitalise all attributes, unless column type float
             if df["attribute"].dtype != float:
                 df["attribute"] = df["attribute"].str.upper()
@@ -534,6 +561,9 @@ def process_flexible_import_tables(
         # The rows below will be dropped later on when the topology info is stored.
         if "value" not in df.columns:
             df["value"] = pd.NA
+
+        if "year" not in df.columns:
+            df["year"] = pd.NA
 
         i = df["year"].notna()
 
@@ -1900,6 +1930,11 @@ def process_tradelinks(
     return result
 
 
+def is_year(col_name):
+    """A column name is a year if it is an int >= 0."""
+    return col_name.isdigit() and int(col_name) >= 0
+
+
 def process_transform_table_variants(
     config: Config,
     tables: list[EmbeddedXlTable],
@@ -1918,10 +1953,6 @@ def process_transform_table_variants(
                 and "_" not in x
             )
         )
-
-    def is_year(col_name):
-        """A column name is a year if it is an int >= 0."""
-        return col_name.isdigit() and int(col_name) >= 0
 
     result = []
     for table in tables:
