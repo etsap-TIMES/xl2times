@@ -1997,7 +1997,7 @@ def process_transform_table_variants(
             other_columns = [
                 col_name
                 for col_name in df.columns
-                if col_name not in (config.all_attributes | config.attr_aliases)
+                if col_name.upper() not in (config.all_attributes | config.attr_aliases)
             ]
             df = pd.melt(
                 df,
