@@ -413,8 +413,7 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ],
-        "add_if_absent": true
+        ]
       },
       {
         "name": "limtype",
@@ -426,8 +425,7 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ],
-        "add_if_absent": true
+        ]
       },
       {
         "name": "other_indexes",
@@ -496,7 +494,6 @@
           "\\I:",
           "*"
         ],
-        "add_if_absent": true,
         "comma-separated-list": true
       },
       {
@@ -823,8 +820,7 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ],
-        "add_if_absent": true
+        ]
       },
       {
         "name": "limtype",
@@ -1426,8 +1422,7 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ],
-        "add_if_absent": true
+        ]
       },
       {
         "name": "limtype",
@@ -1644,7 +1639,6 @@
           "\\I:",
           "*"
         ],
-        "add_if_absent": true,
         "comma-separated-list": true
       }
     ]
@@ -3199,8 +3193,7 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ],
-        "add_if_absent": true
+        ]
       },
       {
         "name": "limtype",
@@ -3212,8 +3205,7 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ],
-        "add_if_absent": true
+        ]
       },
       {
         "name": "other_indexes",
@@ -3353,7 +3345,6 @@
           "\\I:",
           "*"
         ],
-        "add_if_absent": true,
         "comma-separated-list": true
       },
       {
