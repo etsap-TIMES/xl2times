@@ -443,6 +443,31 @@ def apply_tag_specified_defaults(
     return [utils.apply_composite_tag(t) for t in tables]
 
 
+def _harmonise_attributes(df, mapping):
+    """Harmonise attributes in the dataframe. Includes:
+    - Capitalising all attributes, unless column type float.
+    - Handling attributes containing tilde, such as 'ACT_COST~2030'.
+    """
+    # Capitalise all attributes, unless column type float
+    if df["attribute"].dtype != float:
+        df["attribute"] = df["attribute"].str.upper()
+
+    # Handle Attribute containing tilde, such as 'ACT_COST~2030'
+    index = df["attribute"].str.contains("~")
+    if any(index):
+        for attr in set(df["attribute"][index]):
+            i = index & (df["attribute"] == attr)
+            parts = [part.strip() for part in attr.split("~")]
+            for value in parts:
+                colname, typed_value = _get_colname(value, mapping)
+                if colname is None:
+                    df.loc[i, "attribute"] = typed_value
+                else:
+                    if colname not in df.columns:
+                        df[colname] = pd.NA
+                    df.loc[i, colname] = typed_value
+
+
 def process_flexible_import_tables(
     config: Config,
     tables: list[EmbeddedXlTable],
@@ -541,22 +566,8 @@ def process_flexible_import_tables(
                 df.loc[i, "attribute"] = attribute_suffix[i]
 
         if "attribute" in df.columns:
-            # Capitalise all attributes, unless column type float
-            if df["attribute"].dtype != float:
-                df["attribute"] = df["attribute"].str.upper()
-
-            # Handle Attribute containing tilde, such as 'STOCK~2030'
-            index = df["attribute"].str.contains("~")
-            if any(index):
-                for attr in df["attribute"][index].unique():
-                    i = index & (df["attribute"] == attr)
-                    parts = [part.strip() for part in attr.split("~")]
-                    for value in parts:
-                        colname, typed_value = _get_colname(value, legal_values)
-                        if colname is None:
-                            df.loc[i, "attribute"] = typed_value
-                        else:
-                            df.loc[i, colname] = typed_value
+            # Harmonise attributes
+            _harmonise_attributes(df, legal_values)
 
         df = df.reset_index(drop=True)
 
@@ -661,21 +672,9 @@ def process_user_constraint_tables(
                 df.loc[i_allregions, "region"] = regions
                 # TODO: Check whether any invalid regions are present
 
-        # Capitalise all attributes, unless column type float
-        if df["attribute"].dtype != float:
-            df["attribute"] = df["attribute"].str.upper()
-
-        # Handle Attribute containing tilde, such as 'STOCK~2030'
-        for attr in df["attribute"].unique():
-            if "~" in attr:
-                i = df["attribute"] == attr
-                parts = [part.strip() for part in attr.split("~")]
-                for value in parts:
-                    colname, typed_value = _get_colname(value, legal_values)
-                    if colname is None:
-                        df.loc[i, "attribute"] = typed_value
-                    else:
-                        df.loc[i, colname] = typed_value
+        if "attribute" in df.columns:
+            # Harmonize attributes
+            _harmonise_attributes(df, legal_values)
 
         return replace(table, dataframe=df)
 
