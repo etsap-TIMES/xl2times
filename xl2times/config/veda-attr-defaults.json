@@ -13,7 +13,7 @@
   "ACTBND": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_BND"
   },
@@ -34,7 +34,7 @@
   "ACT_BND": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "ACT_CSTRMP": {
@@ -49,12 +49,13 @@
   },
   "ACT_CSTUP": {
     "defaults": {
-      "tslvl": "DAYNITE"
+      "ts-level": "DAYNITE"
     }
   },
   "ACT_CUM": {
     "defaults": {
       "limtype": "UP",
+      "year": "BOH",
       "year2": "EOH"
     }
   },
@@ -66,7 +67,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "ACT_FLO": {
@@ -79,7 +80,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "ACT_LOSPL": {
@@ -105,13 +106,13 @@
   "ACT_UPS": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "AF": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "NCAP_AF"
   },
@@ -137,7 +138,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "NCAP_AFC"
   },
@@ -168,7 +169,7 @@
   "BNDACT": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_BND"
   },
@@ -184,32 +185,32 @@
   "BS_BNDPRS": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "BS_DELTA": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "BS_DEMDET": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "BS_MAINT": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "BS_OMEGA": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "BS_RMAX": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "BS_SHARE": {
@@ -219,7 +220,7 @@
   },
   "BS_SIGMA": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "BS_STIME": {
@@ -265,7 +266,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
@@ -275,7 +276,7 @@
         "commodity",
         "commodity-in"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
@@ -285,7 +286,7 @@
         "commodity",
         "commodity-out"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
@@ -296,7 +297,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
@@ -324,33 +325,33 @@
   "COM_BNDNET": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_BNDPRD": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_BPRICE": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_CSTBAL": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_CSTNET": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_CSTPRD": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_CUMNET": {
@@ -365,37 +366,37 @@
   },
   "COM_ELAST": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_IE": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_SUBNET": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_SUBPRD": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_TAXNET": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COM_TAXPRD": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "COST": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "IRE_PRICE"
   },
@@ -420,6 +421,7 @@
   "CUM": {
     "defaults": {
       "limtype": "UP",
+      "year": "BOH",
       "year2": "EOH"
     },
     "times-attribute": "ACT_CUM"
@@ -456,7 +458,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_DELIV"
   },
@@ -492,7 +494,7 @@
       "cg": [
         "ACT"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
@@ -501,7 +503,7 @@
       "cg": [
         "ACT"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
@@ -514,12 +516,6 @@
   "EMCB": {
     "times-attribute": "VDA_EMCB"
   },
-  "END": {
-    "defaults": {
-      "year2": "EOH"
-    },
-    "times-attribute": "PRC_NOFF"
-  },
   "ENVACT": {
     "defaults": {
       "commodity": [
@@ -531,7 +527,7 @@
       "cg": [
         "ACT"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_EMIS"
   },
@@ -558,7 +554,7 @@
       "cg": [
         "ACT"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_EMIS"
   },
@@ -583,7 +579,7 @@
         "commodity-in-aux"
       ],
       "cg": ["other_indexes"],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_EMIS"
   },
@@ -600,14 +596,14 @@
       ],
       "cg": ["other_indexes"],
       "limtype": "FX",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_SHAR"
   },
   "FLO_BND": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "FLO_COST": {
@@ -618,7 +614,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "FLO_CUM": {
@@ -634,7 +630,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "FLO_EFF": {
@@ -645,7 +641,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_EMIS"
   },
@@ -657,7 +653,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "FLO_FR": {
@@ -673,7 +669,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "FLO_MARK": {
@@ -696,7 +692,7 @@
         "commodity-out-aux"
       ],
       "limtype": "FX",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "FLO_SUB": {
@@ -707,7 +703,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "FLO_TAX": {
@@ -718,7 +714,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "FMSHARE": {
@@ -750,7 +746,7 @@
   },
   "GR_DEMFR": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "GR_VARGEN": {
@@ -760,7 +756,7 @@
   },
   "G_YRFR": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "HRESERV": {
@@ -782,7 +778,7 @@
         "commodity-in",
         "commodity-in-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "VDA_FLOP"
   },
@@ -792,23 +788,23 @@
   "IRE_BND": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "IRE_FLOSUM": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "IRE_PRICE": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "IRE_XBND": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "IRE_XXBND": {
@@ -826,7 +822,7 @@
   "NCAP_AF": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "NCAP_AFA": {
@@ -849,12 +845,12 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "NCAP_AFCS": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "NCAP_AFS": {
@@ -879,7 +875,7 @@
   },
   "NCAP_PKCNT": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "OCOM": {
@@ -895,7 +891,7 @@
         "commodity-out",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "VDA_FLOP"
   },
@@ -907,19 +903,19 @@
   },
   "PEAK": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "NCAP_PKCNT"
   },
   "PEAK(CON)": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "NCAP_PKCNT"
   },
   "PKCNT": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "NCAP_PKCNT"
   },
@@ -941,7 +937,7 @@
   },
   "PRC_FOFF": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "PRC_MARK": {
@@ -986,7 +982,7 @@
       ],
       "cg": ["other_indexes", "veda_cg"],
       "limtype": "FX",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_SHAR"
   },
@@ -998,7 +994,7 @@
       ],
       "cg": ["veda_cg"],
       "limtype": "FX",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_SHAR"
   },
@@ -1010,7 +1006,7 @@
       ],
       "cg": ["veda_cg"],
       "limtype": "FX",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_SHAR"
   },
@@ -1026,7 +1022,7 @@
         "commodity-in"
       ],
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "STGOUT_BND": {
@@ -1035,22 +1031,22 @@
         "commodity-out"
       ],
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "STG_CHRG": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "STG_LOSS": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "STG_SIFT": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "STOCK": {
@@ -1112,13 +1108,13 @@
   "S_UC_RHSRTS": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "S_UC_RHSTS": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "TFTAX": {
@@ -1132,27 +1128,27 @@
   },
   "TS_CYCLE": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UC_ACT": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UC_COMCON": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UC_COMNET": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UC_COMPRD": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UC_DYNBND": {
@@ -1162,25 +1158,25 @@
   },
   "UC_FLO": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UC_IRE": {
     "defaults": {
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UC_IRE-E": {
     "defaults": {
       "other_indexes": ["EXP"],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "UC_IRE"
   },
   "UC_IRE-I": {
     "defaults": {
       "other_indexes": ["IMP"],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "UC_IRE"
   },
@@ -1202,7 +1198,7 @@
   "UC_RHSRTS": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UC_RHST": {
@@ -1213,7 +1209,7 @@
   "UC_RHSTS": {
     "defaults": {
       "limtype": "UP",
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "UTILIZATION": {
@@ -1227,7 +1223,7 @@
       "cg": [
         "ACT"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     },
     "times-attribute": "ACT_EFF"
   },
@@ -1241,7 +1237,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
-      "tslvl": "ANNUAL"
+      "ts-level": "ANNUAL"
     }
   },
   "YRFR": {

@@ -271,7 +271,7 @@ benchmarks:
     include_dummy_imports: true
   - name: DemoS_special-t1
     input_folder: DemoS_special_t1
-    dd_folder: DemoS-special-t1
+    dd_folder: DemoS_special-t1
     dd_files:
       - "base"
       - "testechs"
