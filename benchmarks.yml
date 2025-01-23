@@ -269,6 +269,15 @@ benchmarks:
       - "uc_growth"
       - "uc_nuc_maxcap"
     include_dummy_imports: true
+  - name: DemoS_special-t1
+    input_folder: DemoS_special_t1
+    dd_folder: DemoS-special-t1
+    dd_files:
+      - "base"
+      - "testechs"
+      - "syssettings"
+      - "trade_param"
+      - "demproj_dtcar"
   - name: TIMES-IE-all
     input_folder: TIM
     regions: "IE"
