@@ -823,7 +823,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "add_if_absent": true
       },
       {
         "name": "limtype",
