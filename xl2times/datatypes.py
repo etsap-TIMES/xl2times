@@ -638,6 +638,7 @@ class Config:
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
                 base_tag = to_tag(tag_info["base_tag"])
+                mod_type = tag_info["mod_type"]
                 if base_tag in valid_column_names:
                     valid_column_names[tag_name] = valid_column_names[base_tag]
                     discard_if_empty.append(tag_name)
@@ -646,15 +647,21 @@ class Config:
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
                 if base_tag in query_cols:
-                    query_cols[tag_name] = query_cols[base_tag]
+                    query_cols[tag_name] = query_cols[base_tag].difference({mod_type})
                 if base_tag in lists_cols:
-                    lists_cols[tag_name] = lists_cols[base_tag]
+                    lists_cols[tag_name] = lists_cols[base_tag].difference({mod_type})
                 if base_tag in known_cols:
-                    known_cols[tag_name] = known_cols[base_tag]
+                    known_cols[tag_name] = known_cols[base_tag].difference({mod_type})
                 if base_tag in add_cols:
-                    add_cols[tag_name] = add_cols[base_tag]
+                    add_cols[tag_name] = add_cols[base_tag].difference({mod_type})
+                if base_tag in required_cols:
+                    required_cols[tag_name] = required_cols[base_tag].difference(
+                        {mod_type}
+                    )
                 if base_tag in forward_fill_cols:
-                    forward_fill_cols[tag_name] = forward_fill_cols[base_tag]
+                    forward_fill_cols[tag_name] = forward_fill_cols[
+                        base_tag
+                    ].difference({mod_type})
 
         return (
             valid_column_names,
