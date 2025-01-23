@@ -564,27 +564,6 @@ def process_flexible_import_tables(
         if "value" not in df.columns:
             df["value"] = pd.NA
 
-        if "year" not in df.columns:
-            df["year"] = pd.NA
-
-        i = df["year"].notna()
-
-        df.loc[i, "year2"] = df[i].apply(
-            lambda row: (
-                int(row["year"].split("-")[1]) if "-" in str(row["year"]) else pd.NA
-            ),
-            axis=1,
-        )
-
-        df.loc[i, "year"] = df[i].apply(
-            lambda row: (
-                int(row["year"].split("-")[0])
-                if "-" in str(row["year"])
-                else (row["year"] if row["year"] != "" else pd.NA)
-            ),
-            axis=1,
-        )
-
         return replace(table, dataframe=df)
 
     return [process_flexible_import_table(t) for t in tables]
@@ -649,9 +628,7 @@ def process_user_constraint_tables(
         df = table.dataframe
 
         # TODO: Handle pseudo-attributes in a more general way
-        known_columns = config.known_columns[Tag.uc_t].copy()
-        known_columns.remove("uc_attr")
-
+        known_columns = config.known_columns[Tag.uc_t].difference({"uc_attr"})
         data_columns = [x for x in df.columns if x not in known_columns]
 
         # Populate columns
@@ -1005,20 +982,25 @@ def remove_invalid_values(
         Tag.uc_t,
     }
 
+    def remove_invalid_values_table(df):
+        is_valid_list = [
+            df[colname].isin(values)
+            for colname, values in constraints.items()
+            if colname in df.columns
+        ]
+        if is_valid_list:
+            is_valid = reduce(lambda a, b: a & b, is_valid_list)
+            return df[is_valid].reset_index(drop=True)
+        else:
+            return df
+
     for tag, dataframe in tables.items():
         if tag not in skip_tags:
             df = dataframe.copy()
-            is_valid_list = [
-                df[colname].isin(values)
-                for colname, values in constraints.items()
-                if colname in df.columns
-            ]
-            if is_valid_list:
-                is_valid = reduce(lambda a, b: a & b, is_valid_list)
-                df = df[is_valid]
-                df.reset_index(drop=True, inplace=True)
+            tables[tag] = remove_invalid_values_table(df)
 
-            tables[tag] = df
+    model.processes = remove_invalid_values_table(model.processes)
+    model.commodities = remove_invalid_values_table(model.commodities)
 
     return tables
 
@@ -1248,6 +1230,25 @@ def apply_fixups(
     }
     for tag, dataframe in tables.items():
         df = dataframe.copy()
+        # Expand year column if it contains ranges
+        if "year" in df.columns:
+            i = df["year"].notna()
+
+            df.loc[i, "year2"] = df[i].apply(
+                lambda row: (
+                    int(row["year"].split("-")[1]) if "-" in str(row["year"]) else pd.NA
+                ),
+                axis=1,
+            )
+
+            df.loc[i, "year"] = df[i].apply(
+                lambda row: (
+                    int(row["year"].split("-")[0])
+                    if "-" in str(row["year"])
+                    else (row["year"] if row["year"] != "" else pd.NA)
+                ),
+                axis=1,
+            )
         if tag not in exclude_tags:
             for colname in df.columns:
                 # TODO make this more declarative
