@@ -1528,7 +1528,6 @@ def complete_trade(
         dummy_ire = dummy_ire.merge(
             pd.DataFrame(model.internal_regions, columns=["region"]), how="cross"
         )
-        print(model.topology)
         dummy_ire = dummy_ire.merge(model.topology[["region", "csets", "commodity"]])
         dummy_ire.drop(columns=["csets"], inplace=True)
         dummy_ire["io"] = "OUT"
