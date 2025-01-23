@@ -1267,7 +1267,7 @@ def apply_fixups(
                 df["year"] = pd.to_numeric(df["year"], errors="coerce")
             # Populate commodity and other_indexes based on defaults
             for col in ("commodity", "other_indexes", "cg"):
-                _populate_defaults(tag, df, col, config)
+                _populate_defaults(tag, df, col, config, "original_attr")
 
         tables[tag] = df
 
