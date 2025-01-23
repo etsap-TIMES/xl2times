@@ -3293,6 +3293,7 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
+        "add_if_absent": true,
         "comma-separated-list": true
       },
       {
