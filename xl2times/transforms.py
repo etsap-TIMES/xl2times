@@ -885,11 +885,7 @@ def _split_by_commas(s):
     if _has_comma(s):
         return [x.strip() for x in s.split(",")]
     else:
-        return _remove_empty_str(s)
-
-
-def _remove_empty_str(s):
-    return s if s != "" else pd.NA
+        return s
 
 
 def expand_rows(
@@ -2912,7 +2908,7 @@ def verify_uc_topology(
         ),
     }
     # Explode process/commodity columns and remove any row with invalid region/process or region/commodity combination.
-    for col in ["process", "commodity"]:
+    for col in {"process", "commodity"}.intersection(df.columns):
         df = df.explode(col, ignore_index=True)
         df = _remove_invalid_rows(
             df,
@@ -2927,7 +2923,7 @@ def verify_uc_topology(
     checked = pd.Series(False, index=df.index)
     for check in requested_checks:
         i = (df["top_check"] == check) & i_verify_attrs
-        if check in top_check_map:
+        if any(i) and check in top_check_map:
             specific_topology = topology[cols][
                 topology["io"].isin(top_check_map[check])
             ].drop_duplicates()
