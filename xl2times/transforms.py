@@ -631,21 +631,13 @@ def process_user_constraint_tables(
         known_columns = config.known_columns[Tag.uc_t].difference({"uc_attr"})
         data_columns = [x for x in df.columns if x not in known_columns]
 
-        # Populate columns
-        for colname in known_columns:
-            if colname not in df.columns:
-                df[colname] = None
-        table = replace(table, dataframe=df)
-
-        # TODO: detect RHS correctly
-        i = df["side"].isna()
-        df.loc[i, "side"] = "LHS"
-
         table = utils.apply_composite_tag(table)
         df = table.dataframe
         df, attribute_suffix = utils.explode(df, data_columns)
 
         # Append the data column name to the Attribute column
+        if "attribute" not in df.columns:
+            df["attribute"] = pd.NA
         i = df["attribute"].notna()
         df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
         i = df["attribute"].isna()
@@ -711,11 +703,12 @@ def generate_uc_properties(
     user_constraints = pd.DataFrame(columns=columns)
     # Create df_list to hold DataFrames that will be concatenated later on
     df_list = list()
+    cols = {"uc_n", "region", "description"}
     for uc_table in uc_tables:
         uc_df = uc_table.dataframe
         # DataFrame with unique UC names and descriptions if they exist:
         df = (
-            uc_df.loc[:, ["uc_n", "region", "description"]]
+            uc_df.loc[:, list(cols.intersection(uc_df.columns))]
             .groupby(["uc_n", "region"], sort=False)
             .first()
         )

@@ -3198,7 +3198,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "add_if_absent": true
       },
       {
         "name": "limtype",
@@ -3210,7 +3211,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "add_if_absent": true
       },
       {
         "name": "other_indexes",
@@ -3298,11 +3300,14 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
+        "add_if_absent": true,
         "comma-separated-list": true
       },
       {
         "name": "side",
-        "use_name": "side"
+        "use_name": "side",
+        "add_if_absent": true,
+        "default_to": "LHS"
       },
       {
         "name": "sow",
@@ -3347,6 +3352,7 @@
           "\\I:",
           "*"
         ],
+        "add_if_absent": true,
         "comma-separated-list": true
       },
       {
