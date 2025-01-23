@@ -313,8 +313,10 @@ class Config:
     dd_table_order: Iterable[str]
     all_attributes: set[str]
     attr_aliases: set[str]
-    # Attribute by type
+    # Attribute by type (commodity, process, flow)
     attr_by_type: dict[str, set[str]]
+    # Attribute by index (region, year, etc.)
+    attr_by_index: dict[str, set[str]]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: dict[Tag, dict[str, str]]
     # For each tag, this dictionary maps each column name to its default value
@@ -355,6 +357,7 @@ class Config:
             self.dd_table_order,
             self.all_attributes,
             self.attr_by_type,
+            self.attr_by_index,
             param_mappings,
         ) = Config._process_times_info(times_info_file)
         self.times_sets = Config._read_times_sets(times_sets_file)
@@ -394,7 +397,13 @@ class Config:
     @staticmethod
     def _process_times_info(
         times_info_file: str,
-    ) -> tuple[Iterable[str], set[str], dict[str, set[str]], list[TimesXlMap]]:
+    ) -> tuple[
+        Iterable[str],
+        set[str],
+        dict[str, set[str]],
+        dict[str, set[str]],
+        list[TimesXlMap],
+    ]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
         with resources.open_text("xl2times.config", times_info_file) as f:
@@ -436,6 +445,22 @@ class Config:
                 )
             }
 
+        # Categorise attributes by index (region, year, etc.)
+        attr_by_index = dict()
+        # Set of all indexes in the mapping
+        all_indexes = set()
+        for attr in table_info:
+            if attr["gams-cat"] == "parameter":
+                all_indexes = all_indexes.union(attr["mapping"])
+        for index in all_indexes:
+            list_of_attrs = set()
+            for attr in table_info:
+                if attr["gams-cat"] != "parameter":
+                    continue
+                if index in attr["mapping"]:
+                    list_of_attrs.add(attr["name"])
+            attr_by_index[index] = list_of_attrs
+
         # Compute the mapping for attributes / parameters:
         def create_mapping(entity):
             assert entity["gams-cat"] == "parameter"
@@ -464,7 +489,7 @@ class Config:
             and "type" not in x  # TODO Generalise derived parameters?
         ]
 
-        return dd_table_order, attributes, attr_by_type, param_mappings
+        return dd_table_order, attributes, attr_by_type, attr_by_index, param_mappings
 
     @staticmethod
     def _read_mappings(filename: str) -> list[TimesXlMap]:

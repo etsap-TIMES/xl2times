@@ -1217,8 +1217,16 @@ def apply_fixups(
         "timeslice": "tslvl",
         "year2": "year2",
     }
+
     for tag, dataframe in tables.items():
         df = dataframe.copy()
+        # Ensure that required columns are present for all tables with attributes
+        # TODO: This should probably be further refined.
+        if "attribute" in df.columns:
+            columns_to_check = set(config.attr_by_index.keys()).difference(df.columns)
+            for col in columns_to_check:
+                if set(df["attribute"]).intersection(config.attr_by_index[col]):
+                    df[col] = pd.NA
         # Expand year column if it contains ranges
         if "year" in df.columns:
             i = df["year"].notna()
