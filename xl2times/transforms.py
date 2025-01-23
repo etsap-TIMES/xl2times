@@ -443,12 +443,18 @@ def apply_tag_specified_defaults(
     return [utils.apply_composite_tag(t) for t in tables]
 
 
-def _harmonise_attributes(df, mapping):
+def _harmonise_attributes(
+    dataframe: DataFrame, mapping: dict[str, set[str]]
+) -> DataFrame:
     """Harmonise attributes in the dataframe. Includes:
     - Capitalising all attributes, unless column type float.
     - Handling attributes containing tilde, such as 'ACT_COST~2030'.
     """
-    # Capitalise all attributes, unless column type float
+    df = dataframe.copy()
+    # Do nothing if there is no attribute column
+    if "attribute" not in df.columns:
+        return df
+    # Capitalise all attributes, unless column type
     if df["attribute"].dtype != float:
         df["attribute"] = df["attribute"].str.upper()
 
@@ -466,6 +472,20 @@ def _harmonise_attributes(df, mapping):
                     if colname not in df.columns:
                         df[colname] = pd.NA
                     df.loc[i, colname] = typed_value
+    return df
+
+
+def _custom_melt(dataframe: DataFrame, data_columns: list[str]) -> DataFrame:
+    """Custom melt function that handles the case where data columns are not of the same type."""
+    df, attribute_suffix = utils.explode(dataframe, data_columns)
+    # Append the data column name to the Attribute column values
+    if "attribute" not in df.columns:
+        df["attribute"] = pd.NA
+    i = df["attribute"].notna()
+    df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
+    i = df["attribute"].isna()
+    df.loc[i, "attribute"] = attribute_suffix[i]
+    return df
 
 
 def process_flexible_import_tables(
@@ -530,12 +550,12 @@ def process_flexible_import_tables(
         # This takes care of the case where the table has repeated column names
         # There can be aliases in between the columns, so it should probably stay this way
         data_columns = [col for col in df.columns if col not in index_columns]
-
+        # Check if all data columns are years or attributes
         is_all_year = all([is_year(col) for col in data_columns])
         is_all_attr = all(
             [col.split("~")[0].upper() in attributes for col in data_columns]
         )
-
+        # Convert dataframe to the long format
         if data_columns:
             if is_all_attr and "attribute" not in df.columns:
                 df = pd.melt(
@@ -554,23 +574,11 @@ def process_flexible_import_tables(
                     ignore_index=False,
                 )
             else:
-                df, attribute_suffix = utils.explode(df, data_columns)
-                # Append the data column name to the Attribute column values
-                if "attribute" not in df.columns:
-                    df["attribute"] = pd.NA
-                i = df["attribute"].notna()
-                df.loc[i, "attribute"] = (
-                    df.loc[i, "attribute"] + "~" + attribute_suffix[i]
-                )
-                i = df["attribute"].isna()
-                df.loc[i, "attribute"] = attribute_suffix[i]
+                df = _custom_melt(df, data_columns)
 
-        if "attribute" in df.columns:
-            # Harmonise attributes
-            _harmonise_attributes(df, legal_values)
-
+        # Harmonise attributes
+        df = _harmonise_attributes(df, legal_values)
         df = df.reset_index(drop=True)
-
         # The rows below will be dropped later on when the topology info is stored.
         if "value" not in df.columns:
             df["value"] = pd.NA
@@ -637,6 +645,7 @@ def process_user_constraint_tables(
             return table
 
         df = table.dataframe
+        uc_sets = table.uc_sets
 
         # TODO: Handle pseudo-attributes in a more general way
         known_columns = config.known_columns[Tag.uc_t].difference({"uc_attr"})
@@ -644,25 +653,17 @@ def process_user_constraint_tables(
 
         table = utils.apply_composite_tag(table)
         df = table.dataframe
-        df, attribute_suffix = utils.explode(df, data_columns)
-
-        # Append the data column name to the Attribute column
-        if "attribute" not in df.columns:
-            df["attribute"] = pd.NA
-        i = df["attribute"].notna()
-        df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
-        i = df["attribute"].isna()
-        df.loc[i, "attribute"] = attribute_suffix[i]
+        # Convert dataframe to the long format
+        df = _custom_melt(df, data_columns)
 
         # TODO: There may be regions specified as column names
         # Apply any general region specification if present
-        # TODO: This assumes several regions lists may be present. Overwrite earlier?
-        regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R_")]
-        # Using the last regions_list
-        if regions_lists and table.uc_sets[regions_lists[-1]] != "":
-            regions = table.uc_sets[regions_lists[-1]]
-            # Only expand regions if specified regions list is not allregions
-            if regions.lower() != "allregions":
+        regions_list = {"R_E", "R_S"}.intersection(uc_sets.keys())
+        [regions_list] = regions_list if regions_list else {None}
+        if regions_list:
+            regions = uc_sets[regions_list]
+            # Only expand regions if specified regions list is not allregions or empty
+            if regions.lower() not in ["allregions", ""]:
                 # Only include valid model region names
                 regions = model.internal_regions.intersection(
                     set(regions.upper().split(","))
@@ -672,9 +673,9 @@ def process_user_constraint_tables(
                 df.loc[i_allregions, "region"] = regions
                 # TODO: Check whether any invalid regions are present
 
-        if "attribute" in df.columns:
-            # Harmonize attributes
-            _harmonise_attributes(df, legal_values)
+        # Harmonize attributes
+        df = _harmonise_attributes(df, legal_values)
+        df = df.reset_index(drop=True)
 
         return replace(table, dataframe=df)
 
