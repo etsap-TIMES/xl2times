@@ -6,8 +6,8 @@ set -eo pipefail
 
 # Commit SHA for each repository:
 REF_TIMES_model="b488fb07f0899ee8b7e710c230b1a9414fa06f7d"
-REF_demos_xlsx="34a2a5c044cc0bbea1357de50db2f5f02d575181"
-REF_demos_dd="2848a8a8e2fdcf0cdf7f83eefbdd563b0bb74e86"
+REF_demos_xlsx="6daaa6ab2fa9bf4428417eef8172836aee7a9290"
+REF_demos_dd="e744f53cb16a4ec230c21583f9404d8cfac9eb50"
 REF_tim_xlsx="e820d8002adc6b1526a3bffcc439219b28d0eed5"
 REF_tim_gams="cfe2628dbb5974b99c8a5664a9358849324e31ac"
 REF_TIMES_NZ="4170d720e1c5cb0e31537a3168188169209ceb4d"
