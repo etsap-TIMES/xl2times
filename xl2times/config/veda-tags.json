@@ -1643,6 +1643,7 @@
           "\\I:",
           "*"
         ],
+        "add_if_absent": true,
         "comma-separated-list": true
       }
     ]
@@ -3360,7 +3361,7 @@
           "O",
           "NO"
         ],
-        "ad_if_absent": true,
+        "add_if_absent": true,
         "default_to": "A"
       },
       {
