@@ -3257,11 +3257,14 @@ def apply_final_fixup(
     # Handle PRC_RESID specified for a single year
     stock_index = (df["attribute"] == "PRC_RESID") & df["process"].notna()
     if any(stock_index):
-        # Include only processes defined in BASE, but not in _SUP
+        # Include only processes defined in BASE, but not in _SUP or _UPS
         i_vt = (
             stock_index
             & (df["module_name"] == "BASE")
-            & (~df["source_filename"].str.contains("_SUP", case=False))
+            & (
+                (~df["source_filename"].str.contains("_SUP", case=False))
+                | (~df["source_filename"].str.contains("_UPS", case=False))
+            )
         )
         # Create (region, process) index for data defined in vt
         i_rp_vt = df[i_vt].set_index(["region", "process"]).index.drop_duplicates()
