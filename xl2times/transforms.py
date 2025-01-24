@@ -994,11 +994,12 @@ def remove_invalid_values(
     return tables
 
 
-def process_units(
+def create_model_units(
     config: Config,
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
+    """Create a dataframe with all units in the model."""
     units_map = {
         "activity": model.processes["tact"].unique(),
         "capacity": model.processes["tcap"].unique(),
@@ -1282,12 +1283,12 @@ def apply_fixups(
     return tables
 
 
-def generate_commodity_groups(
+def include_cgs_in_topology(
     config: Config,
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Generate commodity groups."""
+    """Include commodity groups in model topology."""
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
     columns = ["region", "process", "primarycg"]
     reg_prc_pcg = tables[Tag.fi_process][columns].copy()
@@ -1425,12 +1426,12 @@ def _process_comm_groups_vectorised(
     return comm_groups_subset
 
 
-def complete_commodity_groups(
+def create_model_cgs(
     config: Config,
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Complete the list of commodity groups."""
+    """Create model commodity groups."""
     # Single member CGs i.e., CG and commodity are the same
     single_cgs = model.commodities[["region", "commodity"]].drop_duplicates(
         ignore_index=True
@@ -1452,7 +1453,7 @@ def process_trade_links(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Process trade links."""
+    """Process trade links and create model trade (between internal regions)."""
     cols_list = ["origin", "in", "destination", "out", "process"]
     cols_list.extend(dm_cols)
     result = []
@@ -1497,12 +1498,12 @@ def process_trade_links(
     return tables
 
 
-def complete_trade(
+def complete_model_trade(
     config: Config,
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Generate inter-regional exchange topology."""
+    """Supplement model trade with IRE flows from external regions (i.e. IMPEXP and MINRNW)."""
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
     veda_ire_sets = model.custom_sets
 
@@ -1697,12 +1698,12 @@ def process_processes(
     return result
 
 
-def process_topology(
+def create_model_topology(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Create model.topology. Drop rows with missing values in fi_t tables."""
+    """Create model topology. Drop rows with missing values in fi_t tables."""
     fit_tables = [t for t in tables if t.tag == Tag.fi_t]
 
     columns = {
@@ -3036,14 +3037,14 @@ def resolve_remaining_cgs(
     return tables
 
 
-def fix_topology(
+def enforce_availability(
     config: Config,
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Include information on process availability by region in model.topology,
-    model.processes, and the fi_t table. Remove indication of auxillary flows from
-    model.topology.
+    """Include information on process availability by region in model topology,
+    model processes, and the fi_t table. Remove indication of auxillary flows from
+    model topology.
     """
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
     model.topology.replace({"io": mapping}, inplace=True)
