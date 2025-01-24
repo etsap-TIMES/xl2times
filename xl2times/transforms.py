@@ -615,7 +615,7 @@ def process_user_constraint_tables(
     """
     legal_values = {
         "attribute": {attr for attr in config.all_attributes if attr.startswith("uc")},
-        "region": model.internal_regions.union({"allregions"}),
+        "region": model.internal_regions.union({"allregions".upper()}),
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
         "timeslice": set(model.ts_tslvl["tslvl"]),
         "limtype": set(config.times_sets["LIM"]),
