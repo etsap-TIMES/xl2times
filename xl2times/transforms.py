@@ -522,7 +522,7 @@ def process_flexible_import_tables(
     # TODO: update this dictionary
     legal_values = {
         "limtype": set(config.times_sets["LIM"]),
-        "timeslice": set(model.ts_tslvl["tslvl"]),
+        "timeslice": set(model.ts_tslvl["tslvl"]).union(model.ts_tslvl["ts"]),
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
         "region": model.internal_regions,
         "currency": utils.single_column(tables, Tag.currencies, "currency"),
