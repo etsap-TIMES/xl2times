@@ -648,8 +648,6 @@ def process_user_constraint_tables(
         i = df["side"].isna()
         df.loc[i, "side"] = "LHS"
 
-        table = utils.apply_composite_tag(table)
-        df = table.dataframe
         df, attribute_suffix = utils.explode(df, data_columns)
 
         # Append the data column name to the Attribute column
