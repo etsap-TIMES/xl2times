@@ -3407,8 +3407,8 @@ def apply_final_fixup(
         duplicated = df[i].duplicated(
             subset=[
                 col
-                for col in keep_cols
-                if col != "value" and col not in {"module_name", "module_type"}
+                for col in keep_cols.intersection(df.columns).difference(dm_cols)
+                if col != "value"
             ],
             keep=False,
         )
