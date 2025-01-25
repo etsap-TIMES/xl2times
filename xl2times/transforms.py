@@ -3043,8 +3043,9 @@ def enforce_availability(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Include information on process availability by region in model topology,
-    model processes, and the fi_t table. Remove indication of auxillary flows from
-    model topology.
+    model processes, and the fi_t table.
+
+    Remove indication of auxillary flows from model topology.
     """
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
     model.topology.replace({"io": mapping}, inplace=True)
@@ -3070,20 +3071,19 @@ def enforce_availability(
         df = df.groupby(
             [col for col in df.columns if col != "process"], as_index=False
         ).agg({"process": list})[df.columns]
-        # Remove invalid rows from fi_t, processes, and topology
+        # Remove invalid rows from processes, fi_t, and topology
         verify_cols = ["region", "process", "module_name"]
+        model.processes = _remove_invalid_rows(
+            model.processes, df, verify_cols, limit_to={"module_name": modules_with_ava}
+        ).reset_index(drop=True)
         tables[Tag.fi_t] = _remove_invalid_rows(
             tables[Tag.fi_t],
             df,
             verify_cols,
             limit_to={"module_name": modules_with_ava},
         ).reset_index(drop=True)
-        # TODO: This should happen much earlier in the process
-        model.processes = _remove_invalid_rows(
-            model.processes, df, verify_cols, limit_to={"module_name": modules_with_ava}
-        ).reset_index(drop=True)
         # TODO: should be unnecessary if model.processes is updated early enough
-        # Remove topology rows that are not in the processes
+        # Remove topology rows that contain region/process combinations not in model processes
         model.topology = pd.merge(
             model.topology,
             model.processes[["region", "process"]].drop_duplicates(),
