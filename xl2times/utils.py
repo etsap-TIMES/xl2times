@@ -50,37 +50,33 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
         Table in EmbeddedXlTable format with declarations applied
         and table tag simplified.
     """
-    if table.defaults:
-        defaults = table.defaults
-        df = table.dataframe
-        # Check for ANSWER-style defaults
-        if "=" in defaults:
-            # Split multiple comma-separated defaults / make defaults a list
-            defaults = defaults.split(",")
-            # Check whether there are invalid values on the list
-            invalid_defaults = [default for default in defaults if "=" not in default]
-            if invalid_defaults:
-                logger.warning(
-                    f"Expected ANSWER-style defaults, got {invalid_defaults}"
-                )
-            defaults = [default.split("=") for default in defaults if "=" in default]
-            # TODO: check whether a column is allowed in a particular table type
-            for col, val in defaults:
-                colname = col.lower()
-                if colname in df.columns:
-                    df[colname] = df[colname].fillna(val.upper())
-                else:
-                    df[colname] = val.upper()
-            return replace(table, dataframe=df)
-        else:
-            # TODO: Resolve the default value (it doesn't have to be an attribute)
-            if "attribute" in df.columns:
-                df["attribute"] = df["attribute"].fillna(defaults)
-            else:
-                df["attribute"] = defaults
-            return replace(table, dataframe=df)
-    else:
+    defaults = table.defaults
+    if not defaults:
         return table
+
+    df = table.dataframe.copy()
+    # Check for ANSWER-style defaults
+    if "=" in defaults:
+        # Split multiple comma-separated defaults / make defaults a list
+        defaults = defaults.split(",")
+        # Check whether there are invalid values on the list
+        invalid_defaults = [default for default in defaults if "=" not in default]
+        if invalid_defaults:
+            logger.warning(f"Expected ANSWER-style defaults, got {invalid_defaults}")
+        defaults = [default.split("=") for default in defaults if "=" in default]
+        # TODO: check whether a column is allowed in a particular table type
+        for col, val in defaults:
+            colname = col.lower()
+            if colname in df.columns:
+                df[colname] = df[colname].fillna(val.upper())
+            else:
+                df[colname] = val.upper()
+    else:
+        # TODO: Resolve the default value (it doesn't have to be an attribute)
+        if "attribute" not in df.columns:
+            df["attribute"] = pd.NA
+        df["attribute"] = df["attribute"].fillna(defaults.upper())
+    return replace(table, dataframe=df)
 
 
 def explode(df: DataFrame, data_columns: list[str]) -> tuple[DataFrame, pd.Series]:

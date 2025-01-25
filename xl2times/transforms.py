@@ -615,7 +615,7 @@ def process_user_constraint_tables(
     """
     legal_values = {
         "attribute": {attr for attr in config.all_attributes if attr.startswith("uc")},
-        "region": model.internal_regions,
+        "region": model.internal_regions.union({"allregions".upper()}),
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
         "timeslice": set(model.ts_tslvl["tslvl"]),
         "limtype": set(config.times_sets["LIM"]),
@@ -633,8 +633,9 @@ def process_user_constraint_tables(
         df = table.dataframe
 
         # TODO: Handle pseudo-attributes in a more general way
-        known_columns = config.known_columns[Tag.uc_t].copy()
-        known_columns.remove("uc_attr")
+        known_columns = config.known_columns[Tag.uc_t].difference(
+            {"uc_attr", "allregions"}
+        )
 
         data_columns = [x for x in df.columns if x not in known_columns]
 
@@ -648,8 +649,6 @@ def process_user_constraint_tables(
         i = df["side"].isna()
         df.loc[i, "side"] = "LHS"
 
-        table = utils.apply_composite_tag(table)
-        df = table.dataframe
         df, attribute_suffix = utils.explode(df, data_columns)
 
         # Append the data column name to the Attribute column
@@ -657,24 +656,6 @@ def process_user_constraint_tables(
         df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
         i = df["attribute"].isna()
         df.loc[i, "attribute"] = attribute_suffix[i]
-
-        # TODO: There may be regions specified as column names
-        # Apply any general region specification if present
-        # TODO: This assumes several regions lists may be present. Overwrite earlier?
-        regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R_")]
-        # Using the last regions_list
-        if regions_lists and table.uc_sets[regions_lists[-1]] != "":
-            regions = table.uc_sets[regions_lists[-1]]
-            # Only expand regions if specified regions list is not allregions
-            if regions.lower() != "allregions":
-                # Only include valid model region names
-                regions = model.internal_regions.intersection(
-                    set(regions.upper().split(","))
-                )
-                regions = ",".join(regions)
-                i_allregions = df["region"].isna()
-                df.loc[i_allregions, "region"] = regions
-                # TODO: Check whether any invalid regions are present
 
         # Capitalise all attributes, unless column type float
         if df["attribute"].dtype != float:
@@ -691,6 +672,25 @@ def process_user_constraint_tables(
                         df.loc[i, "attribute"] = typed_value
                     else:
                         df.loc[i, colname] = typed_value
+
+        # Remove allregions from region column, so it can be filled in later
+        i = df["region"].str.lower() == "allregions"
+        df.loc[i, "region"] = pd.NA
+        # Apply any general region specification if present
+        # TODO: This assumes several regions lists may be present. Overwrite earlier?
+        regions_lists = [x for x in table.uc_sets.keys() if x.upper().startswith("R_")]
+        # Using the last regions_list
+        if regions_lists and table.uc_sets[regions_lists[-1]] != "":
+            regions = table.uc_sets[regions_lists[-1]]
+            # Only expand regions if specified regions list is not allregions
+            if regions.lower() != "allregions":
+                # Only include valid model region names
+                regions = model.internal_regions.intersection(
+                    set(regions.upper().split(","))
+                )
+                regions = ",".join(regions)
+                i_allregions = df["region"].isna()
+                df.loc[i_allregions, "region"] = regions
 
         return replace(table, dataframe=df)
 
