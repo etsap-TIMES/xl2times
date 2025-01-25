@@ -2178,6 +2178,10 @@ def generate_topology_dictionary(
     dictionary = dict()
     pros = model.processes
     coms = model.commodities
+    pros_sets = pd.concat(
+        [pros[["process", "sets"]].drop_duplicates(), model.custom_sets],
+        ignore_index=True,
+    )
     pros_and_coms = model.topology[["process", "commodity", "io"]].drop_duplicates()
     i_comm_in = pros_and_coms["io"] == "IN"
     i_comm_out = pros_and_coms["io"] == "OUT"
@@ -2189,7 +2193,7 @@ def generate_topology_dictionary(
             "df": pros[["process", "description"]],
             "col": "description",
         },
-        {"key": "processes_by_sets", "df": pros[["process", "sets"]], "col": "sets"},
+        {"key": "processes_by_sets", "df": pros_sets, "col": "sets"},
         {
             "key": "processes_by_comm_in",
             "df": pros_and_coms[["process", "commodity"]][i_comm_in],
