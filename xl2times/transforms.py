@@ -3343,6 +3343,34 @@ def apply_final_fixup(
             df_list.append(stock_rows)
 
         df = pd.concat(df_list)
+    # Make IRE_FLO out of EFF for IRE processes
+    ire_set = set(model.processes["process"][model.processes["sets"] == "IRE"])
+    # Calculate index of IRE processes for which EFF is specified
+    i_ire_eff = (df["original_attr"] == "EFF") & df["process"].isin(ire_set)
+    if any(i_ire_eff):
+        df.loc[i_ire_eff, "attribute"] = "IRE_FLO"
+        ire_flows = (
+            model.trade[["process", "origin", "destination", "in", "out"]]
+            .drop_duplicates()
+            .copy()
+        )
+        ire_flows.rename(columns={"origin": "region"}, inplace=True)
+        # Keep only those flows that are relevant
+        ire_flows = df[["region", "process"]][i_ire_eff].merge(ire_flows, how="inner")
+        # Perform an outer merge to include the data for IRE_FLO
+        df = df.merge(ire_flows, how="outer")
+        # Create the region2 and commodity2 columns if they do not exist
+        for col in {"region2", "commodity2"}.difference(df.columns):
+            df[col] = pd.NA
+        # Recalculate the index of IRE processes for which EFF is specified
+        i_ire_eff = (df["original_attr"] == "EFF") & (df["attribute"] == "IRE_FLO")
+        # Replace the values in the region2, commodity and commodity2 columns
+        for k, v in {
+            "destination": "region2",
+            "out": "commodity2",
+            "in": "commodity",
+        }.items():
+            df.loc[i_ire_eff, v] = df.loc[i_ire_eff, k]
 
     # Clean up
     # TODO: Do this comprehensively for all relevant tables
@@ -3350,8 +3378,10 @@ def apply_final_fixup(
     keep_cols = {
         "attribute",
         "region",
+        "region2",
         "process",
         "commodity",
+        "commodity2",
         "other_indexes",
         "cg",
         "year",
@@ -3367,7 +3397,9 @@ def apply_final_fixup(
     df.dropna(subset="value", inplace=True)
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
     df.drop(columns=drop_cols, inplace=True)
-    df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+    df = df.drop_duplicates(
+        subset=list(keep_cols.intersection(df.columns)), keep="last"
+    )
 
     # Control application of i/e rules from syssettings
     if not config.ie_override_in_syssettings:
@@ -3379,8 +3411,8 @@ def apply_final_fixup(
         duplicated = df[i].duplicated(
             subset=[
                 col
-                for col in keep_cols
-                if col != "value" and col not in {"module_name", "module_type"}
+                for col in keep_cols.intersection(df.columns).difference(dm_cols)
+                if col != "value"
             ],
             keep=False,
         )
@@ -3399,7 +3431,9 @@ def apply_final_fixup(
             col for col in df.columns if col != "value" and col not in keep_cols
         ]
         df.drop(columns=drop_cols, inplace=True)
-        df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+        df = df.drop_duplicates(
+            subset=list(keep_cols.intersection(df.columns)), keep="last"
+        )
         tables[Tag.uc_t] = df.reset_index(drop=True)
 
     return tables
