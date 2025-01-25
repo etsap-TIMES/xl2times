@@ -272,7 +272,8 @@ def run_all_benchmarks(
     skip_csv=False,
     skip_main=False,
     skip_regression=False,
-    verbose=False,
+    seq: bool = False,
+    verbose: bool = False,
     debug: bool = False,
 ):
     logger.info("Running benchmarks", end="", flush=True)
@@ -287,7 +288,7 @@ def run_all_benchmarks(
         debug=debug,
     )
 
-    if debug:
+    if debug or seq:
         # bypass process pool and call benchmarks directly if --debug is set.
         results = [run_a_benchmark(b) for b in benchmarks]
     else:
@@ -353,8 +354,11 @@ def run_all_benchmarks(
             debug=debug,
         )
 
-        with ProcessPoolExecutor(max_workers) as executor:
-            results_main = list(executor.map(run_a_benchmark, benchmarks))
+        if debug or seq:
+            results_main = [run_a_benchmark(b) for b in benchmarks]
+        else:
+            with ProcessPoolExecutor(max_workers) as executor:
+                results_main = list(executor.map(run_a_benchmark, benchmarks))
 
     # Print table with combined results to make comparison easier
     trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s  # noqa
@@ -470,6 +474,12 @@ if __name__ == "__main__":
         help="Skip regression testing against main branch",
     )
     args_parser.add_argument(
+        "--seq",
+        action="store_true",
+        default=False,
+        help="Run benchmarks sequentially, instead of in parallel",
+    )
+    args_parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
@@ -523,6 +533,7 @@ if __name__ == "__main__":
             skip_csv=args.skip_csv,
             skip_main=args.skip_main,
             skip_regression=args.skip_regression,
+            seq=args.seq,
             verbose=args.verbose,
             debug=args.debug,
         )
