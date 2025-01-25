@@ -1534,7 +1534,7 @@ def complete_model_trade(
     top_ire = top_ire.merge(ire_prc)
     top_ire = top_ire.merge(veda_ire_sets)
     top_ire["region2"] = top_ire["sets"].replace(veda_set_ext_reg_mapping)
-    top_ire[["origin", "destination", "in", "out"]] = None
+    top_ire[["origin", "destination", "in", "out"]] = pd.NA
     for io in ("IN", "OUT"):
         index = top_ire["io"] == io
         top_ire.loc[index, [io.lower()]] = top_ire["commodity"].loc[index]
