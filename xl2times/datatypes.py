@@ -313,8 +313,10 @@ class Config:
     dd_table_order: Iterable[str]
     all_attributes: set[str]
     attr_aliases: set[str]
-    # Attribute by type
+    # Attribute by type (commodity, process, flow)
     attr_by_type: dict[str, set[str]]
+    # Attribute by index (region, year, etc.)
+    attr_by_index: dict[str, set[str]]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: dict[Tag, dict[str, str]]
     # For each tag, this dictionary maps each column name to its default value
@@ -355,6 +357,7 @@ class Config:
             self.dd_table_order,
             self.all_attributes,
             self.attr_by_type,
+            self.attr_by_index,
             param_mappings,
         ) = Config._process_times_info(times_info_file)
         self.times_sets = Config._read_times_sets(times_sets_file)
@@ -394,7 +397,13 @@ class Config:
     @staticmethod
     def _process_times_info(
         times_info_file: str,
-    ) -> tuple[Iterable[str], set[str], dict[str, set[str]], list[TimesXlMap]]:
+    ) -> tuple[
+        Iterable[str],
+        set[str],
+        dict[str, set[str]],
+        dict[str, set[str]],
+        list[TimesXlMap],
+    ]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
         with resources.open_text("xl2times.config", times_info_file) as f:
@@ -412,7 +421,7 @@ class Config:
 
         # Compute the set of all attributes, i.e. all entities with category = parameter
         attributes = {
-            item["name"].lower()
+            item["name"].upper()
             for item in table_info
             if item["gams-cat"] == "parameter"
         }
@@ -435,6 +444,22 @@ class Config:
                     for index, is_present in conditions.items()
                 )
             }
+
+        # Categorise attributes by index (region, year, etc.)
+        attr_by_index = dict()
+        # Set of all indexes in the mapping
+        all_indexes = set()
+        for attr in table_info:
+            if attr["gams-cat"] == "parameter":
+                all_indexes = all_indexes.union(attr["mapping"])
+        for index in all_indexes:
+            list_of_attrs = set()
+            for attr in table_info:
+                if attr["gams-cat"] != "parameter":
+                    continue
+                if index in attr["mapping"]:
+                    list_of_attrs.add(attr["name"])
+            attr_by_index[index] = list_of_attrs
 
         # Compute the mapping for attributes / parameters:
         def create_mapping(entity):
@@ -464,7 +489,7 @@ class Config:
             and "type" not in x  # TODO Generalise derived parameters?
         ]
 
-        return dd_table_order, attributes, attr_by_type, param_mappings
+        return dd_table_order, attributes, attr_by_type, attr_by_index, param_mappings
 
     @staticmethod
     def _read_mappings(filename: str) -> list[TimesXlMap]:
@@ -638,6 +663,7 @@ class Config:
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
                 base_tag = to_tag(tag_info["base_tag"])
+                mod_type = tag_info["mod_type"]
                 if base_tag in valid_column_names:
                     valid_column_names[tag_name] = valid_column_names[base_tag]
                     discard_if_empty.append(tag_name)
@@ -646,15 +672,21 @@ class Config:
                 if base_tag in row_comment_chars:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
                 if base_tag in query_cols:
-                    query_cols[tag_name] = query_cols[base_tag]
+                    query_cols[tag_name] = query_cols[base_tag].difference({mod_type})
                 if base_tag in lists_cols:
-                    lists_cols[tag_name] = lists_cols[base_tag]
+                    lists_cols[tag_name] = lists_cols[base_tag].difference({mod_type})
                 if base_tag in known_cols:
-                    known_cols[tag_name] = known_cols[base_tag]
+                    known_cols[tag_name] = known_cols[base_tag].difference({mod_type})
                 if base_tag in add_cols:
-                    add_cols[tag_name] = add_cols[base_tag]
+                    add_cols[tag_name] = add_cols[base_tag].difference({mod_type})
+                if base_tag in required_cols:
+                    required_cols[tag_name] = required_cols[base_tag].difference(
+                        {mod_type}
+                    )
                 if base_tag in forward_fill_cols:
-                    forward_fill_cols[tag_name] = forward_fill_cols[base_tag]
+                    forward_fill_cols[tag_name] = forward_fill_cols[
+                        base_tag
+                    ].difference({mod_type})
 
         return (
             valid_column_names,
@@ -684,7 +716,11 @@ class Config:
             "cg": {},
             "limtype": {"FX": [], "LO": [], "UP": []},
             "tslvl": {"DAYNITE": [], "ANNUAL": []},
+            "year2": {"EOH": []},
         }
+
+        group_defaults = {"limtype", "tslvl", "year2"}
+        individual_defaults = {"commodity", "other_indexes", "cg"}
 
         attr_aliases = {
             attr for attr in defaults if "times-attribute" in defaults[attr]
@@ -699,24 +735,12 @@ class Config:
             if "defaults" in attr_info:
                 attr_defaults = attr_info["defaults"]
 
-                if "commodity" in attr_defaults:
-                    veda_attr_defaults["commodity"][attr] = attr_defaults["commodity"]
+                for item in group_defaults.intersection(attr_defaults.keys()):
+                    group_value = attr_defaults[item]
+                    veda_attr_defaults[item][group_value].append(attr)
 
-                if "other_indexes" in attr_defaults:
-                    veda_attr_defaults["other_indexes"][attr] = attr_defaults[
-                        "other_indexes"
-                    ]
-
-                if "cg" in attr_defaults:
-                    veda_attr_defaults["cg"][attr] = attr_defaults["cg"]
-
-                if "limtype" in attr_defaults:
-                    limtype = attr_defaults["limtype"]
-                    veda_attr_defaults["limtype"][limtype].append(attr)
-
-                if "ts-level" in attr_defaults:
-                    tslvl = attr_defaults["ts-level"]
-                    veda_attr_defaults["tslvl"][tslvl].append(attr)
+                for item in individual_defaults.intersection(attr_defaults.keys()):
+                    veda_attr_defaults[item][attr] = attr_defaults[item]
 
         # Specify default values for the attributes that are not defined in the file
         attr_with_cg = {

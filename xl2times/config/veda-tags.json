@@ -299,7 +299,8 @@
           "\\I:",
           "*"
         ],
-        "add_if_absent": true
+        "add_if_absent": true,
+        "default_to": "ANNUAL"
       },
       {
         "name": "vintage",
@@ -461,6 +462,7 @@
           "\\I:",
           "*"
         ],
+        "add_if_absent": true,
         "comma-separated-list": true
       },
       {
@@ -792,7 +794,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "remove_any_row_if_absent": true
       },
       {
         "name": "cset_cn",
@@ -950,7 +953,7 @@
       "TradeScen"
     ],
     "base_tag": "tfm_dins",
-    "mod_type": "at"
+    "mod_type": "attribute"
   },
   {
     "tag_name": "tfm_dins-ts",
@@ -962,7 +965,7 @@
       "TradeScen"
     ],
     "base_tag": "tfm_dins",
-    "mod_type": "ts"
+    "mod_type": "year"
   },
   {
     "tag_name": "tfm_dins-tsl",
@@ -974,7 +977,7 @@
       "TradeScen"
     ],
     "base_tag": "tfm_dins",
-    "mod_type": "tsl"
+    "mod_type": "timeslice"
   },
   {
     "tag_name": "tfm_fill",
@@ -1319,7 +1322,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "remove_any_row_if_absent": true
       },
       {
         "name": "avc_limtype",
@@ -1649,7 +1653,7 @@
       "TradeScen"
     ],
     "base_tag": "tfm_ins",
-    "mod_type": "at"
+    "mod_type": "attribute"
   },
   {
     "tag_name": "tfm_ins-ts",
@@ -1661,7 +1665,7 @@
       "TradeScen"
     ],
     "base_tag": "tfm_ins",
-    "mod_type": "ts"
+    "mod_type": "year"
   },
   {
     "tag_name": "tfm_ins-tsl",
@@ -1673,7 +1677,7 @@
       "TradeScen"
     ],
     "base_tag": "tfm_ins",
-    "mod_type": "tsl"
+    "mod_type": "timeslice"
   },
   {
     "tag_name": "tfm_ins-txt",
@@ -1687,7 +1691,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "remove_any_row_if_absent": true
       },
       {
         "name": "cset_cd",
@@ -2638,7 +2643,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "remove_any_row_if_absent": true
       },
       {
         "name": "avc_limtype",
@@ -2976,7 +2982,7 @@
       "TradeScen"
     ],
     "base_tag": "tfm_upd",
-    "mod_type": "at"
+    "mod_type": "attribute"
   },
   {
     "tag_name": "tfm_upd-ts",
@@ -2988,7 +2994,7 @@
       "TradeScen"
     ],
     "base_tag": "tfm_upd",
-    "mod_type": "ts"
+    "mod_type": "year"
   },
   {
     "tag_name": "timeperiods",
@@ -3287,11 +3293,14 @@
         "row_ignore_symbol": [
           "\\I:"
         ],
+        "add_if_absent": true,
         "comma-separated-list": true
       },
       {
         "name": "side",
-        "use_name": "side"
+        "use_name": "side",
+        "add_if_absent": true,
+        "default_to": "LHS"
       },
       {
         "name": "sow",
@@ -3350,6 +3359,7 @@
           "O",
           "NO"
         ],
+        "add_if_absent": true,
         "default_to": "A"
       },
       {
