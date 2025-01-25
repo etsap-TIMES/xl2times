@@ -1,5 +1,13 @@
 {
   "ACT2FLO": {
+    "defaults": {
+      "cg": [
+        "other_indexes",
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ]
+    },
     "times-attribute": "PRC_ACTFLO"
   },
   "ACTBND": {
@@ -13,6 +21,14 @@
     "times-attribute": "ACT_COST"
   },
   "ACTFLO": {
+    "defaults": {
+      "cg": [
+        "other_indexes",
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ]
+    },
     "times-attribute": "PRC_ACTFLO"
   },
   "ACT_BND": {
@@ -38,16 +54,32 @@
   },
   "ACT_CUM": {
     "defaults": {
-      "limtype": "UP"
+      "limtype": "UP",
+      "year": "BOH",
+      "year2": "EOH"
     }
   },
   "ACT_EFF": {
     "defaults": {
+      "cg": [
+        "other_indexes",
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ],
       "ts-level": "ANNUAL"
     }
   },
   "ACT_FLO": {
     "defaults": {
+      "cg": [
+        "other_indexes",
+        "commodity",
+        "commodity-in",
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
+      ],
       "ts-level": "ANNUAL"
     }
   },
@@ -91,11 +123,15 @@
     "times-attribute": "NCAP_AFA"
   },
   "AFAC": {
+    "defaults": {
+      "cg": ["other_indexes"]
+    },
     "times-attribute": "NCAP_AFAC"
   },
   "AFC": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out",
@@ -107,6 +143,9 @@
     "times-attribute": "NCAP_AFC"
   },
   "AFCS": {
+    "defaults": {
+      "cg": ["other_indexes"]
+    },
     "times-attribute": "NCAP_AFCS"
   },
   "AFM": {
@@ -220,7 +259,7 @@
   },
   "CEFF": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
         "commodity",
         "commodity-in",
         "commodity-out",
@@ -233,10 +272,9 @@
   },
   "CEFF-I": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
         "commodity",
-        "commodity-in",
-        "commodity-in-aux"
+        "commodity-in"
       ],
       "ts-level": "ANNUAL"
     },
@@ -244,10 +282,9 @@
   },
   "CEFF-O": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
         "commodity",
-        "commodity-out",
-        "commodity-out-aux"
+        "commodity-out"
       ],
       "ts-level": "ANNUAL"
     },
@@ -255,12 +292,10 @@
   },
   "CEFFICIENCY": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
         "commodity",
         "commodity-in",
-        "commodity-out",
-        "commodity-in-aux",
-        "commodity-out-aux"
+        "commodity-out"
       ],
       "ts-level": "ANNUAL"
     },
@@ -385,7 +420,9 @@
   },
   "CUM": {
     "defaults": {
-      "limtype": "UP"
+      "limtype": "UP",
+      "year": "BOH",
+      "year2": "EOH"
     },
     "times-attribute": "ACT_CUM"
   },
@@ -454,7 +491,7 @@
   },
   "EFF": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
         "ACT"
       ],
       "ts-level": "ANNUAL"
@@ -463,7 +500,7 @@
   },
   "EFFICIENCY": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
         "ACT"
       ],
       "ts-level": "ANNUAL"
@@ -487,7 +524,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
-      "other_indexes": [
+      "cg": [
         "ACT"
       ],
       "ts-level": "ANNUAL"
@@ -514,7 +551,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
-      "other_indexes": [
+      "cg": [
         "ACT"
       ],
       "ts-level": "ANNUAL"
@@ -541,6 +578,7 @@
         "commodity-out-aux",
         "commodity-in-aux"
       ],
+      "cg": ["other_indexes"],
       "ts-level": "ANNUAL"
     },
     "times-attribute": "FLO_EMIS"
@@ -556,6 +594,7 @@
         "commodity-in-aux",
         "commodity-out-aux"
       ],
+      "cg": ["other_indexes"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -624,6 +663,12 @@
   },
   "FLO_FUNC": {
     "defaults": {
+      "commodity": [
+        "commodity-in",
+        "commodity-out",
+        "commodity-in-aux",
+        "commodity-out-aux"
+      ],
       "ts-level": "ANNUAL"
     }
   },
@@ -728,7 +773,7 @@
   },
   "INPUT": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
         "commodity",
         "commodity-in",
         "commodity-in-aux"
@@ -792,7 +837,8 @@
   },
   "NCAP_AFC": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out",
@@ -840,7 +886,7 @@
   },
   "OUTPUT": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
         "commodity",
         "commodity-out",
         "commodity-out-aux"
@@ -861,7 +907,16 @@
     },
     "times-attribute": "NCAP_PKCNT"
   },
+  "PEAK(CON)": {
+    "defaults": {
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "NCAP_PKCNT"
+  },
   "PKCNT": {
+    "defaults": {
+      "ts-level": "ANNUAL"
+    },
     "times-attribute": "NCAP_PKCNT"
   },
   "PKCOI": {
@@ -869,6 +924,16 @@
   },
   "PKFLX": {
     "times-attribute": "COM_PKFLX"
+  },
+  "PRC_ACTFLO":{
+    "defaults": {
+      "cg": [
+        "other_indexes",
+        "commodity",
+        "commodity-in",
+        "commodity-out"
+      ]
+    }
   },
   "PRC_FOFF": {
     "defaults": {
@@ -915,7 +980,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "other_indexes": ["veda_cg"],
+      "cg": ["other_indexes", "veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -927,7 +992,7 @@
         "commodity-in",
         "commodity-out"
       ],
-      "other_indexes": ["veda_cg"],
+      "cg": ["veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -939,7 +1004,7 @@
         "commodity-out",
         "commodity-in"
       ],
-      "other_indexes": ["veda_cg"],
+      "cg": ["veda_cg"],
       "limtype": "FX",
       "ts-level": "ANNUAL"
     },
@@ -1101,6 +1166,20 @@
       "ts-level": "ANNUAL"
     }
   },
+  "UC_IRE-E": {
+    "defaults": {
+      "other_indexes": ["EXP"],
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "UC_IRE"
+  },
+  "UC_IRE-I": {
+    "defaults": {
+      "other_indexes": ["IMP"],
+      "ts-level": "ANNUAL"
+    },
+    "times-attribute": "UC_IRE"
+  },
   "UC_RHS": {
     "defaults": {
       "limtype": "UP"
@@ -1140,11 +1219,18 @@
     "times-attribute": "ACT_COST"
   },
   "VDA_EFF": {
+    "defaults": {
+      "cg": [
+        "ACT"
+      ],
+      "ts-level": "ANNUAL"
+    },
     "times-attribute": "ACT_EFF"
   },
   "VDA_FLOP": {
     "defaults": {
-      "other_indexes": [
+      "cg": [
+        "other_indexes",
         "commodity",
         "commodity-in",
         "commodity-out",

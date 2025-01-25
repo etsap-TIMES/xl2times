@@ -160,6 +160,7 @@ def run_benchmark(
 ) -> tuple[str, float, str, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
     dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
+    include_files = benchmark.get("dd_files", [])
     csv_folder = path.join(benchmarks_folder, "csv", benchmark["name"])
     out_folder = path.join(benchmarks_folder, out_folder, benchmark["name"])
 
@@ -174,7 +175,9 @@ def run_benchmark(
                     "xl2times/dd_to_csv.py",
                     dd_folder,
                     csv_folder,
-                ],
+                    "--include_files",
+                ]
+                + include_files,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -191,7 +194,7 @@ def run_benchmark(
         else:
             # If debug option is set, run as a function call to allow stepping with a debugger.
             try:
-                main([dd_folder, csv_folder])
+                main([dd_folder, csv_folder, "--include_files"] + include_files)
             except Exception:
                 logger.exception(f"dd_to_csv failed on {benchmark['name']}")
                 shutil.rmtree(csv_folder, ignore_errors=True)
@@ -209,6 +212,8 @@ def run_benchmark(
         csv_folder,
     ]
     args += ["--dd"] if run_gams else []
+    if benchmark.get("include_dummy_imports", False):
+        args += ["--include_dummy_imports"]
     if "regions" in benchmark:
         args.extend(["--regions", benchmark["regions"]])
     if "inputs" in benchmark:

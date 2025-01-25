@@ -117,7 +117,7 @@ def convert_xl_to_times(
         transforms.revalidate_input_tables,
         transforms.capitalise_table_values,
         transforms.process_regions,
-        transforms.process_commodities,
+        transforms.convert_com_tables,
         transforms.process_time_periods,
         transforms.remove_exreg_cols,
         transforms.generate_dummy_processes,
@@ -126,17 +126,16 @@ def convert_xl_to_times(
         transforms.apply_tag_specified_defaults,
         transforms.process_transform_tables,
         transforms.process_transform_availability,
-        transforms.process_tradelinks,
-        transforms.process_processes,
-        transforms.process_topology,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
-        transforms.process_commodity_emissions,
+        transforms.process_tradelinks,
+        transforms.include_tables_source,
+        transforms.process_processes,
+        transforms.process_topology,
         transforms.fill_in_missing_values,
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
         transforms.remove_invalid_values,
-        transforms.include_tables_source,
         transforms.internalise_commodities,
         transforms.generate_commodity_groups,
         transforms.apply_fixups,
@@ -148,11 +147,13 @@ def convert_xl_to_times(
         transforms.complete_commodity_groups,
         transforms.process_wildcards,
         transforms.convert_aliases,
+        transforms.fix_topology,
         transforms.apply_transform_tables,
+        transforms.generate_implied_topology,
+        transforms.verify_uc_topology,
         transforms.explode_process_commodity_cols,
         transforms.apply_final_fixup,
         transforms.assign_model_attributes,
-        transforms.fix_topology,
         transforms.resolve_remaining_cgs,
         transforms.complete_dictionary,
         transforms.convert_to_string,
@@ -218,14 +219,14 @@ def compare(
         f" {sum(df.shape[0] for _, df in ground_truth.items())} rows"
     )
 
-    missing = set(ground_truth.keys()) - set(data.keys())
+    missing = set(ground_truth.keys()).difference(data.keys())
     missing_str = ", ".join(
         [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
     )
     if len(missing) > 0:
         logger.warning(f"Missing {len(missing)} tables: {missing_str}")
 
-    additional_tables = set(data.keys()) - set(ground_truth.keys())
+    additional_tables = set(data.keys()).difference(ground_truth.keys())
     additional_str = ", ".join(
         [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
     )
@@ -256,9 +257,9 @@ def compare(
             data_rows = set(str(row).lower() for row in data_table.to_numpy().tolist())
             total_gt_rows += len(gt_rows)
             total_correct_rows += len(gt_rows.intersection(data_rows))
-            additional = data_rows - gt_rows
+            additional = data_rows.difference(gt_rows)
             total_additional_rows += len(additional)
-            missing = gt_rows - data_rows
+            missing = gt_rows.difference(data_rows)
             if len(additional) != 0 or len(missing) != 0:
                 logger.warning(
                     f"Table {table_name} ({data_table.shape[0]} rows,"
@@ -314,11 +315,8 @@ def produce_times_tables(
                 filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
                 df = df.loc[i, :]
-            # TODO find the correct tech group
-            if "techgroup" in mapping.xl_cols:
-                df["techgroup"] = df["techname"]
             if not all(c in df.columns for c in mapping.xl_cols):
-                missing = set(mapping.xl_cols) - set(df.columns)
+                missing = set(mapping.xl_cols).difference(df.columns)
                 logger.warning(
                     f"Cannot produce table {mapping.times_name} because"
                     f" {mapping.xl_name} does not contain the required columns"
@@ -338,6 +336,7 @@ def produce_times_tables(
                     & (df != "None").all(axis=1)
                     & (df != "nan").all(axis=1)
                     & (df != "").all(axis=1)
+                    & (df != "<NA>").all(axis=1)
                 )
                 df = df.loc[i, mapping.times_cols]
                 # Drop tables that are empty after filtering and dropping Nones:
@@ -345,7 +344,7 @@ def produce_times_tables(
                     continue
                 result[mapping.times_name] = df
 
-    unused_tables = set(input.keys()) - used_tables
+    unused_tables = set(input.keys()).difference(used_tables)
     if len(unused_tables) > 0:
         logger.warning(
             f"{len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
@@ -408,7 +407,10 @@ def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str
                 else:
                     fout.write(f"PARAMETER\n{tablename} ' '/\n")
                     lines = convert_parameter(tablename, df)
-                fout.writelines(sorted(lines))
+                # Sort lines to ensure consistent output, except for ALL_TS
+                if tablename != "ALL_TS":
+                    lines = sorted(lines)
+                fout.writelines(lines)
                 fout.write("\n/;\n")
     pass
 
@@ -463,6 +465,7 @@ def run(args: argparse.Namespace) -> str | None:
         "veda-tags.json",
         "veda-attr-defaults.json",
         args.regions,
+        args.include_dummy_imports,
     )
 
     model = TimesModel()
@@ -554,6 +557,11 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
         type=str,
         default="",
         help="Comma-separated list of regions to include in the model",
+    )
+    args_parser.add_argument(
+        "--include_dummy_imports",
+        action="store_true",
+        help="Include dummy import processes in the model",
     )
     args_parser.add_argument(
         "--output_dir", type=str, default="output", help="Output directory"

@@ -38,6 +38,7 @@ class Tag(str, Enum):
     milestoneyears = "~MILESTONEYEARS"
     start_year = "~STARTYEAR"
     tfm_ava = "~TFM_AVA"
+    tfm_ava_c = "~TFM_AVA-C"
     tfm_comgrp = "~TFM_COMGRP"
     tfm_csets = "~TFM_CSETS"
     tfm_dins = "~TFM_DINS"
@@ -68,7 +69,7 @@ class Tag(str, Enum):
     unitconversion = "~UNITCONVERSION"
 
     @classmethod
-    def has_tag(cls, tag):
+    def has_tag(cls, tag: str) -> bool:
         return tag in cls._value2member_map_
 
 
@@ -110,6 +111,16 @@ class DataModule(str, Enum):
                     return "trans"
                 else:
                     return "main"
+            case DataModule.trade:
+                if PurePath(path.lower()).match("scentrade__trade_links.*"):
+                    return "main"
+                else:
+                    return "trans"
+            case DataModule.demand:
+                if PurePath(path.lower()).match("dem_alloc+series.*"):
+                    return "main"
+                else:
+                    return "trans"
             case None:
                 return None
             case _:
@@ -227,6 +238,7 @@ class TimesModel:
     commodities: DataFrame = field(default_factory=DataFrame)
     commodity_groups: DataFrame = field(default_factory=DataFrame)
     topology: DataFrame = field(default_factory=DataFrame)
+    implied_topology: DataFrame = field(default_factory=DataFrame)
     trade: DataFrame = field(default_factory=DataFrame)
     attributes: DataFrame = field(default_factory=DataFrame)
     user_constraints: DataFrame = field(default_factory=DataFrame)
@@ -238,6 +250,7 @@ class TimesModel:
     start_year: int = field(default_factory=int)
     files: set[str] = field(default_factory=set)
     data_modules: list[str] = field(default_factory=list)
+    custom_sets: DataFrame = field(default_factory=DataFrame)
 
     @property
     def external_regions(self) -> set[str]:
@@ -250,8 +263,16 @@ class TimesModel:
         for attributes in [self.attributes, self.uc_attributes]:
             if not attributes.empty:
                 # Index of the year column with non-empty values
-                index = attributes["year"] != ""
-                data_years.update(attributes["year"][index].astype(int).values)
+                # index = attributes["year"] != ""
+                # data_years.update(attributes["year"][index].astype(int).values)
+                # TODO: Ensure that non-parseble vals don't get this far
+                int_years = attributes["year"].astype(
+                    int, errors="ignore"
+                )  # leave non-parseable vals alone
+                int_years = [
+                    y for y in int_years if isinstance(y, int)
+                ]  # remove non-parseable years
+                data_years.update(int_years)
         # Remove interpolation rules before return
         return {y for y in data_years if y >= 1000}
 
@@ -292,6 +313,8 @@ class Config:
     dd_table_order: Iterable[str]
     all_attributes: set[str]
     attr_aliases: set[str]
+    # Attribute by type
+    attr_by_type: dict[str, set[str]]
     # For each tag, this dictionary maps each column alias to the normalized name
     column_aliases: dict[Tag, dict[str, str]]
     # For each tag, this dictionary maps each column name to its default value
@@ -305,6 +328,8 @@ class Config:
     known_columns: dict[Tag, set[str]]
     # Query columns for each tag
     query_columns: dict[Tag, set[str]]
+    # Columns that may contain lists for each tag
+    lists_columns: dict[Tag, set[str]]
     # Required columns for each tag
     required_columns: dict[Tag, set[str]]
     # Names of regions to include in the model; if empty, all regions are included.
@@ -312,6 +337,8 @@ class Config:
     times_sets: dict[str, list[str]]
     # Switch to prevent overwriting of I/E settings in BASE and SubRES
     ie_override_in_syssettings: bool = False
+    # Switch to include dummy imports in the model
+    include_dummy_imports: bool
 
     def __init__(
         self,
@@ -321,11 +348,13 @@ class Config:
         veda_tags_file: str,
         veda_attr_defaults_file: str,
         regions: str,
+        include_dummy_imports: bool,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         (
             self.dd_table_order,
             self.all_attributes,
+            self.attr_by_type,
             param_mappings,
         ) = Config._process_times_info(times_info_file)
         self.times_sets = Config._read_times_sets(times_sets_file)
@@ -335,12 +364,14 @@ class Config:
             self.row_comment_chars,
             self.discard_if_empty,
             self.query_columns,
+            self.lists_columns,
             self.known_columns,
             self.required_columns,
+            self.add_columns,
             self.forward_fill_cols,
         ) = Config._read_veda_tags_info(veda_tags_file)
         self.veda_attr_defaults, self.attr_aliases = Config._read_veda_attr_defaults(
-            veda_attr_defaults_file
+            veda_attr_defaults_file, param_mappings
         )
         # Migration in progress: use parameter mappings from times_info_file for now
         name_to_map = {m.times_name: m for m in self.times_xl_maps}
@@ -348,6 +379,7 @@ class Config:
             name_to_map[m.times_name] = m
         self.times_xl_maps = list(name_to_map.values())
         self.filter_regions = Config._read_regions_filter(regions)
+        self.include_dummy_imports = include_dummy_imports
 
     @staticmethod
     def _read_times_sets(
@@ -362,7 +394,7 @@ class Config:
     @staticmethod
     def _process_times_info(
         times_info_file: str,
-    ) -> tuple[Iterable[str], set[str], list[TimesXlMap]]:
+    ) -> tuple[Iterable[str], set[str], dict[str, set[str]], list[TimesXlMap]]:
         # Read times_info_file and compute dd_table_order:
         # We output tables in order by categories: set, subset, subsubset, md-set, and parameter
         with resources.open_text("xl2times.config", times_info_file) as f:
@@ -384,6 +416,25 @@ class Config:
             for item in table_info
             if item["gams-cat"] == "parameter"
         }
+
+        # Determine the attributes by type
+        attr_by_type = dict()
+
+        attr_type_conditions = {
+            "commodity": {"commodity": True, "process": False},
+            "process": {"process": True, "commodity": False},
+            "flow": {"process": True, "commodity": True},
+        }
+
+        for attr_type, conditions in attr_type_conditions.items():
+            attr_by_type[attr_type] = {
+                attr["name"]
+                for attr in table_info
+                if all(
+                    (index in attr["mapping"]) is is_present
+                    for index, is_present in conditions.items()
+                )
+            }
 
         # Compute the mapping for attributes / parameters:
         def create_mapping(entity):
@@ -413,7 +464,7 @@ class Config:
             and "type" not in x  # TODO Generalise derived parameters?
         ]
 
-        return dd_table_order, attributes, param_mappings
+        return dd_table_order, attributes, attr_by_type, param_mappings
 
     @staticmethod
     def _read_mappings(filename: str) -> list[TimesXlMap]:
@@ -506,6 +557,8 @@ class Config:
         dict[Tag, set[str]],
         dict[Tag, set[str]],
         dict[Tag, set[str]],
+        dict[Tag, set[str]],
+        dict[Tag, set[str]],
     ]:
         def to_tag(s: str) -> Tag:
             # The file stores the tag name in lowercase, and without the ~
@@ -528,8 +581,10 @@ class Config:
         row_comment_chars = {}
         discard_if_empty = []
         query_cols = defaultdict(set)
+        lists_cols = defaultdict(set)
         known_cols = defaultdict(set)
         required_cols = defaultdict(set)
+        add_cols = defaultdict(set)
         forward_fill_cols = defaultdict(set)
 
         for tag_info in veda_tags_info:
@@ -541,7 +596,7 @@ class Config:
                 row_comment_chars[tag_name] = {}
                 # Process column aliases and comment chars:
                 for valid_field in tag_info["valid_fields"]:
-                    valid_field_names = valid_field["aliases"]
+                    valid_field_names = valid_field.get("aliases", list())
                     if (
                         "use_name" in valid_field
                         and valid_field["use_name"] != valid_field["name"]
@@ -556,13 +611,19 @@ class Config:
                             "default_to"
                         ]
 
-                    if valid_field["query_field"]:
+                    if valid_field.get("query_field", False):
                         query_cols[tag_name].add(field_name)
 
-                    if valid_field["remove_any_row_if_absent"]:
+                    if valid_field.get("comma-separated-list", False):
+                        lists_cols[tag_name].add(field_name)
+
+                    if valid_field.get("add_if_absent", False):
+                        add_cols[tag_name].add(field_name)
+
+                    if valid_field.get("remove_any_row_if_absent", False):
                         required_cols[tag_name].add(field_name)
 
-                    if valid_field["inherit_above"]:
+                    if valid_field.get("inherit_above", False):
                         forward_fill_cols[tag_name].add(field_name)
 
                     known_cols[tag_name].add(field_name)
@@ -570,9 +631,9 @@ class Config:
                     for valid_field_name in valid_field_names:
                         valid_column_names[tag_name][valid_field_name] = field_name
 
-                    row_comment_chars[tag_name][field_name] = valid_field[
-                        "row_ignore_symbol"
-                    ]
+                    row_comment_chars[tag_name][field_name] = valid_field.get(
+                        "row_ignore_symbol", list()
+                    )
 
             # TODO: Account for differences in valid field names with base_tag
             if "base_tag" in tag_info:
@@ -586,8 +647,12 @@ class Config:
                     row_comment_chars[tag_name] = row_comment_chars[base_tag]
                 if base_tag in query_cols:
                     query_cols[tag_name] = query_cols[base_tag]
+                if base_tag in lists_cols:
+                    lists_cols[tag_name] = lists_cols[base_tag]
                 if base_tag in known_cols:
                     known_cols[tag_name] = known_cols[base_tag]
+                if base_tag in add_cols:
+                    add_cols[tag_name] = add_cols[base_tag]
                 if base_tag in forward_fill_cols:
                     forward_fill_cols[tag_name] = forward_fill_cols[base_tag]
 
@@ -597,14 +662,16 @@ class Config:
             row_comment_chars,
             discard_if_empty,
             query_cols,
+            lists_cols,
             known_cols,
             required_cols,
+            add_cols,
             forward_fill_cols,
         )
 
     @staticmethod
     def _read_veda_attr_defaults(
-        veda_attr_defaults_file: str,
+        veda_attr_defaults_file: str, attr_mappings: list[TimesXlMap]
     ) -> tuple[dict[str, dict[str, list]], set[str]]:
         # Read veda_tags_file
         with resources.open_text("xl2times.config", veda_attr_defaults_file) as f:
@@ -614,6 +681,7 @@ class Config:
             "aliases": defaultdict(list),
             "commodity": {},
             "other_indexes": {},
+            "cg": {},
             "limtype": {"FX": [], "LO": [], "UP": []},
             "tslvl": {"DAYNITE": [], "ANNUAL": []},
         }
@@ -639,6 +707,9 @@ class Config:
                         "other_indexes"
                     ]
 
+                if "cg" in attr_defaults:
+                    veda_attr_defaults["cg"][attr] = attr_defaults["cg"]
+
                 if "limtype" in attr_defaults:
                     limtype = attr_defaults["limtype"]
                     veda_attr_defaults["limtype"][limtype].append(attr)
@@ -646,6 +717,15 @@ class Config:
                 if "ts-level" in attr_defaults:
                     tslvl = attr_defaults["ts-level"]
                     veda_attr_defaults["tslvl"][tslvl].append(attr)
+
+        # Specify default values for the attributes that are not defined in the file
+        attr_with_cg = {
+            attr_mapping.times_name
+            for attr_mapping in attr_mappings
+            if "cg" in set(attr_mapping.xl_cols)
+        }
+        for attr in attr_with_cg.difference(veda_attr_defaults["cg"].keys()):
+            veda_attr_defaults["cg"][attr] = ["other_indexes"]
 
         return veda_attr_defaults, attr_aliases
 

@@ -137,7 +137,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   },
@@ -155,7 +155,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   },
@@ -697,7 +697,7 @@
     "mapping": [
       "region",
       "commodity",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -775,13 +775,13 @@
       "REG",
       "YEAR",
       "COM",
-      "COM"
+      "COM2"
     ],
     "mapping": [
       "region",
       "year",
       "commodity",
-      "commodity"
+      "other_indexes"
     ]
   },
   {
@@ -1470,7 +1470,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice",
       "limtype"
     ]
@@ -1550,7 +1550,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "commodity",
       "timeslice"
     ]
@@ -1570,7 +1570,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "commodity",
       "timeslice"
     ]
@@ -1619,15 +1619,15 @@
       "YEAR",
       "PRC",
       "CG",
-      "CG",
+      "CG2",
       "TS"
     ],
     "mapping": [
       "region",
       "year",
       "process",
-      "other_indexes",
-      "other_indexes",
+      "cg",
+      "commodity",
       "timeslice"
     ]
   },
@@ -1702,7 +1702,7 @@
       "year",
       "process",
       "commodity",
-      "other_indexes",
+      "cg",
       "timeslice",
       "limtype"
     ]
@@ -1902,7 +1902,7 @@
       "region",
       "year",
       "commodity",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -2017,14 +2017,14 @@
     "indexes": [
       "ALL_R",
       "COM",
-      "ALL_R",
-      "COM"
+      "REG2",
+      "COM2"
     ],
     "mapping": [
       "region",
       "commodity",
-      "region",
-      "commodity"
+      "region2",
+      "commodity2"
     ]
   },
   {
@@ -2035,17 +2035,17 @@
       "YEAR",
       "PRC",
       "COM",
-      "ALL_R",
-      "COM",
-      "TS"
+      "REG2",
+      "COM2",
+      "TS2"
     ],
     "mapping": [
       "region",
       "year",
       "process",
       "commodity",
-      "region",
-      "commodity",
+      "region2",
+      "commodity2",
       "timeslice"
     ]
   },
@@ -2059,7 +2059,7 @@
       "COM",
       "TS",
       "IE",
-      "COM",
+      "COM2",
       "IO"
     ],
     "mapping": [
@@ -2069,7 +2069,7 @@
       "commodity",
       "timeslice",
       "other_indexes",
-      "commodity",
+      "commodity2",
       "other_indexes"
     ]
   },
@@ -2208,7 +2208,7 @@
       "region",
       "year",
       "process",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -2225,7 +2225,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   },
@@ -2243,7 +2243,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   },
@@ -3054,7 +3054,7 @@
       "region",
       "year",
       "process",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -3295,11 +3295,11 @@
     "indexes": [
       "REG",
       "PRC",
-      "PRC"
+      "PRC2"
     ],
     "mapping": [
       "region",
-      "process",
+      "other_indexes",
       "process"
     ]
   },
@@ -4403,7 +4403,7 @@
     ],
     "mapping": [
       "region",
-      "other_indexes",
+      "cg",
       "limtype"
     ]
   },
@@ -4419,7 +4419,7 @@
     "mapping": [
       "region",
       "year",
-      "other_indexes",
+      "cg",
       "limtype"
     ]
   },
@@ -4754,7 +4754,7 @@
       "region",
       "year",
       "process",
-      "other_indexes"
+      "cg"
     ]
   },
   {
@@ -5104,11 +5104,10 @@
   {
     "name": "VDA_EMCB",
     "gams-cat": "parameter",
-    "type": "special",
     "indexes": [
       "REG",
       "YEAR",
-      "COM",
+      "COM2",
       "COM"
     ],
     "mapping": [
@@ -5132,7 +5131,7 @@
       "region",
       "year",
       "process",
-      "other_indexes",
+      "cg",
       "timeslice"
     ]
   }
