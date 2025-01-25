@@ -629,7 +629,7 @@ def process_user_constraint_tables(
     """
     legal_values = {
         "attribute": {attr for attr in config.all_attributes if attr.startswith("uc")},
-        "region": model.internal_regions,
+        "region": model.internal_regions.union({"allregions".upper()}),
         "commodity": set(utils.merge_columns(tables, Tag.fi_comm, "commodity")),
         "timeslice": set(model.ts_tslvl["tslvl"]),
         "limtype": set(config.times_sets["LIM"]),
@@ -648,15 +648,18 @@ def process_user_constraint_tables(
         uc_sets = table.uc_sets
 
         # TODO: Handle pseudo-attributes in a more general way
-        known_columns = config.known_columns[Tag.uc_t].difference({"uc_attr"})
+        known_columns = config.known_columns[Tag.uc_t].difference(
+            {"uc_attr", "allregions"}
+        )
         data_columns = [x for x in df.columns if x not in known_columns]
 
-        table = utils.apply_composite_tag(table)
-        df = table.dataframe
         # Convert dataframe to the long format
         df = _custom_melt(df, data_columns)
-
-        # TODO: There may be regions specified as column names
+        # Harmonize attributes
+        df = _harmonise_attributes(df, legal_values)
+        # Remove allregions from region column, so it can be filled in later
+        i = df["region"].str.lower() == "allregions"
+        df.loc[i, "region"] = pd.NA
         # Apply any general region specification if present
         regions_list = {"R_E", "R_S"}.intersection(uc_sets.keys())
         [regions_list] = regions_list if regions_list else {None}
@@ -671,10 +674,6 @@ def process_user_constraint_tables(
                 regions = ",".join(regions)
                 i_allregions = df["region"].isna()
                 df.loc[i_allregions, "region"] = regions
-                # TODO: Check whether any invalid regions are present
-
-        # Harmonize attributes
-        df = _harmonise_attributes(df, legal_values)
         df = df.reset_index(drop=True)
 
         return replace(table, dataframe=df)
@@ -2162,6 +2161,10 @@ def generate_topology_dictionary(
     dictionary = dict()
     pros = model.processes
     coms = model.commodities
+    pros_sets = pd.concat(
+        [pros[["process", "sets"]].drop_duplicates(), model.custom_sets],
+        ignore_index=True,
+    )
     pros_and_coms = model.topology[["process", "commodity", "io"]].drop_duplicates()
     i_comm_in = pros_and_coms["io"] == "IN"
     i_comm_out = pros_and_coms["io"] == "OUT"
@@ -2173,7 +2176,7 @@ def generate_topology_dictionary(
             "df": pros[["process", "description"]],
             "col": "description",
         },
-        {"key": "processes_by_sets", "df": pros[["process", "sets"]], "col": "sets"},
+        {"key": "processes_by_sets", "df": pros_sets, "col": "sets"},
         {
             "key": "processes_by_comm_in",
             "df": pros_and_coms[["process", "commodity"]][i_comm_in],
@@ -3324,6 +3327,34 @@ def apply_final_fixup(
             df_list.append(stock_rows)
 
         df = pd.concat(df_list)
+    # Make IRE_FLO out of EFF for IRE processes
+    ire_set = set(model.processes["process"][model.processes["sets"] == "IRE"])
+    # Calculate index of IRE processes for which EFF is specified
+    i_ire_eff = (df["original_attr"] == "EFF") & df["process"].isin(ire_set)
+    if any(i_ire_eff):
+        df.loc[i_ire_eff, "attribute"] = "IRE_FLO"
+        ire_flows = (
+            model.trade[["process", "origin", "destination", "in", "out"]]
+            .drop_duplicates()
+            .copy()
+        )
+        ire_flows.rename(columns={"origin": "region"}, inplace=True)
+        # Keep only those flows that are relevant
+        ire_flows = df[["region", "process"]][i_ire_eff].merge(ire_flows, how="inner")
+        # Perform an outer merge to include the data for IRE_FLO
+        df = df.merge(ire_flows, how="outer")
+        # Create the region2 and commodity2 columns if they do not exist
+        for col in {"region2", "commodity2"}.difference(df.columns):
+            df[col] = pd.NA
+        # Recalculate the index of IRE processes for which EFF is specified
+        i_ire_eff = (df["original_attr"] == "EFF") & (df["attribute"] == "IRE_FLO")
+        # Replace the values in the region2, commodity and commodity2 columns
+        for k, v in {
+            "destination": "region2",
+            "out": "commodity2",
+            "in": "commodity",
+        }.items():
+            df.loc[i_ire_eff, v] = df.loc[i_ire_eff, k]
 
     # Handle END
     i_end = df["original_attr"] == "END"
@@ -3336,8 +3367,10 @@ def apply_final_fixup(
     cols_to_keep = {
         "attribute",
         "region",
+        "region2",
         "process",
         "commodity",
+        "commodity2",
         "other_indexes",
         "cg",
         "year",
@@ -3356,7 +3389,9 @@ def apply_final_fixup(
     df.dropna(subset="value", inplace=True)
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
     df.drop(columns=drop_cols, inplace=True)
-    df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+    df = df.drop_duplicates(
+        subset=list(keep_cols.intersection(df.columns)), keep="last"
+    )
 
     # Control application of i/e rules from syssettings
     if not config.ie_override_in_syssettings:
@@ -3368,8 +3403,8 @@ def apply_final_fixup(
         duplicated = df[i].duplicated(
             subset=[
                 col
-                for col in keep_cols
-                if col != "value" and col not in {"module_name", "module_type"}
+                for col in keep_cols.intersection(df.columns).difference(dm_cols)
+                if col != "value"
             ],
             keep=False,
         )
@@ -3387,7 +3422,9 @@ def apply_final_fixup(
             col for col in df.columns if col != "value" and col not in keep_cols
         ]
         df.drop(columns=drop_cols, inplace=True)
-        df = df.drop_duplicates(subset=list(keep_cols), keep="last")
+        df = df.drop_duplicates(
+            subset=list(keep_cols.intersection(df.columns)), keep="last"
+        )
         tables[Tag.uc_t] = df.reset_index(drop=True)
 
     return tables

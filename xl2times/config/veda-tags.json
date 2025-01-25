@@ -3417,7 +3417,7 @@
           "val_field",
           "allregions"
         ],
-        "use_name": "value",
+        "use_name": "allregions",
         "row_ignore_symbol": [
           "\\I:"
         ]
