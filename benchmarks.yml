@@ -57,11 +57,11 @@ benchmarks:
   - name: DemoS_004a-ie-test
     input_folder: DemoS_004-test-ie
     inputs:
-      - "BY_Trans.xlsx"
       - "Sets-DemoModels.xlsx"
+      - "VT_REG_PRI_V04.xlsx"
+      - "BY_Trans.xlsx"
       - "SysSettings.xlsx"
       - "SuppXLS/Scen_Peak_RSV.xlsx"
-      - "VT_REG_PRI_V04.xlsx"
     dd_folder: DemoS_004a-test-ie
     dd_files:
       - "base"
