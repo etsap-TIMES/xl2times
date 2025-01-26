@@ -3391,7 +3391,8 @@ def apply_final_fixup(
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
     df.drop(columns=drop_cols, inplace=True)
     df = df.drop_duplicates(
-        subset=list(keep_cols.intersection(df.columns)), keep="last"
+        subset=list(keep_cols.intersection(df.columns).difference({"source_filename"})),
+        keep="last",
     )
 
     # Control application of i/e rules from syssettings
