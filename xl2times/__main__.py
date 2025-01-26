@@ -299,23 +299,21 @@ def produce_times_tables(
         file_order[f] = i
 
     def keep_last_by_file_order(df):
-        """Drop duplicate rows, keeping the last value for parameters as per input file order.
+        """Drop duplicate rows, keeping the last dupicate row (including value) as per
+        input file order, and remove the `source_filename` column from the DataFrame.
 
-        This function also removes the `source_filename` column from the DataFrame.
+        Note: we do not remove duplicate values for the same query columns for parameters
+        here, because in the future we might want to re-use the processed tables and
+        select the rows coming from different scenarios/files after processing just once.
+        If so, at that point we can use the info in the `source_filename` column to do
+        this.
         """
-        if "VALUE" in df.columns:  # Parameters
-            if "source_filename" in df.columns:
-                df["file_order"] = df["source_filename"].map(file_order)
-                df = df.sort_values(by="file_order")
-                df = df.drop(columns=["source_filename", "file_order"])
-            query_columns = [c for c in df.columns if c != "VALUE"] or None
-            df = df.drop_duplicates(subset=query_columns, keep="last")
-            df.reset_index(drop=True, inplace=True)
-        else:  # For sets, just drop duplicates ignoring the text column
-            if "source_filename" in df.columns:
-                df = df.drop(columns=["source_filename"])
-            query_columns = [c for c in df.columns if c != "TEXT"]
-            df = df.drop_duplicates(subset=query_columns, keep="last")
+        if "source_filename" in df.columns:
+            df["file_order"] = df["source_filename"].map(file_order)
+            df = df.sort_values(by="file_order")
+            df = df.drop(columns=["source_filename", "file_order"])
+        df = df.drop_duplicates(keep="last")
+        df.reset_index(drop=True, inplace=True)
         return df
 
     result = {}
@@ -390,6 +388,10 @@ def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str
 
     def convert_set(df: DataFrame):
         has_description = "TEXT" in df.columns
+        # Remove duplicate rows, ignoring text column
+        if has_description:
+            query_columns = [c for c in df.columns if c != "TEXT"]
+            df = df.drop_duplicates(subset=query_columns, keep="last")
         for row in df.itertuples(index=False):
             row_str = "'.'".join(
                 (str(x) for k, x in row._asdict().items() if k != "TEXT")
@@ -400,6 +402,9 @@ def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str
     def convert_parameter(tablename: str, df: DataFrame):
         if "VALUE" not in df.columns:
             raise KeyError(f"Unable to find VALUE column in parameter {tablename}")
+        # Remove duplicate rows, ignoring value column
+        query_columns = [c for c in df.columns if c != "VALUE"] or None
+        df = df.drop_duplicates(subset=query_columns, keep="last")
         for row in df.itertuples(index=False):
             val = row.VALUE
             row_str = "'.'".join(
