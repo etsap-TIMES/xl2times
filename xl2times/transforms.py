@@ -3384,6 +3384,7 @@ def apply_final_fixup(
         "side",
         "module_name",
         "module_type",
+        "source_filename",
     }
     keep_cols = cols_to_keep.intersection(df.columns)
     df.dropna(subset="value", inplace=True)
