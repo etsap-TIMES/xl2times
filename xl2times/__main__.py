@@ -303,7 +303,7 @@ def produce_times_tables(
             )
         else:
             used_tables.add(mapping.xl_name)
-            df = input[mapping.xl_name].copy()
+            df = input[mapping.xl_name]
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
@@ -327,9 +327,9 @@ def produce_times_tables(
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 cols_to_drop = [x for x in df.columns if x not in mapping.times_cols]
-                df.drop(columns=cols_to_drop, inplace=True)
-                df.drop_duplicates(inplace=True)
-                df.reset_index(drop=True, inplace=True)
+                df = df.drop(columns=cols_to_drop)
+                df = df.drop_duplicates()
+                df = df.reset_index(drop=True)
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
                 i = (
                     df[mapping.times_cols[-1]].notna()

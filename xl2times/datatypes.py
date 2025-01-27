@@ -295,8 +295,8 @@ class TimesModel:
         cols = ["region", "process", "commodity", "csets"]
         # Exclude auxillary flows
         index = self.topology["io"].isin({"IN", "OUT"})
-        veda_cgs = self.topology[cols + ["io"]][index].copy()
-        veda_cgs.drop_duplicates(subset=cols, keep="last", inplace=True)
+        veda_cgs = self.topology[cols + ["io"]][index]
+        veda_cgs = veda_cgs.drop_duplicates(subset=cols, keep="last")
         veda_cgs["veda_cg"] = veda_cgs["csets"] + veda_cgs["io"].str[:1]
         veda_cgs = veda_cgs.set_index(["region", "process", "commodity"])[
             "veda_cg"
