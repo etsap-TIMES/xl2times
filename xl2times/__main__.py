@@ -310,7 +310,7 @@ def produce_times_tables(
         """
         if "source_filename" in df.columns:
             df["file_order"] = df["source_filename"].map(file_order)
-            df = df.sort_values(by="file_order")
+            df = df.sort_values(by="file_order", kind="stable")
             df = df.drop(columns=["source_filename", "file_order"])
         df = df.drop_duplicates(keep="last")
         df.reset_index(drop=True, inplace=True)
