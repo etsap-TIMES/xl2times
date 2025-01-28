@@ -15,16 +15,16 @@ Support of other approaches may be added over time.
 You can install the latest published version of the tool from PyPI using pip (preferably in a virtual environment):
 <details>
     <summary>Linux</summary>
-    ```bash
-    pip install xl2times
-    ```
+```bash
+pip install xl2times
+```
 </details>
 
 <details>
     <summary>Windows</summary>
-    ```bash
-    python -m pip install xl2times
-    ```
+```bash
+python -m pip install xl2times
+```
 </details>
 
 You can also install the latest development version by cloning this repository and running the following command in the root directory:
