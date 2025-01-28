@@ -4,6 +4,7 @@ import os
 import pickle
 import sys
 import time
+from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -160,7 +161,7 @@ def convert_xl_to_times(
         lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
-        lambda config, tables, model: produce_times_tables(config, tables),
+        lambda config, tables, model: produce_times_tables(config, tables, model),
     ]
 
     input = raw_tables
@@ -287,12 +288,34 @@ def compare(
 
 
 def produce_times_tables(
-    config: Config, input: dict[str, DataFrame]
+    config: Config, input: dict[str, DataFrame], model: TimesModel
 ) -> dict[str, DataFrame]:
     logger.info(
         f"produce_times_tables: {len(input)} tables incoming,"
         f" {sum(len(value) for (_, value) in input.items())} rows"
     )
+    file_order = defaultdict(lambda: -1)
+    for i, f in enumerate(model.files):
+        file_order[f] = i
+
+    def keep_last_by_file_order(df):
+        """Drop duplicate rows, keeping the last dupicate row (including value) as per
+        input file order, and remove the `source_filename` column from the DataFrame.
+
+        Note: we do not remove duplicate values for the same query columns for parameters
+        here, because in the future we might want to re-use the processed tables and
+        select the rows coming from different scenarios/files after processing just once.
+        If so, at that point we can use the info in the `source_filename` column to do
+        this.
+        """
+        if "source_filename" in df.columns:
+            df["file_order"] = df["source_filename"].map(file_order)
+            df = df.sort_values(by="file_order", kind="stable")
+            df = df.drop(columns=["source_filename", "file_order"])
+        df = df.drop_duplicates(keep="last")
+        df.reset_index(drop=True, inplace=True)
+        return df
+
     result = {}
     used_tables = set()
     for mapping in config.times_xl_maps:
@@ -326,10 +349,13 @@ def produce_times_tables(
                 # Excel columns can be duplicated into multiple Times columns
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
-                cols_to_drop = [x for x in df.columns if x not in mapping.times_cols]
+                # Keep only the required columns
+                cols_to_keep = set(mapping.times_cols).union({"source_filename"})
+                cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
                 df.drop(columns=cols_to_drop, inplace=True)
-                df.drop_duplicates(inplace=True)
-                df.reset_index(drop=True, inplace=True)
+                # Drop duplicates, keeping last seen rows as per file order
+                df = keep_last_by_file_order(df)
+                # Drop rows with missing values
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
                 i = (
                     df[mapping.times_cols[-1]].notna()
@@ -486,7 +512,7 @@ def run(args: argparse.Namespace) -> str | None:
     else:
         input_files = args.input
 
-    model.files.update([Path(path).stem for path in input_files])
+    model.files = [Path(path).stem for path in input_files]
 
     processing_order = ["base", "subres", "trade", "demand", "scen", "syssettings"]
     for data_module in processing_order:
