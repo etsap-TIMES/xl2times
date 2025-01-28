@@ -22,12 +22,12 @@ You can also install the latest development version by cloning this repository a
 pip install .
 ```
 
-If the tool is installed on Windows, the above commands should be prefixed by `python -m`.
-
 After installation, run the following command to see the basic usage and available options:
 ```bash
 xl2times --help
 ```
+
+If the tool is installed on Windows, the above commands should be prefixed by `python -m`.
 
 ## Documentation
 
@@ -57,6 +57,14 @@ pip install -U pip
 pip install -e .[dev]
 ```
 
+On Windows:
+```bash
+python -m venv .venv
+".venv/Scripts/python" -m pip install -U pip
+".venv/Scripts/activate"
+pip install -e .[dev]
+```
+
 We use the [black](https://pypi.org/project/black/) code formatter. The `pip` command above will install it along with other requirements.
 
 We also use the [pyright](https://github.com/microsoft/pyright/) type checker -- our GitHub Actions check will fail if pyright detects any type errors in your code. You can install pyright in your virtual environment and check your code by running these commands in the root of the repository:
@@ -77,7 +85,7 @@ git commit --no-verify
 
 We use the TIMES DemoS models and some public TIMES models as benchmarks.
 See our GitHub Actions CI `.github/workflows/ci.yml` and the utility script `utils/run_benchmarks.py` to see how to we benchmark the tool and check PRs automatically for regression.
-If you are a developer, you can use the below instructions to set up and run the benchmarks locally:
+If you are a developer, you can use the below instructions to set up and run the benchmarks locally on Linux/WSL:
 
 ```bash
 ./setup-benchmarks.sh
