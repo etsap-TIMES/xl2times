@@ -27,6 +27,8 @@ After installation, run the following command to see the basic usage and availab
 xl2times --help
 ```
 
+If the tool is installed on Windows, the above commands should be prefixed by `python -m`.
+
 ## Documentation
 
 The tool's documentation is at http://xl2times.readthedocs.io/ and the source is in the [`docs/`](https://github.com/etsap-TIMES/xl2times/blob/main/docs) directory.
@@ -43,6 +45,24 @@ cd docs
 make html
 ```
 
+## Testing on an existing model
+
+If you have an existing TIMES model in Excel (e.g. developed using Veda) and would like to use the tool with it, we recommend to conduct bulk testing first. Bulk testing will allow understanding how much of the syntax used in the model is supported by the tool.
+
+Start by generating `*.dd` files based on `AllScenario` scenario group (i.e. in Veda).
+
+Afterwards, execute the following command from the root of the tool (assumes `My_Bulk_Test` case name) to extract all the data from the `*.dd` files:
+```bash
+python xl2times/dd_to_csv.py "C:\VEDA\GAMS_WrkTIMES\My_Bulk_Test" ground_truth
+```
+
+Finally, execute the tool on the model (e.g. `My_TIMES-Model`) and compare the results to the previously extracted data (assumes activated virtual environment):
+```bash
+xl2times "C:\VEDA\VEDA_Models\My_TIMES-Model"  --ground_truth_dir=ground_truth
+```
+
+The tool will summarise any differences between the data it generates and the extracted data.
+
 ## Development
 
 ### Setup
@@ -52,6 +72,14 @@ We recommend installing the tool in editable mode (`-e`) in a Python virtual env
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
+pip install -e .[dev]
+```
+
+On Windows:
+```bash
+python -m venv .venv
+".venv/Scripts/python" -m pip install -U pip
+".venv/Scripts/activate"
 pip install -e .[dev]
 ```
 
@@ -75,7 +103,7 @@ git commit --no-verify
 
 We use the TIMES DemoS models and some public TIMES models as benchmarks.
 See our GitHub Actions CI `.github/workflows/ci.yml` and the utility script `utils/run_benchmarks.py` to see how to we benchmark the tool and check PRs automatically for regression.
-If you are a developer, you can use the below instructions to set up and run the benchmarks locally:
+If you are a developer, you can use the below instructions to set up and run the benchmarks locally on Linux/WSL:
 
 ```bash
 ./setup-benchmarks.sh
@@ -126,10 +154,10 @@ VS Code will highlight the changes in the two files, which should correspond to 
 ### Publishing the Tool
 
 Follow these steps to release a new version of `xl2times` and publish it on PyPI:
-- [ ] Bump the version number in `pyproject.toml` and `xl2times/__init__.py` (use [Semantic Versioning](https://semver.org/))
-- [ ] Open a PR with this change titled "Release vX.Y.Z"
-- [ ] When the PR is merged, create a [new release](https://github.com/etsap-TIMES/xl2times/releases/new) titled "vX.Y.Z". Select "Create a new tag: on publish" and click "Generate release notes" to generate the notes automatically.
-- [ ] Click "Publish release" to publish the release on GitHub. A GitHub Actions workflow will automatically upload the distribution to PyPI.
+- Bump the version number in `pyproject.toml` and `xl2times/__init__.py` (use [Semantic Versioning](https://semver.org/))
+- Open a PR with this change titled "Release vX.Y.Z"
+- When the PR is merged, create a [new release](https://github.com/etsap-TIMES/xl2times/releases/new) titled "vX.Y.Z". Select "Create a new tag: on publish" and click "Generate release notes" to generate the notes automatically.
+- Click "Publish release" to publish the release on GitHub. A GitHub Actions workflow will automatically upload the distribution to PyPI.
 
 ## Contributing
 
