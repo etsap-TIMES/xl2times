@@ -47,11 +47,11 @@ make html
 
 ## Testing on an existing model
 
-If you have an exsiting TIMES model in Excel (e.g. developed using Veda) and would like to use the tool with it, we recommend to conduct bulk testing first. Bulk testing will allow understanding how much of the syntaxis used in the model is supported by the tool.
+If you have an existing TIMES model in Excel (e.g. developed using Veda) and would like to use the tool with it, we recommend to conduct bulk testing first. Bulk testing will allow understanding how much of the syntax used in the model is supported by the tool.
 
 Start by generating `*.dd` files based on `AllScenario` scenario group (i.e. in Veda).
 
-Afterwards, execute the following command from the root of the tool (assumes `My_Bulk_Test` case name) to exctract all the data from the `*.dd` files:
+Afterwards, execute the following command from the root of the tool (assumes `My_Bulk_Test` case name) to extract all the data from the `*.dd` files:
 ```bash
 python xl2times/dd_to_csv.py "C:\VEDA\GAMS_WrkTIMES\My_Bulk_Test" ground_truth
 ```
