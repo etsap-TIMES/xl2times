@@ -1203,12 +1203,18 @@ def _populate_calculated_defaults(df: DataFrame, model: TimesModel):
         )
 
 
-def apply_fixups(
+def prepare_for_querying(
     config: Config,
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Apply fixups to the tables."""
+    """Prepare tables for querying by harmonising them and filling in missing values.
+    This includes
+    - Adding expected columns with NA if they are missing.
+    - Expanding year columns if they contain ranges.
+    - Applying attribute-specific default values (incl. if specified under a different column).
+    - Filling in missing values in year and currency columns with defaults.
+    """
     exclude_tags = {Tag.tfm_mig, Tag.tfm_upd}
     attribute_tags = [Tag.fi_t, Tag.uc_t]
     currency = tables[Tag.currencies]["currency"][0]
@@ -1447,12 +1453,12 @@ def create_model_cgs(
     return tables
 
 
-def process_trade_links(
+def process_tradelinks(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-    """Process trade links and create model trade (between internal regions)."""
+    """Process tradelinks and create model trade (between internal regions)."""
     cols_list = ["origin", "in", "destination", "out", "process"]
     cols_list.extend(dm_cols)
     result = []
@@ -1823,7 +1829,7 @@ def generate_dummy_processes(
     return tables
 
 
-def process_tradelinks(
+def harmonise_tradelinks(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
@@ -3199,7 +3205,7 @@ def apply_final_fixup(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-
+    """Clean up remaining issues. Includes handling of aliases that could not be generalised."""
     veda_ire_sets = model.custom_sets
     reg_com_flows = model.topology[["region", "process", "commodity"]].copy()
     reg_com_flows.drop_duplicates(inplace=True, ignore_index=True)
