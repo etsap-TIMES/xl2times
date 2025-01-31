@@ -336,7 +336,8 @@ def produce_times_tables(
                     # TODO break this loop and continue outer loop?
                 filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
-                df = df.loc[i, :]
+                # Ensure that df is not a view, so that we can modify it further on
+                df = df[i].copy()
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols).difference(df.columns)
                 logger.warning(
