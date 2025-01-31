@@ -130,7 +130,14 @@ class DataModule(str, Enum):
     def module_name(cls, path: str) -> str | None:
         module_type = cls.determine_type(path)
         match module_type:
-            case DataModule.base | DataModule.sets | DataModule.lma | DataModule.demand | DataModule.trade | DataModule.syssettings:
+            case (
+                DataModule.base
+                | DataModule.sets
+                | DataModule.lma
+                | DataModule.demand
+                | DataModule.trade
+                | DataModule.syssettings
+            ):
                 return module_type.name.upper()
             case DataModule.subres:
                 return re.sub(
@@ -565,9 +572,7 @@ class Config:
                     dropped.append(line)
 
         if len(dropped) > 0:
-            logger.warning(
-                f"Dropping {len(dropped)} mappings that are not yet complete"
-            )
+            logger.info(f"Dropping {len(dropped)} mappings that are not yet complete")
         return mappings
 
     @staticmethod

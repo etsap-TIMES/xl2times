@@ -168,13 +168,13 @@ def convert_xl_to_times(
         start_time = time.time()
         output = transform(config, input, model)
         end_time = time.time()
-        logger.debug(_log_sep)
+        logger.opt(raw=True).debug(_log_sep)
         logger.info(
             f"transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
         # Way to conditionally evaluate the table dump only on debug log level
         # https://github.com/Delgan/loguru/issues/402#issuecomment-2028011786
-        logger.opt(lazy=True).debug(_log_all_tables(output))
+        logger.opt(lazy=True, raw=True).debug(_log_all_tables(output))
         input = output
     assert isinstance(output, dict)
 
@@ -192,11 +192,11 @@ def _log_all_tables(tables: list[EmbeddedXlTable] | dict[str, DataFrame]) -> str
         for table in sorted(
             tables, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
         ):
-            logger.debug(table)
+            logger.opt(raw=True).debug(table)
     elif isinstance(tables, dict):
         for tag, df in tables.items():
             df_str = df.to_csv(index=False, lineterminator="\n")
-            logger.debug(f"{tag}\n{df_str}{df.shape}\n")
+            logger.opt(raw=True).debug(f"{tag}\n{df_str}{df.shape}\n")
     return _log_sep
 
 
@@ -207,6 +207,9 @@ def write_csv_tables(tables: dict[str, DataFrame], output_dir: str):
             os.remove(os.path.join(output_dir, item))
     for tablename, df in tables.items():
         df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
+    logger.success(
+        f"Excel files successfully converted to CSV and written to {output_dir}"
+    )
 
 
 def read_csv_tables(input_dir: str) -> dict[str, DataFrame]:
@@ -230,14 +233,14 @@ def compare(
         [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
     )
     if len(missing) > 0:
-        logger.warning(f"Missing {len(missing)} tables: {missing_str}")
+        logger.info(f"Missing {len(missing)} tables: {missing_str}")
 
     additional_tables = set(data.keys()).difference(ground_truth.keys())
     additional_str = ", ".join(
         [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
     )
     if len(additional_tables) > 0:
-        logger.warning(f"{len(additional_tables)} additional tables: {additional_str}")
+        logger.info(f"{len(additional_tables)} additional tables: {additional_str}")
     # Additional rows starts as the sum of lengths of additional tables produced
     total_additional_rows = sum(len(data[x]) for x in additional_tables)
 
@@ -253,7 +256,7 @@ def compare(
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
             data_cols = list(data_table.columns)
             if transformed_gt_cols != data_cols:
-                logger.warning(
+                logger.info(
                     f"Table {table_name} header incorrect, was"
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
@@ -267,7 +270,7 @@ def compare(
             total_additional_rows += len(additional)
             missing = gt_rows.difference(data_rows)
             if len(additional) != 0 or len(missing) != 0:
-                logger.warning(
+                logger.info(
                     f"Table {table_name} ({data_table.shape[0]} rows,"
                     f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
                     f" additional rows and is missing {len(missing)} rows"
@@ -325,7 +328,7 @@ def produce_times_tables(
     used_tables = set()
     for mapping in config.times_xl_maps:
         if mapping.xl_name not in input:
-            logger.warning(
+            logger.info(
                 f"Cannot produce table {mapping.times_name} because"
                 f" {mapping.xl_name} does not exist"
             )
@@ -335,7 +338,7 @@ def produce_times_tables(
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
-                    logger.warning(
+                    logger.info(
                         f"Cannot produce table {mapping.times_name} because"
                         f" {mapping.xl_name} does not contain column {filter_col}"
                     )
@@ -345,7 +348,7 @@ def produce_times_tables(
                 df = df.loc[i, :]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols).difference(df.columns)
-                logger.warning(
+                logger.info(
                     f"Cannot produce table {mapping.times_name} because"
                     f" {mapping.xl_name} does not contain the required columns"
                     f" - {', '.join(missing)}"
@@ -377,7 +380,7 @@ def produce_times_tables(
 
     unused_tables = set(input.keys()).difference(used_tables)
     if len(unused_tables) > 0:
-        logger.warning(
+        logger.info(
             f"{len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
         )
 
@@ -443,7 +446,10 @@ def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str
                     lines = sorted(lines)
                 fout.writelines(lines)
                 fout.write("\n/;\n")
-    pass
+
+    logger.success(
+        f"Excel files successfully converted to DD and written to {output_dir}"
+    )
 
 
 def strip_filename_prefix(table, prefix):
