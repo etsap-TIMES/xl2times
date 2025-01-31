@@ -21,7 +21,7 @@ from xl2times.__main__ import parse_args, run
 from xl2times.dd_to_csv import main
 from xl2times.utils import max_workers
 
-logger = utils.get_logger()
+logger = utils.get_logger(0)
 
 
 def parse_result(output: str) -> tuple[float, int, int]:

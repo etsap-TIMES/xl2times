@@ -11,14 +11,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 from pandas.core.frame import DataFrame
-
-from xl2times.utils import max_workers
 
 from . import excel, transforms, utils
 from .datatypes import Config, DataModule, EmbeddedXlTable, TimesModel
 
-logger = utils.get_logger()
+_log_sep = "\n\n" + "=" * 80 + "\n"
 
 
 cache_dir = Path.home() / ".cache/xl2times/"
@@ -77,13 +76,12 @@ def convert_xl_to_times(
     config: Config,
     model: TimesModel,
     no_cache: bool,
-    verbose: bool = False,
     stop_after_read: bool = False,
 ) -> dict[str, DataFrame]:
     start_time = datetime.now()
 
     invalidate_cache()
-    with ProcessPoolExecutor(max_workers) as executor:
+    with ProcessPoolExecutor(utils.max_workers) as executor:
         raw_tables = executor.map(
             excel.extract_tables if no_cache else _read_xlsx_cached, input_files
         )
@@ -170,20 +168,13 @@ def convert_xl_to_times(
         start_time = time.time()
         output = transform(config, input, model)
         end_time = time.time()
-        sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
+        logger.debug(_log_sep)
         logger.info(
-            f"{sep}transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
+            f"transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
-        if verbose:
-            if isinstance(output, list):
-                for table in sorted(
-                    output, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
-                ):
-                    logger.info(table)
-            elif isinstance(output, dict):
-                for tag, df in output.items():
-                    df_str = df.to_csv(index=False, lineterminator="\n")
-                    logger.info(f"{tag}\n{df_str}{df.shape}\n")
+        # Way to conditionally evaluate the table dump only on debug log level
+        # https://github.com/Delgan/loguru/issues/402#issuecomment-2028011786
+        logger.opt(lazy=True).debug(_log_all_tables(output))
         input = output
     assert isinstance(output, dict)
 
@@ -193,6 +184,20 @@ def convert_xl_to_times(
     )
 
     return output
+
+
+def _log_all_tables(tables: list[EmbeddedXlTable] | dict[str, DataFrame]) -> str:
+    """Write current values in all tables to the log for debugging."""
+    if isinstance(tables, list):
+        for table in sorted(
+            tables, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
+        ):
+            logger.debug(table)
+    elif isinstance(tables, dict):
+        for tag, df in tables.items():
+            df_str = df.to_csv(index=False, lineterminator="\n")
+            logger.debug(f"{tag}\n{df_str}{df.shape}\n")
+    return _log_sep
 
 
 def write_csv_tables(tables: dict[str, DataFrame], output_dir: str):
@@ -283,7 +288,7 @@ def compare(
         f", {total_additional_rows} additional rows"
     )
 
-    logger.info(result)
+    logger.success(result)
     return result
 
 
@@ -496,6 +501,8 @@ def run(args: argparse.Namespace) -> str | None:
 
     model = TimesModel()
 
+    logger = utils.get_logger(args.verbose)
+
     if not isinstance(args.input, list) or len(args.input) < 1:
         logger.critical(f"expected at least 1 input. Got {args.input}")
         sys.exit(-1)
@@ -535,13 +542,12 @@ def run(args: argparse.Namespace) -> str | None:
             config,
             model,
             args.no_cache,
-            verbose=args.verbose,
             stop_after_read=True,
         )
         sys.exit(0)
 
     tables = convert_xl_to_times(
-        input_files, args.output_dir, config, model, args.no_cache, verbose=args.verbose
+        input_files, args.output_dir, config, model, args.no_cache
     )
 
     if args.dd:
@@ -611,8 +617,8 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
     args_parser.add_argument(
         "-v",
         "--verbose",
-        action="store_true",
-        help="Verbose mode: print tables after every transform",
+        action="count",
+        help="Verbosity. Multiple `-v`s increase the log level. Can also be set on the command line by setting the environment variable `LOGURU_LEVEL`. Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `WARNING`",
     )
     args = args_parser.parse_args(arg_list)
     return args
