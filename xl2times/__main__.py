@@ -313,8 +313,7 @@ def produce_times_tables(
             df = df.sort_values(by="file_order", kind="stable")
             df = df.drop(columns=["source_filename", "file_order"])
         df = df.drop_duplicates(keep="last")
-        df.reset_index(drop=True, inplace=True)
-        return df
+        return df.reset_index(drop=True)
 
     result = {}
     used_tables = set()
@@ -326,7 +325,7 @@ def produce_times_tables(
             )
         else:
             used_tables.add(mapping.xl_name)
-            df = input[mapping.xl_name].copy()
+            df = input[mapping.xl_name]
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
@@ -352,7 +351,7 @@ def produce_times_tables(
                 # Keep only the required columns
                 cols_to_keep = set(mapping.times_cols).union({"source_filename"})
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
-                df.drop(columns=cols_to_drop, inplace=True)
+                df = df.drop(columns=cols_to_drop)
                 # Drop duplicates, keeping last seen rows as per file order
                 df = keep_last_by_file_order(df)
                 # Drop rows with missing values
