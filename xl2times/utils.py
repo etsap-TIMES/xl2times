@@ -12,7 +12,6 @@ from dataclasses import replace
 from math import floor, log10
 from pathlib import Path, PurePath
 
-import loguru
 import numpy
 import pandas as pd
 from loguru import logger
@@ -343,17 +342,17 @@ def set_log_level(level: int | None) -> str:
 
     E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
     Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and
-    `CRITICAL`. Default is `WARNING` which is level `0`, and higher levels are more
+    `CRITICAL`. Default is `SUCCESS` which is level `0`, and higher levels are more
     verbose.
     """
     level_map = {
-        4: "TRACE",
-        3: "DEBUG",
-        2: "INFO",
-        1: "SUCCESS",
-        0: "WARNING",
-        -1: "ERROR",
-        -2: "CRITICAL",
+        3: "TRACE",
+        2: "DEBUG",
+        1: "INFO",
+        0: "SUCCESS",
+        -1: "WARNING",
+        -2: "ERROR",
+        -3: "CRITICAL",
     }
     # First priority is argument `level`
     if level is not None:
@@ -366,10 +365,10 @@ def set_log_level(level: int | None) -> str:
     return level_map[0]
 
 
-def get_logger(
+def setup_logger(
     level: int | None, log_name: str = default_log_name, log_dir: str = "."
-) -> loguru.Logger:
-    """Return a configured loguru logger.
+):
+    """Configure loguru.
 
     Call this once from entrypoints to set up a new logger.
     In non-entrypoint modules, just use `from loguru import logger` directly.
@@ -382,44 +381,32 @@ def get_logger(
         Name of the log. Corresponding log file will be called {log_name}.log. (Default value = default_log_name)
     log_dir
         Directory to write the log file to. Default is the current working directory.
-
-    Returns
-    -------
-    Logger
-        A configured loguru logger.
     """
-    from loguru import logger
-
     log_level = set_log_level(level)
 
     if level is not None and level > 0:
-        format = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level> (<cyan>{name}:{thread.name}:pid-{process}</cyan> "<cyan>{file.path}</cyan>:<cyan>{line}</cyan>")'
+        format = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: >8}</level> : <level>{message}</level> (<cyan>{name}:{thread.name}:pid-{process}</cyan> "<cyan>{file.path}</cyan>:<cyan>{line}</cyan>")'
     else:
-        format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{message}</level>"
+        format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: >8}</level> : <level>{message}</level>"
 
-    log_conf = {
-        "handlers": [
-            {
-                "sink": sys.stdout,
-                "diagnose": True,
-                "level": log_level,
-                "format": format,
-            },
-            {
-                "sink": f"{log_dir}/{log_name}.log",
-                "enqueue": True,
-                "mode": "a+",
-                "level": "INFO",
-                "colorize": False,
-                "serialize": False,
-                "diagnose": False,
-                "rotation": "20 MB",
-                "compression": "zip",
-            },
-        ],
-    }
-    logger.configure(**log_conf)
-    return logger
+    logger.remove()
+    logger.add(
+        sink=sys.stdout,
+        diagnose=True,
+        level=log_level,
+        format=format,
+    )
+    logger.add(
+        sink=f"{log_dir}/{log_name}.log",
+        enqueue=True,
+        mode="a+",
+        level="INFO",
+        colorize=False,
+        serialize=False,
+        diagnose=False,
+        rotation="20 MB",
+        compression="zip",
+    )
 
 
 def save_state(

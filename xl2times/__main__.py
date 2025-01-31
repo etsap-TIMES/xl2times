@@ -495,6 +495,8 @@ def run(args: argparse.Namespace) -> str | None:
     -------
         comparison with ground-truth string if `ground_truth_dir` is provided, else None.
     """
+    utils.setup_logger(args.verbose)
+
     config = Config(
         "times_mapping.txt",
         "times-info.json",
@@ -506,8 +508,6 @@ def run(args: argparse.Namespace) -> str | None:
     )
 
     model = TimesModel()
-
-    logger = utils.get_logger(args.verbose)
 
     if not isinstance(args.input, list) or len(args.input) < 1:
         logger.critical(f"expected at least 1 input. Got {args.input}")
@@ -624,7 +624,7 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
         "-v",
         "--verbose",
         action="count",
-        help="Verbosity. Multiple `-v`s increase the log level. Can also be set on the command line by setting the environment variable `LOGURU_LEVEL`. Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `WARNING`",
+        help="Verbosity. Multiple `-v`s increase the log level. Can also be set on the command line by setting the environment variable `LOGURU_LEVEL`. Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `SUCCESS`",
     )
     args = args_parser.parse_args(arg_list)
     return args

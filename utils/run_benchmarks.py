@@ -14,14 +14,13 @@ from typing import Any
 import git
 import pandas as pd
 import yaml
+from loguru import logger
 from tabulate import tabulate
 
 from xl2times import utils
 from xl2times.__main__ import parse_args, run
 from xl2times.dd_to_csv import main
 from xl2times.utils import max_workers
-
-logger = utils.get_logger(0)
 
 
 def parse_result(output: str) -> tuple[float, int, int]:
@@ -431,6 +430,8 @@ def run_all_benchmarks(
 
 
 if __name__ == "__main__":
+    utils.setup_logger(1)
+
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         "benchmarks_yaml",
