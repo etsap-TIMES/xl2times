@@ -313,8 +313,7 @@ def produce_times_tables(
             df = df.sort_values(by="file_order", kind="stable")
             df = df.drop(columns=["source_filename", "file_order"])
         df = df.drop_duplicates(keep="last")
-        df.reset_index(drop=True, inplace=True)
-        return df
+        return df.reset_index(drop=True)
 
     result = {}
     used_tables = set()

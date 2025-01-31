@@ -1019,7 +1019,7 @@ def process_time_periods(
 ) -> list[EmbeddedXlTable]:
     model.start_year = utils.get_scalar(Tag.start_year, tables)
     active_pdef = utils.get_scalar(Tag.active_p_def, tables)
-    df = utils.single_table(tables, Tag.time_periods).dataframe.copy()
+    df = utils.single_table(tables, Tag.time_periods).dataframe
 
     active_series = df[active_pdef.lower()]
     # Remove empty rows
@@ -1327,7 +1327,7 @@ def include_cgs_in_topology(
         io_map = {"I": "IN", "O": "OUT"}
         suffix_to_cset = {suffix: suffix[:3] for suffix in default_pcg_suffixes}
         suffix_to_io = {suffix: io_map[suffix[3]] for suffix in default_pcg_suffixes}
-        df = reg_prc_veda_pcg.copy()
+        df = reg_prc_veda_pcg
         df["csets"] = df["primarycg"].replace(suffix_to_cset)
         df["io"] = df["primarycg"].replace(suffix_to_io)
         df["commoditygroup"] = df["process"] + "_" + df["primarycg"]
