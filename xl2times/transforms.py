@@ -3367,13 +3367,15 @@ def apply_final_fixup(
         "side",
         "module_name",
         "module_type",
+        "source_filename",
     }
     keep_cols = cols_to_keep.intersection(df.columns)
     df = df.dropna(subset="value")
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
     df = df.drop(columns=drop_cols)
     df = df.drop_duplicates(
-        subset=list(keep_cols.intersection(df.columns)), keep="last"
+        subset=list(keep_cols.intersection(df.columns).difference({"source_filename"})),
+        keep="last",
     )
 
     # Control application of i/e rules from syssettings

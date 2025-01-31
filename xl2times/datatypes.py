@@ -248,7 +248,7 @@ class TimesModel:
     time_periods: DataFrame = field(default_factory=DataFrame)
     units: DataFrame = field(default_factory=DataFrame)
     start_year: int = field(default_factory=int)
-    files: set[str] = field(default_factory=set)
+    files: list[str] = field(default_factory=list)
     data_modules: list[str] = field(default_factory=list)
     custom_sets: DataFrame = field(default_factory=DataFrame)
 

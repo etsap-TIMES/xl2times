@@ -54,6 +54,20 @@ benchmarks:
       - "syssettings"
       - "peak_rsv"
     include_dummy_imports: true
+  - name: DemoS_004a-ie-test
+    input_folder: DemoS_004-test-ie
+    inputs:
+      - "Sets-DemoModels.xlsx"
+      - "VT_REG_PRI_V04.xlsx"
+      - "BY_Trans.xlsx"
+      - "SysSettings.xlsx"
+      - "SuppXLS/Scen_Peak_RSV.xlsx"
+    dd_folder: DemoS_004a-test-ie
+    dd_files:
+      - "base"
+      - "syssettings"
+      - "peak_rsv"
+    include_dummy_imports: true
   - name: DemoS_004b
     input_folder: DemoS_004
     inputs:
