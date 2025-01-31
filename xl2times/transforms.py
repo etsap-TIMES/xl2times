@@ -1792,7 +1792,7 @@ def generate_dummy_processes(
         for col, value in additional_cols.items():
             process_declarations[col] = value
 
-        process_data_specs = process_declarations[["process", "description"]]
+        process_data_specs = process_declarations[["process"]].copy()
         # Provide an empty value in case an upd table is used to provide data
         process_data_specs["ACTCOST"] = ""
 
