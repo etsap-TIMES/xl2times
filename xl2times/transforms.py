@@ -63,10 +63,11 @@ def remove_comment_rows(
     for table in tables:
         tag = Tag(table.tag)
         if tag in config.row_comment_chars:
-            df = table.dataframe
-            _remove_df_comment_rows(df, config.row_comment_chars[tag])
+            table.dataframe = _remove_df_comment_rows(
+                table.dataframe, config.row_comment_chars[tag]
+            )
             # Keep the table if it stays not empty
-            if not df.empty:
+            if not table.dataframe.empty:
                 result.append(table)
             else:
                 continue
@@ -79,9 +80,9 @@ def remove_comment_rows(
 def _remove_df_comment_rows(
     df: DataFrame,
     comment_chars: dict[str, list],
-) -> None:
-    """Modify a dataframe in-place by deleting rows with cells starting with symbols
-    indicating a comment row in any column. Comment row symbols are column name
+) -> DataFrame:
+    """Delete rows with cells starting with symbols indicating a comment row in any
+    column, and return the new DataFrame. Comment row symbols are column name
     dependant and are passed as an additional argument.
 
     Parameters
@@ -90,23 +91,25 @@ def _remove_df_comment_rows(
         Dataframe.
     comment_chars
         Dictionary where keys are column names and values are lists of valid comment symbols
+
+    Returns
+    -------
+    DataFrame
+        Data frame without comment rows.
     """
     comment_rows = set()
 
     for colname in df.columns:
         if colname in comment_chars:
             comment_rows.update(
-                list(
-                    locate(
-                        df[colname],
-                        lambda cell: isinstance(cell, str)
-                        and (cell.startswith(tuple(comment_chars[colname]))),
-                    )
+                locate(
+                    df[colname],
+                    lambda cell: isinstance(cell, str)
+                    and (cell.startswith(tuple(comment_chars[colname]))),
                 )
             )
 
-    df.drop(index=list(comment_rows), inplace=True)
-    df.reset_index(drop=True, inplace=True)
+    return df.drop(index=list(comment_rows)).reset_index(drop=True)
 
 
 def remove_comment_cols(table: EmbeddedXlTable) -> EmbeddedXlTable:
@@ -134,7 +137,7 @@ def remove_comment_cols(table: EmbeddedXlTable) -> EmbeddedXlTable:
     ]
     # Drop comment columns and any resulting empty rows
     df = table.dataframe.drop(comment_cols, axis=1).dropna(axis=0, how="all")
-    df.reset_index(drop=True, inplace=True)
+    df = df.reset_index(drop=True)
     return replace(table, dataframe=df)
 
 
@@ -1020,7 +1023,7 @@ def process_time_periods(
 
     active_series = df[active_pdef.lower()]
     # Remove empty rows
-    active_series.dropna(inplace=True)
+    active_series = active_series.dropna()
 
     df = pd.DataFrame({"d": active_series})
     # Start years = start year, then cumulative sum of period durations
@@ -1335,10 +1338,9 @@ def include_cgs_in_topology(
             on=columns,
         )
         comm_groups = pd.concat([comm_groups, df])
-        comm_groups.drop_duplicates(
+        comm_groups = comm_groups.drop_duplicates(
             subset=["region", "process", "io", "commodity", "csets", "commoditygroup"],
             keep="last",
-            inplace=True,
             ignore_index=True,
         )
 
@@ -1499,7 +1501,7 @@ def complete_model_trade(
     ire_prc = pd.DataFrame(columns=["region", "process"])
     df = model.processes
     ire_prc = pd.concat([ire_prc, df.loc[df["sets"] == "IRE", ["region", "process"]]])
-    ire_prc.drop_duplicates(keep="last", inplace=True)
+    ire_prc = ire_prc.drop_duplicates(keep="last")
 
     # Generate inter-regional exchange topology
     top_ire = model.topology[["region", "process", "commodity", "io"] + list(dm_cols)]
@@ -1514,7 +1516,7 @@ def complete_model_trade(
             pd.DataFrame(model.internal_regions, columns=["region"]), how="cross"
         )
         dummy_ire = dummy_ire.merge(model.topology[["region", "csets", "commodity"]])
-        dummy_ire.drop(columns=["csets"], inplace=True)
+        dummy_ire = dummy_ire.drop(columns=["csets"])
         dummy_ire["io"] = "OUT"
         top_ire = pd.concat([top_ire, dummy_ire])
 
@@ -1535,8 +1537,8 @@ def complete_model_trade(
     top_ire.loc[is_imp_or_min, ["destination"]] = top_ire["region"].loc[is_imp_or_min]
     top_ire.loc[is_exp, ["origin"]] = top_ire["region"].loc[is_exp]
     top_ire.loc[is_exp, ["destination"]] = top_ire["region2"].loc[is_exp]
-    top_ire.drop(columns=["region", "region2", "sets", "io"], inplace=True)
-    top_ire.drop_duplicates(keep="first", inplace=True, ignore_index=True)
+    top_ire = top_ire.drop(columns=["region", "region2", "sets", "io"])
+    top_ire = top_ire.drop_duplicates(keep="first", ignore_index=True)
 
     model.trade = pd.concat([top_ire, model.trade]).reset_index(drop=True)
 
@@ -1563,7 +1565,7 @@ def fill_in_missing_pcgs(
         default_pcgs["DefaultVedaPCG"] == 1,
         ["region", "process", "commoditygroup"],
     ]
-    default_pcgs.rename(columns={"commoditygroup": "primarycg"}, inplace=True)
+    default_pcgs = default_pcgs.rename(columns={"commoditygroup": "primarycg"})
     default_pcgs = pd.merge(
         default_pcgs,
         df.loc[df["primarycg"].isna(), df.columns != "primarycg"],
@@ -1571,10 +1573,9 @@ def fill_in_missing_pcgs(
     )
     df = pd.concat([df, default_pcgs])
     # Keep last if a row appears more than once (disregard primarycg)
-    df.drop_duplicates(
+    df = df.drop_duplicates(
         subset=[c for c in df.columns if c != "primarycg"],
         keep="last",
-        inplace=True,
     )
 
     model.processes = df
@@ -1628,12 +1629,12 @@ def convert_com_tables(
             # Remove columns that are not allowed
             # TODO: Base this on the config file instead
             remove_cols = ["region", "year"]
-            df.drop(columns=remove_cols, errors="ignore", inplace=True)
+            df = df.drop(columns=remove_cols, errors="ignore")
             data_columns = [
                 colname for colname in df.columns if colname != index_column
             ]
             df, names = utils.explode(df, data_columns)
-            df.rename(columns={"value": info["attribute"]}, inplace=True)
+            df = df.rename(columns={"value": info["attribute"]})
             df[other_column] = names
             df[other_column] = df[other_column].str.upper()
 
@@ -1724,7 +1725,7 @@ def create_model_topology(
         value_name="commodity",
     )
 
-    topology.replace(
+    topology = topology.replace(
         {
             "io": {
                 "commodity-in": "IN",
@@ -1733,12 +1734,11 @@ def create_model_topology(
                 "commodity-out-aux": "OUT-A",
             }
         },
-        inplace=True,
     )
-    topology.dropna(how="any", subset=["process", "commodity"], inplace=True)
-    topology.drop_duplicates(keep="first", inplace=True)
+    topology = topology.dropna(how="any", subset=["process", "commodity"])
+    topology = topology.drop_duplicates(keep="first")
     # Populate region column if missing
-    topology.fillna({"region": ",".join(model.internal_regions)}, inplace=True)
+    topology = topology.fillna({"region": ",".join(model.internal_regions)})
     # Check if dataframe contains entries with commas
     df = topology.map(_has_comma)
     cols_with_comma = [col for col in df.columns if df[col].any()]
@@ -1824,13 +1824,13 @@ def process_tradelinks(
             sheetname = table.sheetname.lower()
             comm = df.columns[0]
             destinations = [c for c in df.columns if c != comm]
-            df.rename(columns={comm: "origin"}, inplace=True)
+            df = df.rename(columns={comm: "origin"})
             df = pd.melt(
                 df, id_vars=["origin"], value_vars=destinations, var_name="destination"
             )
             df = df[df["value"] == 1].drop(columns=["value"])
             df["destination"] = df["destination"].str.upper()
-            df.drop_duplicates(keep="first", inplace=True)
+            df = df.drop_duplicates(keep="first")
 
             if sheetname == "uni":
                 df["tradelink"] = "u"
@@ -1842,8 +1842,8 @@ def process_tradelinks(
                 td_type = (
                     df.groupby(["regions"])["tradelink"].agg("count").reset_index()
                 )
-                td_type.replace({"tradelink": {1: "u", 2: "b"}}, inplace=True)
-                df.drop(columns=["tradelink"], inplace=True)
+                td_type = td_type.replace({"tradelink": {1: "u", 2: "b"}})
+                df = df.drop(columns=["tradelink"])
                 df = df.merge(td_type, how="inner", on="regions")
 
             # Add a column containing linked regions (directionless for bidirectional links)
@@ -1857,14 +1857,12 @@ def process_tradelinks(
             )
 
             # Drop tradelink (bidirectional) duplicates
-            df.drop_duplicates(
-                subset=["regions", "tradelink"], keep="last", inplace=True
-            )
-            df.drop(columns=["regions"], inplace=True)
+            df = df.drop_duplicates(subset=["regions", "tradelink"], keep="last")
+            df = df.drop(columns=["regions"])
             df["comm"] = comm.upper()
             df["comm1"] = df["comm"]
             df["comm2"] = df["comm"]
-            df.rename(columns={"origin": "reg1", "destination": "reg2"}, inplace=True)
+            df = df.rename(columns={"origin": "reg1", "destination": "reg2"})
             # Use Veda approach to naming of trade processes
             df["process"] = df.apply(
                 lambda row: "T"
@@ -2053,7 +2051,7 @@ def process_transform_tables(
                 for col_name in df.columns
                 if col_name not in known_columns | {"region", "value"}
             ]
-            df.drop(columns=unknown_columns, inplace=True)
+            df = df.drop(columns=unknown_columns)
 
             result.append(replace(table, dataframe=df))
         else:
@@ -2813,8 +2811,8 @@ def process_time_slices(
                     ]
                 )
 
-            ts_maps.drop_duplicates(keep="first", inplace=True)
-            ts_maps.sort_values(by=list(ts_maps.columns), inplace=True)
+            ts_maps = ts_maps.drop_duplicates(keep="first")
+            ts_maps = ts_maps.sort_values(by=list(ts_maps.columns))
 
         model.ts_map = DataFrame(ts_maps).dropna(ignore_index=True)
         model.ts_tslvl = DataFrame(ts_groups).dropna(ignore_index=True)
@@ -2865,8 +2863,7 @@ def convert_aliases(
     for table_type, df in tables.items():
         if "attribute" in df.columns:
             df["original_attr"] = df["attribute"]
-            df.replace({"attribute": replacement_dict}, inplace=True)
-        tables[table_type] = df
+            tables[table_type] = df.replace({"attribute": replacement_dict})
 
     return tables
 
@@ -2970,7 +2967,7 @@ def assign_model_attributes(
                 df["tslvl"] = df["timeslice"]
                 df = df.merge(ts_list, on=["region", "tslvl"], how="left")
                 df.loc[index, "timeslice"] = df["ts"][index]
-                df.drop(columns=["tslvl", "ts"], inplace=True)
+                df = df.drop(columns=["tslvl", "ts"])
                 # Explode timeslice column
                 df = df.explode("timeslice", ignore_index=True)
         model.uc_attributes = df
@@ -3038,7 +3035,7 @@ def enforce_availability(
     Remove indication of auxillary flows from model topology.
     """
     mapping = {"IN-A": "IN", "OUT-A": "OUT"}
-    model.topology.replace({"io": mapping}, inplace=True)
+    model.topology = model.topology.replace({"io": mapping})
 
     if Tag.tfm_ava in tables:
         modules_with_ava = set(tables[Tag.tfm_ava]["module_name"])
@@ -3155,15 +3152,15 @@ def complete_processes(
         how="left",
     )
     # Remove unnecessary columns
-    undeclared_td.drop(columns=["commodity"], inplace=True)
+    undeclared_td = undeclared_td.drop(columns=["commodity"])
     # Rename to match columns in model.processes
-    undeclared_td.rename(
-        columns={"csets": "primarycg", "ctslvl": "tslvl", "unit": "tact"}, inplace=True
+    undeclared_td = undeclared_td.rename(
+        columns={"csets": "primarycg", "ctslvl": "tslvl", "unit": "tact"}
     )
     # Specify expected set
     undeclared_td["sets"] = "IRE"
     # Remove full duplicates in case generated
-    undeclared_td.drop_duplicates(keep="last", inplace=True)
+    undeclared_td = undeclared_td.drop_duplicates(keep="last")
     # TODO: Handle possible confilicting input
     # Print warnings in case of conflicting input data
     for i in ["primarycg", "tslvl", "tact"]:
@@ -3238,12 +3235,12 @@ def apply_final_fixup(
     if any(i_com_na):
         comm_rp = reg_com_flows.groupby(["region", "process"]).agg(set)
         comm_rp["commodity"] = comm_rp["commodity"].str.join(",")
-        df.set_index(["region", "process"], inplace=True)
+        df = df.set_index(["region", "process"])
         i_cost = df["original_attr"] == "COST"
         df.loc[i_cost, "commodity"] = df["commodity"][i_cost].fillna(
             comm_rp["commodity"].to_dict()
         )
-        df.reset_index(inplace=True)
+        df = df.reset_index()
 
     # Handle PRC_RESID specified for a single year
     stock_index = (df["attribute"] == "PRC_RESID") & df["process"].notna()
@@ -3310,7 +3307,7 @@ def apply_final_fixup(
             stock_rows["year"] = stock_rows["year"] + stock_rows["value"]
             # Specify stock value zero
             stock_rows["value"] = 0
-            stock_rows.reset_index(inplace=True)
+            stock_rows = stock_rows.reset_index()
             df_list.append(stock_rows)
 
         df = pd.concat(df_list)
@@ -3372,9 +3369,9 @@ def apply_final_fixup(
         "module_type",
     }
     keep_cols = cols_to_keep.intersection(df.columns)
-    df.dropna(subset="value", inplace=True)
+    df = df.dropna(subset="value")
     drop_cols = [col for col in df.columns if col != "value" and col not in keep_cols]
-    df.drop(columns=drop_cols, inplace=True)
+    df = df.drop(columns=drop_cols)
     df = df.drop_duplicates(
         subset=list(keep_cols.intersection(df.columns)), keep="last"
     )
@@ -3403,11 +3400,11 @@ def apply_final_fixup(
     if Tag.uc_t in tables.keys():
         df = tables[Tag.uc_t]
         keep_cols = cols_to_keep.intersection(df.columns)
-        df.dropna(subset="value", inplace=True)
+        df = df.dropna(subset="value")
         drop_cols = [
             col for col in df.columns if col != "value" and col not in keep_cols
         ]
-        df.drop(columns=drop_cols, inplace=True)
+        df = df.drop(columns=drop_cols)
         df = df.drop_duplicates(
             subset=list(keep_cols.intersection(df.columns)), keep="last"
         )
