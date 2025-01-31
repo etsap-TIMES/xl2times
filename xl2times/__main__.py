@@ -336,8 +336,7 @@ def produce_times_tables(
                     # TODO break this loop and continue outer loop?
                 filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
-                # Ensure that df is not a view, so that we can modify it further on
-                df = df[i].copy()
+                df = df[i]
             if not all(c in df.columns for c in mapping.xl_cols):
                 missing = set(mapping.xl_cols).difference(df.columns)
                 logger.warning(
@@ -346,6 +345,8 @@ def produce_times_tables(
                     f" - {', '.join(missing)}"
                 )
             else:
+                # Ensure that df is not a view
+                df = df.reset_index(drop=True)
                 # Excel columns can be duplicated into multiple Times columns
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
