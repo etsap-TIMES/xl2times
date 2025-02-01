@@ -354,7 +354,7 @@ def normalize_column_aliases(
                 columns=config.column_aliases[tag], errors="ignore"
             )
         else:
-            logger.warning(f"could not find {tag.value} in config.column_aliases")
+            logger.info(f"WARNING: could not find {tag.value} in config.column_aliases")
         if len(set(table.dataframe.columns)) > len(table.dataframe.columns):
             raise ValueError(
                 f"Table has duplicate column names (after normalization): {table}"

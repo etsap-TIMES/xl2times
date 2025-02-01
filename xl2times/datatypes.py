@@ -602,8 +602,8 @@ class Config:
         tags = {to_tag(tag_info["tag_name"]) for tag_info in veda_tags_info}
         for tag in Tag:
             if tag not in tags:
-                logger.warning(
-                    f"datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
+                logger.info(
+                    f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
                 )
 
         valid_column_names = {}
