@@ -305,7 +305,7 @@ def produce_times_tables(
     mappings = [
         m
         for m in config.times_xl_maps
-        if m.times_name in defined_pars or m.xl_name not in par_tables
+        if m.xl_name not in par_tables or m.filter_rows.get("attribute") in defined_pars
     ]
 
     def keep_last_by_file_order(df):

@@ -3142,18 +3142,6 @@
     ]
   },
   {
-    "name": "PRC_DSCNCAP",
-    "gams-cat": "md-set",
-    "indexes": [
-      "R",
-      "P"
-    ],
-    "mapping": [
-      "region",
-      "process"
-    ]
-  },
-  {
     "name": "PRC_FOFF",
     "gams-cat": "md-set",
     "indexes": [
