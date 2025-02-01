@@ -10,7 +10,7 @@ from xl2times.transforms import (
     process_map,
 )
 
-logger = utils.get_logger()
+utils.setup_logger(None)
 
 pd.set_option("display.max_rows", 20)
 pd.set_option("display.max_columns", 20)
@@ -28,7 +28,9 @@ class TestTransforms:
             }
         )
         df2 = transforms.explode_process_commodity_cols(
-            None, {"name": df.copy()}, None  # pyright: ignore
+            None,  # pyright: ignore
+            {"name": df.copy()},
+            None,  # pyright: ignore
         )
         correct = DataFrame(
             {
