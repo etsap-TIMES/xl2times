@@ -27,7 +27,7 @@ After installation, run the following command to see the basic usage and availab
 xl2times --help
 ```
 
-Here is an example invocation to convert the Demo 1 model into DD (you need to have the benchmarks set up, see [below](#running-benchmarks)):
+Here is an example invocation to convert the Demo 1 model into DD (you need to have the benchmarks set up, see the "Running Benchmarks" section below):
 ```sh
 xl2times benchmarks/xlsx/DemoS_001/
 ```
