@@ -130,7 +130,14 @@ class DataModule(str, Enum):
     def module_name(cls, path: str) -> str | None:
         module_type = cls.determine_type(path)
         match module_type:
-            case DataModule.base | DataModule.sets | DataModule.lma | DataModule.demand | DataModule.trade | DataModule.syssettings:
+            case (
+                DataModule.base
+                | DataModule.sets
+                | DataModule.lma
+                | DataModule.demand
+                | DataModule.trade
+                | DataModule.syssettings
+            ):
                 return module_type.name.upper()
             case DataModule.subres:
                 return re.sub(
@@ -295,8 +302,8 @@ class TimesModel:
         cols = ["region", "process", "commodity", "csets"]
         # Exclude auxillary flows
         index = self.topology["io"].isin({"IN", "OUT"})
-        veda_cgs = self.topology[cols + ["io"]][index].copy()
-        veda_cgs.drop_duplicates(subset=cols, keep="last", inplace=True)
+        veda_cgs = self.topology[cols + ["io"]][index]
+        veda_cgs = veda_cgs.drop_duplicates(subset=cols, keep="last")
         veda_cgs["veda_cg"] = veda_cgs["csets"] + veda_cgs["io"].str[:1]
         veda_cgs = veda_cgs.set_index(["region", "process", "commodity"])[
             "veda_cg"
@@ -565,9 +572,7 @@ class Config:
                     dropped.append(line)
 
         if len(dropped) > 0:
-            logger.warning(
-                f"Dropping {len(dropped)} mappings that are not yet complete"
-            )
+            logger.info(f"Dropping {len(dropped)} mappings that are not yet complete")
         return mappings
 
     @staticmethod
@@ -597,8 +602,8 @@ class Config:
         tags = {to_tag(tag_info["tag_name"]) for tag_info in veda_tags_info}
         for tag in Tag:
             if tag not in tags:
-                logger.warning(
-                    f"datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
+                logger.info(
+                    f"WARNING: datatypes.Tag has an unknown Tag {tag} not in {veda_tags_file}"
                 )
 
         valid_column_names = {}

@@ -7,18 +7,18 @@ import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timedelta
+from io import StringIO
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 from pandas.core.frame import DataFrame
-
-from xl2times.utils import max_workers
 
 from . import excel, transforms, utils
 from .datatypes import Config, DataModule, EmbeddedXlTable, TimesModel
 
-logger = utils.get_logger()
+_log_sep = "=" * 80 + "\n"
 
 
 cache_dir = Path.home() / ".cache/xl2times/"
@@ -77,13 +77,12 @@ def convert_xl_to_times(
     config: Config,
     model: TimesModel,
     no_cache: bool,
-    verbose: bool = False,
     stop_after_read: bool = False,
 ) -> dict[str, DataFrame]:
     start_time = datetime.now()
 
     invalidate_cache()
-    with ProcessPoolExecutor(max_workers) as executor:
+    with ProcessPoolExecutor(utils.max_workers) as executor:
         raw_tables = executor.map(
             excel.extract_tables if no_cache else _read_xlsx_cached, input_files
         )
@@ -129,14 +128,14 @@ def convert_xl_to_times(
         transforms.process_transform_availability,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
-        transforms.process_tradelinks,
+        transforms.harmonise_tradelinks,
         transforms.include_tables_source,
         transforms.process_processes,
         transforms.create_model_topology,
         transforms.fill_in_column_defaults,
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
-        transforms.process_trade_links,
+        transforms.process_tradelinks,
         transforms.merge_tables,
         transforms.remove_invalid_values,
         transforms.include_cgs_in_topology,
@@ -148,7 +147,7 @@ def convert_xl_to_times(
         transforms.enforce_availability,
         transforms.complete_model_trade,
         transforms.create_model_cgs,
-        transforms.apply_fixups,
+        transforms.prepare_for_querying,
         transforms.apply_transform_tables,
         transforms.generate_implied_topology,
         transforms.verify_uc_topology,
@@ -156,11 +155,11 @@ def convert_xl_to_times(
         transforms.apply_final_fixup,
         transforms.assign_model_attributes,
         transforms.resolve_remaining_cgs,
-        transforms.complete_dictionary,
-        transforms.convert_to_string,
         lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
+        transforms.complete_dictionary,
+        transforms.convert_to_string,
         lambda config, tables, model: produce_times_tables(config, tables, model),
     ]
 
@@ -170,20 +169,16 @@ def convert_xl_to_times(
         start_time = time.time()
         output = transform(config, input, model)
         end_time = time.time()
-        sep = "\n\n" + "=" * 80 + "\n" if verbose else ""
+        logger.opt(raw=True).debug(_log_sep)
         logger.info(
-            f"{sep}transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
+            f"transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
-        if verbose:
-            if isinstance(output, list):
-                for table in sorted(
-                    output, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
-                ):
-                    logger.info(table)
-            elif isinstance(output, dict):
-                for tag, df in output.items():
-                    df_str = df.to_csv(index=False, lineterminator="\n")
-                    logger.info(f"{tag}\n{df_str}{df.shape}\n")
+        logger.opt(raw=True).debug(_log_sep)
+        # Way to conditionally evaluate the table dump only on debug log level
+        # https://loguru.readthedocs.io/en/stable/overview.html#lazy-evaluation-of-expensive-functions
+        logger.opt(lazy=True).debug(
+            "All tables:\n{dump}", dump=lambda: _all_table_dump(output)
+        )
         input = output
     assert isinstance(output, dict)
 
@@ -195,6 +190,22 @@ def convert_xl_to_times(
     return output
 
 
+def _all_table_dump(tables: list[EmbeddedXlTable] | dict[str, DataFrame]) -> str:
+    """A dump of current values in all tables, for debugging."""
+    result = StringIO()
+    if isinstance(tables, list):
+        for table in sorted(
+            tables, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
+        ):
+            result.write(str(table))
+            result.write("\n")
+    elif isinstance(tables, dict):
+        for tag, df in tables.items():
+            df_str = df.to_csv(index=False, lineterminator="\n")
+            result.write(f"{tag}\n{df_str}{df.shape}\n")
+    return result.getvalue()
+
+
 def write_csv_tables(tables: dict[str, DataFrame], output_dir: str):
     os.makedirs(output_dir, exist_ok=True)
     for item in os.listdir(output_dir):
@@ -202,6 +213,9 @@ def write_csv_tables(tables: dict[str, DataFrame], output_dir: str):
             os.remove(os.path.join(output_dir, item))
     for tablename, df in tables.items():
         df.to_csv(os.path.join(output_dir, tablename + "_output.csv"), index=False)
+    logger.success(
+        f"Excel files successfully converted to CSV and written to {output_dir}"
+    )
 
 
 def read_csv_tables(input_dir: str) -> dict[str, DataFrame]:
@@ -225,14 +239,14 @@ def compare(
         [f"{x} ({ground_truth[x].shape[0]})" for x in sorted(missing)]
     )
     if len(missing) > 0:
-        logger.warning(f"Missing {len(missing)} tables: {missing_str}")
+        logger.info(f"Missing {len(missing)} tables: {missing_str}")
 
     additional_tables = set(data.keys()).difference(ground_truth.keys())
     additional_str = ", ".join(
         [f"{x} ({data[x].shape[0]})" for x in sorted(additional_tables)]
     )
     if len(additional_tables) > 0:
-        logger.warning(f"{len(additional_tables)} additional tables: {additional_str}")
+        logger.info(f"{len(additional_tables)} additional tables: {additional_str}")
     # Additional rows starts as the sum of lengths of additional tables produced
     total_additional_rows = sum(len(data[x]) for x in additional_tables)
 
@@ -248,7 +262,7 @@ def compare(
             transformed_gt_cols = [col.split(".")[0] for col in gt_table.columns]
             data_cols = list(data_table.columns)
             if transformed_gt_cols != data_cols:
-                logger.warning(
+                logger.info(
                     f"Table {table_name} header incorrect, was"
                     f" {data_cols}, should be {transformed_gt_cols}"
                 )
@@ -262,7 +276,7 @@ def compare(
             total_additional_rows += len(additional)
             missing = gt_rows.difference(data_rows)
             if len(additional) != 0 or len(missing) != 0:
-                logger.warning(
+                logger.info(
                     f"Table {table_name} ({data_table.shape[0]} rows,"
                     f" {gt_table.shape[0]} GT rows) contains {len(additional)}"
                     f" additional rows and is missing {len(missing)} rows"
@@ -283,7 +297,7 @@ def compare(
         f", {total_additional_rows} additional rows"
     )
 
-    logger.info(result)
+    logger.success(result)
     return result
 
 
@@ -297,6 +311,16 @@ def produce_times_tables(
     file_order = defaultdict(lambda: -1)
     for i, f in enumerate(model.files):
         file_order[f] = i
+    # Keep only those mappings for which parameters that are defined in the input
+    par_tables = {"Attributes", "UCAttributes"}.intersection(input.keys())
+    defined_pars = set()
+    for table in par_tables:
+        defined_pars = defined_pars.union(set(input[table]["attribute"]))
+    mappings = [
+        m
+        for m in config.times_xl_maps
+        if m.xl_name not in par_tables or m.filter_rows.get("attribute") in defined_pars
+    ]
 
     def keep_last_by_file_order(df):
         """Drop duplicate rows, keeping the last dupicate row (including value) as per
@@ -313,46 +337,47 @@ def produce_times_tables(
             df = df.sort_values(by="file_order", kind="stable")
             df = df.drop(columns=["source_filename", "file_order"])
         df = df.drop_duplicates(keep="last")
-        df.reset_index(drop=True, inplace=True)
-        return df
+        return df.reset_index(drop=True)
 
     result = {}
     used_tables = set()
-    for mapping in config.times_xl_maps:
+    for mapping in mappings:
         if mapping.xl_name not in input:
-            logger.warning(
+            logger.info(
                 f"Cannot produce table {mapping.times_name} because"
                 f" {mapping.xl_name} does not exist"
             )
         else:
             used_tables.add(mapping.xl_name)
-            df = input[mapping.xl_name].copy()
+            df = input[mapping.xl_name]
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
-                    logger.warning(
+                    logger.info(
                         f"Cannot produce table {mapping.times_name} because"
                         f" {mapping.xl_name} does not contain column {filter_col}"
                     )
                     # TODO break this loop and continue outer loop?
                 filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
-                df = df.loc[i, :]
-            if not all(c in df.columns for c in mapping.xl_cols):
+                df = df[i]
+            if not set(mapping.xl_cols).issubset(df.columns):
                 missing = set(mapping.xl_cols).difference(df.columns)
-                logger.warning(
+                logger.info(
                     f"Cannot produce table {mapping.times_name} because"
                     f" {mapping.xl_name} does not contain the required columns"
                     f" - {', '.join(missing)}"
                 )
             else:
+                # Ensure that df is not a view
+                df = df.reset_index(drop=True)
                 # Excel columns can be duplicated into multiple Times columns
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 # Keep only the required columns
                 cols_to_keep = set(mapping.times_cols).union({"source_filename"})
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
-                df.drop(columns=cols_to_drop, inplace=True)
+                df = df.drop(columns=cols_to_drop)
                 # Drop duplicates, keeping last seen rows as per file order
                 df = keep_last_by_file_order(df)
                 # Drop rows with missing values
@@ -372,7 +397,7 @@ def produce_times_tables(
 
     unused_tables = set(input.keys()).difference(used_tables)
     if len(unused_tables) > 0:
-        logger.warning(
+        logger.info(
             f"{len(unused_tables)} unused tables: {', '.join(sorted(unused_tables))}"
         )
 
@@ -438,7 +463,10 @@ def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str
                     lines = sorted(lines)
                 fout.writelines(lines)
                 fout.write("\n/;\n")
-    pass
+
+    logger.success(
+        f"Excel files successfully converted to DD and written to {output_dir}"
+    )
 
 
 def strip_filename_prefix(table, prefix):
@@ -484,6 +512,8 @@ def run(args: argparse.Namespace) -> str | None:
     -------
         comparison with ground-truth string if `ground_truth_dir` is provided, else None.
     """
+    utils.setup_logger(args.verbose)
+
     config = Config(
         "times_mapping.txt",
         "times-info.json",
@@ -535,13 +565,12 @@ def run(args: argparse.Namespace) -> str | None:
             config,
             model,
             args.no_cache,
-            verbose=args.verbose,
             stop_after_read=True,
         )
         sys.exit(0)
 
     tables = convert_xl_to_times(
-        input_files, args.output_dir, config, model, args.no_cache, verbose=args.verbose
+        input_files, args.output_dir, config, model, args.no_cache
     )
 
     if args.dd:
@@ -611,8 +640,8 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
     args_parser.add_argument(
         "-v",
         "--verbose",
-        action="store_true",
-        help="Verbose mode: print tables after every transform",
+        action="count",
+        help="Verbosity. Multiple `-v`s increase the log level. Can also be set on the command line by setting the environment variable `LOGURU_LEVEL`. Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `SUCCESS`",
     )
     args = args_parser.parse_args(arg_list)
     return args

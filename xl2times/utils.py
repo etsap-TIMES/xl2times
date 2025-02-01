@@ -12,7 +12,6 @@ from dataclasses import replace
 from math import floor, log10
 from pathlib import Path, PurePath
 
-import loguru
 import numpy
 import pandas as pd
 from loguru import logger
@@ -54,7 +53,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     if not defaults:
         return table
 
-    df = table.dataframe.copy()
+    df = table.dataframe
     # Check for ANSWER-style defaults
     if "=" in defaults:
         # Split multiple comma-separated defaults / make defaults a list
@@ -337,15 +336,42 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
     return list(filtered)
 
 
-def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.Logger:
-    """Return a configured loguru logger.
+def set_log_level(level: int | None) -> str:
+    """Sets the log level, in order of priority, to the provided int `level`, the
+    `LOGURU_LEVEL` environment variable, or `WARNING` by default.
+
+    E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
+    Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and
+    `CRITICAL`. Default is `SUCCESS` which is level `0`, and higher levels are more
+    verbose.
+    """
+    level_map = {
+        3: "TRACE",
+        2: "DEBUG",
+        1: "INFO",
+        0: "SUCCESS",
+        -1: "WARNING",
+        -2: "ERROR",
+        -3: "CRITICAL",
+    }
+    # First priority is argument `level`
+    if level is not None:
+        return level_map[level]
+    # Second, if env var is set, let's roll with that
+    env_level = os.getenv("LOGURU_LEVEL")
+    if env_level is not None:
+        return env_level
+    # Default log level
+    return level_map[0]
+
+
+def setup_logger(
+    level: int | None, log_name: str = default_log_name, log_dir: str = "."
+):
+    """Configure loguru.
 
     Call this once from entrypoints to set up a new logger.
     In non-entrypoint modules, just use `from loguru import logger` directly.
-
-    To set the log level, use the `LOGURU_LEVEL` environment variable before or during runtime.
-    E.g. `os.environ["LOGURU_LEVEL"] = "INFO"`
-    Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `INFO`.
 
     Log file will be written to `f"{log_dir}/{log_name}.log"`
 
@@ -355,43 +381,35 @@ def get_logger(log_name: str = default_log_name, log_dir: str = ".") -> loguru.L
         Name of the log. Corresponding log file will be called {log_name}.log. (Default value = default_log_name)
     log_dir
         Directory to write the log file to. Default is the current working directory.
-
-    Returns
-    -------
-    Logger
-        A configured loguru logger.
     """
-    from loguru import logger
+    log_level = set_log_level(level)
 
-    # set global log level via env var.  Set to INFO if not already set.
-    if os.getenv("LOGURU_LEVEL") is None:
-        os.environ["LOGURU_LEVEL"] = "INFO"
+    base_format = "<cyan>{time:YYYY-MM-DD HH:mm:ss.SSS}</cyan> | <level>{level: >8}</level> : <level>{message}</level>"
+    filename_and_thread = '(<cyan>{name}:{thread.name}:pid-{process}</cyan> "<cyan>{file.path}</cyan>:<cyan>{line}</cyan>")'
+    if level is not None and level > 1:
+        stdout_format = base_format + filename_and_thread
+    else:
+        stdout_format = base_format
 
-    log_conf = {
-        "handlers": [
-            {
-                "sink": sys.stdout,
-                "diagnose": True,
-                "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> : <level>{"
-                "message}</level> (<cyan>{name}:{"
-                'thread.name}:pid-{process}</cyan> "<cyan>{'
-                'file.path}</cyan>:<cyan>{line}</cyan>")',
-            },
-            {
-                "sink": f"{log_dir}/{log_name}.log",
-                "enqueue": True,
-                "mode": "a+",
-                "level": "DEBUG",
-                "colorize": False,
-                "serialize": False,
-                "diagnose": False,
-                "rotation": "20 MB",
-                "compression": "zip",
-            },
-        ],
-    }
-    logger.configure(**log_conf)
-    return logger
+    logger.remove()
+    logger.add(
+        sink=sys.stdout,
+        diagnose=True,
+        level=log_level,
+        format=stdout_format,
+    )
+    logger.add(
+        sink=f"{log_dir}/{log_name}.log",
+        enqueue=True,
+        mode="a+",
+        level="INFO",
+        format=base_format + filename_and_thread,
+        colorize=False,
+        serialize=False,
+        diagnose=False,
+        rotation="20 MB",
+        compression="zip",
+    )
 
 
 def save_state(
@@ -429,7 +447,6 @@ def compare_df_dict(
         number of rows to show around the first difference (Default value = 2)
     """
     for key in df_before:
-
         before = df_before[key]
         after = df_after[key]
 
@@ -438,7 +455,6 @@ def compare_df_dict(
             after = after.sort_index(axis="columns")
 
         if not before.equals(after):
-
             # print first line that is different, and its surrounding lines
             for i in range(len(before)):
                 if not before.columns.equals(after.columns):
