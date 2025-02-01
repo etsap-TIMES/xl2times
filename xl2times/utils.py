@@ -384,23 +384,26 @@ def setup_logger(
     """
     log_level = set_log_level(level)
 
-    if level is not None and level > 0:
-        format = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: >8}</level> : <level>{message}</level> (<cyan>{name}:{thread.name}:pid-{process}</cyan> "<cyan>{file.path}</cyan>:<cyan>{line}</cyan>")'
+    base_format = "<cyan>{time:YYYY-MM-DD HH:mm:ss.SSS}</cyan> | <level>{level: >8}</level> : <level>{message}</level>"
+    filename_and_thread = '(<cyan>{name}:{thread.name}:pid-{process}</cyan> "<cyan>{file.path}</cyan>:<cyan>{line}</cyan>")'
+    if level is not None and level > 1:
+        stdout_format = base_format + filename_and_thread
     else:
-        format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: >8}</level> : <level>{message}</level>"
+        stdout_format = base_format
 
     logger.remove()
     logger.add(
         sink=sys.stdout,
         diagnose=True,
         level=log_level,
-        format=format,
+        format=stdout_format,
     )
     logger.add(
         sink=f"{log_dir}/{log_name}.log",
         enqueue=True,
         mode="a+",
         level="INFO",
+        format=base_format + filename_and_thread,
         colorize=False,
         serialize=False,
         diagnose=False,
