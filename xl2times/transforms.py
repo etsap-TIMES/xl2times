@@ -1093,6 +1093,7 @@ def complete_dictionary(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
+    tables = dict()
     for k, v in [
         ("AllRegions", model.all_regions),
         ("Regions", model.internal_regions),
