@@ -175,8 +175,10 @@ def convert_xl_to_times(
         )
         logger.opt(raw=True).debug(_log_sep)
         # Way to conditionally evaluate the table dump only on debug log level
-        # https://github.com/Delgan/loguru/issues/402#issuecomment-2028011786
-        logger.opt(lazy=True, raw=True).debug(_all_table_dump(output))
+        # https://loguru.readthedocs.io/en/stable/overview.html#lazy-evaluation-of-expensive-functions
+        logger.opt(lazy=True).debug(
+            "All tables:\n{dump}", dump=lambda: _all_table_dump(output)
+        )
         input = output
     assert isinstance(output, dict)
 
