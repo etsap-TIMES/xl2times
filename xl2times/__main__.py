@@ -128,14 +128,14 @@ def convert_xl_to_times(
         transforms.process_transform_availability,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
-        transforms.process_tradelinks,
+        transforms.harmonise_tradelinks,
         transforms.include_tables_source,
         transforms.process_processes,
         transforms.create_model_topology,
         transforms.fill_in_column_defaults,
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
-        transforms.process_trade_links,
+        transforms.process_tradelinks,
         transforms.merge_tables,
         transforms.remove_invalid_values,
         transforms.include_cgs_in_topology,
@@ -147,7 +147,7 @@ def convert_xl_to_times(
         transforms.enforce_availability,
         transforms.complete_model_trade,
         transforms.create_model_cgs,
-        transforms.apply_fixups,
+        transforms.prepare_for_querying,
         transforms.apply_transform_tables,
         transforms.generate_implied_topology,
         transforms.verify_uc_topology,
@@ -155,11 +155,11 @@ def convert_xl_to_times(
         transforms.apply_final_fixup,
         transforms.assign_model_attributes,
         transforms.resolve_remaining_cgs,
-        transforms.complete_dictionary,
-        transforms.convert_to_string,
         lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
+        transforms.complete_dictionary,
+        transforms.convert_to_string,
         lambda config, tables, model: produce_times_tables(config, tables, model),
     ]
 
@@ -309,6 +309,16 @@ def produce_times_tables(
     file_order = defaultdict(lambda: -1)
     for i, f in enumerate(model.files):
         file_order[f] = i
+    # Keep only those mappings for which parameters that are defined in the input
+    par_tables = {"Attributes", "UCAttributes"}.intersection(input.keys())
+    defined_pars = set()
+    for table in par_tables:
+        defined_pars = defined_pars.union(set(input[table]["attribute"]))
+    mappings = [
+        m
+        for m in config.times_xl_maps
+        if m.xl_name not in par_tables or m.filter_rows.get("attribute") in defined_pars
+    ]
 
     def keep_last_by_file_order(df):
         """Drop duplicate rows, keeping the last dupicate row (including value) as per
@@ -325,12 +335,11 @@ def produce_times_tables(
             df = df.sort_values(by="file_order", kind="stable")
             df = df.drop(columns=["source_filename", "file_order"])
         df = df.drop_duplicates(keep="last")
-        df.reset_index(drop=True, inplace=True)
-        return df
+        return df.reset_index(drop=True)
 
     result = {}
     used_tables = set()
-    for mapping in config.times_xl_maps:
+    for mapping in mappings:
         if mapping.xl_name not in input:
             logger.info(
                 f"Cannot produce table {mapping.times_name} because"
@@ -338,7 +347,7 @@ def produce_times_tables(
             )
         else:
             used_tables.add(mapping.xl_name)
-            df = input[mapping.xl_name].copy()
+            df = input[mapping.xl_name]
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
@@ -349,8 +358,8 @@ def produce_times_tables(
                     # TODO break this loop and continue outer loop?
                 filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
-                df = df.loc[i, :]
-            if not all(c in df.columns for c in mapping.xl_cols):
+                df = df[i]
+            if not set(mapping.xl_cols).issubset(df.columns):
                 missing = set(mapping.xl_cols).difference(df.columns)
                 logger.info(
                     f"Cannot produce table {mapping.times_name} because"
@@ -358,13 +367,15 @@ def produce_times_tables(
                     f" - {', '.join(missing)}"
                 )
             else:
+                # Ensure that df is not a view
+                df = df.reset_index(drop=True)
                 # Excel columns can be duplicated into multiple Times columns
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 # Keep only the required columns
                 cols_to_keep = set(mapping.times_cols).union({"source_filename"})
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
-                df.drop(columns=cols_to_drop, inplace=True)
+                df = df.drop(columns=cols_to_drop)
                 # Drop duplicates, keeping last seen rows as per file order
                 df = keep_last_by_file_order(df)
                 # Drop rows with missing values

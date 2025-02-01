@@ -170,7 +170,7 @@ def extract_table(
             # Make all columns names strings as some are integers e.g. years
             table_df.columns = [str(x) for x in df.iloc[header_row, start_col:end_col]]
 
-    table_df.reset_index(drop=True, inplace=True)
+    table_df = table_df.reset_index(drop=True)
 
     # Don't use applymap because it can convert ints to floats
     # https://pandas.pydata.org/pandas-docs/stable/user_guide/gotchas.html#gotchas-intna

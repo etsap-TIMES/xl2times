@@ -53,7 +53,7 @@ def apply_composite_tag(table: datatypes.EmbeddedXlTable) -> datatypes.EmbeddedX
     if not defaults:
         return table
 
-    df = table.dataframe.copy()
+    df = table.dataframe
     # Check for ANSWER-style defaults
     if "=" in defaults:
         # Split multiple comma-separated defaults / make defaults a list
