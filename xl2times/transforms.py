@@ -1093,6 +1093,7 @@ def complete_dictionary(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
+    tables = dict()
     for k, v in [
         ("AllRegions", model.all_regions),
         ("Regions", model.internal_regions),
@@ -1294,12 +1295,13 @@ def include_cgs_in_topology(
     """Include commodity groups in model topology."""
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
     columns = ["region", "process", "primarycg"]
-    reg_prc_pcg = tables[Tag.fi_process][columns].drop_duplicates(keep="last")
-
+    i = tables[Tag.fi_process]["primarycg"].isin(default_pcg_suffixes)
     # DataFrame with Veda PCGs specified in the process declaration tables
-    reg_prc_veda_pcg = reg_prc_pcg.loc[
-        reg_prc_pcg["primarycg"].isin(default_pcg_suffixes)
-    ]
+    reg_prc_veda_pcg = (
+        tables[Tag.fi_process]
+        .loc[i, columns]
+        .drop_duplicates(keep="last", ignore_index=True)
+    )
 
     # Extract commodities and their sets by region
     columns = ["region", "csets", "commodity"]
@@ -1791,7 +1793,7 @@ def generate_dummy_processes(
         for col, value in additional_cols.items():
             process_declarations[col] = value
 
-        process_data_specs = process_declarations[["process", "description"]]
+        process_data_specs = process_declarations[["process"]].copy()
         # Provide an empty value in case an upd table is used to provide data
         process_data_specs["ACTCOST"] = ""
 

@@ -156,11 +156,11 @@ def convert_xl_to_times(
         transforms.apply_final_fixup,
         transforms.assign_model_attributes,
         transforms.resolve_remaining_cgs,
-        transforms.complete_dictionary,
-        transforms.convert_to_string,
         lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
+        transforms.complete_dictionary,
+        transforms.convert_to_string,
         lambda config, tables, model: produce_times_tables(config, tables, model),
     ]
 
@@ -297,6 +297,16 @@ def produce_times_tables(
     file_order = defaultdict(lambda: -1)
     for i, f in enumerate(model.files):
         file_order[f] = i
+    # Keep only those mappings for which parameters that are defined in the input
+    par_tables = {"Attributes", "UCAttributes"}.intersection(input.keys())
+    defined_pars = set()
+    for table in par_tables:
+        defined_pars = defined_pars.union(set(input[table]["attribute"]))
+    mappings = [
+        m
+        for m in config.times_xl_maps
+        if m.xl_name not in par_tables or m.filter_rows.get("attribute") in defined_pars
+    ]
 
     def keep_last_by_file_order(df):
         """Drop duplicate rows, keeping the last dupicate row (including value) as per
@@ -317,7 +327,7 @@ def produce_times_tables(
 
     result = {}
     used_tables = set()
-    for mapping in config.times_xl_maps:
+    for mapping in mappings:
         if mapping.xl_name not in input:
             logger.warning(
                 f"Cannot produce table {mapping.times_name} because"
@@ -336,8 +346,8 @@ def produce_times_tables(
                     # TODO break this loop and continue outer loop?
                 filter = set(x.lower() for x in (filter_val,))
                 i = df[filter_col].str.lower().isin(filter)
-                df = df.loc[i, :]
-            if not all(c in df.columns for c in mapping.xl_cols):
+                df = df[i]
+            if not set(mapping.xl_cols).issubset(df.columns):
                 missing = set(mapping.xl_cols).difference(df.columns)
                 logger.warning(
                     f"Cannot produce table {mapping.times_name} because"
@@ -345,6 +355,8 @@ def produce_times_tables(
                     f" - {', '.join(missing)}"
                 )
             else:
+                # Ensure that df is not a view
+                df = df.reset_index(drop=True)
                 # Excel columns can be duplicated into multiple Times columns
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
