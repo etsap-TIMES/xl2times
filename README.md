@@ -66,7 +66,7 @@ python xl2times/dd_to_csv.py "C:\VEDA\GAMS_WrkTIMES\My_Bulk_Test" ground_truth
 
 Finally, execute the tool on the model (e.g. `My_TIMES-Model`) and compare the results to the previously extracted data (assumes activated virtual environment):
 ```bash
-xl2times "C:\VEDA\VEDA_Models\My_TIMES-Model"  --ground_truth_dir=ground_truth
+xl2times "C:\VEDA\VEDA_Models\My_TIMES-Model"  --ground_truth_dir=ground_truth -v
 ```
 
 The tool will summarise any differences between the data it generates and the extracted data.
