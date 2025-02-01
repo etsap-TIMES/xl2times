@@ -7,6 +7,7 @@ import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timedelta
+from io import StringIO
 from pathlib import Path
 
 import numpy as np
@@ -17,7 +18,7 @@ from pandas.core.frame import DataFrame
 from . import excel, transforms, utils
 from .datatypes import Config, DataModule, EmbeddedXlTable, TimesModel
 
-_log_sep = "\n\n" + "=" * 80 + "\n"
+_log_sep = "=" * 80 + "\n"
 
 
 cache_dir = Path.home() / ".cache/xl2times/"
@@ -172,9 +173,10 @@ def convert_xl_to_times(
         logger.info(
             f"transform {transform.__code__.co_name} took {end_time - start_time:.2f} seconds"
         )
+        logger.opt(raw=True).debug(_log_sep)
         # Way to conditionally evaluate the table dump only on debug log level
         # https://github.com/Delgan/loguru/issues/402#issuecomment-2028011786
-        logger.opt(lazy=True, raw=True).debug(_log_all_tables(output))
+        logger.opt(lazy=True, raw=True).debug(_all_table_dump(output))
         input = output
     assert isinstance(output, dict)
 
@@ -186,18 +188,20 @@ def convert_xl_to_times(
     return output
 
 
-def _log_all_tables(tables: list[EmbeddedXlTable] | dict[str, DataFrame]) -> str:
-    """Write current values in all tables to the log for debugging."""
+def _all_table_dump(tables: list[EmbeddedXlTable] | dict[str, DataFrame]) -> str:
+    """A dump of current values in all tables, for debugging."""
+    result = StringIO()
     if isinstance(tables, list):
         for table in sorted(
             tables, key=lambda t: (t.tag, t.filename, t.sheetname, t.range)
         ):
-            logger.opt(raw=True).debug(table)
+            result.write(str(table))
+            result.write("\n")
     elif isinstance(tables, dict):
         for tag, df in tables.items():
             df_str = df.to_csv(index=False, lineterminator="\n")
-            logger.opt(raw=True).debug(f"{tag}\n{df_str}{df.shape}\n")
-    return _log_sep
+            result.write(f"{tag}\n{df_str}{df.shape}\n")
+    return result.getvalue()
 
 
 def write_csv_tables(tables: dict[str, DataFrame], output_dir: str):
