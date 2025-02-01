@@ -27,6 +27,14 @@ After installation, run the following command to see the basic usage and availab
 xl2times --help
 ```
 
+Here is an example invocation to convert the Demo 1 model into DD (you need to have the benchmarks set up, see the "Running Benchmarks" section below):
+```sh
+xl2times benchmarks/xlsx/DemoS_001/
+```
+Note that by default, the tool puts the produced output DD files into a directory called `output/` in the current working directory. This behavior can be changed using the `--output_dir /path/to/desired/output/` argument.
+
+> **Note**: If you are running a huge model, and it looks like nothing is happening, try adding a `-v` or `--verbose` argument to see more detailed logs, inlcuding a message when each intermediate transform is completed.
+
 If the tool is installed on Windows, the above commands should be prefixed by `python -m`.
 
 ## Documentation
@@ -142,10 +150,10 @@ If you have a large increase in runtime, a decrease in correct rows or fewer row
 If your change is causing regressions on one of the benchmarks, a useful way to debug and find the difference is to run the tool in verbose mode and compare the intermediate tables. For example, if your branch has regressions on Demo 1:
 ```bash
 # First, on the `main` branch:
-xl2times benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > before 2>&1
+xl2times benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all -v -v > before 2>&1
 # Then, on your branch:
 git checkout my-branch-name
-xl2times benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all --verbose > after 2>&1
+xl2times benchmarks/xlsx/DemoS_001 --output_dir benchmarks/out/DemoS_001-all --ground_truth_dir benchmarks/csv/DemoS_001-all -v -v > after 2>&1
 # And then compare the files `before` and `after`
 code -d before after
 ```

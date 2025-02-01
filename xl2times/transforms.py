@@ -354,7 +354,7 @@ def normalize_column_aliases(
                 columns=config.column_aliases[tag], errors="ignore"
             )
         else:
-            logger.warning(f"could not find {tag.value} in config.column_aliases")
+            logger.info(f"WARNING: could not find {tag.value} in config.column_aliases")
         if len(set(table.dataframe.columns)) > len(table.dataframe.columns):
             raise ValueError(
                 f"Table has duplicate column names (after normalization): {table}"
@@ -424,7 +424,7 @@ def merge_tables(
                     for _, row in df[~index].iterrows():
                         region, sets, process = row[["region", "sets", "process"]]
                         logger.warning(
-                            f"WARNING: Unknown process set {sets} specified for process {process}"
+                            f"Unknown process set {sets} specified for process {process}"
                             f" in region {region}. The record will be dropped."
                         )
                 # Exclude records with non-TIMES sets
@@ -442,7 +442,6 @@ def apply_tag_specified_defaults(
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
-
     return [utils.apply_composite_tag(t) for t in tables]
 
 
@@ -2222,8 +2221,7 @@ def process_wildcards(
     }
 
     for tag in tags:
-        if tag in tqdm(tables, desc=f"Processing wildcards in {tag.value} tables"):
-
+        if tag in tables:
             start_time = time.time()
             df = tables[tag]
 
@@ -2331,7 +2329,6 @@ def query(
     val: int | float | None,
     module: str | list[str] | None,
 ) -> pd.Index:
-
     query_fields = {
         "process": process,
         "commodity": commodity,
