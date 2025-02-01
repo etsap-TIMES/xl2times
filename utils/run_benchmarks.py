@@ -215,8 +215,9 @@ def run_benchmark(
         args += ["--include_dummy_imports"]
     if "regions" in benchmark:
         args.extend(["--regions", benchmark["regions"]])
-    if verbose:
-        args.append("--verbose")
+    # TODO this needs to be uncommented after PR #306 is merged in, otherwise CI will fail
+    # if verbose:
+    #     args.append("--verbose")
     if "inputs" in benchmark:
         args.extend(path.join(xl_folder, b) for b in benchmark["inputs"])
     else:
