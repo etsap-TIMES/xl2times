@@ -285,7 +285,11 @@ class TimesModel:
 
     @property
     def past_years(self) -> set[int]:
-        """Pastyears is the set of all years before start_year for which NCAP_PASTI is specified."""
+        """past_years is the set of all years up to and including start year for which
+        past investments are specified.
+
+        TIMES populates PASTYEAR on its own, so this could be dropped in the future.
+        """
         i = self.attributes["attribute"] == "NCAP_PASTI"
         years = set(self.attributes["year"][i].astype(int).values)
         return {year for year in years if year <= self.start_year}
@@ -293,7 +297,9 @@ class TimesModel:
     @property
     def model_years(self) -> set[int]:
         """model_years is the union of past_years and the representative years of the
-        model (middleyears).
+        model (milestone years).
+
+        TIMES populates MODLYEAR on its own, so this could be dropped in the future.
         """
         return self.past_years | set(self.time_periods["m"].values)
 
