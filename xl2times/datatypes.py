@@ -286,7 +286,8 @@ class TimesModel:
     @property
     def past_years(self) -> set[int]:
         """Pastyears is the set of all years before start_year."""
-        return {x for x in self.data_years if x < self.start_year}
+        i = self.attributes["attribute"] == "NCAP_PASTI"
+        return set(self.attributes["year"][i].astype(int).values)
 
     @property
     def model_years(self) -> set[int]:
