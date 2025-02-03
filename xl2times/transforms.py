@@ -1505,10 +1505,10 @@ def complete_model_trade(
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
     veda_ire_sets = model.custom_sets
 
-    ire_prc = pd.DataFrame(columns=["region", "process"])
-    df = model.processes
-    ire_prc = pd.concat([ire_prc, df.loc[df["sets"] == "IRE", ["region", "process"]]])
-    ire_prc = ire_prc.drop_duplicates(keep="last")
+    # Index of IRE processes in model.processes
+    i = model.processes["sets"] == "IRE"
+    # IRE processes by region
+    ire_prc = model.processes[["region", "process"]][i].drop_duplicates(keep="last")
 
     # Generate inter-regional exchange topology
     top_ire = model.topology[["region", "process", "commodity", "io"] + list(dm_cols)]
