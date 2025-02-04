@@ -864,7 +864,7 @@ def fill_in_column_defaults(
                 # Region dimension is not supported in subres in fi_t and fi_process tables
                 if (
                     module_type == "subres"
-                    and tag in {Tag.fi_t, Tag.fi_process}
+                    and tag in {Tag.fi_t, Tag.fi_process, Tag.fi_comm}
                     and any(~isna)
                 ):
                     logger.warning(
