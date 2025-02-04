@@ -848,9 +848,10 @@ def fill_in_column_defaults(
         if row["region"] in model.internal_regions:
             vt_regions[row["bookname"]].append(row["region"])
 
-    def fill_in_column_defaults_table(table):
-        df = table.dataframe
-        default_values = config.column_default_value.get(table.tag, {})
+    def fill_in_column_defaults_table(table: EmbeddedXlTable):
+        df, tag, filename = (table.dataframe, table.tag, table.filename)
+        module_type = DataModule.module_type(filename)
+        default_values = config.column_default_value.get(Tag(tag), {})
 
         for colname in df.columns:
             # Get the default value for the column if it exists
@@ -859,9 +860,24 @@ def fill_in_column_defaults(
                 # Apply default values to cells that are empty
                 df[colname] = df[colname].fillna(col_default_value)
             elif colname == "region":
-                # Use BookRegions_Map to fill VT_* files, and all regions for other files
-                matches = re.search(r"VT_([A-Za-z0-9]+)_", Path(table.filename).stem)
                 isna = df[colname].isna()
+                # Region dimension is not supported in subres in fi_t and fi_process tables
+                if (
+                    module_type == "subres"
+                    and tag in {Tag.fi_t, Tag.fi_process, Tag.fi_comm}
+                    and any(~isna)
+                ):
+                    logger.warning(
+                        f"Unsupported dimension. Encountered region specification in file {filename}, "
+                        f"on sheet {table.sheetname}, within range {table.range}. It will be reset."
+                    )
+                    isna = pd.Series(True, index=df.index)
+                # Use BookRegions_Map to fill VT_* files, and all regions for other files
+                matches = (
+                    re.search(r"VT_([A-Za-z0-9]+)_", Path(filename).stem)
+                    if module_type == "base"
+                    else None
+                )
                 if matches is not None:
                     book = matches.group(1)
                     if book in vt_regions:
