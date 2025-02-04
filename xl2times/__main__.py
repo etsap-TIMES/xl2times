@@ -131,8 +131,8 @@ def convert_xl_to_times(
         transforms.harmonise_tradelinks,
         transforms.include_tables_source,
         transforms.process_processes,
-        transforms.create_model_topology,
         transforms.fill_in_column_defaults,
+        transforms.create_model_topology,
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
         transforms.process_tradelinks,
