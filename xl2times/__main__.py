@@ -131,8 +131,8 @@ def convert_xl_to_times(
         transforms.harmonise_tradelinks,
         transforms.include_tables_source,
         transforms.process_processes,
-        transforms.create_model_topology,
         transforms.fill_in_column_defaults,
+        transforms.create_model_topology,
         transforms.generate_uc_properties,
         transforms.expand_rows_parallel,  # slow
         transforms.process_tradelinks,
@@ -444,12 +444,15 @@ def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str
         "ts.dd": ["ALL_TS"],
         "milestonyr.dd": ["MILESTONYR"],
         "output.dd": [
-            t for t in config.dd_table_order if t not in ["ALL_TS", "MILESTONYR"]
+            t for t in config.dd_table_order if t not in {"ALL_TS", "MILESTONYR"}
         ],
     }
 
     for fname, tablenames in tables_in_file.items():
         with open(os.path.join(output_dir, fname), "w", encoding=encoding) as fout:
+            # Include GAMS dollar control options
+            if fname == "output.dd":
+                fout.write("$ONEPS\n$ONWARNING\n\n")
             for tablename in [t for t in tablenames if t in tables]:
                 df = tables[tablename]
                 if tablename in sets:
