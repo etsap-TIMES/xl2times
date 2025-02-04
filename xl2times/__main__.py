@@ -529,10 +529,7 @@ def run(args: argparse.Namespace) -> str | None:
 
     model = TimesModel()
 
-    if not isinstance(args.input, list) or len(args.input) < 1:
-        logger.critical(f"expected at least 1 input. Got {args.input}")
-        sys.exit(-1)
-    elif len(args.input) == 1:
+    if len(args.input) == 1:
         assert os.path.isdir(args.input[0])
         input_files = [
             str(path)
@@ -647,6 +644,10 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
         help="Verbosity. Multiple `-v`s increase the log level. Can also be set on the command line by setting the environment variable `LOGURU_LEVEL`. Available levels are `TRACE`, `DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `SUCCESS`",
     )
     args = args_parser.parse_args(arg_list)
+    if not isinstance(args.input, list) or len(args.input) < 1:
+        print("ERROR: expected at least 1 input.")
+        args_parser.print_help()
+        sys.exit(-1)
     return args
 
 
