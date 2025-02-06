@@ -77,13 +77,6 @@ jobs:
         env:
           GH_PAT_DEMOS_XLSX: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
-      - name: Convert Times-NZ to XLSX
-        working-directory: xl2times
-        run: |
-          sudo apt update
-          sudo apt install libreoffice-calc default-jre libreoffice-java-common
-          find benchmarks/TIMES-NZ -name "*.xls" -type f -printf "soffice --convert-to xlsx --outdir '%h' '%p'\n" | bash
-
       # ---------- Install GAMS
 
       - name: Install GAMS
