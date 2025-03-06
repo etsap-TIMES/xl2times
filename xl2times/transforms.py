@@ -458,7 +458,7 @@ def _harmonise_attributes(df: DataFrame, mapping: dict[str, set[str]]) -> DataFr
         df["attribute"] = df["attribute"].str.upper()
 
     # Handle Attribute containing tilde, such as 'ACT_COST~2030'
-    index = df["attribute"].str.contains("~")
+    index = df["attribute"].str.contains("~", na=False)
     if any(index):
         for attr in set(df["attribute"][index]):
             i = index & (df["attribute"] == attr)
@@ -2862,7 +2862,7 @@ def convert_to_string(
             if x.is_integer():
                 return str(int(x))
             else:
-                return f"{x:.10g}"
+                return f"{x:.15f}"
         return str(x)
 
     for key, value in tables.items():
