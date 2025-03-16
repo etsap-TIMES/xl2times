@@ -1307,7 +1307,7 @@ def include_cgs_in_topology(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Include commodity groups in model topology."""
+    """Include commodity groups in and remove indication of auxillary flows from model topology."""
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
     columns = ["region", "process", "primarycg"]
     i = tables[Tag.fi_process]["primarycg"].isin(default_pcg_suffixes)
@@ -1369,7 +1369,9 @@ def include_cgs_in_topology(
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
-    model.topology = comm_groups
+    mapping = {"IN-A": "IN", "OUT-A": "OUT"}
+    # Update model topology; remove auxillary flows from it
+    model.topology = comm_groups.replace({"io": mapping})
 
     return tables
 
@@ -3052,12 +3054,7 @@ def enforce_availability(
 ) -> dict[str, DataFrame]:
     """Include information on process availability by region in model topology,
     model processes, and the fi_t table.
-
-    Remove indication of auxillary flows from model topology.
     """
-    mapping = {"IN-A": "IN", "OUT-A": "OUT"}
-    model.topology = model.topology.replace({"io": mapping})
-
     if Tag.tfm_ava in tables:
         modules_with_ava = set(tables[Tag.tfm_ava]["module_name"])
         df = tables[Tag.tfm_ava].explode("process", ignore_index=True)
