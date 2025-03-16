@@ -1307,7 +1307,7 @@ def include_cgs_in_topology(
     tables: dict[str, DataFrame],
     model: TimesModel,
 ) -> dict[str, DataFrame]:
-    """Include commodity groups in and remove indication of auxillary flows from model topology."""
+    """Include commodity groups in model topology."""
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
     columns = ["region", "process", "primarycg"]
     i = tables[Tag.fi_process]["primarycg"].isin(default_pcg_suffixes)
@@ -1369,9 +1369,7 @@ def include_cgs_in_topology(
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
 
-    mapping = {"IN-A": "IN", "OUT-A": "OUT"}
-    # Update model topology; remove auxillary flows from it
-    model.topology = comm_groups.replace({"io": mapping})
+    model.topology = comm_groups
 
     return tables
 
@@ -1578,6 +1576,7 @@ def fill_in_missing_pcgs(
     """Fill in missing primary commodity groups in model.processes.
 
     Expand primary commodity groups specified by a suffix.
+    Remove indication of auxillary flows from model topology.
     """
     df = model.processes
     # Expand primary commodity groups specified in primarycg column by a suffix
@@ -1604,6 +1603,10 @@ def fill_in_missing_pcgs(
     )
 
     model.processes = df
+
+    # Remove indication of auxillary flows from model topology
+    mapping = {"IN-A": "IN", "OUT-A": "OUT"}
+    model.topology = model.topology.replace({"io": mapping})
 
     return tables
 
@@ -2864,7 +2867,7 @@ def convert_to_string(
             if x.is_integer():
                 return str(int(x))
             else:
-                return f"{x:.15f}"
+                return f"{x:.10g}"
         return str(x)
 
     for key, value in tables.items():
