@@ -56,7 +56,7 @@
         "aliases": [
           "commodity"
         ],
-        "use_name": "commodity",
+        "use_name": "other_indexes",
         "row_ignore_symbol": [
           "\\I:",
           "*"

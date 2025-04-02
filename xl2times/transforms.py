@@ -1650,7 +1650,7 @@ def convert_com_tables(
             result.append(table)
         else:
             target_tag = Tag.fi_t
-            info = convert_tags[table.tag]
+            info = convert_tags[Tag(table.tag)]
             index_column = info["index_column"]
             other_column = info["other_column"]
             df = table.dataframe
