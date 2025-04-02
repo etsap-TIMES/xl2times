@@ -1856,9 +1856,11 @@ def harmonise_tradelinks(
             df = pd.melt(
                 df, id_vars=["origin"], value_vars=destinations, var_name="destination"
             ).dropna(subset="value")
-            # Remove rows for which the value is 0 (e.g. no trade); rename value to process
-            df = df[df["value"] != 0].rename({"value": "process"}, axis=1)
-            df["process"] = df["process"].astype(str)
+            # Remove rows for which the value is 0 (e.g. no trade)
+            df = df[df["value"] != 0]
+            # Create a process column (process name may be specified in the value column)
+            df["process"] = df["value"].astype(str)
+            df = df.drop(columns=["value"])
             # Replace numeric values in the process column with NA (i.e. not a valid process name)
             i = df["process"].str.isnumeric()
             if any(i):
