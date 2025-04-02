@@ -1635,8 +1635,8 @@ def convert_com_tables(
     convert_tags = {
         Tag.comemi: {
             "attribute": "vda_emcb",
-            "index_column": "commodity",
-            "other_column": "other_indexes",
+            "index_column": "other_indexes",
+            "other_column": "commodity",
         },
         Tag.comagg: {
             "attribute": "com_agg",
