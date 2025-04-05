@@ -4,7 +4,7 @@ from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
-from itertools import groupby
+from itertools import groupby, repeat
 from pathlib import Path
 from typing import Any
 
@@ -2437,6 +2437,56 @@ def _remove_invalid_rows(
     return df.loc[keep]
 
 
+def _process_tfm_mig_row(table: DataFrame, idx_and_row: tuple[Any, pd.Series]):
+    """Processes one row of a TFM_MIG table and returns the newly generated rows."""
+    _, row = idx_and_row
+    if row["module_type"] == "trans":
+        source_module = row["module_name"]
+    else:
+        source_module = row.get("sourcescen")
+
+    rows_to_update = query(
+        table,
+        row.get("process"),
+        row.get("commodity"),
+        row["attribute"],
+        row.get("region"),
+        row.get("year"),
+        row.get("limtype"),
+        row.get("val_cond"),
+        source_module,
+    )
+
+    if not any(rows_to_update):
+        logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
+        return
+
+    new_rows = table.loc[rows_to_update]
+    # Modify values in all '*2' columns
+    for c, v in row.items():
+        if str(c).endswith("2") and v is not None:
+            new_rows.loc[:, str(c)[:-1]] = v
+    # Evaluate 'value' column based on existing values
+    eval_and_update(new_rows, rows_to_update, row["value"])
+    # In case more than one data module is present in the table, select the one with the highest index
+    # TODO: The below code is commented out because it needs to be more sophisticated.
+    """
+    if new_rows["module_name"].nunique() > 1:
+        indices = {
+            model.data_modules.index(x)
+            for x in new_rows["module_name"].unique()
+        }
+        new_rows = new_rows[
+            new_rows["module_name"] == model.data_modules[max(indices)]
+        ]
+    """
+    new_rows["source_filename"] = row["source_filename"]
+    new_rows["module_name"] = row["module_name"]
+    new_rows["module_type"] = row["module_type"]
+    new_rows["submodule"] = row["submodule"]
+    return new_rows
+
+
 def apply_transform_tables(
     config: Config,
     tables: dict[str, DataFrame],
@@ -2612,58 +2662,21 @@ def apply_transform_tables(
             index = tables[Tag.tfm_mig]["module_name"] == data_module
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
-            new_tables = []
 
-            for _, row in tqdm(
-                updates.iterrows(),
-                total=len(updates),
-                desc=f"Applying transformations from {Tag.tfm_mig.value} in {data_module}",
-            ):
-                if row["module_type"] == "trans":
-                    source_module = row["module_name"]
-                else:
-                    source_module = row.get("sourcescen")
-
-                rows_to_update = query(
-                    table,
-                    row.get("process"),
-                    row.get("commodity"),
-                    row["attribute"],
-                    row.get("region"),
-                    row.get("year"),
-                    row.get("limtype"),
-                    row.get("val_cond"),
-                    source_module,
+            with ProcessPoolExecutor(max_workers) as executor:
+                new_tables = list(
+                    tqdm(
+                        executor.map(
+                            _process_tfm_mig_row,
+                            repeat(table, len(updates)),
+                            updates.iterrows(),
+                        ),
+                        total=len(updates),
+                        desc=f"Applying transformations from {Tag.tfm_mig.value} in {data_module}",
+                    )
                 )
-
-                if not any(rows_to_update):
-                    logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
-                    continue
-
-                new_rows = table.loc[rows_to_update]
-                # Modify values in all '*2' columns
-                for c, v in row.items():
-                    if str(c).endswith("2") and v is not None:
-                        new_rows.loc[:, str(c)[:-1]] = v
-                # Evaluate 'value' column based on existing values
-                eval_and_update(new_rows, rows_to_update, row["value"])
-                # In case more than one data module is present in the table, select the one with the highest index
-                # TODO: The below code is commented out because it needs to be more sophisticated.
-                """
-                if new_rows["module_name"].nunique() > 1:
-                    indices = {
-                        model.data_modules.index(x)
-                        for x in new_rows["module_name"].unique()
-                    }
-                    new_rows = new_rows[
-                        new_rows["module_name"] == model.data_modules[max(indices)]
-                    ]
-                """
-                new_rows["source_filename"] = row["source_filename"]
-                new_rows["module_name"] = row["module_name"]
-                new_rows["module_type"] = row["module_type"]
-                new_rows["submodule"] = row["submodule"]
-                new_tables.append(new_rows)
+            # Filter out the mig rows that generated no new rows
+            new_tables = [x for x in new_tables if x is not None]
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
