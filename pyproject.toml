@@ -8,7 +8,7 @@ include = ["xl2times", "xl2times.*"]
 
 [project]
 name = "xl2times"
-version = "0.2.1"
+version = "0.2.2"
 authors = [
     { name="Sam Webster", email="13457618+samwebster@users.noreply.github.com" },
     { name="Tom Minka", email="8955276+tminka@users.noreply.github.com" },
