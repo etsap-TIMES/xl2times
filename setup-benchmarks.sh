@@ -11,6 +11,8 @@ REF_demos_dd="c3b53ceae1de72965559f95016171ec67f333fc7"
 REF_tim_xlsx="e820d8002adc6b1526a3bffcc439219b28d0eed5"
 REF_tim_gams="cfe2628dbb5974b99c8a5664a9358849324e31ac"
 REF_TIMES_NZ="64c48461690fd2458d112b97c68e788c63490461"
+REF_times_geo_xlsx="48e053ad4c287f21c03de56c759d83d408636ee2"
+REF_times_geo_gams="3bf609f24f27710372bc0631c75af83df05819d1"
 
 # If no GitHub token is provided, try to clone using SSH
 if [ -z "$GH_PAT_DEMOS_XLSX" ]; then
@@ -62,6 +64,8 @@ repositories=(
     "esma-cgep/tim|benchmarks/xlsx/TIM|$REF_tim_xlsx"
     "esma-cgep/tim-gams|benchmarks/dd/TIM|$REF_tim_gams"
     "olejandro/TIMES-NZ-Model-Files|benchmarks/TIMES-NZ|$REF_TIMES_NZ"
+    "olejandro/times-geo|benchmarks/xlsx/TIMES-GEO|$REF_times_geo_xlsx"
+    "olejandro/times-geo-gams|benchmarks/dd/TIMES-GEO|$REF_times_geo_gams"
 )
 
 # Setup / update the repositories
