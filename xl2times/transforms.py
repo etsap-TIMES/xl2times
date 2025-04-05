@@ -458,7 +458,7 @@ def _harmonise_attributes(df: DataFrame, mapping: dict[str, set[str]]) -> DataFr
         df["attribute"] = df["attribute"].str.upper()
 
     # Handle Attribute containing tilde, such as 'ACT_COST~2030'
-    index = df["attribute"].str.contains("~")
+    index = df["attribute"].str.contains("~", na=False)
     if any(index):
         for attr in set(df["attribute"][index]):
             i = index & (df["attribute"] == attr)
@@ -1576,6 +1576,7 @@ def fill_in_missing_pcgs(
     """Fill in missing primary commodity groups in model.processes.
 
     Expand primary commodity groups specified by a suffix.
+    Remove indication of auxillary flows from model topology.
     """
     df = model.processes
     # Expand primary commodity groups specified in primarycg column by a suffix
@@ -1602,6 +1603,10 @@ def fill_in_missing_pcgs(
     )
 
     model.processes = df
+
+    # Remove indication of auxillary flows from model topology
+    mapping = {"IN-A": "IN", "OUT-A": "OUT"}
+    model.topology = model.topology.replace({"io": mapping})
 
     return tables
 
@@ -1630,8 +1635,8 @@ def convert_com_tables(
     convert_tags = {
         Tag.comemi: {
             "attribute": "vda_emcb",
-            "index_column": "commodity",
-            "other_column": "other_indexes",
+            "index_column": "other_indexes",
+            "other_column": "commodity",
         },
         Tag.comagg: {
             "attribute": "com_agg",
@@ -1645,7 +1650,7 @@ def convert_com_tables(
             result.append(table)
         else:
             target_tag = Tag.fi_t
-            info = convert_tags[table.tag]
+            info = convert_tags[Tag(table.tag)]
             index_column = info["index_column"]
             other_column = info["other_column"]
             df = table.dataframe
@@ -1844,30 +1849,42 @@ def harmonise_tradelinks(
     for table in tables:
         if table.tag == Tag.tradelinks:
             df = table.dataframe
-            sheetname = table.sheetname.lower()
+            trd_direction = table.sheetname.lower().split("_")[0]
             comm = df.columns[0]
             destinations = [c for c in df.columns if c != comm]
             df = df.rename(columns={comm: "origin"})
             df = pd.melt(
                 df, id_vars=["origin"], value_vars=destinations, var_name="destination"
-            )
-            df = df[df["value"] == 1].drop(columns=["value"])
+            ).dropna(subset="value")
+            # Remove rows for which the value is 0 (e.g. no trade)
+            df = df[df["value"] != 0]
+            # Create a process column (process name may be specified in the value column)
+            df["process"] = df["value"].astype(str)
+            df = df.drop(columns=["value"])
+            # Replace numeric values in the process column with NA (i.e. not a valid process name)
+            i = df["process"].str.isnumeric()
+            if any(i):
+                df.loc[i, ["process"]] = pd.NA
+            # Uppercase values in process and destination columns
+            df["process"] = df["process"].str.upper()
             df["destination"] = df["destination"].str.upper()
             df = df.drop_duplicates(keep="first")
 
-            if sheetname == "uni":
+            if trd_direction == "uni":
                 df["tradelink"] = "u"
-            elif sheetname == "bi":
+            elif trd_direction == "bi":
                 df["tradelink"] = "b"
             else:
                 df["tradelink"] = 1
                 # Determine whether a trade link is bi- or unidirectional
-                td_type = (
-                    df.groupby(["regions"])["tradelink"].agg("count").reset_index()
+                trd_type = (
+                    df.groupby(["regions", "process"])["tradelink"]
+                    .agg("count")
+                    .reset_index()
                 )
-                td_type = td_type.replace({"tradelink": {1: "u", 2: "b"}})
+                trd_type = trd_type.replace({"tradelink": {1: "u", 2: "b"}})
                 df = df.drop(columns=["tradelink"])
-                df = df.merge(td_type, how="inner", on="regions")
+                df = df.merge(trd_type, how="inner", on=["regions", "process"])
 
             # Add a column containing linked regions (directionless for bidirectional links)
             df["regions"] = df.apply(
@@ -1880,26 +1897,30 @@ def harmonise_tradelinks(
             )
 
             # Drop tradelink (bidirectional) duplicates
-            df = df.drop_duplicates(subset=["regions", "tradelink"], keep="last")
+            df = df.drop_duplicates(
+                subset=["regions", "process", "tradelink"], keep="last"
+            )
             df = df.drop(columns=["regions"])
             df["comm"] = comm.upper()
             df["comm1"] = df["comm"]
             df["comm2"] = df["comm"]
             df = df.rename(columns={"origin": "reg1", "destination": "reg2"})
-            # Use Veda approach to naming of trade processes
-            df["process"] = df.apply(
-                lambda row: "T"
-                + "_".join(
-                    [
-                        row["tradelink"].upper(),
-                        row["comm"],
-                        row["reg1"],
-                        row["reg2"],
-                        "01",
-                    ]
-                ),
-                axis=1,
-            )
+            # Use Veda approach to naming of trade processes if process name is missing
+            i = df["process"].isna()
+            if any(i):
+                df.loc[i, ["process"]] = df[i].apply(
+                    lambda row: "T"
+                    + "_".join(
+                        [
+                            row["tradelink"].upper(),
+                            row["comm"],
+                            row["reg1"],
+                            row["reg2"],
+                            "01",
+                        ]
+                    ),
+                    axis=1,
+                )
             result.append(replace(table, dataframe=df, tag=Tag.tradelinks_dins))
         else:
             result.append(table)
@@ -3065,12 +3086,7 @@ def enforce_availability(
 ) -> dict[str, DataFrame]:
     """Include information on process availability by region in model topology,
     model processes, and the fi_t table.
-
-    Remove indication of auxillary flows from model topology.
     """
-    mapping = {"IN-A": "IN", "OUT-A": "OUT"}
-    model.topology = model.topology.replace({"io": mapping})
-
     if Tag.tfm_ava in tables:
         modules_with_ava = set(tables[Tag.tfm_ava]["module_name"])
         df = tables[Tag.tfm_ava].explode("process", ignore_index=True)
