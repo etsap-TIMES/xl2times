@@ -21,7 +21,7 @@ jobs:
 
     env:
       PY_VERSION: "3.11"
-      CACHE_KEY: 3 # Use this for manual cache key bumps, e.g., when caching code changes
+      CACHE_KEY: 4 # Use this for manual cache key bumps, e.g., when caching code changes
 
     steps:
       - uses: actions/checkout@v4
