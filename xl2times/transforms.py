@@ -1308,6 +1308,16 @@ def include_cgs_in_topology(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Include commodity groups in model topology."""
+    # cached_file = Path("/tmp/include_cgs_in_topology.pkl")
+    # if cached_file.exists():
+    #     # just load and return the cached pickle
+    #     with cached_file.open("rb") as f:
+    #         model.topology = pickle.load(f)
+    #         logger.info(
+    #             f"Using cached data for include_cgs_in_topology from {cached_file}"
+    #         )
+    #         return tables
+
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
     columns = ["region", "process", "primarycg"]
     i = tables[Tag.fi_process]["primarycg"].isin(default_pcg_suffixes)
@@ -1326,6 +1336,7 @@ def include_cgs_in_topology(
     comm_groups = pd.merge(
         model.topology, comm_set, on=["region", "commodity"]
     ).drop_duplicates(keep="last")
+    comm_groups = comm_groups.head(10)
 
     # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)
@@ -1368,6 +1379,11 @@ def include_cgs_in_topology(
         )
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
+
+    # # Write topology to cache to speed up next time:
+    # with cached_file.open("wb") as f:
+    #     pickle.dump(comm_groups, f)
+    # logger.info(f"Saved cache for include_cgs_in_topology to {cached_file}")
 
     model.topology = comm_groups
 
@@ -2683,6 +2699,8 @@ def apply_transform_tables(
             index = tables[Tag.tfm_mig]["module_name"] == data_module
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
+
+            updates = updates.head(100)
 
             with ProcessPoolExecutor(max_workers) as executor:
                 new_tables = list(
