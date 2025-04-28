@@ -2248,12 +2248,15 @@ def process_user_defined_sets(
         Tag.tfm_csets: "commodity",
         Tag.tfm_psets: "process",
     }
-
+    set_name_by_tag = {
+        Tag.tfm_csets: "PRC_GRP",
+        Tag.tfm_psets: "COM_TYPE",
+    }
     item_maps = {
         "process": process_map,
         "commodity": commodity_map,
     }
-
+    # set_name will be renamed based on the tag
     set_name_map = {
         Tag.tfm_csets: "csets",
         Tag.tfm_psets: "sets",
@@ -2265,8 +2268,20 @@ def process_user_defined_sets(
             df = tables[tag]
             item_type = set_type_by_tag[tag]
             item_map = item_maps[item_type]
+            times_set = set_name_by_tag[tag]
             set_name = set_name_map[tag]
-            df_rows = [df.iloc[[i], :] for i in range(len(df))]
+            # Seperate set_name column from the rest of the dataframe and explode it
+            sets_col = df[["set_name"]].explode(column="set_name")
+            # Check whether any user-defined sets depend on non-TIMES sets not in the config times_sets
+            i_dependent_sets = sets_col["set_name"].isin(
+                set(config.times_sets[times_set])
+            )
+            df_rows = list()
+            if any(i_dependent_sets):
+                # TODO: Use i_dependent_sets index to reduce the number of dataframes created
+                df_rows = [df.iloc[[i], :] for i in range(len(df))]
+            else:
+                df_rows.append(df)
             for df_row in df_rows:
                 dictionary = generate_topology_dictionary(tables, model)
                 row = _match_wildcards(
