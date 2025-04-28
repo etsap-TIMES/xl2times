@@ -2270,12 +2270,18 @@ def process_user_defined_sets(
             item_map = item_maps[item_type]
             times_set = set_name_by_tag[tag]
             set_name = set_name_map[tag]
-            # Seperate set_name column from the rest of the dataframe and explode it
-            sets_col = df[["set_name"]].explode(column="set_name")
-            # Check whether any user-defined sets depend on non-TIMES sets not in the config times_sets
-            i_dependent_sets = sets_col["set_name"].isin(
-                set(config.times_sets[times_set])
-            )
+            if set_name in df.columns:
+                # Seperate set_name column from the rest of the dataframe and explode it
+                sets_col = df[[set_name]].explode(
+                    column=set_name,
+                )
+                # Check whether any user-defined sets depend on non-TIMES sets not in the config times_sets
+                i_dependent_sets = sets_col[set_name].isin(
+                    set(config.times_sets[times_set])
+                )
+            else:
+                # If no set_name column, then all rows are user-defined sets
+                i_dependent_sets = pd.Series(False, index=df.index, dtype=bool)
             df_rows = list()
             if any(i_dependent_sets):
                 # TODO: Use i_dependent_sets index to reduce the number of dataframes created
