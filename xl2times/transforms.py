@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from joblib import Parallel, delayed
 from loguru import logger
 from more_itertools import locate
 from pandas.core.frame import DataFrame
@@ -2382,6 +2383,9 @@ def query(
     val: int | float | None,
     module: str | list[str] | None,
 ) -> pd.Index:
+    # TODO is it linear scanning here? Can we use DF indexing to speed this up?
+    # Look into merge/join -- can we use something like that here?
+    # Try an inner join where some cols of the 2nd (query) df have nones -- does it work?
     query_fields = {
         "process": process,
         "commodity": commodity,
@@ -2476,6 +2480,7 @@ def _remove_invalid_rows(
 
 def _process_tfm_mig_row(table: DataFrame, idx_and_row: tuple[Any, pd.Series]):
     """Processes one row of a TFM_MIG table and returns the newly generated rows."""
+    print("_process_tfm_mig_row starting")
     _, row = idx_and_row
     if row["module_type"] == "trans":
         source_module = row["module_name"]
@@ -2702,18 +2707,37 @@ def apply_transform_tables(
 
             updates = updates.head(100)
 
-            with ProcessPoolExecutor(max_workers) as executor:
-                new_tables = list(
-                    tqdm(
-                        executor.map(
-                            _process_tfm_mig_row,
-                            repeat(table, len(updates)),
-                            updates.iterrows(),
-                        ),
-                        total=len(updates),
-                        desc=f"Applying transformations from {Tag.tfm_mig.value} in {data_module}",
+            # 68.7% 489475, 1084
+            algo = "joblib"
+            match algo:
+                case "serial":  # 15.42s
+                    new_tables = [
+                        _process_tfm_mig_row(table, row) for row in updates.iterrows()
+                    ]
+
+                case "ProcessPool":  # 103.73, also accuracy went down?!
+                    with ProcessPoolExecutor(max_workers) as executor:
+                        new_tables = list(
+                            executor.map(
+                                _process_tfm_mig_row,
+                                repeat(table, len(updates)),
+                                updates.iterrows(),
+                            )
+                        )
+
+                case "joblib":  # 100.12s, accuracy went down again...
+                    new_tables = Parallel(max_workers, verbose=2)(
+                        delayed(_process_tfm_mig_row(table, row))
+                        for row in updates.iterrows()
                     )
-                )
+
+                case "joblibContext":  # cannot pickle weakref.ReferenceType
+                    with Parallel(n_jobs=max_workers, verbose=2) as parallel:
+                        new_tables = parallel(
+                            delayed(_process_tfm_mig_row(table, row))
+                            for row in updates.iterrows()
+                        )
+
             # Filter out the mig rows that generated no new rows
             new_tables = [x for x in new_tables if x is not None]
 
