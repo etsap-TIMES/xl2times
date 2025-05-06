@@ -10,9 +10,8 @@ build:
   tools:
     python: "3.11"
   jobs:
-    build:
-      html:
-        - pushd docs && sphinx-apidoc -o api/ ../xl2times && make html; popd
+    pre_build:
+      - sphinx-apidoc -o docs/api/ xl2times
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
