@@ -2261,6 +2261,7 @@ def process_user_defined_sets(
         Tag.tfm_csets: "csets",
         Tag.tfm_psets: "sets",
     }
+    new_user_csets, new_user_psets = [], []
 
     for tag in set_type_by_tag:
         if tag in tables:
@@ -2302,17 +2303,15 @@ def process_user_defined_sets(
                 ].dropna(how="any")
                 # Add set to model user sets
                 if tag == Tag.tfm_csets:
-                    model.user_csets = pd.concat(
-                        [model.user_csets, row], ignore_index=True
-                    )
+                    new_user_csets.append(row)
                 elif tag == Tag.tfm_psets:
-                    model.user_psets = pd.concat(
-                        [model.user_psets, row], ignore_index=True
-                    )
+                    new_user_psets.append(row)
 
             logger.info(
                 f"  process_user_defined_sets: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
             )
+    model.user_csets = pd.concat([model.user_csets] + new_user_csets, ignore_index=True)
+    model.user_psets = pd.concat([model.user_psets] + new_user_psets, ignore_index=True)
 
     return tables
 
