@@ -257,7 +257,9 @@ class TimesModel:
     start_year: int = field(default_factory=int)
     files: list[str] = field(default_factory=list)
     data_modules: list[str] = field(default_factory=list)
-    custom_sets: DataFrame = field(default_factory=DataFrame)
+    custom_psets: DataFrame = field(default_factory=DataFrame)
+    user_psets: DataFrame = field(default_factory=DataFrame)
+    user_csets: DataFrame = field(default_factory=DataFrame)
 
     @property
     def external_regions(self) -> set[str]:
