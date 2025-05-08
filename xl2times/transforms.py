@@ -2244,33 +2244,20 @@ def process_user_defined_sets(
     config: Config, tables: dict[str, DataFrame], model: TimesModel
 ) -> dict[str, DataFrame]:
     """Process user-defined sets."""
-    set_type_by_tag = {
-        Tag.tfm_csets: "commodity",
-        Tag.tfm_psets: "process",
-    }
-    set_name_by_tag = {
-        Tag.tfm_csets: "PRC_GRP",
-        Tag.tfm_psets: "COM_TYPE",
-    }
-    item_maps = {
-        "process": process_map,
-        "commodity": commodity_map,
-    }
-    # set_name will be renamed based on the tag
-    set_name_map = {
-        Tag.tfm_csets: "csets",
-        Tag.tfm_psets: "sets",
-    }
+    to_process = [
+        # set_name will be renamed based on the tag
+        (Tag.tfm_csets, "commodity", "PRC_GRP", commodity_map, "csets"),
+        (Tag.tfm_psets, "process", "COM_TYPE", process_map, "sets"),
+    ]
     new_user_csets, new_user_psets = [], []
 
-    for tag in set_type_by_tag:
+    for tag, item_type, times_set, item_map, set_name in to_process:
         if tag in tables:
             start_time = time.time()
             df = tables[tag]
-            item_type = set_type_by_tag[tag]
-            item_map = item_maps[item_type]
-            times_set = set_name_by_tag[tag]
-            set_name = set_name_map[tag]
+            logger.info(
+                f"process_user_defined_sets: {tag}, {item_type}, {times_set}, {item_map}, {set_name}"
+            )
             if set_name in df.columns:
                 # Seperate set_name column from the rest of the dataframe and explode it
                 sets_col = df[[set_name]].explode(
