@@ -137,7 +137,6 @@ class DataModule(str, Enum):
                 DataModule.base
                 | DataModule.sets
                 | DataModule.lma
-                | DataModule.demand
                 | DataModule.trade
                 | DataModule.syssettings
             ):
@@ -148,6 +147,11 @@ class DataModule(str, Enum):
                 )
             case DataModule.scen:
                 return re.sub("^SCEN_", "", PurePath(path).stem.upper())
+            case DataModule.demand:
+                if PurePath(path.lower()).match("dem_alloc+series.*"):
+                    return module_type.name.upper()
+                else:
+                    return re.sub("^SCENDEM_", "", PurePath(path).stem.upper())
             case None:
                 return None
 
