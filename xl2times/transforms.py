@@ -1933,6 +1933,57 @@ def is_year(col_name):
     return col_name.isdigit() and int(col_name) >= 0
 
 
+def process_drvr_tables(
+    config: Config,
+    tables: list[EmbeddedXlTable],
+    model: TimesModel,
+) -> list[EmbeddedXlTable]:
+    """Process DRVR_TABLE, DRVR_ALLOCATION and SERIES tables."""
+    result = []
+    for table in tables:
+        tag = Tag(table.tag)
+        if tag not in [Tag.drvr_table, Tag.series]:
+            result.append(table)
+        else:
+            df = table.dataframe
+            known_cols = config.known_columns[tag]
+            # Other columns are those that are not in known_cols. They are expected to represent years
+            other_cols = [col for col in df.columns if col not in known_cols]
+            # Create a dictionary of columns to keep (if they represent years) and rename
+            keep_rename_cols = {
+                col: col.lstrip(r"\~")
+                for col in other_cols
+                if col.startswith(r"\~") and is_year(col.lstrip(r"\~"))
+            }
+            # Drop columns that are not in known_cols and do not represent years
+            drop_cols = [col for col in other_cols if col not in keep_rename_cols]
+            if drop_cols:
+                # Print a warning that columns will be dropped
+                logger.warning(
+                    f"Columns {drop_cols} will be dropped from {tag} table found in {table.filename}, sheet {table.sheetname} and reange {table.range}."
+                )
+                # Remove columns that are either not known or represent years
+                df = df.drop(columns=drop_cols, errors="ignore")
+            # Remove \~ from columns representing years
+            if keep_rename_cols:
+                df = df.rename(columns=keep_rename_cols)
+            else:
+                # Print a warning that no year columns were specified and the table will be dropped
+                logger.warning(
+                    f"No year columns specified in the expected format. Droppind {tag} table found in {table.filename}, sheet {table.sheetname} and range {table.range}."
+                )
+                continue
+            # Melt the dataframe to long format
+            df = pd.melt(
+                df,
+                id_vars=list(known_cols),
+                var_name="year",
+                value_name="value",
+            )
+            result.append(replace(table, dataframe=df))
+    return result
+
+
 def process_transform_table_variants(
     config: Config,
     tables: list[EmbeddedXlTable],
