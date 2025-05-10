@@ -2509,6 +2509,29 @@ def _remove_invalid_rows(
     return df.loc[keep]
 
 
+def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
+    """Generate demand projections based on the data in drvr_allocation, drvr_table, and series tables."""
+    # Check if the required tables are present
+    if not all(
+        tag in tables for tag in [Tag.drvr_allocation, Tag.drvr_table, Tag.series]
+    ):
+        logger.warning("Missing required tables for demand projection.")
+        return pd.DataFrame(data=[])
+    series = tables[Tag.series]
+    print("series", series)
+    allocation = tables[Tag.drvr_allocation]
+    print("allocation", allocation)
+    drivers = tables[Tag.drvr_table]
+    print("drivers", drivers)
+    i = (tables[Tag.fi_t]["year"] == base_year) & (
+        tables[Tag.fi_t]["attribute"] == "COM_PROJ"
+    )
+    base_year_demand = tables[Tag.fi_t][["region", "commodity", "value"]][i]
+    base_year_demand = base_year_demand.drop_duplicates(keep="last", ignore_index=True)
+
+    return pd.DataFrame(data=[])
+
+
 def apply_transform_tables(
     config: Config,
     tables: dict[str, DataFrame],
@@ -2553,6 +2576,15 @@ def apply_transform_tables(
         model.commodity_groups = commodity_groups.dropna()
 
     for data_module in model.data_modules:
+        if data_module == "DEMAND":
+            projected_demands = _project_demands(tables, model.start_year)
+            if not projected_demands.empty:
+                tables[Tag.fi_t] = pd.concat(
+                    [tables[Tag.fi_t], projected_demands], ignore_index=True
+                )
+            # Continue with the next data module
+            continue
+        # A list to hold dataframes of generated records
         generated_records = []
         if (
             Tag.tfm_dins in tables

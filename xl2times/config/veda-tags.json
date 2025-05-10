@@ -95,7 +95,7 @@
       },
       {
         "name": "demand",
-        "use_name": "demand",
+        "use_name": "commodity",
         "remove_any_row_if_absent": true
       },
       {
@@ -582,7 +582,7 @@
     "valid_fields": [
       {
         "name": "series",
-        "use_name": "serie_name",
+        "use_name": "series_name",
         "remove_any_row_if_absent": true
       }
     ]
