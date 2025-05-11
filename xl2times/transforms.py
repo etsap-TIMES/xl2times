@@ -2518,16 +2518,94 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
         logger.warning("Missing required tables for demand projection.")
         return pd.DataFrame(data=[])
     series = tables[Tag.series]
-    print("series", series)
     allocation = tables[Tag.drvr_allocation]
-    print("allocation", allocation)
     drivers = tables[Tag.drvr_table]
-    print("drivers", drivers)
+    # Store column names that are neither "driver" nor "value"
+    index_cols = [col for col in drivers.columns if col not in {"driver", "value"}]
+    series = (
+        series[["series_name", "year", "value"]]
+        .pivot(index="year", columns="series_name", values="value")
+        .reset_index()
+    )
+    drivers = drivers.pivot(
+        index=index_cols, columns="driver", values="value"
+    ).reset_index()
+    # Merge the drivers and series tables
+    series = drivers.merge(series, how="outer", on="year")
+    # Convert to the long format
+    series = pd.melt(
+        series,
+        id_vars=index_cols,
+        var_name="series_name",
+        value_name="value",
+    )
+    # Prepare for merging with the series table
+    allocation = pd.melt(
+        allocation[["region", "commodity", "driver", "calibration", "sensitivity"]],
+        id_vars=["region", "commodity"],
+        var_name="series_type",
+        value_name="series_name",
+    )
+    # Merge the tables on the series_name and region columns
+    series = allocation.merge(
+        series,
+        how="left",
+        on=["region", "series_name"],
+    )
+    # Remove rows with missing values in the "value" column
+    series = series.dropna(subset=["value"], axis=0, ignore_index=True)
+    # Drop series_name column
+    series = series.drop(columns=["series_name"])
+    # Remove any duplicates keeping the last occurrence
+    series = series.drop_duplicates(keep="last", ignore_index=True)
+    # Update the index columns
+    index_cols = [col for col in series.columns if col not in {"value", "series_type"}]
+    # Pivot the table to get the driver, sensitivity, and calibration values as columns
+    series = series.pivot(
+        index=index_cols, columns="series_type", values="value"
+    ).reset_index()
+    # Year column should be integer
+    series["year"] = series["year"].astype(int)
+    # Create a copy of the series table with only the driver values
+    series_copy = series.copy().rename(columns={"year": "year_t-1"})
+    # Keep only selected columns
+    series_copy = series_copy[
+        ["region", "commodity", "year_t-1", "source_filename", "driver"]
+    ]
+    # Add the previous year column
+    series["year_t-1"] = series["year"] - 1
+    # Merge the series table with the series_copy table on the region, commodity, and year columns
+    series = series.merge(
+        series_copy,
+        how="left",
+        on=["region", "commodity", "year_t-1", "source_filename"],
+        suffixes=("", "_t-1"),
+    )
+    # Remove rows with missing values in the "driver_t-1" column
+    series = series.dropna(subset=["driver_t-1"], axis=0, ignore_index=True)
+    # Calculated the multipliers to project the demand
+    series["multiplier"] = series["calibration"] + series["sensitivity"] * (
+        series["driver"] / series["driver_t-1"] - 1
+    )
+    # Drop the unnecessary columns
+    series = series.drop(columns=["driver", "driver_t-1", "calibration", "sensitivity"])
+
     i = (tables[Tag.fi_t]["year"] == base_year) & (
         tables[Tag.fi_t]["attribute"] == "COM_PROJ"
     )
-    base_year_demand = tables[Tag.fi_t][["region", "commodity", "value"]][i]
+    base_year_demand = tables[Tag.fi_t][["region", "commodity", "year", "value"]][i]
     base_year_demand = base_year_demand.drop_duplicates(keep="last", ignore_index=True)
+    # Rename year column to year_t-1
+    base_year_demand = base_year_demand.rename(columns={"year": "year_t-1"})
+    projected_demands = series.merge(
+        base_year_demand,
+        how="inner",
+        on=["region", "commodity", "year_t-1"],
+    )
+    projected_demands["value"] = (
+        projected_demands["value"] * projected_demands["multiplier"]
+    )
+    print(projected_demands)
 
     return pd.DataFrame(data=[])
 
