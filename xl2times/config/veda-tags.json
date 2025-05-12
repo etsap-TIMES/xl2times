@@ -114,7 +114,7 @@
         "comma-separated-list": true
       },
       {
-        "name": "sentisitivity",
+        "name": "sensitivity",
         "use_name": "sensitivity"
       }
     ]

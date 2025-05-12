@@ -1970,7 +1970,7 @@ def process_drvr_tables(
             else:
                 # Print a warning that no year columns were specified and the table will be dropped
                 logger.warning(
-                    f"No year columns specified in the expected format. Droppind {tag} table found in {table.filename}, sheet {table.sheetname} and range {table.range}."
+                    f"No year columns specified in the expected format. Dropping {tag} table found in {table.filename}, sheet {table.sheetname} and range {table.range}."
                 )
                 continue
             # Melt the dataframe to long format
