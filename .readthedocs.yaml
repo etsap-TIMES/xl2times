@@ -9,6 +9,9 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
+  jobs:
+    pre_build:
+      - sphinx-apidoc -o docs/api/ xl2times
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
