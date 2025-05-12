@@ -2585,29 +2585,44 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
     series = series.dropna(subset=["driver_t-1"], axis=0, ignore_index=True)
     # Calculated the multipliers to project the demand
     series["multiplier"] = series["calibration"] + series["sensitivity"] * (
-        series["driver"] / series["driver_t-1"] - 1
+        (series["driver"] / series["driver_t-1"]) - 1
     )
     # Drop the unnecessary columns
-    series = series.drop(columns=["driver", "driver_t-1", "calibration", "sensitivity"])
-
+    series = series.drop(
+        columns=["year_t-1", "driver", "driver_t-1", "calibration", "sensitivity"]
+    )
+    # Multiplier should be a float
+    series["multiplier"] = series["multiplier"].astype(float)
+    # Make the multiplier cumulative
+    series["multiplier"] = (
+        series[["region", "commodity", "source_filename", "multiplier"]]
+        .groupby(["region", "commodity", "source_filename"])
+        .cumprod()
+    )
+    series["submodule"] = "main"
+    # module_name is source_filename without ScenDem_
+    series["module_name"] = (
+        series["source_filename"].str.upper().str.replace("ScenDem_", "", case=False)
+    )
+    # Index of demands in the base year
     i = (tables[Tag.fi_t]["year"] == base_year) & (
         tables[Tag.fi_t]["attribute"] == "COM_PROJ"
     )
-    base_year_demand = tables[Tag.fi_t][["region", "commodity", "year", "value"]][i]
+    base_year_demand = tables[Tag.fi_t][["region", "attribute", "commodity", "value"]][
+        i
+    ]
     base_year_demand = base_year_demand.drop_duplicates(keep="last", ignore_index=True)
-    # Rename year column to year_t-1
-    base_year_demand = base_year_demand.rename(columns={"year": "year_t-1"})
+
     projected_demands = series.merge(
         base_year_demand,
         how="inner",
-        on=["region", "commodity", "year_t-1"],
+        on=["region", "commodity"],
     )
     projected_demands["value"] = (
         projected_demands["value"] * projected_demands["multiplier"]
     )
-    print(projected_demands)
 
-    return pd.DataFrame(data=[])
+    return projected_demands.drop(columns="multiplier")
 
 
 def apply_transform_tables(
