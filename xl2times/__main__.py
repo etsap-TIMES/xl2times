@@ -125,6 +125,7 @@ def convert_xl_to_times(
         transforms.process_transform_table_variants,
         transforms.apply_tag_specified_defaults,
         transforms.process_transform_tables,
+        transforms.process_drvr_tables,
         transforms.process_transform_availability,
         transforms.process_flexible_import_tables,  # slow
         transforms.process_user_constraint_tables,
@@ -142,6 +143,7 @@ def convert_xl_to_times(
         transforms.fill_in_missing_pcgs,
         transforms.complete_processes,
         transforms.create_model_units,
+        transforms.process_user_defined_sets,
         transforms.process_wildcards,
         transforms.convert_aliases,
         transforms.enforce_availability,
