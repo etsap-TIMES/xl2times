@@ -809,25 +809,11 @@
         "use_name": "cset_set"
       },
       {
-        "name": "input_commodity",
-        "aliases": [
-          "pset_ci"
-        ],
-        "use_name": "pset_ci"
-      },
-      {
         "name": "name",
         "aliases": [
           "cset_cn"
         ],
         "use_name": "cset_cn"
-      },
-      {
-        "name": "outout_commodity",
-        "aliases": [
-          "pset_co"
-        ],
-        "use_name": "pset_co"
       },
       {
         "name": "set_description",
@@ -846,7 +832,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "remove_any_row_if_absent": true
       }
     ]
   },
@@ -2448,7 +2435,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "remove_any_row_if_absent": true
       }
     ]
   },
