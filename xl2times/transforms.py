@@ -1960,7 +1960,7 @@ def process_drvr_tables(
             if drop_cols:
                 # Print a warning that columns will be dropped
                 logger.warning(
-                    f"Columns {drop_cols} will be dropped from {tag} table found in {table.filename}, sheet {table.sheetname} and reange {table.range}."
+                    f"Columns {drop_cols} will be dropped from {tag} table found in {table.filename}, sheet {table.sheetname} and range {table.range}."
                 )
                 # Remove columns that are either not known or represent years
                 df = df.drop(columns=drop_cols, errors="ignore")
