@@ -1519,7 +1519,7 @@ def complete_model_trade(
 ) -> dict[str, DataFrame]:
     """Supplement model trade with IRE flows from external regions (i.e. IMPEXP and MINRNW)."""
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
-    veda_ire_sets = model.custom_sets
+    veda_ire_sets = model.custom_psets
 
     # Index of IRE processes in model.processes
     i = model.processes["sets"] == "IRE"
@@ -1685,7 +1685,7 @@ def process_processes(
     - Replace custom sets with standard TIMES sets.
     - Fill in missing ts level values for processes.
 
-    Create model.custom_sets.
+    Create model.custom_psets.
     """
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
@@ -1706,7 +1706,7 @@ def process_processes(
 
     merged_tables = pd.concat(original_dfs, ignore_index=True)
     i = merged_tables["sets"].isin(veda_sets_to_times.keys())
-    model.custom_sets = merged_tables[["sets", "process"]][i].drop_duplicates(
+    model.custom_psets = merged_tables[["sets", "process"]][i].drop_duplicates(
         ignore_index=True
     )
 
@@ -2192,7 +2192,15 @@ def generate_topology_dictionary(
     pros = model.processes
     coms = model.commodities
     pros_sets = pd.concat(
-        [pros[["process", "sets"]].drop_duplicates(), model.custom_sets],
+        [
+            pros[["process", "sets"]].drop_duplicates(),
+            model.custom_psets,
+            model.user_psets,
+        ],
+        ignore_index=True,
+    )
+    coms_sets = pd.concat(
+        [coms[["commodity", "csets"]].drop_duplicates(), model.user_csets],
         ignore_index=True,
     )
     pros_and_coms = model.topology[["process", "commodity", "io"]].drop_duplicates()
@@ -2223,17 +2231,78 @@ def generate_topology_dictionary(
             "df": coms[["commodity", "description"]],
             "col": "description",
         },
-        {
-            "key": "commodities_by_sets",
-            "df": coms[["commodity", "csets"]],
-            "col": "csets",
-        },
+        {"key": "commodities_by_sets", "df": coms_sets, "col": "csets"},
     ]
 
     for entry in dict_info:
         dictionary[entry["key"]] = df_indexed_by_col(entry["df"], entry["col"])
 
     return dictionary
+
+
+def process_user_defined_sets(
+    config: Config, tables: dict[str, DataFrame], model: TimesModel
+) -> dict[str, DataFrame]:
+    """Process user-defined sets."""
+    to_process = [
+        # set_name will be renamed based on the tag
+        (Tag.tfm_csets, "commodity", "PRC_GRP", commodity_map, "csets"),
+        (Tag.tfm_psets, "process", "COM_TYPE", process_map, "sets"),
+    ]
+    to_process = [(t, i, s, m, n) for (t, i, s, m, n) in to_process if t in tables]
+
+    for tag, item_type, times_set, item_map, set_name in to_process:
+        start_time = time.time()
+        df = tables[tag]
+        logger.info(
+            f"process_user_defined_sets: {tag}, {item_type}, {times_set}, {item_map}, {set_name}"
+        )
+        if set_name in df.columns:
+            # Seperate set_name column from the rest of the dataframe and explode it
+            sets_col = df[[set_name]].explode(column=set_name)
+            # Check whether any user-defined sets depend on non-TIMES sets not in the config times_sets
+            i_dependent_sets = sets_col[set_name].isin(
+                set(config.times_sets[times_set])
+            )
+        else:
+            # If no set_name column, then all rows are user-defined sets
+            i_dependent_sets = pd.Series(False, index=df.index, dtype=bool)
+        if any(i_dependent_sets):
+            # The indices of the rows that are dependent
+            dep_idxs = [i for i, b in enumerate(i_dependent_sets) if b]
+            # The ranges that are therefore independent
+            indep_ranges = [
+                (i, x) if i == 0 else (dep_idxs[i - 1], x)
+                for i, x in enumerate(dep_idxs + [len(i_dependent_sets)])
+                if x != 0
+            ]
+            # Using the above, a list of DFs that can be processed in one go
+            df_rows = [df.iloc[i:j] for i, j in indep_ranges]
+        else:
+            df_rows = [df]
+        for df_row in df_rows:
+            dictionary = generate_topology_dictionary(tables, model)
+            row = _match_wildcards(
+                df_row,
+                item_map,
+                dictionary,
+                item_type,
+                explode=True,
+            )
+            row = row.rename(columns={"set_name": set_name})[
+                [set_name, item_type]
+            ].dropna(how="any")
+            # Add set to model user sets
+            if tag == Tag.tfm_csets:
+                model.user_csets = pd.concat([model.user_csets, row], ignore_index=True)
+            elif tag == Tag.tfm_psets:
+                model.user_psets = pd.concat([model.user_psets, row], ignore_index=True)
+
+        logger.info(
+            f"  process_user_defined_sets: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
+        )
+
+    return tables
 
 
 def process_wildcards(
@@ -3221,7 +3290,7 @@ def apply_final_fixup(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Clean up remaining issues. Includes handling of aliases that could not be generalised."""
-    veda_ire_sets = model.custom_sets
+    veda_ire_sets = model.custom_psets
     reg_com_flows = model.topology[["region", "process", "commodity"]].drop_duplicates(
         ignore_index=True
     )
