@@ -2249,56 +2249,58 @@ def process_user_defined_sets(
         (Tag.tfm_csets, "commodity", "PRC_GRP", commodity_map, "csets"),
         (Tag.tfm_psets, "process", "COM_TYPE", process_map, "sets"),
     ]
-    new_user_csets, new_user_psets = [], []
+    to_process = [(t, i, s, m, n) for (t, i, s, m, n) in to_process if t in tables]
 
     for tag, item_type, times_set, item_map, set_name in to_process:
-        if tag in tables:
-            start_time = time.time()
-            df = tables[tag]
-            logger.info(
-                f"process_user_defined_sets: {tag}, {item_type}, {times_set}, {item_map}, {set_name}"
+        start_time = time.time()
+        df = tables[tag]
+        logger.info(
+            f"process_user_defined_sets: {tag}, {item_type}, {times_set}, {item_map}, {set_name}"
+        )
+        if set_name in df.columns:
+            # Seperate set_name column from the rest of the dataframe and explode it
+            sets_col = df[[set_name]].explode(column=set_name)
+            # Check whether any user-defined sets depend on non-TIMES sets not in the config times_sets
+            i_dependent_sets = sets_col[set_name].isin(
+                set(config.times_sets[times_set])
             )
-            if set_name in df.columns:
-                # Seperate set_name column from the rest of the dataframe and explode it
-                sets_col = df[[set_name]].explode(
-                    column=set_name,
-                )
-                # Check whether any user-defined sets depend on non-TIMES sets not in the config times_sets
-                i_dependent_sets = sets_col[set_name].isin(
-                    set(config.times_sets[times_set])
-                )
-            else:
-                # If no set_name column, then all rows are user-defined sets
-                i_dependent_sets = pd.Series(False, index=df.index, dtype=bool)
-            df_rows = list()
-            if any(i_dependent_sets):
-                # TODO: Use i_dependent_sets index to reduce the number of dataframes created
-                df_rows = [df.iloc[[i], :] for i in range(len(df))]
-            else:
-                df_rows.append(df)
-            for df_row in df_rows:
-                dictionary = generate_topology_dictionary(tables, model)
-                row = _match_wildcards(
-                    df_row,
-                    item_map,
-                    dictionary,
-                    item_type,
-                    explode=True,
-                )
-                row = row.rename(columns={"set_name": set_name})[
-                    [set_name, item_type]
-                ].dropna(how="any")
-                # Add set to model user sets
-                if tag == Tag.tfm_csets:
-                    new_user_csets.append(row)
-                elif tag == Tag.tfm_psets:
-                    new_user_psets.append(row)
+        else:
+            # If no set_name column, then all rows are user-defined sets
+            i_dependent_sets = pd.Series(False, index=df.index, dtype=bool)
+        if any(i_dependent_sets):
+            # The indices of the rows that are dependent
+            dep_idxs = [i for i, b in enumerate(i_dependent_sets) if b]
+            # The ranges that are therefore independent
+            indep_ranges = [
+                (i, x) if i == 0 else (dep_idxs[i - 1], x)
+                for i, x in enumerate(dep_idxs + [len(i_dependent_sets)])
+                if x != 0
+            ]
+            # Using the above, a list of DFs that can be processed in one go
+            df_rows = [df.iloc[i:j] for i, j in indep_ranges]
+        else:
+            df_rows = [df]
+        for df_row in df_rows:
+            dictionary = generate_topology_dictionary(tables, model)
+            row = _match_wildcards(
+                df_row,
+                item_map,
+                dictionary,
+                item_type,
+                explode=True,
+            )
+            row = row.rename(columns={"set_name": set_name})[
+                [set_name, item_type]
+            ].dropna(how="any")
+            # Add set to model user sets
+            if tag == Tag.tfm_csets:
+                model.user_csets = pd.concat([model.user_csets, row], ignore_index=True)
+            elif tag == Tag.tfm_psets:
+                model.user_psets = pd.concat([model.user_psets, row], ignore_index=True)
 
-            logger.info(
-                f"  process_user_defined_sets: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
-            )
-    model.user_csets = pd.concat([model.user_csets] + new_user_csets, ignore_index=True)
-    model.user_psets = pd.concat([model.user_psets] + new_user_psets, ignore_index=True)
+        logger.info(
+            f"  process_user_defined_sets: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
+        )
 
     return tables
 
