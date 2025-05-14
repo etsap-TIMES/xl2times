@@ -18,8 +18,8 @@ from loguru import logger
 from tabulate import tabulate
 
 from xl2times import utils
-from xl2times.__main__ import parse_args, run
 from xl2times.dd_to_csv import main
+from xl2times.main import parse_args, run
 from xl2times.utils import max_workers
 
 
