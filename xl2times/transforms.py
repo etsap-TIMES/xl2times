@@ -1933,6 +1933,57 @@ def is_year(col_name):
     return col_name.isdigit() and int(col_name) >= 0
 
 
+def process_drvr_tables(
+    config: Config,
+    tables: list[EmbeddedXlTable],
+    model: TimesModel,
+) -> list[EmbeddedXlTable]:
+    """Process DRVR_TABLE, DRVR_ALLOCATION and SERIES tables."""
+    result = []
+    for table in tables:
+        tag = Tag(table.tag)
+        if tag not in [Tag.drvr_table, Tag.series]:
+            result.append(table)
+        else:
+            df = table.dataframe
+            known_cols = config.known_columns[tag]
+            # Other columns are those that are not in known_cols. They are expected to represent years
+            other_cols = [col for col in df.columns if col not in known_cols]
+            # Create a dictionary of columns to keep (if they represent years) and rename
+            keep_rename_cols = {
+                col: col.lstrip(r"\~")
+                for col in other_cols
+                if col.startswith(r"\~") and is_year(col.lstrip(r"\~"))
+            }
+            # Drop columns that are not in known_cols and do not represent years
+            drop_cols = [col for col in other_cols if col not in keep_rename_cols]
+            if drop_cols:
+                # Print a warning that columns will be dropped
+                logger.warning(
+                    f"Columns {drop_cols} will be dropped from {tag} table found in {table.filename}, sheet {table.sheetname} and range {table.range}."
+                )
+                # Remove columns that are either not known or represent years
+                df = df.drop(columns=drop_cols, errors="ignore")
+            # Remove \~ from columns representing years
+            if keep_rename_cols:
+                df = df.rename(columns=keep_rename_cols)
+            else:
+                # Print a warning that no year columns were specified and the table will be dropped
+                logger.warning(
+                    f"No year columns specified in the expected format. Dropping {tag} table found in {table.filename}, sheet {table.sheetname} and range {table.range}."
+                )
+                continue
+            # Melt the dataframe to long format
+            df = pd.melt(
+                df,
+                id_vars=list(known_cols),
+                var_name="year",
+                value_name="value",
+            )
+            result.append(replace(table, dataframe=df))
+    return result
+
+
 def process_transform_table_variants(
     config: Config,
     tables: list[EmbeddedXlTable],
@@ -2527,6 +2578,122 @@ def _remove_invalid_rows(
     return df.loc[keep]
 
 
+def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
+    """Generate demand projections based on the data in drvr_allocation, drvr_table, and series tables."""
+    # Check if the required tables are present
+    if not all(
+        tag in tables for tag in [Tag.drvr_allocation, Tag.drvr_table, Tag.series]
+    ):
+        logger.warning("Missing required tables for demand projection.")
+        return pd.DataFrame(data=[])
+    series = tables[Tag.series]
+    allocation = tables[Tag.drvr_allocation]
+    drivers = tables[Tag.drvr_table]
+    # Store column names that are neither "driver" nor "value"
+    index_cols = [col for col in drivers.columns if col not in {"driver", "value"}]
+    series = (
+        series[["series_name", "year", "value"]]
+        .pivot(index="year", columns="series_name", values="value")
+        .reset_index()
+    )
+    drivers = drivers.pivot(
+        index=index_cols, columns="driver", values="value"
+    ).reset_index()
+    # Merge the drivers and series tables
+    series = drivers.merge(series, how="outer", on="year")
+    # Convert to the long format
+    series = pd.melt(
+        series,
+        id_vars=index_cols,
+        var_name="series_name",
+        value_name="value",
+    )
+    # Prepare for merging with the series table
+    allocation = pd.melt(
+        allocation[["region", "commodity", "driver", "calibration", "sensitivity"]],
+        id_vars=["region", "commodity"],
+        var_name="series_type",
+        value_name="series_name",
+    )
+    # Merge the tables on the series_name and region columns
+    series = allocation.merge(
+        series,
+        how="left",
+        on=["region", "series_name"],
+    )
+    # Remove rows with missing values in the "value" column
+    series = series.dropna(subset=["value"], axis=0, ignore_index=True)
+    # Drop series_name column
+    series = series.drop(columns=["series_name"])
+    # Remove any duplicates keeping the last occurrence
+    series = series.drop_duplicates(keep="last", ignore_index=True)
+    # Update the index columns
+    index_cols = [col for col in series.columns if col not in {"value", "series_type"}]
+    # Pivot the table to get the driver, sensitivity, and calibration values as columns
+    series = series.pivot(
+        index=index_cols, columns="series_type", values="value"
+    ).reset_index()
+    # Year column should be integer
+    series["year"] = series["year"].astype(int)
+    # Create a copy of the series table with only the driver values
+    series_copy = series.copy().rename(columns={"year": "year_t-1"})
+    # Keep only selected columns
+    series_copy = series_copy[
+        ["region", "commodity", "year_t-1", "source_filename", "driver"]
+    ]
+    # Add the previous year column
+    series["year_t-1"] = series["year"] - 1
+    # Merge the series table with the series_copy table on the region, commodity, and year columns
+    series = series.merge(
+        series_copy,
+        how="left",
+        on=["region", "commodity", "year_t-1", "source_filename"],
+        suffixes=("", "_t-1"),
+    )
+    # Remove rows with missing values in the "driver_t-1" column
+    series = series.dropna(subset=["driver_t-1"], axis=0, ignore_index=True)
+    # Calculated the multipliers to project the demand
+    series["multiplier"] = series["calibration"] + series["sensitivity"] * (
+        (series["driver"] / series["driver_t-1"]) - 1
+    )
+    # Drop the unnecessary columns
+    series = series.drop(
+        columns=["year_t-1", "driver", "driver_t-1", "calibration", "sensitivity"]
+    )
+    # Multiplier should be a float
+    series["multiplier"] = series["multiplier"].astype(float)
+    # Make the multiplier cumulative
+    series["multiplier"] = (
+        series[["region", "commodity", "source_filename", "multiplier"]]
+        .groupby(["region", "commodity", "source_filename"])
+        .cumprod()
+    )
+    series["submodule"] = "main"
+    # module_name is source_filename without ScenDem_
+    series["module_name"] = (
+        series["source_filename"].str.upper().str.replace("ScenDem_", "", case=False)
+    )
+    # Index of demands in the base year
+    i = (tables[Tag.fi_t]["year"] == base_year) & (
+        tables[Tag.fi_t]["attribute"] == "COM_PROJ"
+    )
+    base_year_demand = tables[Tag.fi_t][["region", "attribute", "commodity", "value"]][
+        i
+    ]
+    base_year_demand = base_year_demand.drop_duplicates(keep="last", ignore_index=True)
+
+    projected_demands = series.merge(
+        base_year_demand,
+        how="inner",
+        on=["region", "commodity"],
+    )
+    projected_demands["value"] = (
+        projected_demands["value"] * projected_demands["multiplier"]
+    )
+
+    return projected_demands.drop(columns="multiplier")
+
+
 def apply_transform_tables(
     config: Config,
     tables: dict[str, DataFrame],
@@ -2571,6 +2738,15 @@ def apply_transform_tables(
         model.commodity_groups = commodity_groups.dropna()
 
     for data_module in model.data_modules:
+        if data_module == "DEMAND":
+            projected_demands = _project_demands(tables, model.start_year)
+            if not projected_demands.empty:
+                tables[Tag.fi_t] = pd.concat(
+                    [tables[Tag.fi_t], projected_demands], ignore_index=True
+                )
+            # Continue with the next data module
+            continue
+        # A list to hold dataframes of generated records
         generated_records = []
         if (
             Tag.tfm_dins in tables
