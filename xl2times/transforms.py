@@ -2307,7 +2307,9 @@ def process_user_defined_sets(
     for tag, item_type, times_set, item_map, set_name in to_process:
         start_time = time.time()
         df = tables[tag]
-        logger.info(f"process_user_defined_sets: {tag}.")
+        logger.debug(
+            f"process_user_defined_sets in {tag}. Item: {item_type}, TIMES set: {times_set}, mapping: {item_map}, sets column name: {set_name}"
+        )
         if set_name in df.columns:
             # Seperate set_name column from the rest of the dataframe and explode it
             sets_col = df[[set_name]].explode(column=set_name)
