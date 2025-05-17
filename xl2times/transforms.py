@@ -2295,19 +2295,19 @@ def process_user_defined_sets(
     config: Config, tables: dict[str, DataFrame], model: TimesModel
 ) -> dict[str, DataFrame]:
     """Process user-defined sets."""
+    # Create a list of tuples containing the tag, type of entity, name of the
+    # relevant times set, entity map, and a name of the column containing sets
     to_process = [
-        # set_name will be renamed based on the tag
-        (Tag.tfm_csets, "commodity", "PRC_GRP", commodity_map, "csets"),
-        (Tag.tfm_psets, "process", "COM_TYPE", process_map, "sets"),
+        (Tag.tfm_csets, "commodity", "COM_TYPE", commodity_map, "csets"),
+        (Tag.tfm_psets, "process", "PRC_GRP", process_map, "sets"),
     ]
+    # Process only those tables that were found in the input.
     to_process = [(t, i, s, m, n) for (t, i, s, m, n) in to_process if t in tables]
 
     for tag, item_type, times_set, item_map, set_name in to_process:
         start_time = time.time()
         df = tables[tag]
-        logger.info(
-            f"process_user_defined_sets: {tag}, {item_type}, {times_set}, {item_map}, {set_name}"
-        )
+        logger.info(f"process_user_defined_sets: {tag}.")
         if set_name in df.columns:
             # Seperate set_name column from the rest of the dataframe and explode it
             sets_col = df[[set_name]].explode(column=set_name)
