@@ -2295,44 +2295,60 @@ def process_user_defined_sets(
     config: Config, tables: dict[str, DataFrame], model: TimesModel
 ) -> dict[str, DataFrame]:
     """Process user-defined sets."""
-    # Create a list of tuples containing the tag, type of entity, name of the
+    # Create a list of tuples containing the tag, type of entity, set_type, name of the
     # relevant times set, entity map, and a name of the column containing sets
     to_process = [
-        (Tag.tfm_csets, "commodity", "COM_TYPE", commodity_map, "csets"),
-        (Tag.tfm_psets, "process", "PRC_GRP", process_map, "sets"),
+        (Tag.tfm_csets, "commodity", "cset_set", "COM_TYPE", commodity_map, "csets"),
+        (Tag.tfm_psets, "process", "pset_set", "PRC_GRP", process_map, "sets"),
     ]
     # Process only those tables that were found in the input.
-    to_process = [(t, i, s, m, n) for (t, i, s, m, n) in to_process if t in tables]
+    to_process = [
+        (t, i, w, s, m, n) for (t, i, w, s, m, n) in to_process if t in tables
+    ]
 
-    for tag, item_type, times_set, item_map, set_name in to_process:
+    def _unresolved_sets(
+        df: DataFrame, set_type: str, resolved_sets: set[str]
+    ) -> pd.Series:
+        """Checkes whether any sets in the column are not in the resolved sets."""
+        # Seperate set_name column from the rest of the dataframe and explode it
+        sets_col = df[[set_type]].map(_split_by_commas).explode(column=set_type)
+        # Remove any leading dashes
+        sets_col[set_type] = sets_col[set_type].str.lstrip("-")
+        # Check whether any user-defined sets depend on non-TIMES sets
+        i_unresolved_sets = (
+            ~sets_col[set_type].isin(resolved_sets) & sets_col[set_type].notna()
+        )
+        # Make sure that the index is unique by aggregating
+        return i_unresolved_sets.groupby(i_unresolved_sets.index).any()
+
+    for tag, item_type, set_type, times_set, item_map, set_name in to_process:
         start_time = time.time()
         df = tables[tag]
         logger.debug(
-            f"process_user_defined_sets in {tag}. Item: {item_type}, TIMES set: {times_set}, mapping: {item_map}, sets column name: {set_name}"
+            f"process_user_defined_sets in {tag}. Item: {item_type}, set type: {set_type},"
+            f" TIMES set: {times_set}, mapping: {item_map}, sets column name: {set_name}"
         )
-        if set_name in df.columns:
-            # Seperate set_name column from the rest of the dataframe and explode it
-            sets_col = df[[set_name]].explode(column=set_name)
-            # Check whether any user-defined sets depend on non-TIMES sets not in the config times_sets
-            i_dependent_sets = sets_col[set_name].isin(
-                set(config.times_sets[times_set])
-            )
+        df_rows = []
+        if set_type in df.columns:
+            resolved_sets = set(config.times_sets[times_set])
+            max_iter = len(df)
+            for i in range(max_iter):
+                current_length = len(df)
+                i_unresolved_sets = _unresolved_sets(df, set_type, resolved_sets)
+                df_rows.append(df[~i_unresolved_sets])
+                resolved_sets = resolved_sets.union(df["set_name"][~i_unresolved_sets])
+                df = df[i_unresolved_sets]
+                if len(df) == current_length or df.empty:
+                    # No more resolvable sets
+                    if not df.empty:
+                        logger.warning(
+                            f"process_user_defined_sets in {tag}: unable to create sets based on the input: {df}"
+                        )
+                    break
         else:
-            # If no set_name column, then all rows are user-defined sets
-            i_dependent_sets = pd.Series(False, index=df.index, dtype=bool)
-        if any(i_dependent_sets):
-            # The indices of the rows that are dependent
-            dep_idxs = [i for i, b in enumerate(i_dependent_sets) if b]
-            # The ranges that are therefore independent
-            indep_ranges = [
-                (i, x) if i == 0 else (dep_idxs[i - 1], x)
-                for i, x in enumerate(dep_idxs + [len(i_dependent_sets)])
-                if x != 0
-            ]
-            # Using the above, a list of DFs that can be processed in one go
-            df_rows = [df.iloc[i:j] for i, j in indep_ranges]
-        else:
-            df_rows = [df]
+            # If no set_name column, then all rows are independent
+            df_rows.append(df)
+
         for df_row in df_rows:
             dictionary = generate_topology_dictionary(tables, model)
             row = _match_wildcards(
