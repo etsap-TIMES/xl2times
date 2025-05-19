@@ -2309,8 +2309,8 @@ def process_user_defined_sets(
     def _unresolved_sets(
         df: DataFrame, set_type: str, resolved_sets: set[str]
     ) -> pd.Series:
-        """Checkes whether any sets in the column are not in the resolved sets."""
-        # Seperate set_name column from the rest of the dataframe and explode it
+        """Checks whether any sets in the column are not in the resolved sets."""
+        # Separate set_name column from the rest of the dataframe and explode it
         sets_col = df[[set_type]].map(_split_by_commas).explode(column=set_type)
         # Remove any leading dashes
         sets_col[set_type] = sets_col[set_type].str.lstrip("-")
@@ -2321,12 +2321,12 @@ def process_user_defined_sets(
         # Make sure that the index is unique by aggregating
         return i_unresolved_sets.groupby(i_unresolved_sets.index).any()
 
-    for tag, item_type, set_type, times_set, item_map, set_name in to_process:
+    for tag, item_type, set_type, times_set, item_map, set_col_name in to_process:
         start_time = time.time()
         df = tables[tag]
         logger.debug(
             f"process_user_defined_sets in {tag}. Item: {item_type}, set type: {set_type},"
-            f" TIMES set: {times_set}, mapping: {item_map}, sets column name: {set_name}"
+            f" TIMES set: {times_set}, mapping: {item_map}, sets column name: {set_col_name}"
         )
         df_rows = []
         if set_type in df.columns:
@@ -2358,8 +2358,8 @@ def process_user_defined_sets(
                 item_type,
                 explode=True,
             )
-            row = row.rename(columns={"set_name": set_name})[
-                [set_name, item_type]
+            row = row.rename(columns={"set_name": set_col_name})[
+                [set_col_name, item_type]
             ].dropna(how="any")
             # Add set to model user sets
             if tag == Tag.tfm_csets:
