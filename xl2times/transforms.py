@@ -2331,8 +2331,7 @@ def process_user_defined_sets(
         df_rows = []
         if set_type in df.columns:
             resolved_sets = set(config.times_sets[times_set])
-            max_iter = len(df)
-            for i in range(max_iter):
+            for i in range(len(df)):
                 current_length = len(df)
                 i_unresolved_sets = _unresolved_sets(df, set_type, resolved_sets)
                 df_rows.append(df[~i_unresolved_sets])
