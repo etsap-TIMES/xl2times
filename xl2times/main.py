@@ -72,14 +72,44 @@ def _read_xlsx_cached(filename: str | Path) -> list[EmbeddedXlTable]:
 
 
 def read_xl(
-    input_files: list[str],
+    inputs: list[str],
     output_dir: str,
     config: Config,
-    model: TimesModel,
     no_cache: bool,
     stop_after_read: bool = False,
-) -> dict[str, DataFrame]:
+) -> TimesModel:
     start_time = datetime.now()
+
+    model = TimesModel()
+
+    if len(inputs) == 1:
+        assert os.path.isdir(inputs[0])
+        input_files = [
+            str(path)
+            for path in Path(inputs[0]).rglob("*")
+            if path.suffix in [".xlsx", ".xlsm"] and not path.name.startswith("~")
+        ]
+        if utils.is_veda_based(input_files):
+            input_files = utils.filter_veda_filename_patterns(input_files)
+        logger.info(f"Loading {len(input_files)} files from {inputs[0]}")
+    else:
+        input_files = inputs
+
+    model.files = [Path(path).stem for path in input_files]
+
+    processing_order = ["base", "subres", "trade", "demand", "scen", "syssettings"]
+    for data_module in processing_order:
+        model.data_modules = model.data_modules + sorted(
+            [
+                item
+                for item in {
+                    DataModule.module_name(path)
+                    for path in input_files
+                    if DataModule.module_type(path) == data_module
+                }
+                if item is not None
+            ]
+        )
 
     invalidate_cache()
     with ProcessPoolExecutor(utils.max_workers) as executor:
@@ -102,7 +132,7 @@ def read_xl(
 
     dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
     if stop_after_read:
-        return {}
+        return model
 
     transform_list = [
         transforms.normalize_tags_columns,
@@ -160,9 +190,6 @@ def read_xl(
         lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         ),
-        transforms.complete_dictionary,
-        transforms.convert_to_string,
-        lambda config, tables, model: produce_times_tables(config, tables, model),
     ]
 
     input = raw_tables
@@ -182,14 +209,9 @@ def read_xl(
             "All tables:\n{dump}", dump=lambda: _all_table_dump(output)
         )
         input = output
-    assert isinstance(output, dict)
 
-    logger.info(
-        f"Conversion complete, {len(output)} tables produced,"
-        f" {sum(df.shape[0] for df in output.values())} rows"
-    )
-
-    return output
+    # All the information is in the TimesModel, so we ignore the `tables` part and return the model
+    return model
 
 
 def _all_table_dump(tables: list[EmbeddedXlTable] | dict[str, DataFrame]) -> str:
@@ -301,6 +323,20 @@ def compare(
 
     logger.success(result)
     return result
+
+
+def to_tables(config: Config, model: TimesModel) -> dict[str, DataFrame]:
+    """Convert a TimesModel to a set of Times tables (GAMS sets/parameters)."""
+    # TODO should we move this to be a method in the TimesModel class?
+    tables = transforms.complete_dictionary(model)
+    tables = transforms.convert_to_string(tables)
+    output = produce_times_tables(config, tables, model)
+
+    logger.info(
+        f"Conversion complete, {len(output)} tables produced,"
+        f" {sum(df.shape[0] for df in output.values())} rows"
+    )
+    return output
 
 
 def produce_times_tables(
@@ -529,49 +565,18 @@ def run(args: argparse.Namespace) -> str | None:
         args.include_dummy_imports,
     )
 
-    model = TimesModel()
-
-    if len(args.input) == 1:
-        assert os.path.isdir(args.input[0])
-        input_files = [
-            str(path)
-            for path in Path(args.input[0]).rglob("*")
-            if path.suffix in [".xlsx", ".xlsm"] and not path.name.startswith("~")
-        ]
-        if utils.is_veda_based(input_files):
-            input_files = utils.filter_veda_filename_patterns(input_files)
-        logger.info(f"Loading {len(input_files)} files from {args.input[0]}")
-    else:
-        input_files = args.input
-
-    model.files = [Path(path).stem for path in input_files]
-
-    processing_order = ["base", "subres", "trade", "demand", "scen", "syssettings"]
-    for data_module in processing_order:
-        model.data_modules = model.data_modules + sorted(
-            [
-                item
-                for item in {
-                    DataModule.module_name(path)
-                    for path in input_files
-                    if DataModule.module_type(path) == data_module
-                }
-                if item is not None
-            ]
-        )
-
     if args.only_read:
-        tables = read_xl(
-            input_files,
+        model = read_xl(
+            args.input,
             args.output_dir,
             config,
-            model,
             args.no_cache,
             stop_after_read=True,
         )
         sys.exit(0)
 
-    tables = read_xl(input_files, args.output_dir, config, model, args.no_cache)
+    model = read_xl(args.input, args.output_dir, config, args.no_cache)
+    tables = to_tables(config, model)
 
     if args.dd:
         write_dd_files(tables, config, args.output_dir)
@@ -581,7 +586,7 @@ def run(args: argparse.Namespace) -> str | None:
     if args.ground_truth_dir:
         ground_truth = read_csv_tables(args.ground_truth_dir)
         # Use the same convert_to_string transform on GT so that comparisons are fair
-        ground_truth = transforms.convert_to_string(config, ground_truth, model)
+        ground_truth = transforms.convert_to_string(ground_truth)
         comparison = compare(tables, ground_truth, args.output_dir)
         return comparison
     else:
