@@ -71,7 +71,7 @@ def _read_xlsx_cached(filename: str | Path) -> list[EmbeddedXlTable]:
     return tables
 
 
-def convert_xl_to_times(
+def read_xl(
     input_files: list[str],
     output_dir: str,
     config: Config,
@@ -561,7 +561,7 @@ def run(args: argparse.Namespace) -> str | None:
         )
 
     if args.only_read:
-        tables = convert_xl_to_times(
+        tables = read_xl(
             input_files,
             args.output_dir,
             config,
@@ -571,9 +571,7 @@ def run(args: argparse.Namespace) -> str | None:
         )
         sys.exit(0)
 
-    tables = convert_xl_to_times(
-        input_files, args.output_dir, config, model, args.no_cache
-    )
+    tables = read_xl(input_files, args.output_dir, config, model, args.no_cache)
 
     if args.dd:
         write_dd_files(tables, config, args.output_dir)
