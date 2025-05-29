@@ -381,6 +381,8 @@ def produce_times_tables(
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
                 df = df.drop(columns=cols_to_drop)
                 # Drop duplicates, keeping last seen rows as per file order
+                # TODO: Use case information to remove unused data modules
+                # TODO: Apply TS_Filter
                 df = keep_last_by_file_order(df)
                 # Drop rows with missing values
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
