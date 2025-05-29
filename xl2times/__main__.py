@@ -324,21 +324,12 @@ def produce_times_tables(
         if m.xl_name not in par_tables or m.filter_rows.get("attribute") in defined_pars
     ]
 
-    def keep_last_by_file_order(df):
-        """Drop duplicate rows, keeping the last dupicate row (including value) as per
-        input file order, and remove the `source_filename` column from the DataFrame.
-
-        Note: we do not remove duplicate values for the same query columns for parameters
-        here, because in the future we might want to re-use the processed tables and
-        select the rows coming from different scenarios/files after processing just once.
-        If so, at that point we can use the info in the `source_filename` column to do
-        this.
-        """
+    def apply_file_order(df):
+        """Apply input file order and remove the `source_filename` column from the DataFrame."""
         if "source_filename" in df.columns:
             df["file_order"] = df["source_filename"].map(file_order)
             df = df.sort_values(by="file_order", kind="stable")
             df = df.drop(columns=["source_filename", "file_order"])
-        df = df.drop_duplicates(keep="last")
         return df.reset_index(drop=True)
 
     result = {}
@@ -380,10 +371,12 @@ def produce_times_tables(
                 cols_to_keep = set(mapping.times_cols).union({"source_filename"})
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
                 df = df.drop(columns=cols_to_drop)
-                # Drop duplicates, keeping last seen rows as per file order
+                # Apply file order
+                df = apply_file_order(df)
                 # TODO: Use case information to remove unused data modules
                 # TODO: Apply TS_Filter
-                df = keep_last_by_file_order(df)
+                # Drop duplicates, keeping last
+                df = df.drop_duplicates(keep="last", ignore_index=True)
                 # Drop rows with missing values
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
                 i = (
