@@ -5,6 +5,7 @@ from __future__ import (
 # see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
 import functools
 import gzip
+import json
 import os
 import pickle
 import sys
@@ -334,6 +335,28 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
     }
     # Return as a list
     return list(filtered)
+
+
+def get_veda_cases(path: str) -> dict[str, str]:
+    """Get cases defined in Veda if the case definition file existst in the
+    model folder.
+    """
+    cases = {}
+    file_path = Path(path) / "AppData" / "Groups.json"
+
+    if not file_path.exists():
+        logger.info(f"{file_path} does not exist.")
+        return cases
+
+    # Read the json file
+    with open(file_path, encoding="utf-8") as file:
+        group_list = json.load(file)
+
+    scenario_groups = [g for g in group_list if g["GroupType"] == "Scenario"]
+
+    print(scenario_groups)
+
+    return cases
 
 
 def set_log_level(level: int | None) -> str:

@@ -263,6 +263,7 @@ class TimesModel:
     custom_psets: DataFrame = field(default_factory=DataFrame)
     user_psets: DataFrame = field(default_factory=DataFrame)
     user_csets: DataFrame = field(default_factory=DataFrame)
+    cases: dict[str, str] = field(default_factory=dict)
 
     @property
     def external_regions(self) -> set[str]:

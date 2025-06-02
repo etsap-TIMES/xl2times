@@ -535,6 +535,7 @@ def run(args: argparse.Namespace) -> str | None:
         ]
         if utils.is_veda_based(input_files):
             input_files = utils.filter_veda_filename_patterns(input_files)
+            model.cases = utils.get_veda_cases(args.input[0])
         logger.info(f"Loading {len(input_files)} files from {args.input[0]}")
     else:
         input_files = args.input
