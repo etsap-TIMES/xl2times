@@ -74,13 +74,23 @@ def _read_xlsx_cached(filename: str | Path) -> list[EmbeddedXlTable]:
 def read_xl(
     inputs: list[str],
     output_dir: str,
-    config: Config,
+    regions: str,
+    include_dummy_imports: bool,
     no_cache: bool,
     stop_after_read: bool = False,
-) -> TimesModel:
+) -> tuple[TimesModel, Config]:
     start_time = datetime.now()
 
     model = TimesModel()
+    config = Config(
+        "times_mapping.txt",
+        "times-info.json",
+        "times-sets.json",
+        "veda-tags.json",
+        "veda-attr-defaults.json",
+        regions,
+        include_dummy_imports,
+    )
 
     if len(inputs) == 1:
         assert os.path.isdir(inputs[0])
@@ -132,7 +142,7 @@ def read_xl(
 
     dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
     if stop_after_read:
-        return model
+        return model, config
 
     transform_list = [
         transforms.normalize_tags_columns,
@@ -211,7 +221,7 @@ def read_xl(
         input = output
 
     # All the information is in the TimesModel, so we ignore the `tables` part and return the model
-    return model
+    return model, config
 
 
 def _all_table_dump(tables: list[EmbeddedXlTable] | dict[str, DataFrame]) -> str:
@@ -555,27 +565,24 @@ def run(args: argparse.Namespace) -> str | None:
     """
     utils.setup_logger(args.verbose)
 
-    config = Config(
-        "times_mapping.txt",
-        "times-info.json",
-        "times-sets.json",
-        "veda-tags.json",
-        "veda-attr-defaults.json",
-        args.regions,
-        args.include_dummy_imports,
-    )
-
     if args.only_read:
-        model = read_xl(
+        model, config = read_xl(
             args.input,
             args.output_dir,
-            config,
+            args.regions,
+            args.include_dummy_imports,
             args.no_cache,
             stop_after_read=True,
         )
         sys.exit(0)
 
-    model = read_xl(args.input, args.output_dir, config, args.no_cache)
+    model, config = read_xl(
+        args.input,
+        args.output_dir,
+        args.regions,
+        args.include_dummy_imports,
+        args.no_cache,
+    )
     tables = to_tables(config, model)
 
     if args.dd:
