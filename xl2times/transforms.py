@@ -15,7 +15,8 @@ from pandas.core.frame import DataFrame
 from tqdm import tqdm
 
 from . import utils
-from .datatypes import Config, DataModule, EmbeddedXlTable, Tag, TimesModel
+from .config import Config
+from .datatypes import DataModule, EmbeddedXlTable, Tag, TimesModel
 from .utils import max_workers
 
 csets_ordered_for_pcg = ["DEM", "MAT", "NRG", "ENV", "FIN"]

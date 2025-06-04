@@ -16,7 +16,8 @@ from loguru import logger
 from pandas.core.frame import DataFrame
 
 from . import excel, transforms, utils
-from .datatypes import Config, DataModule, EmbeddedXlTable, TimesModel
+from .config import Config
+from .datatypes import DataModule, EmbeddedXlTable, TimesModel
 
 _log_sep = "=" * 80 + "\n"
 
