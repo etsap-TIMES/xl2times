@@ -73,10 +73,10 @@ def _read_xlsx_cached(filename: str | Path) -> list[EmbeddedXlTable]:
 
 def read_xl(
     inputs: list[str],
-    output_dir: str,
     regions: str,
     include_dummy_imports: bool,
-    no_cache: bool,
+    output_dir: str | None = None,
+    no_cache: bool = False,
     stop_after_read: bool = False,
 ) -> tuple[TimesModel, Config]:
     start_time = datetime.now()
@@ -140,7 +140,8 @@ def read_xl(
         input_dir = os.path.commonpath([t.filename for t in raw_tables])
         raw_tables = [strip_filename_prefix(t, input_dir) for t in raw_tables]
 
-    dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
+    if output_dir:
+        dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
     if stop_after_read:
         return model, config
 
@@ -199,7 +200,9 @@ def read_xl(
         transforms.resolve_remaining_cgs,
         lambda config, tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
-        ),
+        )
+        if output_dir
+        else tables,
     ]
 
     input = raw_tables
@@ -326,7 +329,7 @@ def compare(
                     index=False,
                 )
     result = (
-        f"{(total_correct_rows / total_gt_rows) if total_gt_rows!=0 else np.nan :.1%} of ground truth rows present"
+        f"{(total_correct_rows / total_gt_rows) if total_gt_rows != 0 else np.nan:.1%} of ground truth rows present"
         f" in output ({total_correct_rows}/{total_gt_rows})"
         f", {total_additional_rows} additional rows"
     )
@@ -568,20 +571,20 @@ def run(args: argparse.Namespace) -> str | None:
     if args.only_read:
         model, config = read_xl(
             args.input,
-            args.output_dir,
             args.regions,
             args.include_dummy_imports,
-            args.no_cache,
+            output_dir=args.output_dir,
+            no_cache=args.no_cache,
             stop_after_read=True,
         )
         sys.exit(0)
 
     model, config = read_xl(
         args.input,
-        args.output_dir,
         args.regions,
         args.include_dummy_imports,
-        args.no_cache,
+        output_dir=args.output_dir,
+        no_cache=args.no_cache,
     )
     tables = to_tables(config, model)
 
