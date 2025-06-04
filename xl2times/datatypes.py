@@ -435,8 +435,8 @@ class Config:
         unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
         if unknown_cats:
             logger.warning(f"Unknown categories in times-info.json: {unknown_cats}")
-        dd_table_order = chain.from_iterable(
-            sorted(cat_to_tables[c]) for c in categories
+        dd_table_order = list(
+            chain.from_iterable(sorted(cat_to_tables[c]) for c in categories)
         )
 
         # Compute the set of all attributes, i.e. all entities with category = parameter
