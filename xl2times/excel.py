@@ -238,7 +238,6 @@ def cell_is_empty(value) -> bool:
 def _update_uc_sets(
     uc_sets: dict[str, dict[str, str]], new_element: str
 ) -> tuple[bool, dict[str, dict[str, str]]]:
-
     # Overview of the sets: https://times.readthedocs.io/en/latest/part-4/part-4.html#uc-sets-in-veda2
     # Categorise by type
     mapping = {

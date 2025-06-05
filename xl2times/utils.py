@@ -8,9 +8,12 @@ import gzip
 import json
 import os
 import pickle
+import shutil
+import subprocess
 import sys
 from dataclasses import replace
 from math import floor, log10
+from os import path, symlink
 from pathlib import Path, PurePath
 
 import numpy
@@ -555,3 +558,41 @@ def diff_state(
     }
     logger.info("Comparing `model` dataframes...")
     compare_df_dict(dfs_before, dfs_after, sort_cols=sort_cols)
+
+
+def run_gams(times_folder: str, out_folder: str) -> None:
+    """Runs GAMS on the @out_folder@, which is assumed to have the output of this tool.
+
+    Requires the @gamspy-base@ package.
+    """
+    # Import gamspy-base in here and not at the top of the file so that xl2times doesn't depend on it
+    try:
+        from gamspy_base import directory
+    except ImportError:
+        raise NotImplementedError("Package gamspy-base not installed. Cannot run GAMS.")
+
+    # Copy GAMS scaffolding
+    scaffolding_folder = path.join(
+        path.dirname(path.realpath(__file__)), "gams_scaffold"
+    )
+    shutil.copytree(scaffolding_folder, out_folder, dirs_exist_ok=True)
+    # Create link to TIMES source
+    if not path.exists(path.join(out_folder, "source")):
+        symlink(times_folder, path.join(out_folder, "source"), True)
+
+    # Run GAMS
+    gams_path = path.join(directory, "gams")
+    gams_cmd = f"{gams_path} scenario.run parmfile=gams.opt --run_name=scenario gdx=scenario O=scenario.lst filecase=4"
+    res = subprocess.run(
+        gams_cmd.split(),
+        cwd=out_folder,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=True,
+    )
+    if res.returncode == 0:
+        last_lines = "".join(res.stdout.splitlines()[-2:])
+        logger.success(f"Ran GAMS successfully on {out_folder}:\n{last_lines}")
+    logger.debug(res.stdout)
+    return
