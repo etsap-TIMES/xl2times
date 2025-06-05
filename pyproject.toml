@@ -43,6 +43,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "black",
+    "gamspy-base",
     "pre-commit",
     "tabulate",
     "pytest",

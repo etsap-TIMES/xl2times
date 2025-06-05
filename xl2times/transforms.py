@@ -1103,11 +1103,8 @@ def process_regions(
     return tables
 
 
-def complete_dictionary(
-    config: Config,
-    tables: dict[str, DataFrame],
-    model: TimesModel,
-) -> dict[str, DataFrame]:
+def complete_dictionary(model: TimesModel) -> dict[str, DataFrame]:
+    # TODO this depends only on TimesModel -- should we move this to be a method in that class?
     tables = dict()
     for k, v in [
         ("AllRegions", model.all_regions),
@@ -3135,11 +3132,7 @@ def process_time_slices(
     return result
 
 
-def convert_to_string(
-    config: Config,
-    tables: dict[str, DataFrame],
-    model: TimesModel,
-) -> dict[str, DataFrame]:
+def convert_to_string(tables: dict[str, DataFrame]) -> dict[str, DataFrame]:
     def convert(x: Any) -> str:
         if isinstance(x, float):
             if x.is_integer():
