@@ -390,7 +390,8 @@ def produce_times_tables(
         """Filter out the data not included in the specified case. Apply module_order."""
         if "module_name" in df.columns:
             df["module_order"] = df["module_name"].map(module_order)
-            df = df.dropna(subset=["module_order"])
+            i = df["module_order"].isna() & df["module_name"].notna()
+            df = df[~i]
             df = df.sort_values(by="module_order", kind="stable")
             df = df.drop(columns=["module_order"])
 
