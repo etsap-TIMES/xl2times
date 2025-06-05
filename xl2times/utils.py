@@ -352,9 +352,26 @@ def get_veda_cases(path: str) -> dict[str, str]:
     with open(file_path, encoding="utf-8") as file:
         group_list = json.load(file)
 
-    scenario_groups = [g for g in group_list if g["GroupType"] == "Scenario"]
+    def _make_df(group: dict) -> DataFrame:
+        """Create a DataFrame from a group dictionary."""
+        records = json.loads(group["Settings"])
+        df = pd.DataFrame.from_records(records)
+        df["Case"] = group["GroupName"]
+        return df
 
-    print(scenario_groups)
+    scenario_groups = [_make_df(g) for g in group_list if g["GroupType"] == "Scenario"]
+    if scenario_groups:
+        df = pd.concat(scenario_groups, ignore_index=True)
+        # Column type "RowOrder" is integer
+        df["RowOrder"] = df["RowOrder"].astype(int)
+        df = df.sort_values("RowOrder")
+        # Modules that are part of the corresponding cases
+        i = df["Checked"] != "false"
+        keep_cols = ["Name", "Case"]
+        # Create a list of modules for each case
+        df = df[i][keep_cols].groupby("Case").agg(list)
+        # Convert to a dictionary
+        cases = df.to_dict(orient="dict")["Name"]
 
     return cases
 
