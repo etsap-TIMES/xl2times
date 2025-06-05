@@ -385,6 +385,17 @@ def produce_times_tables(
 
         return df.reset_index(drop=True)
 
+    # TODO: Merge / align with apply_file_order
+    def limit_to_case_modules(df):
+        """Filter out the data not included in the specified case. Apply module_order."""
+        if "module_name" in df.columns:
+            df["module_order"] = df["module_name"].map(module_order)
+            df = df.dropna(subset=["module_order"])
+            df = df.sort_values(by="module_order", kind="stable")
+            df = df.drop(columns=["module_order"])
+
+        return df.reset_index(drop=True)
+
     result = {}
     used_tables = set()
     for mapping in mappings:
@@ -426,7 +437,18 @@ def produce_times_tables(
                 df = df.drop(columns=cols_to_drop)
                 # Apply file order
                 df = apply_file_order(df)
-                # TODO: Use case information to remove unused data modules
+                # Use case information to remove unused data modules
+                if config.produce_case:
+                    case = config.produce_case.upper()
+                    if case not in model.cases:
+                        logger.info(
+                            f"Case {case} not found in model cases. All data modules will be included."
+                        )
+                    else:
+                        module_order = defaultdict(lambda: -1)
+                        for i, f in enumerate(model.cases[case]):
+                            module_order[f] = i
+                        df = limit_to_case_modules(df)
                 # TODO: Apply TS_Filter
                 # Drop duplicates, keeping last
                 df = df.drop_duplicates(keep="last", ignore_index=True)
