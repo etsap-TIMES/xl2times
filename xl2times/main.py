@@ -365,6 +365,19 @@ def produce_times_tables(
     file_order = defaultdict(lambda: -1)
     for i, f in enumerate(model.files):
         file_order[f] = i
+    filter_by_case = False
+    if config.produce_case:
+        case = config.produce_case.upper()
+        if case not in model.cases:
+            logger.info(
+                f"Case {case} not found in model cases. All data modules will be included."
+            )
+        else:
+            filter_by_case = True
+            module_order = defaultdict(lambda: -1)
+            keep_modules = model.cases[case]
+            for i, m in enumerate(keep_modules):
+                module_order[m] = i
     # Keep only those mappings for which parameters that are defined in the input
     par_tables = {"Attributes", "UCAttributes"}.intersection(input.keys())
     defined_pars = set()
@@ -389,9 +402,9 @@ def produce_times_tables(
     def limit_to_case_modules(df):
         """Filter out the data not included in the specified case. Apply module_order."""
         if "module_name" in df.columns:
+            # Remove rows with module_name not in the case
+            df = df[df["module_name"].isin(keep_modules, na=True)]
             df["module_order"] = df["module_name"].map(module_order)
-            i = df["module_order"].isna() & df["module_name"].notna()
-            df = df[~i]
             df = df.sort_values(by="module_order", kind="stable")
             df = df.drop(columns=["module_order"])
 
@@ -439,17 +452,8 @@ def produce_times_tables(
                 # Apply file order
                 df = apply_file_order(df)
                 # Use case information to remove unused data modules
-                if config.produce_case:
-                    case = config.produce_case.upper()
-                    if case not in model.cases:
-                        logger.info(
-                            f"Case {case} not found in model cases. All data modules will be included."
-                        )
-                    else:
-                        module_order = defaultdict(lambda: -1)
-                        for i, f in enumerate(model.cases[case]):
-                            module_order[f] = i
-                        df = limit_to_case_modules(df)
+                if filter_by_case:
+                    df = limit_to_case_modules(df)
                 # TODO: Apply TS_Filter
                 # Drop duplicates, keeping last
                 df = df.drop_duplicates(keep="last", ignore_index=True)
