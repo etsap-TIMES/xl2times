@@ -366,6 +366,8 @@ def produce_times_tables(
     for i, f in enumerate(model.files):
         file_order[f] = i
     filter_by_case = False
+    module_order = defaultdict(lambda: -1)
+    keep_modules = []
     if config.produce_case:
         case = config.produce_case.upper()
         if case not in model.cases:
@@ -374,7 +376,6 @@ def produce_times_tables(
             )
         else:
             filter_by_case = True
-            module_order = defaultdict(lambda: -1)
             keep_modules = model.cases[case]
             for i, m in enumerate(keep_modules):
                 module_order[m] = i
@@ -403,7 +404,8 @@ def produce_times_tables(
         """Filter out the data not included in the specified case. Apply module_order."""
         if "module_name" in df.columns:
             # Remove rows with module_name not in the case
-            df = df[df["module_name"].isin(keep_modules, na=True)]
+            i = df["module_name"].isin(set(keep_modules)) | df["module_name"].isna()
+            df = df[i]
             df["module_order"] = df["module_name"].map(module_order)
             df = df.sort_values(by="module_order", kind="stable")
             df = df.drop(columns=["module_order"])
