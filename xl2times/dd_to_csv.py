@@ -175,7 +175,6 @@ def generate_headers_by_attr() -> dict[str, list[str]]:
 def convert_dd_to_tabular(
     dd_files: list[Path], output_dir: str, headers_by_attr: dict[str, list[str]]
 ) -> None:
-
     all_sets = defaultdict(list)
     all_parameters = defaultdict(list)
     for path in dd_files:
