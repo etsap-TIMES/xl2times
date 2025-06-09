@@ -470,8 +470,8 @@ def compare_df_dict(
                 if not before.iloc[i].equals(after.iloc[i]):
                     logger.warning(
                         f"Table {key} is different, first difference at row {i}:\n"
-                        f"BEFORE:\n{before.iloc[i - context_rows:i + context_rows + 1]}\n"
-                        f"AFTER: \n{after.iloc[i - context_rows:i + context_rows + 1]}"
+                        f"BEFORE:\n{before.iloc[i - context_rows : i + context_rows + 1]}\n"
+                        f"AFTER: \n{after.iloc[i - context_rows : i + context_rows + 1]}"
                     )
                     break
         else:

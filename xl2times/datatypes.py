@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from enum import Enum
 from functools import cached_property
 from pathlib import PurePath
@@ -236,6 +236,12 @@ class TimesXlMap:
 class TimesModel:
     """A class containing all the information about the processed TIMES model."""
 
+    # Switch to include dummy imports in the model
+    include_dummy_imports: bool
+    # Names of regions to include in the model; if empty, all regions are included.
+    filter_regions: set[str] = field(default_factory=set)
+    regions: InitVar[str] = ""
+
     internal_regions: set[str] = field(default_factory=set)
     all_regions: set[str] = field(default_factory=set)
     processes: DataFrame = field(default_factory=DataFrame)
@@ -257,6 +263,12 @@ class TimesModel:
     custom_psets: DataFrame = field(default_factory=DataFrame)
     user_psets: DataFrame = field(default_factory=DataFrame)
     user_csets: DataFrame = field(default_factory=DataFrame)
+
+    def __post_init__(self, regions):
+        if regions == "":
+            self.filter_regions = set()
+        else:
+            self.filter_regions = set(regions.strip(" ").upper().split(sep=","))
 
     @property
     def external_regions(self) -> set[str]:

@@ -16,7 +16,7 @@ from loguru import logger
 from pandas.core.frame import DataFrame
 
 from . import excel, transforms, utils
-from .config import Config
+from .config import config
 from .datatypes import DataModule, EmbeddedXlTable, TimesModel
 
 _log_sep = "=" * 80 + "\n"
@@ -79,19 +79,10 @@ def read_xl(
     output_dir: str | None = None,
     no_cache: bool = False,
     stop_after_read: bool = False,
-) -> tuple[TimesModel, Config]:
+) -> TimesModel:
     start_time = datetime.now()
 
-    model = TimesModel()
-    config = Config(
-        "times_mapping.txt",
-        "times-info.json",
-        "times-sets.json",
-        "veda-tags.json",
-        "veda-attr-defaults.json",
-        regions,
-        include_dummy_imports,
-    )
+    model = TimesModel(regions=regions, include_dummy_imports=include_dummy_imports)
 
     if len(inputs) == 1:
         assert os.path.isdir(inputs[0])
@@ -144,14 +135,12 @@ def read_xl(
     if output_dir:
         dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
     if stop_after_read:
-        return model, config
+        return model
 
     transform_list = [
         transforms.normalize_tags_columns,
         transforms.remove_fill_tables,
-        lambda config, tables, model: [
-            transforms.remove_comment_cols(t) for t in tables
-        ],
+        lambda tables, model: [transforms.remove_comment_cols(t) for t in tables],
         transforms.validate_input_tables,
         transforms.remove_tables_with_formulas,  # slow
         transforms.normalize_column_aliases,
@@ -199,7 +188,7 @@ def read_xl(
         transforms.apply_final_fixup,
         transforms.assign_model_attributes,
         transforms.resolve_remaining_cgs,
-        lambda config, tables, model: dump_tables(
+        lambda tables, model: dump_tables(
             tables, os.path.join(output_dir, "merged_tables.txt")
         )
         if output_dir
@@ -210,7 +199,7 @@ def read_xl(
     output = {}
     for transform in transform_list:
         start_time = time.time()
-        output = transform(config, input, model)
+        output = transform(input, model)
         end_time = time.time()
         logger.opt(raw=True).debug(_log_sep)
         logger.info(
@@ -225,7 +214,7 @@ def read_xl(
         input = output
 
     # All the information is in the TimesModel, so we ignore the `tables` part and return the model
-    return model, config
+    return model
 
 
 def _all_table_dump(tables: list[EmbeddedXlTable] | dict[str, DataFrame]) -> str:
@@ -339,12 +328,12 @@ def compare(
     return result
 
 
-def to_tables(config: Config, model: TimesModel) -> dict[str, DataFrame]:
+def to_tables(model: TimesModel) -> dict[str, DataFrame]:
     """Convert a TimesModel to a set of Times tables (GAMS sets/parameters)."""
     # TODO should we move this to be a method in the TimesModel class?
     tables = transforms.complete_dictionary(model)
     tables = transforms.convert_to_string(tables)
-    output = produce_times_tables(config, tables, model)
+    output = produce_times_tables(tables, model)
 
     logger.info(
         f"Conversion complete, {len(output)} tables produced,"
@@ -354,7 +343,7 @@ def to_tables(config: Config, model: TimesModel) -> dict[str, DataFrame]:
 
 
 def produce_times_tables(
-    config: Config, input: dict[str, DataFrame], model: TimesModel
+    input: dict[str, DataFrame], model: TimesModel
 ) -> dict[str, DataFrame]:
     logger.info(
         f"produce_times_tables: {len(input)} tables incoming,"
@@ -456,7 +445,7 @@ def produce_times_tables(
     return result
 
 
-def write_dd_files(tables: dict[str, DataFrame], config: Config, output_dir: str):
+def write_dd_files(tables: dict[str, DataFrame], output_dir: str):
     encoding = "utf-8"
     os.makedirs(output_dir, exist_ok=True)
     for item in os.listdir(output_dir):
@@ -570,7 +559,7 @@ def run(args: argparse.Namespace) -> str | None:
     utils.setup_logger(args.verbose)
 
     if args.only_read:
-        model, config = read_xl(
+        model = read_xl(
             args.input,
             args.regions,
             args.include_dummy_imports,
@@ -580,17 +569,17 @@ def run(args: argparse.Namespace) -> str | None:
         )
         sys.exit(0)
 
-    model, config = read_xl(
+    model = read_xl(
         args.input,
         args.regions,
         args.include_dummy_imports,
         output_dir=args.output_dir,
         no_cache=args.no_cache,
     )
-    tables = to_tables(config, model)
+    tables = to_tables(model)
 
     if args.dd:
-        write_dd_files(tables, config, args.output_dir)
+        write_dd_files(tables, args.output_dir)
     else:
         write_csv_tables(tables, args.output_dir)
 

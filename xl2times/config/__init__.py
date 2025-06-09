@@ -40,13 +40,9 @@ class Config:
     lists_columns: dict[Tag, set[str]]
     # Required columns for each tag
     required_columns: dict[Tag, set[str]]
-    # Names of regions to include in the model; if empty, all regions are included.
-    filter_regions: set[str]
     times_sets: dict[str, list[str]]
     # Switch to prevent overwriting of I/E settings in BASE and SubRES
     ie_override_in_syssettings: bool = False
-    # Switch to include dummy imports in the model
-    include_dummy_imports: bool
 
     def __init__(
         self,
@@ -55,8 +51,6 @@ class Config:
         times_sets_file: str,
         veda_tags_file: str,
         veda_attr_defaults_file: str,
-        regions: str,
-        include_dummy_imports: bool,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         (
@@ -87,8 +81,6 @@ class Config:
         for m in param_mappings:
             name_to_map[m.times_name] = m
         self.times_xl_maps = list(name_to_map.values())
-        self.filter_regions = Config._read_regions_filter(regions)
-        self.include_dummy_imports = include_dummy_imports
 
     @staticmethod
     def _read_times_sets(
@@ -457,18 +449,19 @@ class Config:
 
         return veda_attr_defaults, attr_aliases
 
-    @staticmethod
-    def _read_regions_filter(regions_list: str) -> set[str]:
-        if regions_list == "":
-            return set()
-        else:
-            return set(regions_list.strip(" ").upper().split(sep=","))
+
+# A global config for all runs of the tool
+config = None
 
 
-# TODO
-# # A global config for all runs of the tool
-# config = Config(        "times_mapping.txt",
-#         "times-info.json",
-#         "times-sets.json",
-#         "veda-tags.json",
-#         "veda-attr-defaults.json",)
+# TODO alternatively run setup logger during import?
+def _setup_config():
+    """Call this at entrypoints to set up the global config for the tool."""
+    global config
+    config = Config(
+        "times_mapping.txt",
+        "times-info.json",
+        "times-sets.json",
+        "veda-tags.json",
+        "veda-attr-defaults.json",
+    )
