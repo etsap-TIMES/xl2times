@@ -75,6 +75,7 @@ def read_xl(
     inputs: list[str],
     regions: str,
     include_dummy_imports: bool,
+    case: str | None = None,
     output_dir: str | None = None,
     no_cache: bool = False,
     stop_after_read: bool = False,
@@ -90,6 +91,7 @@ def read_xl(
         "veda-attr-defaults.json",
         regions,
         include_dummy_imports,
+        case,
     )
 
     if len(inputs) == 1:
@@ -573,6 +575,7 @@ def run(args: argparse.Namespace) -> str | None:
             args.input,
             args.regions,
             args.include_dummy_imports,
+            case=args.case,
             output_dir=args.output_dir,
             no_cache=args.no_cache,
             stop_after_read=True,
@@ -583,6 +586,7 @@ def run(args: argparse.Namespace) -> str | None:
         args.input,
         args.regions,
         args.include_dummy_imports,
+        case=args.case,
         output_dir=args.output_dir,
         no_cache=args.no_cache,
     )
@@ -632,6 +636,11 @@ def parse_args(arg_list: None | list[str]) -> argparse.Namespace:
         "--include_dummy_imports",
         action="store_true",
         help="Include dummy import processes in the model",
+    )
+    args_parser.add_argument(
+        "--case",
+        type=str,
+        help="Case name to produce dd files for. If not provided, all the input files are used",
     )
     args_parser.add_argument(
         "--output_dir", type=str, default="output", help="Output directory"
