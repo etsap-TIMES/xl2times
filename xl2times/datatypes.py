@@ -29,6 +29,8 @@ class Tag(str, Enum):
     comagg = "~COMAGG"
     comemi = "~COMEMI"
     currencies = "~CURRENCIES"
+    drvr_allocation = "~DRVR_ALLOCATION"
+    drvr_table = "~DRVR_TABLE"
     defaultyear = "~DEFAULTYEAR"
     def_units = "~DEFUNITS"
     endyear = "~ENDYEAR"
@@ -36,6 +38,7 @@ class Tag(str, Enum):
     fi_process = "~FI_PROCESS"
     fi_t = "~FI_T"
     milestoneyears = "~MILESTONEYEARS"
+    series = "~SERIES"
     start_year = "~STARTYEAR"
     tfm_ava = "~TFM_AVA"
     tfm_ava_c = "~TFM_AVA-C"
@@ -257,7 +260,10 @@ class TimesModel:
     start_year: int = field(default_factory=int)
     files: list[str] = field(default_factory=list)
     data_modules: list[str] = field(default_factory=list)
-    custom_sets: DataFrame = field(default_factory=DataFrame)
+    custom_psets: DataFrame = field(default_factory=DataFrame)
+    user_psets: DataFrame = field(default_factory=DataFrame)
+    user_csets: DataFrame = field(default_factory=DataFrame)
+    cases: dict[str, str] = field(default_factory=dict)
 
     @property
     def external_regions(self) -> set[str]:
@@ -356,6 +362,8 @@ class Config:
     ie_override_in_syssettings: bool = False
     # Switch to include dummy imports in the model
     include_dummy_imports: bool
+    # Name of the case to produce dd files for
+    produce_case: str | None
 
     def __init__(
         self,
@@ -366,6 +374,7 @@ class Config:
         veda_attr_defaults_file: str,
         regions: str,
         include_dummy_imports: bool,
+        case: str | None,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         (
@@ -398,6 +407,7 @@ class Config:
         self.times_xl_maps = list(name_to_map.values())
         self.filter_regions = Config._read_regions_filter(regions)
         self.include_dummy_imports = include_dummy_imports
+        self.produce_case = case
 
     @staticmethod
     def _read_times_sets(
@@ -430,8 +440,8 @@ class Config:
         unknown_cats = {item["gams-cat"] for item in table_info} - set(categories)
         if unknown_cats:
             logger.warning(f"Unknown categories in times-info.json: {unknown_cats}")
-        dd_table_order = chain.from_iterable(
-            sorted(cat_to_tables[c]) for c in categories
+        dd_table_order = list(
+            chain.from_iterable(sorted(cat_to_tables[c]) for c in categories)
         )
 
         # Compute the set of all attributes, i.e. all entities with category = parameter

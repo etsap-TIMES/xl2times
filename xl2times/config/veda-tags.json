@@ -84,6 +84,65 @@
     ]
   },
   {
+    "tag_name": "drvr_allocation",
+    "tag_allowed_in": [
+      "Demand"
+    ],
+    "valid_fields": [
+      {
+        "name": "calibration",
+        "use_name": "calibration"
+      },
+      {
+        "name": "demand",
+        "use_name": "commodity",
+        "remove_any_row_if_absent": true
+      },
+      {
+        "name": "driver",
+        "use_name": "driver",
+        "remove_any_row_if_absent": true
+      },
+      {
+        "name": "region",
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "add_if_absent": true,
+        "comma-separated-list": true
+      },
+      {
+        "name": "sensitivity",
+        "use_name": "sensitivity"
+      }
+    ]
+  },
+  {
+    "tag_name": "drvr_table",
+    "tag_allowed_in": [
+      "Demand"
+    ],
+    "valid_fields": [
+      {
+        "name": "driver",
+        "use_name": "driver",
+        "remove_any_row_if_absent": true
+      },
+      {
+        "name": "region",
+        "use_name": "region",
+        "row_ignore_symbol": [
+          "\\I:",
+          "*"
+        ],
+        "add_if_absent": true,
+        "comma-separated-list": true
+      }
+    ]
+  },
+  {
     "tag_name": "endyear",
     "tag_allowed_in": [
       "SysSettings"
@@ -516,6 +575,19 @@
     ]
   },
   {
+    "tag_name": "series",
+    "tag_allowed_in": [
+      "Demand"
+    ],
+    "valid_fields": [
+      {
+        "name": "series",
+        "use_name": "series_name",
+        "remove_any_row_if_absent": true
+      }
+    ]
+  },
+  {
     "tag_name": "startyear",
     "tag_allowed_in": [
       "SysSettings"
@@ -737,25 +809,11 @@
         "use_name": "cset_set"
       },
       {
-        "name": "input_commodity",
-        "aliases": [
-          "pset_ci"
-        ],
-        "use_name": "pset_ci"
-      },
-      {
         "name": "name",
         "aliases": [
           "cset_cn"
         ],
         "use_name": "cset_cn"
-      },
-      {
-        "name": "outout_commodity",
-        "aliases": [
-          "pset_co"
-        ],
-        "use_name": "pset_co"
       },
       {
         "name": "set_description",
@@ -774,7 +832,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "remove_any_row_if_absent": true
       }
     ]
   },
@@ -2376,7 +2435,8 @@
         "row_ignore_symbol": [
           "\\I:",
           "*"
-        ]
+        ],
+        "remove_any_row_if_absent": true
       }
     ]
   },

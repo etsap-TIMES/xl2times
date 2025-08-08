@@ -19,8 +19,8 @@ from loguru import logger
 from tabulate import tabulate
 
 from xl2times import utils
-from xl2times.__main__ import parse_args, run
 from xl2times.dd_to_csv import main
+from xl2times.main import parse_args, run
 from xl2times.utils import max_workers
 
 
@@ -217,6 +217,8 @@ def run_benchmark(
         args += ["--include_dummy_imports"]
     if "regions" in benchmark:
         args.extend(["--regions", benchmark["regions"]])
+    if "case" in benchmark:
+        args.extend(["--case", benchmark["case"]])
     if verbose:
         args.append("--verbose")
     if "inputs" in benchmark:

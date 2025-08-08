@@ -1104,11 +1104,8 @@ def process_regions(
     return tables
 
 
-def complete_dictionary(
-    config: Config,
-    tables: dict[str, DataFrame],
-    model: TimesModel,
-) -> dict[str, DataFrame]:
+def complete_dictionary(model: TimesModel) -> dict[str, DataFrame]:
+    # TODO this depends only on TimesModel -- should we move this to be a method in that class?
     tables = dict()
     for k, v in [
         ("AllRegions", model.all_regions),
@@ -1536,7 +1533,7 @@ def complete_model_trade(
 ) -> dict[str, DataFrame]:
     """Supplement model trade with IRE flows from external regions (i.e. IMPEXP and MINRNW)."""
     veda_set_ext_reg_mapping = {"IMP": "IMPEXP", "EXP": "IMPEXP", "MIN": "MINRNW"}
-    veda_ire_sets = model.custom_sets
+    veda_ire_sets = model.custom_psets
 
     # Index of IRE processes in model.processes
     i = model.processes["sets"] == "IRE"
@@ -1702,7 +1699,7 @@ def process_processes(
     - Replace custom sets with standard TIMES sets.
     - Fill in missing ts level values for processes.
 
-    Create model.custom_sets.
+    Create model.custom_psets.
     """
     result = []
     veda_sets_to_times = {"IMP": "IRE", "EXP": "IRE", "MIN": "IRE"}
@@ -1723,7 +1720,7 @@ def process_processes(
 
     merged_tables = pd.concat(original_dfs, ignore_index=True)
     i = merged_tables["sets"].isin(veda_sets_to_times.keys())
-    model.custom_sets = merged_tables[["sets", "process"]][i].drop_duplicates(
+    model.custom_psets = merged_tables[["sets", "process"]][i].drop_duplicates(
         ignore_index=True
     )
 
@@ -1948,6 +1945,57 @@ def harmonise_tradelinks(
 def is_year(col_name):
     """A column name is a year if it is an int >= 0."""
     return col_name.isdigit() and int(col_name) >= 0
+
+
+def process_drvr_tables(
+    config: Config,
+    tables: list[EmbeddedXlTable],
+    model: TimesModel,
+) -> list[EmbeddedXlTable]:
+    """Process DRVR_TABLE, DRVR_ALLOCATION and SERIES tables."""
+    result = []
+    for table in tables:
+        tag = Tag(table.tag)
+        if tag not in [Tag.drvr_table, Tag.series]:
+            result.append(table)
+        else:
+            df = table.dataframe
+            known_cols = config.known_columns[tag]
+            # Other columns are those that are not in known_cols. They are expected to represent years
+            other_cols = [col for col in df.columns if col not in known_cols]
+            # Create a dictionary of columns to keep (if they represent years) and rename
+            keep_rename_cols = {
+                col: col.lstrip(r"\~")
+                for col in other_cols
+                if col.startswith(r"\~") and is_year(col.lstrip(r"\~"))
+            }
+            # Drop columns that are not in known_cols and do not represent years
+            drop_cols = [col for col in other_cols if col not in keep_rename_cols]
+            if drop_cols:
+                # Print a warning that columns will be dropped
+                logger.warning(
+                    f"Columns {drop_cols} will be dropped from {tag} table found in {table.filename}, sheet {table.sheetname} and range {table.range}."
+                )
+                # Remove columns that are either not known or represent years
+                df = df.drop(columns=drop_cols, errors="ignore")
+            # Remove \~ from columns representing years
+            if keep_rename_cols:
+                df = df.rename(columns=keep_rename_cols)
+            else:
+                # Print a warning that no year columns were specified and the table will be dropped
+                logger.warning(
+                    f"No year columns specified in the expected format. Dropping {tag} table found in {table.filename}, sheet {table.sheetname} and range {table.range}."
+                )
+                continue
+            # Melt the dataframe to long format
+            df = pd.melt(
+                df,
+                id_vars=list(known_cols),
+                var_name="year",
+                value_name="value",
+            )
+            result.append(replace(table, dataframe=df))
+    return result
 
 
 def process_transform_table_variants(
@@ -2209,7 +2257,15 @@ def generate_topology_dictionary(
     pros = model.processes
     coms = model.commodities
     pros_sets = pd.concat(
-        [pros[["process", "sets"]].drop_duplicates(), model.custom_sets],
+        [
+            pros[["process", "sets"]].drop_duplicates(),
+            model.custom_psets,
+            model.user_psets,
+        ],
+        ignore_index=True,
+    )
+    coms_sets = pd.concat(
+        [coms[["commodity", "csets"]].drop_duplicates(), model.user_csets],
         ignore_index=True,
     )
     pros_and_coms = model.topology[["process", "commodity", "io"]].drop_duplicates()
@@ -2240,17 +2296,95 @@ def generate_topology_dictionary(
             "df": coms[["commodity", "description"]],
             "col": "description",
         },
-        {
-            "key": "commodities_by_sets",
-            "df": coms[["commodity", "csets"]],
-            "col": "csets",
-        },
+        {"key": "commodities_by_sets", "df": coms_sets, "col": "csets"},
     ]
 
     for entry in dict_info:
         dictionary[entry["key"]] = df_indexed_by_col(entry["df"], entry["col"])
 
     return dictionary
+
+
+def process_user_defined_sets(
+    config: Config, tables: dict[str, DataFrame], model: TimesModel
+) -> dict[str, DataFrame]:
+    """Process user-defined sets."""
+    # Create a list of tuples containing the tag, type of entity, set_type, name of the
+    # relevant times set, entity map, and a name of the column containing sets
+    to_process = [
+        (Tag.tfm_csets, "commodity", "cset_set", "COM_TYPE", commodity_map, "csets"),
+        (Tag.tfm_psets, "process", "pset_set", "PRC_GRP", process_map, "sets"),
+    ]
+    # Process only those tables that were found in the input.
+    to_process = [
+        (t, i, w, s, m, n) for (t, i, w, s, m, n) in to_process if t in tables
+    ]
+
+    def _unresolved_sets(
+        df: DataFrame, set_type: str, resolved_sets: set[str]
+    ) -> pd.Series:
+        """Checks whether any sets in the column are not in the resolved sets."""
+        # Separate set_name column from the rest of the dataframe and explode it
+        sets_col = df[[set_type]].map(_split_by_commas).explode(column=set_type)
+        # Remove any leading dashes
+        sets_col[set_type] = sets_col[set_type].str.lstrip("-")
+        # Check whether any user-defined sets depend on non-TIMES sets
+        i_unresolved_sets = (
+            ~sets_col[set_type].isin(resolved_sets) & sets_col[set_type].notna()
+        )
+        # Make sure that the index is unique by aggregating
+        return i_unresolved_sets.groupby(i_unresolved_sets.index).any()
+
+    for tag, item_type, set_type, times_set, item_map, set_col_name in to_process:
+        start_time = time.time()
+        df = tables[tag]
+        logger.debug(
+            f"process_user_defined_sets in {tag}. Item: {item_type}, set type: {set_type},"
+            f" TIMES set: {times_set}, mapping: {item_map}, sets column name: {set_col_name}"
+        )
+        df_rows = []
+        if set_type in df.columns:
+            resolved_sets = set(config.times_sets[times_set])
+            for i in range(len(df)):
+                current_length = len(df)
+                i_unresolved_sets = _unresolved_sets(df, set_type, resolved_sets)
+                df_rows.append(df[~i_unresolved_sets])
+                resolved_sets = resolved_sets.union(df["set_name"][~i_unresolved_sets])
+                df = df[i_unresolved_sets]
+                if len(df) == current_length or df.empty:
+                    # No more resolvable sets
+                    if not df.empty:
+                        logger.warning(
+                            f"process_user_defined_sets in {tag}: unable to create sets based on the input: {df}"
+                        )
+                    break
+        else:
+            # If no set_name column, then all rows are independent
+            df_rows.append(df)
+
+        for df_row in df_rows:
+            dictionary = generate_topology_dictionary(tables, model)
+            row = _match_wildcards(
+                df_row,
+                item_map,
+                dictionary,
+                item_type,
+                explode=True,
+            )
+            row = row.rename(columns={"set_name": set_col_name})[
+                [set_col_name, item_type]
+            ].dropna(how="any")
+            # Add set to model user sets
+            if tag == Tag.tfm_csets:
+                model.user_csets = pd.concat([model.user_csets, row], ignore_index=True)
+            elif tag == Tag.tfm_psets:
+                model.user_psets = pd.concat([model.user_psets, row], ignore_index=True)
+
+        logger.info(
+            f"  process_user_defined_sets: {tag} took {time.time() - start_time:.2f} seconds for {len(df)} rows"
+        )
+
+    return tables
 
 
 def process_wildcards(
@@ -2478,6 +2612,122 @@ def _remove_invalid_rows(
     return df.loc[keep]
 
 
+def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
+    """Generate demand projections based on the data in drvr_allocation, drvr_table, and series tables."""
+    # Check if the required tables are present
+    if not all(
+        tag in tables for tag in [Tag.drvr_allocation, Tag.drvr_table, Tag.series]
+    ):
+        logger.warning("Missing required tables for demand projection.")
+        return pd.DataFrame(data=[])
+    series = tables[Tag.series]
+    allocation = tables[Tag.drvr_allocation]
+    drivers = tables[Tag.drvr_table]
+    # Store column names that are neither "driver" nor "value"
+    index_cols = [col for col in drivers.columns if col not in {"driver", "value"}]
+    series = (
+        series[["series_name", "year", "value"]]
+        .pivot(index="year", columns="series_name", values="value")
+        .reset_index()
+    )
+    drivers = drivers.pivot(
+        index=index_cols, columns="driver", values="value"
+    ).reset_index()
+    # Merge the drivers and series tables
+    series = drivers.merge(series, how="outer", on="year")
+    # Convert to the long format
+    series = pd.melt(
+        series,
+        id_vars=index_cols,
+        var_name="series_name",
+        value_name="value",
+    )
+    # Prepare for merging with the series table
+    allocation = pd.melt(
+        allocation[["region", "commodity", "driver", "calibration", "sensitivity"]],
+        id_vars=["region", "commodity"],
+        var_name="series_type",
+        value_name="series_name",
+    )
+    # Merge the tables on the series_name and region columns
+    series = allocation.merge(
+        series,
+        how="left",
+        on=["region", "series_name"],
+    )
+    # Remove rows with missing values in the "value" column
+    series = series.dropna(subset=["value"], axis=0, ignore_index=True)
+    # Drop series_name column
+    series = series.drop(columns=["series_name"])
+    # Remove any duplicates keeping the last occurrence
+    series = series.drop_duplicates(keep="last", ignore_index=True)
+    # Update the index columns
+    index_cols = [col for col in series.columns if col not in {"value", "series_type"}]
+    # Pivot the table to get the driver, sensitivity, and calibration values as columns
+    series = series.pivot(
+        index=index_cols, columns="series_type", values="value"
+    ).reset_index()
+    # Year column should be integer
+    series["year"] = series["year"].astype(int)
+    # Create a copy of the series table with only the driver values
+    series_copy = series.copy().rename(columns={"year": "year_t-1"})
+    # Keep only selected columns
+    series_copy = series_copy[
+        ["region", "commodity", "year_t-1", "source_filename", "driver"]
+    ]
+    # Add the previous year column
+    series["year_t-1"] = series["year"] - 1
+    # Merge the series table with the series_copy table on the region, commodity, and year columns
+    series = series.merge(
+        series_copy,
+        how="left",
+        on=["region", "commodity", "year_t-1", "source_filename"],
+        suffixes=("", "_t-1"),
+    )
+    # Remove rows with missing values in the "driver_t-1" column
+    series = series.dropna(subset=["driver_t-1"], axis=0, ignore_index=True)
+    # Calculated the multipliers to project the demand
+    series["multiplier"] = series["calibration"] + series["sensitivity"] * (
+        (series["driver"] / series["driver_t-1"]) - 1
+    )
+    # Drop the unnecessary columns
+    series = series.drop(
+        columns=["year_t-1", "driver", "driver_t-1", "calibration", "sensitivity"]
+    )
+    # Multiplier should be a float
+    series["multiplier"] = series["multiplier"].astype(float)
+    # Make the multiplier cumulative
+    series["multiplier"] = (
+        series[["region", "commodity", "source_filename", "multiplier"]]
+        .groupby(["region", "commodity", "source_filename"])
+        .cumprod()
+    )
+    series["submodule"] = "main"
+    # module_name is source_filename without ScenDem_
+    series["module_name"] = (
+        series["source_filename"].str.upper().str.replace("ScenDem_", "", case=False)
+    )
+    # Index of demands in the base year
+    i = (tables[Tag.fi_t]["year"] == base_year) & (
+        tables[Tag.fi_t]["attribute"] == "COM_PROJ"
+    )
+    base_year_demand = tables[Tag.fi_t][["region", "attribute", "commodity", "value"]][
+        i
+    ]
+    base_year_demand = base_year_demand.drop_duplicates(keep="last", ignore_index=True)
+
+    projected_demands = series.merge(
+        base_year_demand,
+        how="inner",
+        on=["region", "commodity"],
+    )
+    projected_demands["value"] = (
+        projected_demands["value"] * projected_demands["multiplier"]
+    )
+
+    return projected_demands.drop(columns="multiplier")
+
+
 def _process_tfm_mig_row(table: DataFrame, idx_and_row: tuple[Any, pd.Series]):
     """Processes one row of a TFM_MIG table and returns the newly generated rows."""
     print("_process_tfm_mig_row starting")
@@ -2573,6 +2823,15 @@ def apply_transform_tables(
         model.commodity_groups = commodity_groups.dropna()
 
     for data_module in model.data_modules:
+        if data_module == "DEMAND":
+            projected_demands = _project_demands(tables, model.start_year)
+            if not projected_demands.empty:
+                tables[Tag.fi_t] = pd.concat(
+                    [tables[Tag.fi_t], projected_demands], ignore_index=True
+                )
+            # Continue with the next data module
+            continue
+        # A list to hold dataframes of generated records
         generated_records = []
         if (
             Tag.tfm_dins in tables
@@ -2928,11 +3187,7 @@ def process_time_slices(
     return result
 
 
-def convert_to_string(
-    config: Config,
-    tables: dict[str, DataFrame],
-    model: TimesModel,
-) -> dict[str, DataFrame]:
+def convert_to_string(tables: dict[str, DataFrame]) -> dict[str, DataFrame]:
     def convert(x: Any) -> str:
         if isinstance(x, float):
             if x.is_integer():
@@ -3276,7 +3531,7 @@ def apply_final_fixup(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Clean up remaining issues. Includes handling of aliases that could not be generalised."""
-    veda_ire_sets = model.custom_sets
+    veda_ire_sets = model.custom_psets
     reg_com_flows = model.topology[["region", "process", "commodity"]].drop_duplicates(
         ignore_index=True
     )
