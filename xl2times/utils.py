@@ -336,7 +336,7 @@ def create_negative_regexp(pattern: str) -> str:
     # Exclude positive patterns
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
-        return r"^$"  # matches nothing
+        return r"$^"  # matches nothing
     return create_regexp(pattern)
 
 
