@@ -2506,6 +2506,16 @@ def _match_wildcards(
     return df
 
 
+"""
+TODO
+Modify the boolean mask method to keep track of which query resulted in which row
+Check on benchmarks how large table and query_df are
+Make some test cases, some random & large?
+Test that boolmask gives same answer as iterated query
+Check perf difference on random test case / Geo
+"""
+
+
 def query(
     table: DataFrame,
     process: str | list[str] | None,
