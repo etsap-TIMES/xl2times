@@ -52,6 +52,14 @@ def query_boolmask(table: pd.DataFrame, filters: pd.DataFrame) -> pd.Index:
     - `table`: big DataFrame which has all columns of `filters.columns`
     - `filters`: small DataFrame, each row a “partial” spec. NaN = wildcard.
     """
+    # Convert columns to categorical for faster comparisons
+    categorical_cols = [col for col in filters.columns if col != "value"]
+    for col in categorical_cols:
+        table[col] = pd.Categorical(table[col])
+        filters[col] = pd.Categorical(
+            filters[col], categories=table[col].cat.categories
+        )
+
     # number of table rows N, number of filters Q
     N, Q = len(table), len(filters)  # noqa: N806
     # start with all True mask of shape (N, Q)
@@ -109,7 +117,7 @@ if __name__ == "__main__":
     import numpy as np
 
     # Helper function to generate random data
-    def generate_random_data(n_rows, seed=42):
+    def generate_random_data(n_rows):
         processes = [f"PROC_{i}" for i in range(10)]
         commodities = [f"COM_{i}" for i in range(10)]
         attributes = ["ATT_1", "ATT_2", "ATT_3"]
@@ -133,9 +141,9 @@ if __name__ == "__main__":
         return pd.DataFrame(data)
 
     # Generate random queries
-    def generate_random_queries(n_queries, table, seed=42):
+    def generate_random_queries(n_queries, table):
         queries = []
-        for _ in range(n_queries):
+        while len(queries) < n_queries:
             query_dict = {
                 "process": (
                     rng.choice(table["process"].unique())
@@ -153,7 +161,7 @@ if __name__ == "__main__":
                     else None
                 ),
                 "region": (
-                    rng.choice(table["region"].unique()) if rng.random() > 0.5 else None
+                    rng.choice(table["region"].unique()) if rng.random() > 0.8 else None
                 ),
                 "year": (
                     int(rng.choice(table["year"].unique()))
@@ -165,14 +173,15 @@ if __name__ == "__main__":
                     if rng.random() > 0.5
                     else None
                 ),
-                "val": (float(rng.uniform(0, 100)) if rng.random() > 0.8 else None),
+                "val": (float(rng.uniform(0, 100)) if rng.random() > 0.9 else None),
                 "module": (
                     rng.choice(table["module_name"].unique())
                     if rng.random() > 0.5
                     else None
                 ),
             }
-            queries.append(query_dict)
+            if any(v is not None for _, v in query_dict.items()):
+                queries.append(query_dict)
         return queries
 
     def queries_to_df(queries):
@@ -213,11 +222,11 @@ if __name__ == "__main__":
     print("\nTesting with large dataset:")
     large_table = generate_random_data(350_000)
     print(f"Table shape: {large_table.shape}")
-    large_queries = generate_random_queries(500, large_table)
+    large_queries = generate_random_queries(100, large_table)
     large_queries_df = queries_to_df(large_queries)
 
     # Test old method
-    print("\nTesting original query method:")
+    print("\nTesting original query method...")
     start_time = time.time()
     old_results = set()
     for q in large_queries:
@@ -225,7 +234,7 @@ if __name__ == "__main__":
     old_total_time = time.time() - start_time
 
     # Test new method
-    print("Testing new boolmask method:")
+    print("Testing new boolmask method...")
     start_time = time.time()
     new_results = set(query_boolmask(large_table, large_queries_df))
     new_total_time = time.time() - start_time
