@@ -4,7 +4,7 @@ from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
-from itertools import groupby, repeat
+from itertools import groupby, product, repeat
 from pathlib import Path
 from typing import Any
 
@@ -2508,12 +2508,23 @@ def _match_wildcards(
 
 """
 TODO
-Modify the boolean mask method to keep track of which query resulted in which row
 Check on benchmarks how large table and query_df are
+    table: (350143, 20), updates: (217, 16)
+    table: (350043, 20), updates: (12276, 16)
+    N * Q = 350043 * 12276 = 4,297,127,868  -- might take too long!
+
+Okay, there are queries from TFM_UPD etc that use the disjunctive lists.. but these can be exploded in the query DF?
+    max N = 362319, Q = 214613
+    N * Q = 362319 * 214613 = 77,758,367,547 -- way too much! 77GB, needs batching. Not sure how long it will take
+
+Modify the boolean mask method to keep track of which query resulted in which row
 Make some test cases, some random & large?
 Test that boolmask gives same answer as iterated query
 Check perf difference on random test case / Geo
 """
+
+_query_max_N = 0
+_query_queries = set()
 
 
 def query(
@@ -2527,6 +2538,12 @@ def query(
     val: int | float | None,
     module: str | list[str] | None,
 ) -> pd.Index:
+    global _query_max_N, _query_queries
+    _query_max_N = max(_query_max_N, len(table))
+    q = (process, commodity, attribute, region, year, limtype, val, module)
+    qs = product(*(x if isinstance(x, list) else [x] for x in q))
+    _query_queries.update(qs)
+
     # TODO is it linear scanning here? Can we use DF indexing to speed this up?
     # Look into merge/join -- can we use something like that here?
     # Try an inner join where some cols of the 2nd (query) df have nones -- does it work?
@@ -2740,7 +2757,7 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
 
 def _process_tfm_mig_row(table: DataFrame, idx_and_row: tuple[Any, pd.Series]):
     """Processes one row of a TFM_MIG table and returns the newly generated rows."""
-    print("_process_tfm_mig_row starting")
+    # print("_process_tfm_mig_row starting")
     _, row = idx_and_row
     if row["module_type"] == "trans":
         source_module = row["module_name"]
@@ -2974,10 +2991,11 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
 
+            logger.critical(f"table: {table.shape}, updates: {updates.shape}")
             updates = updates.head(100)
 
             # 68.7% 489475, 1084
-            algo = "joblib"
+            algo = "serial"
             match algo:
                 case "serial":  # 15.42s
                     new_tables = [

@@ -200,11 +200,11 @@ def read_xl(
         transforms.apply_final_fixup,
         transforms.assign_model_attributes,
         transforms.resolve_remaining_cgs,
-        lambda config, tables, model: dump_tables(
-            tables, os.path.join(output_dir, "merged_tables.txt")
-        )
-        if output_dir
-        else tables,
+        lambda config, tables, model: (
+            dump_tables(tables, os.path.join(output_dir, "merged_tables.txt"))
+            if output_dir
+            else tables
+        ),
     ]
 
     input = raw_tables
@@ -591,6 +591,9 @@ def run(args: argparse.Namespace) -> str | None:
         no_cache=args.no_cache,
     )
     tables = to_tables(config, model)
+    logger.critical(
+        f"max N = {transforms._query_max_N}, Q = {len(transforms._query_queries)}"
+    )
 
     if args.dd:
         write_dd_files(tables, config, args.output_dir)
