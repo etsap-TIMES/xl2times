@@ -1,0 +1,242 @@
+import numpy as np
+import pandas as pd
+from pandas.core.frame import DataFrame
+
+# Create a global random number generator
+rng = np.random.default_rng(42)
+
+
+def query(
+    table: DataFrame,
+    process: str | list[str] | None,
+    commodity: str | list[str] | None,
+    attribute: str | None,
+    region: str | list[str] | None,
+    year: int | list | None,
+    limtype: str | list[str] | None,
+    val: int | float | None,
+    module: str | list[str] | None,
+) -> pd.Index:
+    query_fields = {
+        "process": process,
+        "commodity": commodity,
+        "attribute": attribute,
+        "region": region,
+        "year": year,
+        "limtype": limtype,
+        "value": val,
+        "module_name": module,
+    }
+
+    def is_missing(field):
+        return pd.isna(field) if not isinstance(field, list) else False
+
+    qs = [
+        f"{k} in {v if isinstance(v, list) else [v]}"
+        for k, v in query_fields.items()
+        if not is_missing(v)
+    ]
+
+    if not qs:  # If no conditions, return all rows
+        return table.index
+    query_str = " and ".join(qs)
+    row_idx = table.query(query_str).index
+    return row_idx
+
+
+def query_boolmask(table: pd.DataFrame, filters: pd.DataFrame) -> pd.Index:
+    """
+    Return the index of `table` rows that match *any* of the filter rows in `filters`,
+    where NaN in filters means “match anything here”.
+
+    - `table`: big DataFrame which has all columns of `filters.columns`
+    - `filters`: small DataFrame, each row a “partial” spec. NaN = wildcard.
+    """
+    # number of table rows N, number of filters Q
+    N, Q = len(table), len(filters)  # noqa: N806
+    # start with all True mask of shape (N, Q)
+    mask = np.ones((N, Q), dtype=bool)
+
+    for col in filters.columns:
+        desired = filters[col].to_numpy()
+        actual = table[col].to_numpy()
+
+        # Get mask of which filter values are wildcards (NA)
+        wild = pd.isna(desired)
+
+        if not wild.all():  # If all filters are NA, this filter matches every row
+            # Create equality mask only for non-NA filter values
+            non_wild_mask = ~wild
+            eq = np.ones((N, Q), dtype=bool)
+            non_wild_desired = desired[non_wild_mask]
+            eq[:, non_wild_mask] = actual[:, None] == non_wild_desired[None, :]
+
+            # accumulate
+            mask &= eq
+
+        # early exit if nothing can match any filter any more
+        if not mask.any():
+            return table.index[mask.any(axis=1)]
+
+    # rows matching at least one filter
+    hits = mask.any(axis=1)
+    return table.index[hits]
+
+
+"""
+Check on benchmarks how large table and query_df are
+    table: (350143, 20), updates: (217, 16)
+    table: (350043, 20), updates: (12276, 16)
+    N * Q = 350043 * 12276 = 4,297,127,868  -- might take too long!
+
+Okay, there are queries from TFM_UPD etc that use the disjunctive lists.. but these can be exploded in the query DF?
+    max N = 362319, Q = 214613
+    N * Q = 362319 * 214613 = 77,758,367,547 -- way too much! 77GB, needs batching. Not sure how long it will take
+
+Test the boolean mask method on random DFs of similar size?
+    20% slower than iterating query? :(
+
+
+Bool mask to do:
+Explode queries containing lists of possible values
+Modify the boolean mask method to keep track of which query resulted in which row
+"""
+
+
+if __name__ == "__main__":
+    import time
+
+    import numpy as np
+
+    # Helper function to generate random data
+    def generate_random_data(n_rows, seed=42):
+        processes = [f"PROC_{i}" for i in range(10)]
+        commodities = [f"COM_{i}" for i in range(10)]
+        attributes = ["ATT_1", "ATT_2", "ATT_3"]
+        regions = ["REG_A", "REG_B", "REG_C"]
+        years = [2020, 2025, 2030, 2035]
+        limtypes = ["LO", "UP", "FX"]
+        modules = ["MOD_1", "MOD_2"]
+
+        data = {
+            "process": rng.choice(processes, n_rows),
+            "commodity": rng.choice(commodities, n_rows),
+            "attribute": rng.choice(attributes, n_rows),
+            "region": rng.choice(regions, n_rows),
+            "year": rng.choice(years, n_rows),
+            "limtype": rng.choice(limtypes, n_rows),
+            "value": rng.uniform(0, 100, n_rows),
+            "module_name": rng.choice(modules, n_rows),
+            "extra_col_1": rng.random(n_rows),
+            "extra_col_2": rng.random(n_rows),
+        }
+        return pd.DataFrame(data)
+
+    # Generate random queries
+    def generate_random_queries(n_queries, table, seed=42):
+        queries = []
+        for _ in range(n_queries):
+            query_dict = {
+                "process": (
+                    rng.choice(table["process"].unique())
+                    if rng.random() > 0.5
+                    else None
+                ),
+                "commodity": (
+                    rng.choice(table["commodity"].unique())
+                    if rng.random() > 0.5
+                    else None
+                ),
+                "attribute": (
+                    rng.choice(table["attribute"].unique())
+                    if rng.random() > 0.5
+                    else None
+                ),
+                "region": (
+                    rng.choice(table["region"].unique()) if rng.random() > 0.5 else None
+                ),
+                "year": (
+                    int(rng.choice(table["year"].unique()))
+                    if rng.random() > 0.5
+                    else None
+                ),
+                "limtype": (
+                    rng.choice(table["limtype"].unique())
+                    if rng.random() > 0.5
+                    else None
+                ),
+                "val": (float(rng.uniform(0, 100)) if rng.random() > 0.8 else None),
+                "module": (
+                    rng.choice(table["module_name"].unique())
+                    if rng.random() > 0.5
+                    else None
+                ),
+            }
+            queries.append(query_dict)
+        return queries
+
+    def queries_to_df(queries):
+        # Convert list of query dicts to DataFrame, replacing None with pd.NA
+        df = pd.DataFrame(queries)
+        # Rename columns to match table
+        df = df.rename(columns={"module": "module_name", "val": "value"})
+        # Replace None with pd.NA
+        return df.replace({None: pd.NA})
+
+    # Test with small dataset first
+    print("Testing with small dataset:")
+    small_table = generate_random_data(10)
+    print(f"Table shape: {small_table.shape}")
+    small_queries = generate_random_queries(2, small_table)
+    small_queries_df = queries_to_df(small_queries)
+
+    # Compare results between old and new methods
+    print("\nComparing query methods on small dataset:")
+
+    # Get combined results from old method
+    old_results = set()
+    for q in small_queries:
+        old_results.update(query(small_table, **q))
+
+    # Get results from new method for all queries at once
+    new_results = set(query_boolmask(small_table, small_queries_df))
+
+    print(f"Old method total unique matches: {len(old_results)}")
+    print(f"New method total matches: {len(new_results)}")
+    print(f"Results identical: {old_results == new_results}")
+    if old_results != new_results:
+        print("Differences:")
+        print(f"In old but not new: {old_results - new_results}")
+        print(f"In new but not old: {new_results - old_results}")
+
+    # Test with large dataset for performance comparison
+    print("\nTesting with large dataset:")
+    large_table = generate_random_data(350_000)
+    print(f"Table shape: {large_table.shape}")
+    large_queries = generate_random_queries(500, large_table)
+    large_queries_df = queries_to_df(large_queries)
+
+    # Test old method
+    print("\nTesting original query method:")
+    start_time = time.time()
+    old_results = set()
+    for q in large_queries:
+        old_results.update(query(large_table, **q))
+    old_total_time = time.time() - start_time
+
+    # Test new method
+    print("Testing new boolmask method:")
+    start_time = time.time()
+    new_results = set(query_boolmask(large_table, large_queries_df))
+    new_total_time = time.time() - start_time
+
+    print("\nPerformance comparison:")
+    print("Original method:")
+    print(f"Total time: {old_total_time:.2f} seconds")
+    print(f"Total unique matches: {len(old_results)}")
+
+    print("\nBoolmask method:")
+    print(f"Total time: {new_total_time:.2f} seconds")
+    print(f"Total matches: {len(new_results)}")
+    print(f"Results identical: {old_results == new_results}")
+    print(f"Speed improvement: {old_total_time/new_total_time:.1f}x")
