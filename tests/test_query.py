@@ -1,3 +1,5 @@
+from concurrent.futures import ProcessPoolExecutor
+
 import numpy as np
 import pandas as pd
 from pandas.core.frame import DataFrame
@@ -106,7 +108,7 @@ Test the boolean mask method on random DFs of similar size?
     20% slower than iterating query? :(
 
 Pickle the actual table and queries used by GEO, and benchmark on that.
-    It's too slow because exploding the queries leads to 6e4 queries!
+    It's too slow because exploding 217 queries leads to 6e4 queries!
 
 Bool mask to do:
 Explode queries containing lists of possible values
@@ -211,12 +213,13 @@ if __name__ == "__main__":
         return df.replace({None: pd.NA})
 
     # Use pickled data from GEO:
-    table_query_file = Path("/tmp/tfm_mig_queries217.pkl")
+    # table_query_file = Path("tfm_mig_queries-12276.pkl")
+    table_query_file = Path("tfm_mig_queries-217.pkl")
     with table_query_file.open("rb") as f:
-        table, queries_raw = pickle.load(f)
+        geo_table, queries_raw = pickle.load(f)
 
     # Convert the raw queries into the expected format:
-    queries = []
+    geo_queries = []
     for _, row in queries_raw.iterrows():
         q = {
             "process": row.get("process", None),
@@ -228,22 +231,58 @@ if __name__ == "__main__":
             "val": row.get("value", None),
             "module": None,
         }
-        queries.append(q)
-    queries = queries[:10]  # TODO REMOVE
-    queries_df = queries_to_df(queries)
+        geo_queries.append(q)
+    geo_queries_df = queries_to_df(geo_queries)
 
     # Compare results between old and new methods
     print("\nComparing query methods on GEO dataset:")
-    print("Running old method..")
-    old_results = set()
-    for q in queries:
-        old_results.update(query(table, **q))
-    print("Running new method..")
-    new_results = set(query_boolmask(table, queries_df))
 
-    print(f"Old method total unique matches: {len(old_results)}")
-    print(f"New method total matches: {len(new_results)}")
-    print(f"Results identical: {old_results == new_results}")
+    # Test old method
+    print("\nTesting original query method...")
+    start_time = time.time()
+    old_results = set()
+    for q in geo_queries:
+        old_results.update(query(geo_table, **q))
+    old_total_time = time.time() - start_time
+
+    # Test process pool method
+    print("\nTesting process pool method...")
+    start_time = time.time()
+    pool_results = set()
+
+    with ProcessPoolExecutor(max_workers=4) as executor:
+        # Get the actual number of workers (typically matches CPU count)
+        n_workers = executor._max_workers  # pyright: ignore
+        # Split queries into chunks based on actual worker count
+        chunk_size = len(geo_queries) // n_workers
+        chunks = [
+            geo_queries[i : i + chunk_size]
+            for i in range(0, len(geo_queries), chunk_size)
+        ]
+
+        # Define worker function that processes a chunk of queries
+        def process_chunk(queries):
+            results = set()
+            for q in queries:
+                results.update(query(geo_table, **q))
+            return results
+
+        # Submit all chunks to the executor and collect results
+        futures = [executor.submit(process_chunk, chunk) for chunk in chunks]
+        for future in futures:
+            pool_results.update(future.result())
+
+    pool_total_time = time.time() - start_time
+
+    print("\nPerformance comparison:")
+    print("Original method:")
+    print(f"Total time: {old_total_time:.2f} seconds")
+    print(f"Total unique matches: {len(old_results)}")
+    print("\nProcess pool method:")
+    print(f"Total time: {pool_total_time:.2f} seconds")
+    print(f"Total matches: {len(pool_results)}")
+    print(f"Results identical: {old_results == pool_results}")
+    print(f"Speed improvement: {old_total_time/pool_total_time:.1f}x")
 
     sys.exit(0)
 

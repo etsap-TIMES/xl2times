@@ -591,9 +591,6 @@ def run(args: argparse.Namespace) -> str | None:
         no_cache=args.no_cache,
     )
     tables = to_tables(config, model)
-    logger.critical(
-        f"max N = {transforms._query_max_N}, Q = {len(transforms._query_queries)}"
-    )
 
     if args.dd:
         write_dd_files(tables, config, args.output_dir)

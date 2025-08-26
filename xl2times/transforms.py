@@ -2989,7 +2989,7 @@ def apply_transform_tables(
             table = tables[Tag.fi_t]
 
             logger.critical(f"table: {table.shape}, updates: {updates.shape}")
-            table_query_file = Path(f"/tmp/tfm_mig_queries{len(updates)}.pkl")
+            table_query_file = Path(f"tfm_mig_queries-{len(updates)}.pkl")
             with table_query_file.open("wb") as f:
                 pickle.dump((table, updates), f)
             logger.info(f"Pickled the table and queries to {table_query_file}")
