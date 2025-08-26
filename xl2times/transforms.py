@@ -2744,7 +2744,7 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
 def _process_mig_query(
     idx_and_row: tuple[Any, pd.Series], table: DataFrame
 ) -> DataFrame | None:
-    """Process a single migration query."""
+    """Process a single TFM_MIG query."""
     _, row = idx_and_row
     if row["module_type"] == "trans":
         source_module = row["module_name"]
@@ -2974,34 +2974,32 @@ def apply_transform_tables(
             index = tables[Tag.tfm_mig]["module_name"] == data_module
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
-            new_tables = []
 
-            restrict_rows = min(1_000, len(updates))
-            logger.warning(
-                f"Restricting TFM_MIG updates from {len(updates)} to {restrict_rows}"
-            )
-            updates = updates.head(restrict_rows)  # TODO REMOVE
+            if True:
+                # Process queries in parallel using ProcessPoolExecutor
+                n_workers = 8
 
-            # Process queries in parallel using ProcessPoolExecutor
-            n_workers = 8
+                with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                    actual_n_workers = executor._max_workers  # pyright: ignore
+                    # Split queries into chunks based on worker count
+                    chunk_size = max(1, len(updates) // actual_n_workers)
+                    chunks = [
+                        updates[i : i + chunk_size]
+                        for i in range(0, len(updates), chunk_size)
+                    ]
 
-            with ProcessPoolExecutor(max_workers=n_workers) as executor:
-                actual_n_workers = executor._max_workers  # pyright: ignore
-                # Split queries into chunks based on worker count
-                chunk_size = max(1, len(updates) // actual_n_workers)
-                chunks = [
-                    updates[i : i + chunk_size]
-                    for i in range(0, len(updates), chunk_size)
-                ]
+                    # Submit all tasks and get futures
+                    futures = [
+                        executor.submit(_process_mig_query_chunk, chunk, table)
+                        for chunk in chunks
+                    ]
 
-                # Submit all tasks and get futures
-                futures = [
-                    executor.submit(_process_mig_query_chunk, chunk, table)
-                    for chunk in chunks
-                ]
-
-                results = [f.result() for f in futures]
-                new_tables = [t for r in results for t in r if t is not None]
+                    results = [f.result() for f in futures]
+                    new_tables = [t for r in results for t in r if t is not None]
+            else:
+                # Old code: process sequentially # TODO REMOVE
+                results = [_process_mig_query(q, table) for q in updates.iterrows()]
+                new_tables = [t for t in results if t is not None]
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
