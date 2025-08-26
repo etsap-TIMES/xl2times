@@ -2743,14 +2743,14 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
 
 def _process_mig_query(
     idx_and_row: tuple[Any, pd.Series], table: DataFrame
-) -> pd.Index:
+) -> DataFrame | None:
     """Process a single migration query."""
     _, row = idx_and_row
     if row["module_type"] == "trans":
         source_module = row["module_name"]
     else:
         source_module = row.get("sourcescen")
-    return query(
+    rows_to_update = query(
         table,
         row.get("process"),
         row.get("commodity"),
@@ -2761,9 +2761,32 @@ def _process_mig_query(
         row.get("val_cond"),
         source_module,
     )
+    if not any(rows_to_update):
+        logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
+        return None
+
+    new_rows = table.loc[
+        rows_to_update
+    ].copy()  # Create a copy to avoid SettingWithCopyWarning # TODO double check this is correct
+
+    # Modify values in all '*2' columns
+    for c, v in row.items():
+        if str(c).endswith("2") and v is not None:
+            new_rows.loc[:, str(c)[:-1]] = v
+
+    # Evaluate 'value' column based on existing values
+    eval_and_update(new_rows, rows_to_update, str(row["value"]))
+
+    new_rows["source_filename"] = row["source_filename"]
+    new_rows["module_name"] = row["module_name"]
+    new_rows["module_type"] = row["module_type"]
+    new_rows["submodule"] = row["submodule"]
+    return new_rows
 
 
-def _process_mig_query_chunk(queries: DataFrame, table: DataFrame) -> list[pd.Index]:
+def _process_mig_query_chunk(
+    queries: DataFrame, table: DataFrame
+) -> list[DataFrame | None]:
     return [_process_mig_query(q, table) for q in queries.iterrows()]
 
 
@@ -2953,7 +2976,7 @@ def apply_transform_tables(
             table = tables[Tag.fi_t]
             new_tables = []
 
-            restrict_rows = min(100000, len(updates))
+            restrict_rows = min(1_000, len(updates))
             logger.warning(
                 f"Restricting TFM_MIG updates from {len(updates)} to {restrict_rows}"
             )
@@ -2977,33 +3000,8 @@ def apply_transform_tables(
                     for chunk in chunks
                 ]
 
-                # Process results as they complete, maintaining order
-                for chunk, future in zip(chunks, futures):
-                    result = future.result()
-                    for (_, row), rows_to_update in zip(chunk.iterrows(), result):
-                        if not any(rows_to_update):
-                            logger.warning(
-                                f"A {Tag.tfm_mig.value} row generated no records."
-                            )
-                            continue
-
-                        new_rows = table.loc[
-                            rows_to_update
-                        ].copy()  # Create a copy to avoid SettingWithCopyWarning # TODO double check this is correct
-
-                        # Modify values in all '*2' columns
-                        for c, v in row.items():
-                            if str(c).endswith("2") and v is not None:
-                                new_rows.loc[:, str(c)[:-1]] = v
-
-                        # Evaluate 'value' column based on existing values
-                        eval_and_update(new_rows, rows_to_update, str(row["value"]))
-
-                        new_rows["source_filename"] = row["source_filename"]
-                        new_rows["module_name"] = row["module_name"]
-                        new_rows["module_type"] = row["module_type"]
-                        new_rows["submodule"] = row["submodule"]
-                        new_tables.append(new_rows)
+                results = [f.result() for f in futures]
+                new_tables = [t for r in results for t in r if t is not None]
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
