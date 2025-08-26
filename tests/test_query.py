@@ -62,6 +62,7 @@ def query_boolmask(table: pd.DataFrame, filters: pd.DataFrame) -> pd.Index:
 
     # number of table rows N, number of filters Q
     N, Q = len(table), len(filters)  # noqa: N806
+    print(f"N: {N}, Q: {Q}")
     # start with all True mask of shape (N, Q)
     mask = np.ones((N, Q), dtype=bool)
 
@@ -104,6 +105,8 @@ Okay, there are queries from TFM_UPD etc that use the disjunctive lists.. but th
 Test the boolean mask method on random DFs of similar size?
     20% slower than iterating query? :(
 
+Pickle the actual table and queries used by GEO, and benchmark on that.
+    It's too slow because exploding the queries leads to 6e4 queries!
 
 Bool mask to do:
 Explode queries containing lists of possible values
@@ -112,7 +115,11 @@ Modify the boolean mask method to keep track of which query resulted in which ro
 
 
 if __name__ == "__main__":
+    import pickle
+    import sys
     import time
+    from itertools import product
+    from pathlib import Path
 
     import numpy as np
 
@@ -186,11 +193,59 @@ if __name__ == "__main__":
 
     def queries_to_df(queries):
         # Convert list of query dicts to DataFrame, replacing None with pd.NA
-        df = pd.DataFrame(queries)
+        # First, explode queries that have lists of values in any column
+        queries_exploded = []
+        cols = queries[0].keys()
+        for q in queries:
+            # Get all possible combinations of list values
+            values = [v if isinstance(v, list) else [v] for _, v in q.items()]
+
+            # Create a dict for each combination
+            for combination in product(*values):
+                queries_exploded.append(dict(zip(cols, combination)))
+
+        df = pd.DataFrame(queries_exploded)
         # Rename columns to match table
         df = df.rename(columns={"module": "module_name", "val": "value"})
         # Replace None with pd.NA
         return df.replace({None: pd.NA})
+
+    # Use pickled data from GEO:
+    table_query_file = Path("/tmp/tfm_mig_queries217.pkl")
+    with table_query_file.open("rb") as f:
+        table, queries_raw = pickle.load(f)
+
+    # Convert the raw queries into the expected format:
+    queries = []
+    for _, row in queries_raw.iterrows():
+        q = {
+            "process": row.get("process", None),
+            "commodity": row.get("commodity", None),
+            "attribute": row.get("attribute", None),
+            "region": row.get("region", None),
+            "year": row.get("year", None),
+            "limtype": row.get("limtype", None),
+            "val": row.get("value", None),
+            "module": None,
+        }
+        queries.append(q)
+    queries = queries[:10]  # TODO REMOVE
+    queries_df = queries_to_df(queries)
+
+    # Compare results between old and new methods
+    print("\nComparing query methods on GEO dataset:")
+    print("Running old method..")
+    old_results = set()
+    for q in queries:
+        old_results.update(query(table, **q))
+    print("Running new method..")
+    new_results = set(query_boolmask(table, queries_df))
+
+    print(f"Old method total unique matches: {len(old_results)}")
+    print(f"New method total matches: {len(new_results)}")
+    print(f"Results identical: {old_results == new_results}")
+
+    sys.exit(0)
 
     # Test with small dataset first
     print("Testing with small dataset:")

@@ -1,10 +1,11 @@
+import pickle
 import re
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
-from itertools import groupby, product, repeat
+from itertools import groupby, repeat
 from pathlib import Path
 from typing import Any
 
@@ -2517,14 +2518,10 @@ Okay, there are queries from TFM_UPD etc that use the disjunctive lists.. but th
     max N = 362319, Q = 214613
     N * Q = 362319 * 214613 = 77,758,367,547 -- way too much! 77GB, needs batching. Not sure how long it will take
 
-Modify the boolean mask method to keep track of which query resulted in which row
-Make some test cases, some random & large?
-Test that boolmask gives same answer as iterated query
-Check perf difference on random test case / Geo
 """
 
-_query_max_N = 0
-_query_queries = set()
+# _query_max_N = 0
+# _query_queries = set()
 
 
 def query(
@@ -2538,11 +2535,11 @@ def query(
     val: int | float | None,
     module: str | list[str] | None,
 ) -> pd.Index:
-    global _query_max_N, _query_queries
-    _query_max_N = max(_query_max_N, len(table))
-    q = (process, commodity, attribute, region, year, limtype, val, module)
-    qs = product(*(x if isinstance(x, list) else [x] for x in q))
-    _query_queries.update(qs)
+    # global _query_max_N, _query_queries
+    # _query_max_N = max(_query_max_N, len(table))
+    # q = (process, commodity, attribute, region, year, limtype, val, module)
+    # qs = product(*(x if isinstance(x, list) else [x] for x in q))
+    # _query_queries.update(qs)
 
     # TODO is it linear scanning here? Can we use DF indexing to speed this up?
     # Look into merge/join -- can we use something like that here?
@@ -2992,6 +2989,10 @@ def apply_transform_tables(
             table = tables[Tag.fi_t]
 
             logger.critical(f"table: {table.shape}, updates: {updates.shape}")
+            table_query_file = Path(f"/tmp/tfm_mig_queries{len(updates)}.pkl")
+            with table_query_file.open("wb") as f:
+                pickle.dump((table, updates), f)
+            logger.info(f"Pickled the table and queries to {table_query_file}")
             updates = updates.head(100)
 
             # 68.7% 489475, 1084
