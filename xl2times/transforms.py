@@ -1333,7 +1333,6 @@ def include_cgs_in_topology(
     comm_groups = pd.merge(
         model.topology, comm_set, on=["region", "commodity"]
     ).drop_duplicates(keep="last")
-    comm_groups = comm_groups.head(10)  # TODO REMOVE
 
     # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)
