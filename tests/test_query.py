@@ -116,6 +116,14 @@ Modify the boolean mask method to keep track of which query resulted in which ro
 """
 
 
+def process_chunk(queries, table):
+    """Process a chunk of queries using the given table."""
+    results = set()
+    for q in queries:
+        results.update(query(table, **q))
+    return results
+
+
 if __name__ == "__main__":
     import pickle
     import sys
@@ -213,10 +221,11 @@ if __name__ == "__main__":
         return df.replace({None: pd.NA})
 
     # Use pickled data from GEO:
-    # table_query_file = Path("tfm_mig_queries-12276.pkl")
-    table_query_file = Path("tfm_mig_queries-217.pkl")
+    table_query_file = Path("tfm_mig_queries-12276.pkl")
+    # table_query_file = Path("tfm_mig_queries-217.pkl")
     with table_query_file.open("rb") as f:
         geo_table, queries_raw = pickle.load(f)
+    queries_raw = queries_raw.head(1000)
 
     # Convert the raw queries into the expected format:
     geo_queries = []
@@ -245,44 +254,60 @@ if __name__ == "__main__":
         old_results.update(query(geo_table, **q))
     old_total_time = time.time() - start_time
 
-    # Test process pool method
-    print("\nTesting process pool method...")
-    start_time = time.time()
-    pool_results = set()
+    # Test process pool method with different numbers of workers
+    print("\nTesting process pool method with different worker counts...")
 
-    with ProcessPoolExecutor(max_workers=4) as executor:
-        # Get the actual number of workers (typically matches CPU count)
-        n_workers = executor._max_workers  # pyright: ignore
-        # Split queries into chunks based on actual worker count
-        chunk_size = len(geo_queries) // n_workers
-        chunks = [
-            geo_queries[i : i + chunk_size]
-            for i in range(0, len(geo_queries), chunk_size)
-        ]
+    # Get number of CPUs for scaling worker counts
+    import multiprocessing
 
-        # Define worker function that processes a chunk of queries
-        def process_chunk(queries):
-            results = set()
-            for q in queries:
-                results.update(query(geo_table, **q))
-            return results
+    n_cpus = multiprocessing.cpu_count()
+    worker_counts = set([2, 4, 8, n_cpus, n_cpus * 2])
 
-        # Submit all chunks to the executor and collect results
-        futures = [executor.submit(process_chunk, chunk) for chunk in chunks]
-        for future in futures:
-            pool_results.update(future.result())
+    results = []
+    for n_workers in sorted(worker_counts):
+        print(f"\nTesting with {n_workers} workers...")
+        start_time = time.time()
+        pool_results = set()
 
-    pool_total_time = time.time() - start_time
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+            actual_n_workers = executor._max_workers  # pyright: ignore
+            # Split queries into chunks based on worker count
+            chunk_size = max(1, len(geo_queries) // actual_n_workers)
+            chunks = [
+                geo_queries[i : i + chunk_size]
+                for i in range(0, len(geo_queries), chunk_size)
+            ]
+
+            # Submit all chunks to the executor and collect results
+            futures = [
+                executor.submit(process_chunk, chunk, geo_table) for chunk in chunks
+            ]
+            for future in futures:
+                pool_results.update(future.result())
+
+        total_time = time.time() - start_time
+        speedup = old_total_time / total_time
+        results.append(
+            {
+                "workers": n_workers,
+                "time": total_time,
+                "speedup": speedup,
+                "matches": len(pool_results),
+                "correct": pool_results == old_results,
+            }
+        )
 
     print("\nPerformance comparison:")
     print("Original method:")
     print(f"Total time: {old_total_time:.2f} seconds")
     print(f"Total unique matches: {len(old_results)}")
-    print("\nProcess pool method:")
-    print(f"Total time: {pool_total_time:.2f} seconds")
-    print(f"Total matches: {len(pool_results)}")
-    print(f"Results identical: {old_results == pool_results}")
-    print(f"Speed improvement: {old_total_time/pool_total_time:.1f}x")
+    print("\nParallel method results:")
+    print(f"{'Workers':>8} {'Time (s)':>10} {'Speedup':>10} {'Correct':>8}")
+    print("-" * 40)
+    for r in results:
+        print(
+            f"{r['workers']:8d} {r['time']:10.2f} {r['speedup']:10.2f} {r['correct']:8}"
+        )
 
     sys.exit(0)
 
