@@ -1,16 +1,14 @@
-import pickle
 import re
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
-from itertools import groupby, repeat
+from itertools import groupby
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from joblib import Parallel, delayed
 from loguru import logger
 from more_itertools import locate
 from pandas.core.frame import DataFrame
@@ -1335,7 +1333,7 @@ def include_cgs_in_topology(
     comm_groups = pd.merge(
         model.topology, comm_set, on=["region", "commodity"]
     ).drop_duplicates(keep="last")
-    comm_groups = comm_groups.head(10)
+    comm_groups = comm_groups.head(10)  # TODO REMOVE
 
     # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)
@@ -2535,15 +2533,6 @@ def query(
     val: int | float | None,
     module: str | list[str] | None,
 ) -> pd.Index:
-    # global _query_max_N, _query_queries
-    # _query_max_N = max(_query_max_N, len(table))
-    # q = (process, commodity, attribute, region, year, limtype, val, module)
-    # qs = product(*(x if isinstance(x, list) else [x] for x in q))
-    # _query_queries.update(qs)
-
-    # TODO is it linear scanning here? Can we use DF indexing to speed this up?
-    # Look into merge/join -- can we use something like that here?
-    # Try an inner join where some cols of the 2nd (query) df have nones -- does it work?
     query_fields = {
         "process": process,
         "commodity": commodity,
@@ -2752,16 +2741,16 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
     return projected_demands.drop(columns="multiplier")
 
 
-def _process_tfm_mig_row(table: DataFrame, idx_and_row: tuple[Any, pd.Series]):
-    """Processes one row of a TFM_MIG table and returns the newly generated rows."""
-    # print("_process_tfm_mig_row starting")
+def _process_mig_query(
+    idx_and_row: tuple[Any, pd.Series], table: DataFrame
+) -> pd.Index:
+    """Process a single migration query."""
     _, row = idx_and_row
     if row["module_type"] == "trans":
         source_module = row["module_name"]
     else:
         source_module = row.get("sourcescen")
-
-    rows_to_update = query(
+    return query(
         table,
         row.get("process"),
         row.get("commodity"),
@@ -2773,34 +2762,9 @@ def _process_tfm_mig_row(table: DataFrame, idx_and_row: tuple[Any, pd.Series]):
         source_module,
     )
 
-    if not any(rows_to_update):
-        logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
-        return
 
-    new_rows = table.loc[rows_to_update]
-    # Modify values in all '*2' columns
-    for c, v in row.items():
-        if str(c).endswith("2") and v is not None:
-            new_rows.loc[:, str(c)[:-1]] = v
-    # Evaluate 'value' column based on existing values
-    eval_and_update(new_rows, rows_to_update, row["value"])
-    # In case more than one data module is present in the table, select the one with the highest index
-    # TODO: The below code is commented out because it needs to be more sophisticated.
-    """
-    if new_rows["module_name"].nunique() > 1:
-        indices = {
-            model.data_modules.index(x)
-            for x in new_rows["module_name"].unique()
-        }
-        new_rows = new_rows[
-            new_rows["module_name"] == model.data_modules[max(indices)]
-        ]
-    """
-    new_rows["source_filename"] = row["source_filename"]
-    new_rows["module_name"] = row["module_name"]
-    new_rows["module_type"] = row["module_type"]
-    new_rows["submodule"] = row["submodule"]
-    return new_rows
+def _process_mig_query_chunk(queries: DataFrame, table: DataFrame) -> list[pd.Index]:
+    return [_process_mig_query(q, table) for q in queries.iterrows()]
 
 
 def apply_transform_tables(
@@ -2987,47 +2951,59 @@ def apply_transform_tables(
             index = tables[Tag.tfm_mig]["module_name"] == data_module
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
+            new_tables = []
 
-            logger.critical(f"table: {table.shape}, updates: {updates.shape}")
-            table_query_file = Path(f"tfm_mig_queries-{len(updates)}.pkl")
-            with table_query_file.open("wb") as f:
-                pickle.dump((table, updates), f)
-            logger.info(f"Pickled the table and queries to {table_query_file}")
-            updates = updates.head(100)
+            restrict_rows = min(100000, len(updates))
+            logger.warning(
+                f"Restricting TFM_MIG updates from {len(updates)} to {restrict_rows}"
+            )
+            updates = updates.head(restrict_rows)  # TODO REMOVE
 
-            # 68.7% 489475, 1084
-            algo = "serial"
-            match algo:
-                case "serial":  # 15.42s
-                    new_tables = [
-                        _process_tfm_mig_row(table, row) for row in updates.iterrows()
-                    ]
+            # Process queries in parallel using ProcessPoolExecutor
+            n_workers = 8
 
-                case "ProcessPool":  # 103.73, also accuracy went down?!
-                    with ProcessPoolExecutor(max_workers) as executor:
-                        new_tables = list(
-                            executor.map(
-                                _process_tfm_mig_row,
-                                repeat(table, len(updates)),
-                                updates.iterrows(),
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                actual_n_workers = executor._max_workers  # pyright: ignore
+                # Split queries into chunks based on worker count
+                chunk_size = max(1, len(updates) // actual_n_workers)
+                chunks = [
+                    updates[i : i + chunk_size]
+                    for i in range(0, len(updates), chunk_size)
+                ]
+
+                # Submit all tasks and get futures
+                futures = [
+                    executor.submit(_process_mig_query_chunk, chunk, table)
+                    for chunk in chunks
+                ]
+
+                # Process results as they complete, maintaining order
+                for chunk, future in zip(chunks, futures):
+                    result = future.result()
+                    for (_, row), rows_to_update in zip(chunk.iterrows(), result):
+                        if not any(rows_to_update):
+                            logger.warning(
+                                f"A {Tag.tfm_mig.value} row generated no records."
                             )
-                        )
+                            continue
 
-                case "joblib":  # 100.12s, accuracy went down again...
-                    new_tables = Parallel(max_workers, verbose=2)(
-                        delayed(_process_tfm_mig_row(table, row))
-                        for row in updates.iterrows()
-                    )
+                        new_rows = table.loc[
+                            rows_to_update
+                        ].copy()  # Create a copy to avoid SettingWithCopyWarning # TODO double check this is correct
 
-                case "joblibContext":  # cannot pickle weakref.ReferenceType
-                    with Parallel(n_jobs=max_workers, verbose=2) as parallel:
-                        new_tables = parallel(
-                            delayed(_process_tfm_mig_row(table, row))
-                            for row in updates.iterrows()
-                        )
+                        # Modify values in all '*2' columns
+                        for c, v in row.items():
+                            if str(c).endswith("2") and v is not None:
+                                new_rows.loc[:, str(c)[:-1]] = v
 
-            # Filter out the mig rows that generated no new rows
-            new_tables = [x for x in new_tables if x is not None]
+                        # Evaluate 'value' column based on existing values
+                        eval_and_update(new_rows, rows_to_update, str(row["value"]))
+
+                        new_rows["source_filename"] = row["source_filename"]
+                        new_rows["module_name"] = row["module_name"]
+                        new_rows["module_type"] = row["module_type"]
+                        new_rows["submodule"] = row["submodule"]
+                        new_tables.append(new_rows)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
