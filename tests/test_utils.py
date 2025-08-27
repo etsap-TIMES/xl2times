@@ -156,8 +156,8 @@ class TestUtils:
         assert utils.create_negative_regexp(" -Coal , -Gas ") == r"^Coal$|^Gas$"
 
         # Empty pattern or no negatives matches nothing
-        assert utils.create_negative_regexp("") == r"^$"
-        assert utils.create_negative_regexp("Coal,Gas") == r"^$"
+        assert utils.create_negative_regexp("") == r"a^"
+        assert utils.create_negative_regexp("Coal,Gas") == r"a^"
 
         # Complex combinations
         assert (
