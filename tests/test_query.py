@@ -1,3 +1,30 @@
+"""
+Some utils and tools to test different approaches to transforms.query and benchmark performance.
+
+Right now this file doesn't test anything, but if we go with a new approach to queries, we can use the code here to test that the new algorithm produces the same results as the old one.
+
+Notes
+-----
+Check on benchmarks how large table and query_df are
+    table: (350143, 20), updates: (217, 16)
+    table: (350043, 20), updates: (12276, 16)
+    N * Q = 350043 * 12276 = 4,297,127,868  -- might take too long!
+
+Okay, there are queries from TFM_UPD etc that use the disjunctive lists.. but these can be exploded in the query DF?
+    max N = 362319, Q = 214613
+    N * Q = 362319 * 214613 = 77,758,367,547 -- way too much! 77GB, needs batching. Not sure how long it will take
+
+Test the boolean mask method on random DFs of similar size?
+    20% slower than iterating query? :(
+
+Pickle the actual table and queries used by GEO, and benchmark on that.
+    It's too slow because exploding 217 queries leads to 6e4 queries!
+
+Bool mask to do: (abandoned bool mask because it's too slow)
+    Explode queries containing lists of possible values
+    Modify the boolean mask method to keep track of which query resulted in which row
+"""
+
 from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
@@ -92,28 +119,6 @@ def query_boolmask(table: pd.DataFrame, filters: pd.DataFrame) -> pd.Index:
     # rows matching at least one filter
     hits = mask.any(axis=1)
     return table.index[hits]
-
-
-"""
-Check on benchmarks how large table and query_df are
-    table: (350143, 20), updates: (217, 16)
-    table: (350043, 20), updates: (12276, 16)
-    N * Q = 350043 * 12276 = 4,297,127,868  -- might take too long!
-
-Okay, there are queries from TFM_UPD etc that use the disjunctive lists.. but these can be exploded in the query DF?
-    max N = 362319, Q = 214613
-    N * Q = 362319 * 214613 = 77,758,367,547 -- way too much! 77GB, needs batching. Not sure how long it will take
-
-Test the boolean mask method on random DFs of similar size?
-    20% slower than iterating query? :(
-
-Pickle the actual table and queries used by GEO, and benchmark on that.
-    It's too slow because exploding 217 queries leads to 6e4 queries!
-
-Bool mask to do:
-Explode queries containing lists of possible values
-Modify the boolean mask method to keep track of which query resulted in which row
-"""
 
 
 def process_chunk(queries, table):
@@ -367,4 +372,4 @@ if __name__ == "__main__":
     print(f"Total time: {new_total_time:.2f} seconds")
     print(f"Total matches: {len(new_results)}")
     print(f"Results identical: {old_results == new_results}")
-    print(f"Speed improvement: {old_total_time/new_total_time:.1f}x")
+    print(f"Speed improvement: {old_total_time / new_total_time:.1f}x")
