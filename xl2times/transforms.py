@@ -1306,16 +1306,6 @@ def include_cgs_in_topology(
     model: TimesModel,
 ) -> dict[str, DataFrame]:
     """Include commodity groups in model topology."""
-    # cached_file = Path("/tmp/include_cgs_in_topology.pkl")
-    # if cached_file.exists():
-    #     # just load and return the cached pickle
-    #     with cached_file.open("rb") as f:
-    #         model.topology = pickle.load(f)
-    #         logger.info(
-    #             f"Using cached data for include_cgs_in_topology from {cached_file}"
-    #         )
-    #         return tables
-
     # Veda determines default PCG based on predetermined order and presence of OUT/IN commodity
     columns = ["region", "process", "primarycg"]
     i = tables[Tag.fi_process]["primarycg"].isin(default_pcg_suffixes)
@@ -1376,11 +1366,6 @@ def include_cgs_in_topology(
         )
 
     # TODO: Include info from ~TFM_TOPINS e.g. include RSDAHT2 in addition to RSDAHT
-
-    # # Write topology to cache to speed up next time:
-    # with cached_file.open("wb") as f:
-    #     pickle.dump(comm_groups, f)
-    # logger.info(f"Saved cache for include_cgs_in_topology to {cached_file}")
 
     model.topology = comm_groups
 
@@ -2505,23 +2490,6 @@ def _match_wildcards(
     return df
 
 
-"""
-TODO
-Check on benchmarks how large table and query_df are
-    table: (350143, 20), updates: (217, 16)
-    table: (350043, 20), updates: (12276, 16)
-    N * Q = 350043 * 12276 = 4,297,127,868  -- might take too long!
-
-Okay, there are queries from TFM_UPD etc that use the disjunctive lists.. but these can be exploded in the query DF?
-    max N = 362319, Q = 214613
-    N * Q = 362319 * 214613 = 77,758,367,547 -- way too much! 77GB, needs batching. Not sure how long it will take
-
-"""
-
-# _query_max_N = 0
-# _query_queries = set()
-
-
 def query(
     table: DataFrame,
     process: str | list[str] | None,
@@ -2767,7 +2735,7 @@ def _process_mig_query(
 
     new_rows = table.loc[
         rows_to_update
-    ].copy()  # Create a copy to avoid SettingWithCopyWarning # TODO double check this is correct
+    ].copy()  # Create a copy to avoid SettingWithCopyWarning
 
     # Modify values in all '*2' columns
     for c, v in row.items():
@@ -2998,7 +2966,7 @@ def apply_transform_tables(
                     results = [f.result() for f in futures]
                     new_tables = [t for r in results for t in r if t is not None]
             else:
-                # Old code: process sequentially # TODO REMOVE
+                # Process sequentially
                 results = [_process_mig_query(q, table) for q in updates.iterrows()]
                 new_tables = [t for t in results if t is not None]
 
