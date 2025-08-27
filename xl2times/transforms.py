@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
 from itertools import groupby
+from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any
 
@@ -2974,9 +2975,10 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
 
-            if True:
+            # Heuristic for deciding when to process in parallel
+            if len(updates) > 100:
                 # Process queries in parallel using ProcessPoolExecutor
-                n_workers = 8
+                n_workers = cpu_count() // 2
 
                 with ProcessPoolExecutor(max_workers=n_workers) as executor:
                     actual_n_workers = executor._max_workers  # pyright: ignore
