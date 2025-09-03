@@ -74,8 +74,6 @@ jobs:
         working-directory: xl2times
         run: |
           ./setup-benchmarks.sh
-          # TODO temporarily testing that GEO filex were set up correctly
-          pushd benchmarks/xlsx/TIMES-GEO/; git ls-files | xargs du -hs; popd
         env:
           GH_PAT_DEMOS_XLSX: ${{ secrets.GH_PAT_DEMOS_XLSX }}
 
