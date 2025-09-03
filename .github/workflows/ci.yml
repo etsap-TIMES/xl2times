@@ -21,7 +21,7 @@ jobs:
 
     env:
       PY_VERSION: "3.11"
-      CACHE_KEY: 4 # Use this for manual cache key bumps, e.g., when caching code changes
+      CACHE_KEY: 5 # Use this for manual cache key bumps, e.g., when caching code changes
 
     steps:
       - uses: actions/checkout@v4
@@ -84,12 +84,12 @@ jobs:
           GAMS_LICENSE: ${{ secrets.GAMS_LICENSE }}
         if: ${{ env.GAMS_LICENSE != '' }}
         run: |
-          curl https://d37drm4t2jghv5.cloudfront.net/distributions/49.3.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
+          curl https://d37drm4t2jghv5.cloudfront.net/distributions/50.3.0/linux/linux_x64_64_sfx.exe -o linux_x64_64_sfx.exe
           chmod +x linux_x64_64_sfx.exe
           mkdir GAMS
           pushd  GAMS
           ../linux_x64_64_sfx.exe > /dev/null && echo Successfully installed GAMS
-          export PATH=$PATH:$(pwd)/gams49.3_linux_x64_64_sfx
+          export PATH=$PATH:$(pwd)/gams50.3_linux_x64_64_sfx
           popd
 
       # ---------- Run tool, check for regressions
@@ -112,7 +112,7 @@ jobs:
         # Save the return code to retcode.txt so that the next step can fail the action
         run: |
           source .venv/bin/activate
-          export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams49.3_linux_x64_64_sfx
+          export PATH=$PATH:$GITHUB_WORKSPACE/GAMS/gams50.3_linux_x64_64_sfx
           (python utils/run_benchmarks.py benchmarks.yml \
               --dd --times_dir $GITHUB_WORKSPACE/xl2times/TIMES_model \
               --verbose \

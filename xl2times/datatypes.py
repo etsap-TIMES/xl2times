@@ -263,6 +263,7 @@ class TimesModel:
     custom_psets: DataFrame = field(default_factory=DataFrame)
     user_psets: DataFrame = field(default_factory=DataFrame)
     user_csets: DataFrame = field(default_factory=DataFrame)
+    cases: dict[str, str] = field(default_factory=dict)
 
     @property
     def external_regions(self) -> set[str]:
@@ -361,6 +362,8 @@ class Config:
     ie_override_in_syssettings: bool = False
     # Switch to include dummy imports in the model
     include_dummy_imports: bool
+    # Name of the case to produce dd files for
+    produce_case: str | None
 
     def __init__(
         self,
@@ -371,6 +374,7 @@ class Config:
         veda_attr_defaults_file: str,
         regions: str,
         include_dummy_imports: bool,
+        case: str | None,
     ):
         self.times_xl_maps = Config._read_mappings(mapping_file)
         (
@@ -403,6 +407,7 @@ class Config:
         self.times_xl_maps = list(name_to_map.values())
         self.filter_regions = Config._read_regions_filter(regions)
         self.include_dummy_imports = include_dummy_imports
+        self.produce_case = case
 
     @staticmethod
     def _read_times_sets(
