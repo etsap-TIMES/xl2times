@@ -1,4 +1,5 @@
 import argparse
+import cProfile
 import os
 import re
 import shutil
@@ -156,6 +157,7 @@ def run_benchmark(
     out_folder: str = "out",
     verbose: bool = False,
     debug: bool = False,
+    profile: bool = False,
 ) -> tuple[str, float, str, float, int, int]:
     xl_folder = path.join(benchmarks_folder, "xlsx", benchmark["input_folder"])
     dd_folder = path.join(benchmarks_folder, "dd", benchmark["dd_folder"])
@@ -237,7 +239,12 @@ def run_benchmark(
         )
     else:
         # If debug option is set, run as a function call to allow stepping with a debugger.
-        summary = run(parse_args(args))
+        if profile:
+            with cProfile.Profile() as pr:
+                summary = run(parse_args(args))
+            pr.dump_stats("xl2times.prof")
+        else:
+            summary = run(parse_args(args))
         # pack the results into a namedtuple pretending to be a return value from a subprocess call (as above).
         res = namedtuple("stdout", ["stdout", "stderr", "returncode"])(summary, "", 0)
 
@@ -278,6 +285,7 @@ def run_all_benchmarks(
     seq: bool = False,
     verbose: bool = False,
     debug: bool = False,
+    profile: bool = False,
 ):
     logger.info("Running benchmarks", end="", flush=True)
     headers = ["Benchmark", "Time (s)", "GDX Diff", "Accuracy", "Correct", "Additional"]
@@ -289,6 +297,7 @@ def run_all_benchmarks(
         run_gams=run_gams,
         verbose=verbose,
         debug=debug,
+        profile=profile,
     )
 
     if debug or seq:
@@ -355,6 +364,7 @@ def run_all_benchmarks(
             out_folder="out-main",
             verbose=verbose,
             debug=debug,
+            profile=profile,
         )
 
         if debug or seq:
@@ -497,6 +507,12 @@ if __name__ == "__main__":
         help="Run each benchmark as a direct function call (disables subprocesses) to allow a debugger to stop at breakpoints "
         "in benchmark runs.",
     )
+    args_parser.add_argument(
+        "--profile",
+        action="store_true",
+        default=False,
+        help="Profiles the tool and saves output to a file xl2times.prof, which can be visualized with snakeviz.",
+    )
     args = args_parser.parse_args()
 
     spec = yaml.safe_load(open(args.benchmarks_yaml))
@@ -509,6 +525,9 @@ if __name__ == "__main__":
     if args.dd and args.times_dir is None:
         logger.error("--times_dir is required when using --dd")
         sys.exit(12)
+
+    # Profile implies debug
+    args.debug = True if args.profile else args.debug
 
     if args.run is not None:
         benchmark = next((b for b in spec["benchmarks"] if b["name"] == args.run), None)
@@ -524,6 +543,7 @@ if __name__ == "__main__":
             skip_csv=args.skip_csv,
             verbose=args.verbose,
             debug=args.debug,
+            profile=args.profile,
         )
         logger.info(
             f"Ran {args.run} in {runtime:.2f}s. {acc}% ({cor} correct, {add} additional).\n"
@@ -541,4 +561,5 @@ if __name__ == "__main__":
             seq=args.seq,
             verbose=args.verbose,
             debug=args.debug,
+            profile=args.profile,
         )

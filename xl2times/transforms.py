@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
 from itertools import groupby
+from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any
 
@@ -2708,6 +2709,55 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
     return projected_demands.drop(columns="multiplier")
 
 
+def _process_mig_query(
+    idx_and_row: tuple[Any, pd.Series], table: DataFrame
+) -> DataFrame | None:
+    """Process a single TFM_MIG query."""
+    _, row = idx_and_row
+    if row["module_type"] == "trans":
+        source_module = row["module_name"]
+    else:
+        source_module = row.get("sourcescen")
+    rows_to_update = query(
+        table,
+        row.get("process"),
+        row.get("commodity"),
+        row["attribute"],
+        row.get("region"),
+        row.get("year"),
+        row.get("limtype"),
+        row.get("val_cond"),
+        source_module,
+    )
+    if not any(rows_to_update):
+        logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
+        return None
+
+    new_rows = table.loc[
+        rows_to_update
+    ].copy()  # Create a copy to avoid SettingWithCopyWarning
+
+    # Modify values in all '*2' columns
+    for c, v in row.items():
+        if str(c).endswith("2") and v is not None:
+            new_rows.loc[:, str(c)[:-1]] = v
+
+    # Evaluate 'value' column based on existing values
+    eval_and_update(new_rows, rows_to_update, str(row["value"]))
+
+    new_rows["source_filename"] = row["source_filename"]
+    new_rows["module_name"] = row["module_name"]
+    new_rows["module_type"] = row["module_type"]
+    new_rows["submodule"] = row["submodule"]
+    return new_rows
+
+
+def _process_mig_query_chunk(
+    queries: DataFrame, table: DataFrame
+) -> list[DataFrame | None]:
+    return [_process_mig_query(q, table) for q in queries.iterrows()]
+
+
 def apply_transform_tables(
     config: Config,
     tables: dict[str, DataFrame],
@@ -2892,58 +2942,33 @@ def apply_transform_tables(
             index = tables[Tag.tfm_mig]["module_name"] == data_module
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
-            new_tables = []
 
-            for _, row in tqdm(
-                updates.iterrows(),
-                total=len(updates),
-                desc=f"Applying transformations from {Tag.tfm_mig.value} in {data_module}",
-            ):
-                if row["module_type"] == "trans":
-                    source_module = row["module_name"]
-                else:
-                    source_module = row.get("sourcescen")
+            # Heuristic for deciding when to process in parallel
+            if len(updates) > 100:
+                # Process queries in parallel using ProcessPoolExecutor
+                n_workers = cpu_count() // 2
 
-                rows_to_update = query(
-                    table,
-                    row.get("process"),
-                    row.get("commodity"),
-                    row["attribute"],
-                    row.get("region"),
-                    row.get("year"),
-                    row.get("limtype"),
-                    row.get("val_cond"),
-                    source_module,
-                )
-
-                if not any(rows_to_update):
-                    logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
-                    continue
-
-                new_rows = table.loc[rows_to_update]
-                # Modify values in all '*2' columns
-                for c, v in row.items():
-                    if str(c).endswith("2") and v is not None:
-                        new_rows.loc[:, str(c)[:-1]] = v
-                # Evaluate 'value' column based on existing values
-                eval_and_update(new_rows, rows_to_update, row["value"])
-                # In case more than one data module is present in the table, select the one with the highest index
-                # TODO: The below code is commented out because it needs to be more sophisticated.
-                """
-                if new_rows["module_name"].nunique() > 1:
-                    indices = {
-                        model.data_modules.index(x)
-                        for x in new_rows["module_name"].unique()
-                    }
-                    new_rows = new_rows[
-                        new_rows["module_name"] == model.data_modules[max(indices)]
+                with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                    actual_n_workers = executor._max_workers  # pyright: ignore
+                    # Split queries into chunks based on worker count
+                    chunk_size = max(1, len(updates) // actual_n_workers)
+                    chunks = [
+                        updates[i : i + chunk_size]
+                        for i in range(0, len(updates), chunk_size)
                     ]
-                """
-                new_rows["source_filename"] = row["source_filename"]
-                new_rows["module_name"] = row["module_name"]
-                new_rows["module_type"] = row["module_type"]
-                new_rows["submodule"] = row["submodule"]
-                new_tables.append(new_rows)
+
+                    # Submit all tasks and get futures
+                    futures = [
+                        executor.submit(_process_mig_query_chunk, chunk, table)
+                        for chunk in chunks
+                    ]
+
+                    results = [f.result() for f in futures]
+                    new_tables = [t for r in results for t in r if t is not None]
+            else:
+                # Process sequentially
+                results = [_process_mig_query(q, table) for q in updates.iterrows()]
+                new_tables = [t for t in results if t is not None]
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
