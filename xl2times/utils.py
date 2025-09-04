@@ -247,7 +247,43 @@ def remove_whitespace(pattern: str) -> str:
 
 
 @functools.lru_cache(maxsize=int(1e6))
-def create_regexp(pattern: str, combined: bool = True) -> str:
+def create_regexp(pattern: str) -> str:
+    """Create a regular expression pattern that handles VEDA wildcards and comma-separated lists.
+
+    This function converts VEDA-style patterns into regular expressions, handling:
+    - Wildcards: '*' (multiple chars), '?' or '_' (single char)
+    - Literal underscores using '[_]'
+    - Comma-separated values that match any of the items
+    - Negative patterns (starting with '-') are ignored in this function,
+      but can be handled separately with create_negative_regexp().
+
+    Parameters
+    ----------
+    pattern : str
+        The VEDA pattern to convert.
+
+    Returns
+    -------
+    str
+        A regular expression pattern that matches according to VEDA rules.
+
+    Examples
+    --------
+    >>> create_regexp("Elec*")
+    '^Elec.*$'  # Matches 'Elec', 'Electric', 'Electricity', etc.
+
+    >>> create_regexp("Fuel?_Gen")
+    '^Fuel..Gen$'  # Matches 'Fuel1_Gen', 'FuelA_Gen', 'Fuel22Gen' etc.
+
+    >>> create_regexp("Tech?[_]1")
+    '^Tech._1$'  # Matches 'TechA_1', 'TechB_1' etc, treating '_' as literal
+
+    >>> create_regexp("Coal,Gas")
+    '^Coal$|^Gas$'  # Matches exactly 'Coal' or 'Gas'
+
+    >>> create_regexp("Heat*,-HeatPump")
+    '^Heat.*$'  # Matches anything starting with 'Heat', the negative 'HeatPump' pattern is ignored
+    """
     pattern = remove_whitespace(pattern)
     # Exclude negative patterns
     if has_negative_patterns(pattern):
@@ -269,11 +305,38 @@ def create_regexp(pattern: str, combined: bool = True) -> str:
 
 @functools.lru_cache(maxsize=int(1e6))
 def create_negative_regexp(pattern: str) -> str:
+    """Create a regular expression for negative patterns (those starting with '-').
+
+    This is the complementary function to create_regexp(), handling the excluded patterns.
+    When a pattern contains items starting with '-', those items become the patterns
+    to exclude from matches.
+
+    Parameters
+    ----------
+    pattern : str
+        The VEDA pattern containing negative patterns (items starting with '-')
+
+    Returns
+    -------
+    str
+        A regular expression pattern that matches only the negative patterns.
+
+    Examples
+    --------
+    >>> create_negative_regexp("Heat*,-HeatPump,-HeatWaste")
+    '^HeatPump$|^HeatWaste$'  # Creates pattern matching the excluded items
+
+    >>> create_negative_regexp("-Gas*,-Oil*")
+    '^Gas.*$|^Oil.*$'  # Matches anything starting with 'Gas' or 'Oil'
+
+    >>> create_negative_regexp("Coal,Gas")
+    '^$'  # No negative patterns, matches nothing
+    """
     pattern = remove_whitespace(pattern)
     # Exclude positive patterns
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
-        pattern = r"^$"  # matches nothing
+        return r"a^"  # matches nothing
     return create_regexp(pattern)
 
 
@@ -470,8 +533,8 @@ def compare_df_dict(
                 if not before.iloc[i].equals(after.iloc[i]):
                     logger.warning(
                         f"Table {key} is different, first difference at row {i}:\n"
-                        f"BEFORE:\n{before.iloc[i - context_rows:i + context_rows + 1]}\n"
-                        f"AFTER: \n{after.iloc[i - context_rows:i + context_rows + 1]}"
+                        f"BEFORE:\n{before.iloc[i - context_rows : i + context_rows + 1]}\n"
+                        f"AFTER: \n{after.iloc[i - context_rows : i + context_rows + 1]}"
                     )
                     break
         else:
@@ -527,7 +590,7 @@ def run_gams(times_folder: str, out_folder: str) -> None:
     """
     # Import gamspy-base in here and not at the top of the file so that xl2times doesn't depend on it
     try:
-        from gamspy_base import directory
+        from gamspy_base import directory  # pyright: ignore
     except ImportError:
         raise NotImplementedError("Package gamspy-base not installed. Cannot run GAMS.")
 
