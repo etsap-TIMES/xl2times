@@ -5,6 +5,7 @@ from __future__ import (
 # see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
 import functools
 import gzip
+import json
 import os
 import pickle
 import shutil
@@ -337,6 +338,47 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
     }
     # Return as a list
     return list(filtered)
+
+
+def get_veda_cases(path: str) -> dict[str, str]:
+    """Get cases defined in Veda if the case definition file existst in the
+    model folder.
+    """
+    cases = {}
+    file_path = Path(path) / "AppData" / "Groups.json"
+
+    if not file_path.exists():
+        logger.info(f"{file_path} does not exist.")
+        return cases
+
+    # Read the json file
+    with open(file_path, encoding="utf-8") as file:
+        group_list = json.load(file)
+
+    def _make_df(group: dict) -> DataFrame:
+        """Create a DataFrame from a group dictionary."""
+        records = json.loads(group["Settings"])
+        df = pd.DataFrame.from_records(records)
+        df["Case"] = group["GroupName"].upper()
+        return df
+
+    scenario_groups = [_make_df(g) for g in group_list if g["GroupType"] == "Scenario"]
+    if scenario_groups:
+        df = pd.concat(scenario_groups, ignore_index=True)
+        # Uppercase the values in the "Name" column
+        df["Name"] = df["Name"].str.upper()
+        # Column type "RowOrder" is integer
+        df["RowOrder"] = df["RowOrder"].astype(int)
+        df = df.sort_values("RowOrder")
+        # Modules that are part of the corresponding cases
+        i = df["Checked"] != "false"
+        keep_cols = ["Name", "Case"]
+        # Create a list of modules for each case
+        df = df[i][keep_cols].groupby("Case").agg(list)
+        # Convert to a dictionary
+        cases = df.to_dict(orient="dict")["Name"]
+
+    return cases
 
 
 def set_log_level(level: int | None) -> str:
