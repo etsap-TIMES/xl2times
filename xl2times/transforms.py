@@ -1277,6 +1277,10 @@ def prepare_for_querying(
                     isna = df[colname].isna()
                     if any(isna):
                         key = mapping_to_defaults[colname]
+                        # pandas 3.0: float64 columns cannot hold string values;
+                        # cast to object to allow mixed-type assignment.
+                        if pd.api.types.is_float_dtype(df[colname]):
+                            df[colname] = df[colname].astype(object)
                         for value in config.veda_attr_defaults[key].keys():
                             df.loc[
                                 isna
@@ -1288,6 +1292,9 @@ def prepare_for_querying(
                 elif colname == "year":
                     df.loc[df[colname].isna(), [colname]] = model.start_year
                 elif colname == "currency":
+                    # pandas 3.0: float64 columns cannot hold string values
+                    if pd.api.types.is_float_dtype(df[colname]):
+                        df[colname] = df[colname].astype(object)
                     df.loc[df[colname].isna(), [colname]] = currency
 
         # Do some additional processing for the tables
