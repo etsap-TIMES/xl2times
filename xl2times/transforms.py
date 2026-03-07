@@ -105,8 +105,10 @@ def _remove_df_comment_rows(
             comment_rows.update(
                 locate(
                     df[colname],
-                    lambda cell: isinstance(cell, str)
-                    and (cell.startswith(tuple(comment_chars[colname]))),
+                    lambda cell: (
+                        isinstance(cell, str)
+                        and (cell.startswith(tuple(comment_chars[colname])))
+                    ),
                 )
             )
 
@@ -481,6 +483,8 @@ def _custom_melt(dataframe: DataFrame, data_columns: list[str]) -> DataFrame:
     # Append the data column name to the Attribute column values
     if "attribute" not in df.columns:
         df["attribute"] = pd.NA
+    if "attribute" in df.columns and df["attribute"].dtype != object:
+        df["attribute"] = df["attribute"].astype(object)
     i = df["attribute"].notna()
     df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
     i = df["attribute"].isna()
@@ -1920,15 +1924,17 @@ def harmonise_tradelinks(
             i = df["process"].isna()
             if any(i):
                 df.loc[i, ["process"]] = df[i].apply(
-                    lambda row: "T"
-                    + "_".join(
-                        [
-                            row["tradelink"].upper(),
-                            row["comm"],
-                            row["reg1"],
-                            row["reg2"],
-                            "01",
-                        ]
+                    lambda row: (
+                        "T"
+                        + "_".join(
+                            [
+                                row["tradelink"].upper(),
+                                row["comm"],
+                                row["reg1"],
+                                row["reg2"],
+                                "01",
+                            ]
+                        )
                     ),
                     axis=1,
                 )
@@ -2005,12 +2011,14 @@ def process_transform_table_variants(
     def has_no_wildcards(list):
         return all(
             list.apply(
-                lambda x: x is not None
-                and x[0] != "-"
-                and "*" not in x
-                and "," not in x
-                and "?" not in x
-                and "_" not in x
+                lambda x: (
+                    x is not None
+                    and x[0] != "-"
+                    and "*" not in x
+                    and "," not in x
+                    and "?" not in x
+                    and "_" not in x
+                )
             )
         )
 
