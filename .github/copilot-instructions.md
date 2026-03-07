@@ -50,10 +50,12 @@ ruff format xl2times tests         # format code
 pyright                            # type-check (config: pyrightconfig.json)
 ```
 
-Ruff config: `pyproject.toml` `[tool.ruff]` – target Python 3.11, line-length 88.  
-Selected rule groups: `E, W, F, UP, N, I, TID, NPY, PL, D`.  
-Ignored: `PLR`, `E501`, `D100-D105`, `D205`, `D401`.  
-Docstring convention: NumPy style.
+Ruff config (`pyproject.toml` `[tool.ruff]`):
+
+- Target: Python 3.11, line-length 88
+- Selected rule groups: `E, W, F, UP, N, I, TID, NPY, PL, D`
+- Ignored: `PLR`, `E501`, `D100-D105`, `D205`, `D401`
+- Docstring convention: NumPy style
 
 ## Project Layout
 
