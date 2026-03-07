@@ -1296,6 +1296,12 @@ def prepare_for_querying(
                                 colname,
                             ] = value
                 elif colname == "year":
+                    # pandas 3.0: StringDtype columns cannot hold integer values;
+                    # cast to object to allow mixed-type assignment.
+                    if not pd.api.types.is_numeric_dtype(
+                        df[colname]
+                    ) and not pd.api.types.is_object_dtype(df[colname]):
+                        df[colname] = df[colname].astype(object)
                     df.loc[df[colname].isna(), [colname]] = model.start_year
                 elif colname == "currency":
                     # pandas 3.0: float64 columns cannot hold string values
