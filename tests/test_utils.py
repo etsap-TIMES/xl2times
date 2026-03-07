@@ -45,7 +45,6 @@ class TestUtils:
                 ],
                 columns=["process", "value"],
                 index=correct_index1,
-                dtype=object,
             ),
             pd.Series(
                 [
@@ -75,7 +74,6 @@ class TestUtils:
                 ],
                 columns=["process", "value"],
                 index=correct_index2,
-                dtype=object,
             ),
             pd.Series(
                 ["act_bnd", "actbnd", "act_bnd", "actbnd", "act_bnd", "actbnd"],

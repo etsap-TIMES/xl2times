@@ -1433,11 +1433,13 @@ def _process_comm_groups_vectorised(
         return group
 
     comm_groups["DefaultVedaPCG"] = None
+    # pandas 3.0: groupby().apply() no longer includes group keys in the result;
+    # reset_index recovers "region" and "process" as regular columns.
     comm_groups_subset = comm_groups.groupby(
-        ["region", "process"], sort=False, as_index=False
+        ["region", "process"], sort=False
     ).apply(_set_default_veda_pcg)
     comm_groups_subset = comm_groups_subset.reset_index(
-        level=0, drop=True
+        level=[0, 1]
     ).sort_index()  # back to the original index and row order
     return comm_groups_subset
 
