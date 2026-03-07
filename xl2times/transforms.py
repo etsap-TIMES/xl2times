@@ -757,6 +757,8 @@ def generate_uc_properties(
             # Handle semicolon-separated values
             i_pairs = index & user_constraints["uc_attr"].str.contains(";")
             if any(i_pairs):
+                # pandas 3.0: cast to object to allow storing lists before explode
+                user_constraints["uc_attr"] = user_constraints["uc_attr"].astype(object)
                 user_constraints.loc[i_pairs, "uc_attr"] = user_constraints[
                     i_pairs
                 ].apply(
@@ -802,6 +804,8 @@ def generate_uc_properties(
         # Handle comma-separated regions
         index = user_constraints["region"].str.contains(",")
         if any(index):
+            # pandas 3.0: cast to object to allow storing lists before explode
+            user_constraints["region"] = user_constraints["region"].astype(object)
             user_constraints.loc[index, "region"] = user_constraints[index].apply(
                 lambda row: [
                     region
