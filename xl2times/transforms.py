@@ -480,6 +480,8 @@ def _harmonise_attributes(df: DataFrame, mapping: dict[str, set[str]]) -> DataFr
 def _custom_melt(dataframe: DataFrame, data_columns: list[str]) -> DataFrame:
     """Custom melt function that handles the case where data columns are not of the same type."""
     df, attribute_suffix = utils.explode(dataframe, data_columns)
+    # Cast to object dtype to ensure string concatenation works across pandas versions
+    attribute_suffix = attribute_suffix.astype(object)
     # Append the data column name to the Attribute column values
     if "attribute" not in df.columns:
         df["attribute"] = pd.NA
