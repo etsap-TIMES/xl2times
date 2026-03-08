@@ -383,8 +383,7 @@ def run_all_benchmarks(
             if e.code != 7:
                 raise
             logger.warning(
-                "Benchmarks on main branch failed. "
-                "Skipping regression comparison."
+                "Benchmarks on main branch failed. Skipping regression comparison."
             )
             mybranch.checkout()
             sys.exit(0)
