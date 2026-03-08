@@ -373,11 +373,21 @@ def run_all_benchmarks(
             profile=profile,
         )
 
-        if debug or seq:
-            results_main = [run_a_benchmark(b) for b in benchmarks]
-        else:
-            with ProcessPoolExecutor(max_workers) as executor:
-                results_main = list(executor.map(run_a_benchmark, benchmarks))
+        try:
+            if debug or seq:
+                results_main = [run_a_benchmark(b) for b in benchmarks]
+            else:
+                with ProcessPoolExecutor(max_workers) as executor:
+                    results_main = list(executor.map(run_a_benchmark, benchmarks))
+        except SystemExit as e:
+            if e.code != 7:
+                raise
+            logger.warning(
+                "Benchmarks on main branch failed. "
+                "Skipping regression comparison."
+            )
+            mybranch.checkout()
+            sys.exit(0)
 
     # Print table with combined results to make comparison easier
     trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s  # noqa
