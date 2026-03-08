@@ -59,17 +59,14 @@ def run_gams_gdxdiff(
         symlink(times_folder, path.join(out_folder, "source"), True)
 
     # Run GAMS
-    try:
-        res = subprocess.run(
-            ["gams", "runmodel"],
-            cwd=out_folder,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            check=False,
-        )
-    except FileNotFoundError:
-        return "Error: gams not found"
+    res = subprocess.run(
+        ["gams", "runmodel"],
+        cwd=out_folder,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
     if res.returncode != 0:
         logger.info(res.stdout)
         logger.info(res.stderr if res.stderr is not None else "")
@@ -94,17 +91,14 @@ def run_gams_gdxdiff(
     # Create link to TIMES source
     if not path.exists(path.join(dd_folder, "source")):
         symlink(times_folder, path.join(dd_folder, "source"), True)
-    try:
-        res = subprocess.run(
-            ["gams", "runmodel"],
-            cwd=dd_folder,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            check=False,
-        )
-    except FileNotFoundError:
-        return "Error: gams not found"
+    res = subprocess.run(
+        ["gams", "runmodel"],
+        cwd=dd_folder,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
     if res.returncode != 0:
         logger.info(res.stdout)
         logger.info(res.stderr if res.stderr is not None else "")
@@ -373,20 +367,11 @@ def run_all_benchmarks(
             profile=profile,
         )
 
-        try:
-            if debug or seq:
-                results_main = [run_a_benchmark(b) for b in benchmarks]
-            else:
-                with ProcessPoolExecutor(max_workers) as executor:
-                    results_main = list(executor.map(run_a_benchmark, benchmarks))
-        except SystemExit as e:
-            if e.code != 7:
-                raise
-            logger.warning(
-                "Benchmarks on main branch failed. Skipping regression comparison."
-            )
-            mybranch.checkout()
-            sys.exit(0)
+        if debug or seq:
+            results_main = [run_a_benchmark(b) for b in benchmarks]
+        else:
+            with ProcessPoolExecutor(max_workers) as executor:
+                results_main = list(executor.map(run_a_benchmark, benchmarks))
 
     # Print table with combined results to make comparison easier
     trunc = lambda s: s[:10] + "\u2026" if len(s) > 10 else s  # noqa

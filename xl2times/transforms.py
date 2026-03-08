@@ -105,10 +105,8 @@ def _remove_df_comment_rows(
             comment_rows.update(
                 locate(
                     df[colname],
-                    lambda cell: (
-                        isinstance(cell, str)
-                        and (cell.startswith(tuple(comment_chars[colname])))
-                    ),
+                    lambda cell: isinstance(cell, str)
+                    and (cell.startswith(tuple(comment_chars[colname]))),
                 )
             )
 
@@ -480,13 +478,9 @@ def _harmonise_attributes(df: DataFrame, mapping: dict[str, set[str]]) -> DataFr
 def _custom_melt(dataframe: DataFrame, data_columns: list[str]) -> DataFrame:
     """Custom melt function that handles the case where data columns are not of the same type."""
     df, attribute_suffix = utils.explode(dataframe, data_columns)
-    # Cast to object dtype to ensure string concatenation works across pandas versions
-    attribute_suffix = attribute_suffix.astype(object)
     # Append the data column name to the Attribute column values
     if "attribute" not in df.columns:
         df["attribute"] = pd.NA
-    if "attribute" in df.columns and df["attribute"].dtype != object:
-        df["attribute"] = df["attribute"].astype(object)
     i = df["attribute"].notna()
     df.loc[i, "attribute"] = df.loc[i, "attribute"] + "~" + attribute_suffix[i]
     i = df["attribute"].isna()
@@ -763,8 +757,6 @@ def generate_uc_properties(
             # Handle semicolon-separated values
             i_pairs = index & user_constraints["uc_attr"].str.contains(";")
             if any(i_pairs):
-                # pandas 3.0: cast to object to allow storing lists before explode
-                user_constraints["uc_attr"] = user_constraints["uc_attr"].astype(object)
                 user_constraints.loc[i_pairs, "uc_attr"] = user_constraints[
                     i_pairs
                 ].apply(
@@ -810,8 +802,6 @@ def generate_uc_properties(
         # Handle comma-separated regions
         index = user_constraints["region"].str.contains(",")
         if any(index):
-            # pandas 3.0: cast to object to allow storing lists before explode
-            user_constraints["region"] = user_constraints["region"].astype(object)
             user_constraints.loc[index, "region"] = user_constraints[index].apply(
                 lambda row: [
                     region
@@ -1283,10 +1273,6 @@ def prepare_for_querying(
                     isna = df[colname].isna()
                     if any(isna):
                         key = mapping_to_defaults[colname]
-                        # pandas 3.0: float64 columns cannot hold string values;
-                        # cast to object to allow mixed-type assignment.
-                        if pd.api.types.is_float_dtype(df[colname]):
-                            df[colname] = df[colname].astype(object)
                         for value in config.veda_attr_defaults[key].keys():
                             df.loc[
                                 isna
@@ -1296,17 +1282,8 @@ def prepare_for_querying(
                                 colname,
                             ] = value
                 elif colname == "year":
-                    # pandas 3.0: StringDtype columns cannot hold integer values;
-                    # cast to object to allow mixed-type assignment.
-                    if not pd.api.types.is_numeric_dtype(
-                        df[colname]
-                    ) and not pd.api.types.is_object_dtype(df[colname]):
-                        df[colname] = df[colname].astype(object)
                     df.loc[df[colname].isna(), [colname]] = model.start_year
                 elif colname == "currency":
-                    # pandas 3.0: float64 columns cannot hold string values
-                    if pd.api.types.is_float_dtype(df[colname]):
-                        df[colname] = df[colname].astype(object)
                     df.loc[df[colname].isna(), [colname]] = currency
 
         # Do some additional processing for the tables
@@ -1456,13 +1433,11 @@ def _process_comm_groups_vectorised(
         return group
 
     comm_groups["DefaultVedaPCG"] = None
-    # pandas 3.0: groupby().apply() no longer includes group keys in the result;
-    # reset_index recovers "region" and "process" as regular columns.
-    comm_groups_subset = comm_groups.groupby(["region", "process"], sort=False).apply(
-        _set_default_veda_pcg
-    )
+    comm_groups_subset = comm_groups.groupby(
+        ["region", "process"], sort=False, as_index=False
+    ).apply(_set_default_veda_pcg)
     comm_groups_subset = comm_groups_subset.reset_index(
-        level=[0, 1]
+        level=0, drop=True
     ).sort_index()  # back to the original index and row order
     return comm_groups_subset
 
@@ -1932,17 +1907,15 @@ def harmonise_tradelinks(
             i = df["process"].isna()
             if any(i):
                 df.loc[i, ["process"]] = df[i].apply(
-                    lambda row: (
-                        "T"
-                        + "_".join(
-                            [
-                                row["tradelink"].upper(),
-                                row["comm"],
-                                row["reg1"],
-                                row["reg2"],
-                                "01",
-                            ]
-                        )
+                    lambda row: "T"
+                    + "_".join(
+                        [
+                            row["tradelink"].upper(),
+                            row["comm"],
+                            row["reg1"],
+                            row["reg2"],
+                            "01",
+                        ]
                     ),
                     axis=1,
                 )
@@ -2019,14 +1992,12 @@ def process_transform_table_variants(
     def has_no_wildcards(list):
         return all(
             list.apply(
-                lambda x: (
-                    x is not None
-                    and x[0] != "-"
-                    and "*" not in x
-                    and "," not in x
-                    and "?" not in x
-                    and "_" not in x
-                )
+                lambda x: x is not None
+                and x[0] != "-"
+                and "*" not in x
+                and "," not in x
+                and "?" not in x
+                and "_" not in x
             )
         )
 
