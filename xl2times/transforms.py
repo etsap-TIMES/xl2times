@@ -2139,7 +2139,8 @@ def process_transform_tables(
             # Do not explode region column for TFM_UPD to avaid performance issues later on
             if tag != Tag.tfm_upd:
                 df = df.explode(["region"])
-
+            # Remove any rows with missing values in the "value" column:
+            df = df.dropna(subset=["value"], axis=0, ignore_index=True)
             # Remove unknown columns and add missing known columns:
             unknown_columns = [
                 col_name
