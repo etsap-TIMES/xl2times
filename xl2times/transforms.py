@@ -2136,7 +2136,7 @@ def process_transform_tables(
             df["region"] = df["region"].map(
                 lambda x: regions_upper if x == "allregions" else x.upper()
             )
-            # Do not explode region column for TFM_UPD to avaid performance issues later on
+            # Do not explode region column for TFM_UPD to avoid performance issues later on
             if tag != Tag.tfm_upd:
                 df = df.explode(["region"])
             # Remove any rows with missing values in the "value" column:
