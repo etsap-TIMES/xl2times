@@ -2071,7 +2071,6 @@ def process_transform_tables(
 ) -> list[EmbeddedXlTable]:
     """Process transform tables."""
     regions = model.internal_regions
-    regions_upper = [r.upper() for r in regions]
     # TODO: Add other tfm tags?
     tfm_tags = [
         Tag.tfm_ava,
@@ -2131,16 +2130,20 @@ def process_transform_tables(
                     ignore_index=False,
                 )
                 df = df.sort_index().reset_index(drop=True)  # retain original row order
-
-            # This expands "allregions" into one row for each region:
-            df["region"] = df["region"].map(
-                lambda x: regions_upper if x == "allregions" else x.upper()
-            )
-            # Do not explode region column for TFM_UPD to avoid performance issues later on
-            if tag != Tag.tfm_upd:
-                df = df.explode(["region"])
             # Remove any rows with missing values in the "value" column:
             df = df.dropna(subset=["value"], axis=0, ignore_index=True)
+            # Keep allregions as is in TFM_UPD to avoid performance issues later on
+            if tag != Tag.tfm_upd:
+                df["region"] = df["region"].map(
+                    lambda x: regions if x == "allregions" else x
+                )
+            else:
+                # This avoids generating a condition for region in query
+                df.loc[df["region"] == "allregions", "region"] = pd.NA
+            # This expands any set of regions in the region column into one row for each region:
+            df = df.explode(["region"])
+            # Convert region names to uppercase
+            df["region"] = df["region"].str.upper()
             # Remove unknown columns and add missing known columns:
             unknown_columns = [
                 col_name
