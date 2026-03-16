@@ -6,7 +6,7 @@
 
 - **Language:** Python 3.11+
 - **Type:** CLI application / data-processing library
-- **Key dependencies:** `pandas >= 2.1`, `openpyxl >= 3.1.3`, `loguru`, `tqdm`, `more-itertools`, `pyarrow`, `GitPython`
+- **Key dependencies:** `pandas >= 2.1, < 3.0`, `openpyxl >= 3.1.3`, `loguru`, `tqdm`, `more-itertools`, `pyarrow`, `GitPython`
 - **Build system:** `setuptools`; task automation via `poethepoet` (`poe`)
 - **Linter/formatter:** `ruff` (v0.3.2) + `pyright` (v1.1.304)
 
