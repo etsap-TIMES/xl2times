@@ -2133,7 +2133,7 @@ def process_transform_tables(
                 df = df.sort_index().reset_index(drop=True)  # retain original row order
             # Remove any rows with missing values in the "value" column:
             df = df.dropna(subset=["value"], axis=0, ignore_index=True)
-            # Keep allregions as is in TFM_UPD to avoid performance issues later on
+            # Substitute allregions with the regions set, except if in TFM_UPD table
             if tag != Tag.tfm_upd:
                 df["region"] = df["region"].map(
                     lambda x: regions if x == "allregions" else x
