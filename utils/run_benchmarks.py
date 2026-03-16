@@ -59,17 +59,14 @@ def run_gams_gdxdiff(
         symlink(times_folder, path.join(out_folder, "source"), True)
 
     # Run GAMS
-    try:
-        res = subprocess.run(
-            ["gams", "runmodel"],
-            cwd=out_folder,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            check=False,
-        )
-    except FileNotFoundError:
-        return "Error: gams not found"
+    res = subprocess.run(
+        ["gams", "runmodel"],
+        cwd=out_folder,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
     if res.returncode != 0:
         logger.info(res.stdout)
         logger.info(res.stderr if res.stderr is not None else "")
