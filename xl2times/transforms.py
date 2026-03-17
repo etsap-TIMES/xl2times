@@ -2785,6 +2785,43 @@ def _process_query_chunk(
     return [_process_query(q, table, tag) for q in queries.iterrows()]
 
 
+def _generate_new_tables(
+    table: DataFrame, updates: DataFrame, tag: Tag
+) -> list[DataFrame]:
+    """Generate new tables based on the given updates in TFM_UPD and TFM_MIG."""
+    if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
+        logger.warning(f"Unexpected tag {tag.value} in _generate_new_tables.")
+        return []
+    # Heuristic for deciding when to process in parallel
+    if len(updates) > 100 and cpu_count() > 3:
+        # Process queries in parallel using ProcessPoolExecutor
+        n_workers = cpu_count() // 2
+
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+            actual_n_workers = executor._max_workers  # pyright: ignore
+            # Split queries into chunks based on worker count
+            chunk_size = max(1, len(updates) // actual_n_workers)
+            chunks = [
+                updates.iloc[i : i + chunk_size]
+                for i in range(0, len(updates), chunk_size)
+            ]
+
+            # Submit all tasks and get futures
+            futures = [
+                executor.submit(_process_query_chunk, chunk, table, tag)
+                for chunk in chunks
+            ]
+
+            results = [f.result() for f in futures]
+            new_tables = [t for r in results for t in r if t is not None]
+    else:
+        # Process sequentially
+        results = [_process_query(q, table, tag) for q in updates.iterrows()]
+        new_tables = [t for t in results if t is not None]
+
+    return new_tables
+
+
 def apply_transform_tables(
     config: Config,
     tables: dict[str, DataFrame],
@@ -2909,34 +2946,7 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_upd][index]
             table = tables[Tag.fi_t]
 
-            # Heuristic for deciding when to process in parallel
-            if len(updates) > 100:
-                # Process queries in parallel using ProcessPoolExecutor
-                n_workers = cpu_count() // 2
-
-                with ProcessPoolExecutor(max_workers=n_workers) as executor:
-                    actual_n_workers = executor._max_workers  # pyright: ignore
-                    # Split queries into chunks based on worker count
-                    chunk_size = max(1, len(updates) // actual_n_workers)
-                    chunks = [
-                        updates[i : i + chunk_size]
-                        for i in range(0, len(updates), chunk_size)
-                    ]
-
-                    # Submit all tasks and get futures
-                    futures = [
-                        executor.submit(_process_query_chunk, chunk, table, Tag.tfm_upd)
-                        for chunk in chunks
-                    ]
-
-                    results = [f.result() for f in futures]
-                    new_tables = [t for r in results for t in r if t is not None]
-            else:
-                # Process sequentially
-                results = [
-                    _process_query(q, table, Tag.tfm_upd) for q in updates.iterrows()
-                ]
-                new_tables = [t for t in results if t is not None]
+            new_tables = _generate_new_tables(table, updates, Tag.tfm_upd)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
@@ -2949,34 +2959,7 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
 
-            # Heuristic for deciding when to process in parallel
-            if len(updates) > 100:
-                # Process queries in parallel using ProcessPoolExecutor
-                n_workers = cpu_count() // 2
-
-                with ProcessPoolExecutor(max_workers=n_workers) as executor:
-                    actual_n_workers = executor._max_workers  # pyright: ignore
-                    # Split queries into chunks based on worker count
-                    chunk_size = max(1, len(updates) // actual_n_workers)
-                    chunks = [
-                        updates[i : i + chunk_size]
-                        for i in range(0, len(updates), chunk_size)
-                    ]
-
-                    # Submit all tasks and get futures
-                    futures = [
-                        executor.submit(_process_query_chunk, chunk, table, Tag.tfm_mig)
-                        for chunk in chunks
-                    ]
-
-                    results = [f.result() for f in futures]
-                    new_tables = [t for r in results for t in r if t is not None]
-            else:
-                # Process sequentially
-                results = [
-                    _process_query(q, table, Tag.tfm_mig) for q in updates.iterrows()
-                ]
-                new_tables = [t for t in results if t is not None]
+            new_tables = _generate_new_tables(table, updates, Tag.tfm_mig)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
