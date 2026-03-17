@@ -2755,7 +2755,11 @@ def _process_query(
                 new_rows.loc[:, str(c)[:-1]] = v
 
     # Evaluate 'value' column based on existing values
-    eval_and_update(new_rows, rows_to_update, str(row["value"]))
+    eval_and_update(
+        new_rows,
+        rows_to_update,
+        str(row["value"]) if tag == Tag.tfm_mig else row["value"],
+    )
     # In case more than one data module is present in the table, select the one with the highest index.
     # TODO: The below code is commented out because it needs to be more sophisticated.
     """
