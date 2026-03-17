@@ -2718,7 +2718,7 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
 def _process_query(
     idx_and_row: tuple[Any, pd.Series], table: DataFrame, tag: Tag
 ) -> DataFrame | None:
-    """Process a single TFM_MIG of TFM_UPD query."""
+    """Process a single TFM_MIG or TFM_UPD query."""
     # Check whether the tag is as expected and return None if not
     if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
         logger.warning(f"Unexpected tag {tag.value} in _process_query.")
