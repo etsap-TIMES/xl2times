@@ -2715,19 +2715,20 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
     return projected_demands.drop(columns="multiplier")
 
 
-def _process_upd_query(
-    idx_and_row: tuple[Any, pd.Series], table: DataFrame
+def _process_query(
+    idx_and_row: tuple[Any, pd.Series], table: DataFrame, tag: Tag
 ) -> DataFrame | None:
-    """Process a single TFM_UPD query."""
-    # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
-    # # evaluate the update formula, and add new rows to FI_T
-    # TODO perf: collect all updates and go through FI_T only once?
+    """Process a single TFM_MIG of TFM_UPD query."""
+    # Check whether the tag is as expected and return None if not
+    if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
+        logger.warning(f"Unexpected tag {tag.value} in _process_query.")
+        return None
+
     _, row = idx_and_row
     if row["module_type"] == "trans":
         source_module = row["module_name"]
     else:
         source_module = row.get("sourcescen")
-
     rows_to_update = query(
         table,
         row.get("process"),
@@ -2739,13 +2740,22 @@ def _process_upd_query(
         row.get("val_cond"),
         source_module,
     )
-
-    if not any(rows_to_update):
-        logger.info(f"A {Tag.tfm_upd.value} row generated no records.")
+    if rows_to_update.empty:
+        logger.warning(f"A {tag.value} row generated no records.")
         return None
 
-    new_rows = table.loc[rows_to_update]
-    eval_and_update(new_rows, rows_to_update, row["value"])
+    new_rows = table.loc[
+        rows_to_update
+    ].copy()  # Create a copy to avoid SettingWithCopyWarning
+
+    if tag == Tag.tfm_mig:
+        # Modify values in all '*2' columns
+        for c, v in row.items():
+            if str(c).endswith("2") and v is not None:
+                new_rows.loc[:, str(c)[:-1]] = v
+
+    # Evaluate 'value' column based on existing values
+    eval_and_update(new_rows, rows_to_update, str(row["value"]))
     # In case more than one data module is present in the table, select the one with the highest index.
     # TODO: The below code is commented out because it needs to be more sophisticated.
     """
@@ -2765,59 +2775,10 @@ def _process_upd_query(
     return new_rows
 
 
-def _process_mig_query(
-    idx_and_row: tuple[Any, pd.Series], table: DataFrame
-) -> DataFrame | None:
-    """Process a single TFM_MIG query."""
-    _, row = idx_and_row
-    if row["module_type"] == "trans":
-        source_module = row["module_name"]
-    else:
-        source_module = row.get("sourcescen")
-    rows_to_update = query(
-        table,
-        row.get("process"),
-        row.get("commodity"),
-        row["attribute"],
-        row.get("region"),
-        row.get("year"),
-        row.get("limtype"),
-        row.get("val_cond"),
-        source_module,
-    )
-    if not any(rows_to_update):
-        logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
-        return None
-
-    new_rows = table.loc[
-        rows_to_update
-    ].copy()  # Create a copy to avoid SettingWithCopyWarning
-
-    # Modify values in all '*2' columns
-    for c, v in row.items():
-        if str(c).endswith("2") and v is not None:
-            new_rows.loc[:, str(c)[:-1]] = v
-
-    # Evaluate 'value' column based on existing values
-    eval_and_update(new_rows, rows_to_update, str(row["value"]))
-
-    new_rows["source_filename"] = row["source_filename"]
-    new_rows["module_name"] = row["module_name"]
-    new_rows["module_type"] = row["module_type"]
-    new_rows["submodule"] = row["submodule"]
-    return new_rows
-
-
-def _process_upd_query_chunk(
-    queries: DataFrame, table: DataFrame
+def _process_query_chunk(
+    queries: DataFrame, table: DataFrame, tag: Tag
 ) -> list[DataFrame | None]:
-    return [_process_upd_query(q, table) for q in queries.iterrows()]
-
-
-def _process_mig_query_chunk(
-    queries: DataFrame, table: DataFrame
-) -> list[DataFrame | None]:
-    return [_process_mig_query(q, table) for q in queries.iterrows()]
+    return [_process_query(q, table, tag) for q in queries.iterrows()]
 
 
 def apply_transform_tables(
@@ -2960,7 +2921,7 @@ def apply_transform_tables(
 
                     # Submit all tasks and get futures
                     futures = [
-                        executor.submit(_process_upd_query_chunk, chunk, table)
+                        executor.submit(_process_query_chunk, chunk, table, Tag.tfm_upd)
                         for chunk in chunks
                     ]
 
@@ -2968,7 +2929,9 @@ def apply_transform_tables(
                     new_tables = [t for r in results for t in r if t is not None]
             else:
                 # Process sequentially
-                results = [_process_upd_query(q, table) for q in updates.iterrows()]
+                results = [
+                    _process_query(q, table, Tag.tfm_upd) for q in updates.iterrows()
+                ]
                 new_tables = [t for t in results if t is not None]
 
             if new_tables:
@@ -2998,7 +2961,7 @@ def apply_transform_tables(
 
                     # Submit all tasks and get futures
                     futures = [
-                        executor.submit(_process_mig_query_chunk, chunk, table)
+                        executor.submit(_process_query_chunk, chunk, table, Tag.tfm_mig)
                         for chunk in chunks
                     ]
 
@@ -3006,7 +2969,9 @@ def apply_transform_tables(
                     new_tables = [t for r in results for t in r if t is not None]
             else:
                 # Process sequentially
-                results = [_process_mig_query(q, table) for q in updates.iterrows()]
+                results = [
+                    _process_query(q, table, Tag.tfm_mig) for q in updates.iterrows()
+                ]
                 new_tables = [t for t in results if t is not None]
 
             if new_tables:
