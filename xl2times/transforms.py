@@ -2762,16 +2762,14 @@ def _process_query(
     )
     # In case more than one data module is present in the table, select the one with the highest index.
     # TODO: The below code is commented out because it needs to be more sophisticated.
-    """
-    if new_rows["module_name"].nunique() > 1:
-        indices = {
-            model.data_modules.index(x)
-            for x in new_rows["module_name"].unique()
-            }
-        new_rows = new_rows[
-            new_rows["module_name"] == model.data_modules[max(indices)]
-            ]
-        """
+    # if new_rows["module_name"].nunique() > 1:
+    #     indices = {
+    #         model.data_modules.index(x)
+    #         for x in new_rows["module_name"].unique()
+    #         }
+    #     new_rows = new_rows[
+    #         new_rows["module_name"] == model.data_modules[max(indices)]
+    #         ]
     new_rows["source_filename"] = row["source_filename"]
     new_rows["module_name"] = row["module_name"]
     new_rows["module_type"] = row["module_type"]
