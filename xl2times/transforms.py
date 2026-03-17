@@ -1856,14 +1856,13 @@ def harmonise_tradelinks(
             ).dropna(subset="value")
             # Remove rows for which the value is 0 (e.g. no trade)
             df = df[df["value"] != 0]
-            # Create a process column
-            df["process"] = pd.NA
-            # Process name may be specified in the value column
-            i = df["value"].map(lambda x: isinstance(x, str))
-            if any(i):
-                # Replace the values in the process column (i.e. NAs) with valid process names
-                df.loc[i, ["process"]] = df["value"][i]
+            # Create a process column (process name may be specified in the value column)
+            df["process"] = df["value"].astype(str)
             df = df.drop(columns=["value"])
+            # Replace numeric values in the process column with NA (i.e. not a valid process name)
+            i = df["process"].str.isnumeric()
+            if any(i):
+                df.loc[i, ["process"]] = pd.NA
             # Uppercase values in process and destination columns
             df["process"] = df["process"].str.upper()
             df["destination"] = df["destination"].str.upper()
