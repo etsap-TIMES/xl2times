@@ -2,6 +2,11 @@ import pandas as pd
 from pandas import DataFrame
 
 from xl2times import transforms, utils
+from xl2times.datatypes import (
+    Config,
+    EmbeddedXlTable,
+    TimesModel,
+)
 from xl2times.transforms import (
     _count_comm_group_vectorised,
     _match_wildcards,
@@ -17,6 +22,19 @@ pd.set_option("display.max_columns", 20)
 pd.set_option("display.width", 300)
 pd.set_option("display.max_colwidth", 75)
 pd.set_option("display.precision", 3)
+
+config = Config(
+    mapping_file="times_mapping.txt",
+    times_info_file="times-info.json",
+    times_sets_file="times-sets.json",
+    veda_tags_file="veda-tags.json",
+    veda_attr_defaults_file="veda-attr-defaults.json",
+    regions="",
+    include_dummy_imports=False,
+    case=None,
+)
+
+model = TimesModel()
 
 
 class TestTransforms:
@@ -105,6 +123,57 @@ class TestTransforms:
         assert comm_groups2 is not None and not comm_groups2.empty
         assert comm_groups2.shape == (comm_groups.shape[0], comm_groups.shape[1] + 1)
         assert comm_groups2.drop(columns=["DefaultVedaPCG"]).equals(comm_groups)
+
+    def test_harmonise_tradelinks(self):
+        """Tests that the harmonise_tradelinks transform runs without error."""
+        cols = ["COFFEE", "ECU", "EUR", "BRA"]
+        data = [
+            ["ECU", 0, 1, 0],
+            ["EUR", 0, 0, 0],
+            ["BRA", 1, 0, 0],
+        ]
+        tables = [
+            EmbeddedXlTable(
+                tag="~TRADELINKS",
+                uc_sets=dict(),
+                sheetname="Uni_trades",
+                range="",
+                filename="",
+                dataframe=DataFrame(data=data, columns=cols),
+            ),
+            EmbeddedXlTable(
+                tag="~TRADELINKS",
+                uc_sets=dict(),
+                sheetname="Bi_trades",
+                range="",
+                filename="",
+                dataframe=DataFrame(data=data, columns=cols),
+            ),
+            EmbeddedXlTable(
+                tag="~TRADELINKS",
+                uc_sets=dict(),
+                sheetname="Uni_trades",  # Change to "trades"
+                range="",
+                filename="",
+                dataframe=DataFrame(data=data, columns=cols),
+            ),
+        ]
+
+        expected = {
+            "Uni_trades": {"tag": "~TRADELINKS_DINS"},
+            "Bi_trades": {"tag": "~TRADELINKS_DINS"},
+            "trades": {"tag": "~TRADELINKS_DINS"},
+        }
+
+        transformed_tables = transforms.harmonise_tradelinks(
+            config=config, tables=tables, model=model
+        )
+        for table in transformed_tables:
+            test = table.sheetname
+            assert (
+                table.tag == expected[test]["tag"]
+            ), f"{test} should have expected tag"
+            # assert table.uc_sets == expected[table.sheetname]
 
 
 if __name__ == "__main__":
