@@ -128,9 +128,9 @@ class TestTransforms:
         """Tests that the harmonise_tradelinks transform runs without error."""
         cols = ["COFFEE", "ECU", "EUR", "BRA"]
         data = [
-            ["ECU", 0, 1, 0],
-            ["EUR", 0, 0, 0],
-            ["BRA", 1, 0, 0],
+            ["ECU", pd.NA, 1, 1],
+            ["EUR", "2", pd.NA, "COFFEE-TRD"],
+            ["BRA", 0, pd.NA, 0],
         ]
         tables = [
             EmbeddedXlTable(
@@ -152,7 +152,7 @@ class TestTransforms:
             EmbeddedXlTable(
                 tag="~TRADELINKS",
                 uc_sets=dict(),
-                sheetname="Uni_trades",  # Change to "trades"
+                sheetname="trades",
                 range="",
                 filename="",
                 dataframe=DataFrame(data=data, columns=cols),
@@ -160,9 +160,31 @@ class TestTransforms:
         ]
 
         expected = {
-            "Uni_trades": {"tag": "~TRADELINKS_DINS"},
-            "Bi_trades": {"tag": "~TRADELINKS_DINS"},
-            "trades": {"tag": "~TRADELINKS_DINS"},
+            "Uni_trades": {
+                "tag": "~TRADELINKS_DINS",
+                "processes": {
+                    "TU_COFFEE_ECU_EUR_01",
+                    "TU_COFFEE_ECU_BRA_01",
+                    "TU_COFFEE_EUR_ECU_01",
+                    "COFFEE-TRD",
+                },
+            },
+            "Bi_trades": {
+                "tag": "~TRADELINKS_DINS",
+                "processes": {
+                    "TB_COFFEE_ECU_EUR_01",
+                    "TB_COFFEE_ECU_BRA_01",
+                    "COFFEE-TRD",
+                },
+            },
+            "trades": {
+                "tag": "~TRADELINKS_DINS",
+                "processes": {
+                    "TU_COFFEE_ECU_EUR_01",
+                    "TB_COFFEE_ECU_BRA_01",
+                    "COFFEE-TRD",
+                },
+            },
         }
 
         transformed_tables = transforms.harmonise_tradelinks(
@@ -173,6 +195,9 @@ class TestTransforms:
             assert (
                 table.tag == expected[test]["tag"]
             ), f"{test} should have expected tag"
+            assert (
+                set(table.dataframe["process"]) == expected[test]["processes"]
+            ), f"{test} should have expected trade processes"
             # assert table.uc_sets == expected[table.sheetname]
 
 
