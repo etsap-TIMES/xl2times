@@ -198,7 +198,6 @@ class TestTransforms:
             assert (
                 set(table.dataframe["process"]) == expected[test]["processes"]
             ), f"{test} should have expected trade processes"
-            # assert table.uc_sets == expected[table.sheetname]
 
 
 if __name__ == "__main__":
