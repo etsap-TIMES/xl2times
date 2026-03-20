@@ -1868,7 +1868,7 @@ def harmonise_tradelinks(
             # Uppercase values in process and destination columns
             df["process"] = df["process"].str.upper()
             df["destination"] = df["destination"].str.upper()
-            df = df.drop_duplicates(keep="first").reset_index(drop=True)
+            df = df.drop_duplicates(keep="first", ignore_index=True)
 
             pairs = df[["origin", "destination"]]
             sorted_pairs = pd.Series(
