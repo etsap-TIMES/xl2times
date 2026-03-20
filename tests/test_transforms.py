@@ -128,7 +128,7 @@ class TestTransforms:
         """Tests that the harmonise_tradelinks transform runs without error."""
         cols = ["COFFEE", "ECU", "EUR", "BRA"]
         data = [
-            ["ECU", pd.NA, 1, 1],
+            ["ECU", pd.NA, 1, "1.0"],
             ["EUR", "2", pd.NA, "COFFEE-TRD"],
             ["BRA", 0, pd.NA, 0],
         ]
@@ -180,8 +180,8 @@ class TestTransforms:
             "trades": {
                 "tag": "~TRADELINKS_DINS",
                 "processes": {
-                    "TU_COFFEE_ECU_EUR_01",
-                    "TB_COFFEE_ECU_BRA_01",
+                    "TB_COFFEE_ECU_EUR_01",
+                    "TU_COFFEE_ECU_BRA_01",
                     "COFFEE-TRD",
                 },
             },

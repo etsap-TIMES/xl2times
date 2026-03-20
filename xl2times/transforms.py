@@ -1859,10 +1859,11 @@ def harmonise_tradelinks(
             # Create a process column
             df["process"] = pd.NA
             # Process name may be specified in the value column
-            i = df["value"].map(lambda x: isinstance(x, str))
+            # Any value that cannot be converted to numeric is assumed to be a process name
+            i = pd.to_numeric(df["value"], errors="coerce").isna()
             if any(i):
                 # Replace the values in the process column (i.e. NAs) with valid process names
-                df.loc[i, ["process"]] = df["value"][i]
+                df.loc[i, ["process"]] = df.loc[i, "value"]
             df = df.drop(columns=["value"])
             # Uppercase values in process and destination columns
             df["process"] = df["process"].str.upper()
@@ -1876,8 +1877,12 @@ def harmonise_tradelinks(
             else:
                 df["tradelink"] = 1
                 # Determine whether a trade link is bi- or unidirectional
+                df["regions"] = df.apply(
+                    lambda row: (tuple(sorted([row["origin"], row["destination"]]))),
+                    axis=1,
+                )
                 trd_type = (
-                    df.groupby(["regions", "process"])["tradelink"]
+                    df.groupby(by=["regions", "process"], dropna=False)["tradelink"]
                     .agg("count")
                     .reset_index()
                 )
