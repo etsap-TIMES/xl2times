@@ -1870,6 +1870,7 @@ def harmonise_tradelinks(
             df["destination"] = df["destination"].str.upper()
             df = df.drop_duplicates(keep="first")
 
+            pairs = df[["origin", "destination"]]
             if trd_direction == "uni":
                 df["tradelink"] = "u"
             elif trd_direction == "bi":
@@ -1877,8 +1878,8 @@ def harmonise_tradelinks(
             else:
                 df["tradelink"] = 1
                 # Determine whether a trade link is bi- or unidirectional
-                _pair = df[["origin", "destination"]]
-                df["regions"] = list(zip(_pair.min(axis=1), _pair.max(axis=1)))
+                # Sorted region pairs (i.e. independent of direction)
+                df["regions"] = list(zip(pairs.min(axis=1), pairs.max(axis=1)))
                 trd_type = (
                     df.groupby(by=["regions", "process"], dropna=False)["tradelink"]
                     .agg("count")
@@ -1887,16 +1888,16 @@ def harmonise_tradelinks(
                 trd_type = trd_type.replace({"tradelink": {1: "u", 2: "b"}})
                 df = df.drop(columns=["tradelink"])
                 df = df.merge(trd_type, how="inner", on=["regions", "process"])
+                pairs = df[["origin", "destination"]]
 
             # Add a column containing linked regions (directionless for bidirectional links)
             is_bi = df["tradelink"] == "b"
-            _pair = df[["origin", "destination"]]
-            _min_region = _pair.min(axis=1)
-            _max_region = _pair.max(axis=1)
+            min_region = pairs.min(axis=1)
+            max_region = pairs.max(axis=1)
             df["regions"] = list(
                 zip(
-                    _min_region.where(is_bi, df["origin"]),
-                    _max_region.where(is_bi, df["destination"]),
+                    min_region.where(is_bi, df["origin"]),
+                    max_region.where(is_bi, df["destination"]),
                 )
             )
 
