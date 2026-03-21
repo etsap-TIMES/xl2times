@@ -1,7 +1,7 @@
 import re
 import time
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from functools import reduce
 from itertools import groupby
@@ -2806,20 +2806,20 @@ def _generate_new_tables(
                 for i in range(0, len(updates), chunk_size)
             ]
 
-            # Submit all tasks and get futures
-            futures = [
-                executor.submit(_process_query_chunk, chunk, table, tag)
-                for chunk in chunks
-            ]
-            results = []
+            # Submit all tasks and tag each future with its chunk index
+            futures = {
+                executor.submit(_process_query_chunk, chunk, table, tag): i
+                for i, chunk in enumerate(chunks)
+            }
+            results = [None] * len(futures)
             for f in tqdm(
-                futures,
+                as_completed(futures),
                 total=len(futures),
                 desc=f"Applying transformations concurrently from {tag.value} in {data_module}",
             ):
-                results.append(f.result())
+                results[futures[f]] = f.result()
 
-            new_tables = [t for r in results for t in r if t is not None]
+            new_tables = [t for r in results if r is not None for t in r if t is not None]
     else:
         # Process sequentially
         results = []
