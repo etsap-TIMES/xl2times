@@ -2806,20 +2806,25 @@ def _generate_new_tables(
                 for i in range(0, len(updates), chunk_size)
             ]
 
-            # Submit all tasks and get futures
-            futures = [
-                executor.submit(_process_query_chunk, chunk, table, tag)
-                for chunk in chunks
-            ]
-            results = []
-            for f in tqdm(
-                as_completed(futures),
-                total=len(futures),
+            # Submit all tasks and tag each future with its chunk index
+            future_info = {
+                executor.submit(_process_query_chunk, chunk, table, tag): (
+                    i,
+                    len(chunk),
+                )
+                for i, chunk in enumerate(chunks)
+            }
+            results = [None] * len(future_info)
+            with tqdm(
+                total=len(updates),
                 desc=f"Applying transformations concurrently from {tag.value} in {data_module}",
-            ):
-                results.append(f.result())
+            ) as pbar:
+                for f in as_completed(future_info):
+                    idx, chunk_len = future_info[f]
+                    results[idx] = f.result()
+                    pbar.update(chunk_len)
 
-            new_tables = [t for r in results for t in r if t is not None]
+            new_tables = [t for r in results if r is not None for t in r if t is not None]
     else:
         # Process sequentially
         results = []
