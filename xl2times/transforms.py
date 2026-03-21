@@ -2130,8 +2130,10 @@ def process_transform_tables(
                     ignore_index=False,
                 )
                 df = df.sort_index().reset_index(drop=True)  # retain original row order
-            # Remove any rows with missing values in the "value" column:
-            df = df.dropna(subset=["value"], axis=0, ignore_index=True)
+            # Remove any rows with missing values in the "value" column, if present
+            # TODO: Should the tables without a "value" column be dropped?
+            if "value" in df.columns:
+                df = df.dropna(subset=["value"], axis=0, ignore_index=True)
             # Substitute allregions with the regions set, except if in TFM_UPD or TFM_MIG table
             if tag not in {Tag.tfm_upd, Tag.tfm_mig}:
                 df["region"] = df["region"].map(
