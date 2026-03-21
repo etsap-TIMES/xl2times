@@ -1293,7 +1293,7 @@ def prepare_for_querying(
                 df["year"] = pd.to_numeric(df["year"], errors="coerce")
             # Populate commodity and other_indexes based on defaults
             for col in ("commodity", "other_indexes", "cg"):
-                _populate_defaults(tag, df, col, config, "original_attr")
+                _populate_defaults(Tag(tag), df, col, config, "original_attr")
 
         tables[tag] = df
 
@@ -3008,20 +3008,15 @@ def explode_process_commodity_cols(
     We store wildcard matches for these columns as lists and explode them late here for performance
     reasons - to avoid row-wise processing that would otherwise need to iterate over very long tables.
     """
-    for tag in tables:
-        df = tables[tag]
-
+    for tag, dataframe in tables.items():
+        df = dataframe
         if "process" in df.columns:
             df = df.explode("process", ignore_index=True)
-
         if "commodity" in df.columns:
             df = df.explode("commodity", ignore_index=True)
-
         if "other_indexes" in df.columns:
             df = df.explode("other_indexes", ignore_index=True)
-
         tables[tag] = df
-
     return tables
 
 
