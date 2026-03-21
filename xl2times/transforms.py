@@ -1,7 +1,7 @@
 import re
 import time
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
 from itertools import groupby
@@ -2813,7 +2813,7 @@ def _generate_new_tables(
             ]
             results = []
             for f in tqdm(
-                as_completed(futures),
+                futures,
                 total=len(futures),
                 desc=f"Applying transformations concurrently from {tag.value} in {data_module}",
             ):
