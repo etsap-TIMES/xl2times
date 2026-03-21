@@ -330,13 +330,13 @@ def create_negative_regexp(pattern: str) -> str:
     '^Gas.*$|^Oil.*$'  # Matches anything starting with 'Gas' or 'Oil'
 
     >>> create_negative_regexp("Coal,Gas")
-    '^$'  # No negative patterns, matches nothing
+    '^$'  # No negative patterns, matches only the empty string
     """
     pattern = remove_whitespace(pattern)
     # Exclude positive patterns
     pattern = remove_positive_patterns(pattern)
     if len(pattern) == 0:
-        return r"a^"  # matches nothing
+        return r"^$"  # matches only the empty string
     return create_regexp(pattern)
 
 

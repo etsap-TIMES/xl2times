@@ -155,7 +155,7 @@ class TestUtils:
         # Pattern with spaces (should be stripped)
         assert utils.create_negative_regexp(" -Coal , -Gas ") == r"^Coal$|^Gas$"
 
-        # Empty pattern or no negatives matches nothing
+        # Empty pattern or no negatives matches only the empty string
         assert utils.create_negative_regexp("") == r"^$"
         assert utils.create_negative_regexp("Coal,Gas") == r"^$"
 
