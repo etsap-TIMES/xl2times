@@ -1,7 +1,7 @@
 import re
 import time
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from functools import reduce
 from itertools import groupby
@@ -2786,7 +2786,7 @@ def _process_query_chunk(
 
 
 def _generate_new_tables(
-    table: DataFrame, updates: DataFrame, tag: Tag
+    table: DataFrame, updates: DataFrame, tag: Tag, data_module: str
 ) -> list[DataFrame]:
     """Generate new tables based on the given updates in TFM_UPD and TFM_MIG."""
     if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
@@ -2811,12 +2811,24 @@ def _generate_new_tables(
                 executor.submit(_process_query_chunk, chunk, table, tag)
                 for chunk in chunks
             ]
+            results = []
+            for f in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc=f"Applying transformations concurrently from {tag.value} in {data_module}",
+            ):
+                results.append(f.result())
 
-            results = [f.result() for f in futures]
             new_tables = [t for r in results for t in r if t is not None]
     else:
         # Process sequentially
-        results = [_process_query(q, table, tag) for q in updates.iterrows()]
+        results = []
+        for q in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Applying transformations from {tag.value} in {data_module}",
+        ):
+            results.append(_process_query(q, table, tag))
         new_tables = [t for t in results if t is not None]
 
     return new_tables
@@ -2946,7 +2958,7 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_upd][index]
             table = tables[Tag.fi_t]
 
-            new_tables = _generate_new_tables(table, updates, Tag.tfm_upd)
+            new_tables = _generate_new_tables(table, updates, Tag.tfm_upd, data_module)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
@@ -2959,7 +2971,7 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
 
-            new_tables = _generate_new_tables(table, updates, Tag.tfm_mig)
+            new_tables = _generate_new_tables(table, updates, Tag.tfm_mig, data_module)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
