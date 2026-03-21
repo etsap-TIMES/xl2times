@@ -2792,6 +2792,7 @@ def _generate_new_tables(
     if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
         logger.warning(f"Unexpected tag {tag.value} in _generate_new_tables.")
         return []
+    results = []
     # Heuristic for deciding when to process in parallel
     if len(updates) > 100 and cpu_count() > 3:
         # Process queries in parallel using ProcessPoolExecutor
@@ -2814,7 +2815,7 @@ def _generate_new_tables(
                 )
                 for i, chunk in enumerate(chunks)
             }
-            results = [None] * len(future_info)
+            results += [None] * len(future_info)
             with tqdm(
                 total=len(updates),
                 desc=f"Applying transformations concurrently from {tag.value} in {data_module}",
@@ -2824,10 +2825,11 @@ def _generate_new_tables(
                     results[idx] = f.result()
                     pbar.update(chunk_len)
 
-            new_tables = [t for r in results if r is not None for t in r if t is not None]
+            new_tables = [
+                t for r in results if r is not None for t in r if t is not None
+            ]
     else:
         # Process sequentially
-        results = []
         for q in tqdm(
             updates.iterrows(),
             total=len(updates),
