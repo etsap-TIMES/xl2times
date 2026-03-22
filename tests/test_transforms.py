@@ -1,7 +1,13 @@
 import pandas as pd
+import pytest
 from pandas import DataFrame
 
 from xl2times import transforms, utils
+from xl2times.datatypes import (
+    Config,
+    EmbeddedXlTable,
+    TimesModel,
+)
 from xl2times.transforms import (
     _count_comm_group_vectorised,
     _match_wildcards,
@@ -17,6 +23,21 @@ pd.set_option("display.max_columns", 20)
 pd.set_option("display.width", 300)
 pd.set_option("display.max_colwidth", 75)
 pd.set_option("display.precision", 3)
+
+
+@pytest.fixture(scope="module")
+def create_config() -> Config:
+    """A fixture to create Config."""
+    return Config(
+        mapping_file="times_mapping.txt",
+        times_info_file="times-info.json",
+        times_sets_file="times-sets.json",
+        veda_tags_file="veda-tags.json",
+        veda_attr_defaults_file="veda-attr-defaults.json",
+        regions="",
+        include_dummy_imports=False,
+        case=None,
+    )
 
 
 class TestTransforms:
@@ -105,6 +126,82 @@ class TestTransforms:
         assert comm_groups2 is not None and not comm_groups2.empty
         assert comm_groups2.shape == (comm_groups.shape[0], comm_groups.shape[1] + 1)
         assert comm_groups2.drop(columns=["DefaultVedaPCG"]).equals(comm_groups)
+
+    def test_harmonise_tradelinks(self, create_config):
+        """Tests that harmonise_tradelinks runs successfully and produces tables with expected tags and trade processes."""
+        model = TimesModel()
+        cols = ["COFFEE", "ECU", "EUR", "BRA"]
+        data = [
+            ["ECU", pd.NA, 1, "1.0"],
+            ["EUR", "2", "0.0", "COFFEE-TRD"],
+            ["BRA", 0, pd.NA, 0],
+        ]
+        tables = [
+            EmbeddedXlTable(
+                tag="~TRADELINKS",
+                uc_sets=dict(),
+                sheetname="Uni_trades",
+                range="",
+                filename="",
+                dataframe=DataFrame(data=data, columns=cols),
+            ),
+            EmbeddedXlTable(
+                tag="~TRADELINKS",
+                uc_sets=dict(),
+                sheetname="Bi_trades",
+                range="",
+                filename="",
+                dataframe=DataFrame(data=data, columns=cols),
+            ),
+            EmbeddedXlTable(
+                tag="~TRADELINKS",
+                uc_sets=dict(),
+                sheetname="trades",
+                range="",
+                filename="",
+                dataframe=DataFrame(data=data, columns=cols),
+            ),
+        ]
+
+        expected = {
+            "Uni_trades": {
+                "tag": "~TRADELINKS_DINS",
+                "processes": {
+                    "TU_COFFEE_ECU_EUR_01",
+                    "TU_COFFEE_ECU_BRA_01",
+                    "TU_COFFEE_EUR_ECU_01",
+                    "COFFEE-TRD",
+                },
+            },
+            "Bi_trades": {
+                "tag": "~TRADELINKS_DINS",
+                "processes": {
+                    "TB_COFFEE_ECU_EUR_01",
+                    "TB_COFFEE_ECU_BRA_01",
+                    "COFFEE-TRD",
+                },
+            },
+            "trades": {
+                "tag": "~TRADELINKS_DINS",
+                "processes": {
+                    "TB_COFFEE_ECU_EUR_01",
+                    "TU_COFFEE_ECU_BRA_01",
+                    "COFFEE-TRD",
+                },
+            },
+        }
+
+        transformed_tables = transforms.harmonise_tradelinks(
+            config=create_config, tables=tables, model=model
+        )
+        for table in transformed_tables:
+            test = table.sheetname
+            assert (
+                table.tag == expected[test]["tag"]
+            ), f"{test} should have expected tag"
+            assert (
+                set(table.dataframe["process"]) == expected[test]["processes"]
+            ), f"{test} should have expected trade processes"
 
 
 if __name__ == "__main__":
