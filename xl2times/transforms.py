@@ -2789,9 +2789,7 @@ def _init_shared_fi_t(table: DataFrame) -> None:
     _shared_fi_t = table
 
 
-def _process_query_chunk(
-    queries: DataFrame, tag: Tag
-) -> list[DataFrame | None]:
+def _process_query_chunk(queries: DataFrame, tag: Tag) -> list[DataFrame | None]:
     assert (
         _shared_fi_t is not None
     ), "_shared_fi_t must be initialised before calling _process_query_chunk"
