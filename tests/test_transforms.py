@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 from pandas import DataFrame
 
 from xl2times import transforms, utils
@@ -23,18 +24,20 @@ pd.set_option("display.width", 300)
 pd.set_option("display.max_colwidth", 75)
 pd.set_option("display.precision", 3)
 
-config = Config(
-    mapping_file="times_mapping.txt",
-    times_info_file="times-info.json",
-    times_sets_file="times-sets.json",
-    veda_tags_file="veda-tags.json",
-    veda_attr_defaults_file="veda-attr-defaults.json",
-    regions="",
-    include_dummy_imports=False,
-    case=None,
-)
 
-model = TimesModel()
+@pytest.fixture(scope="module", autouse=True)
+def create_config() -> Config:
+    """A fixture to create Config."""
+    return Config(
+        mapping_file="times_mapping.txt",
+        times_info_file="times-info.json",
+        times_sets_file="times-sets.json",
+        veda_tags_file="veda-tags.json",
+        veda_attr_defaults_file="veda-attr-defaults.json",
+        regions="",
+        include_dummy_imports=False,
+        case=None,
+    )
 
 
 class TestTransforms:
@@ -124,8 +127,9 @@ class TestTransforms:
         assert comm_groups2.shape == (comm_groups.shape[0], comm_groups.shape[1] + 1)
         assert comm_groups2.drop(columns=["DefaultVedaPCG"]).equals(comm_groups)
 
-    def test_harmonise_tradelinks(self):
+    def test_harmonise_tradelinks(self, create_config):
         """Tests that harmonise_tradelinks runs successfully and produces tables with expected tags and trade processes."""
+        model = TimesModel()
         cols = ["COFFEE", "ECU", "EUR", "BRA"]
         data = [
             ["ECU", pd.NA, 1, "1.0"],
@@ -188,7 +192,7 @@ class TestTransforms:
         }
 
         transformed_tables = transforms.harmonise_tradelinks(
-            config=config, tables=tables, model=model
+            config=create_config, tables=tables, model=model
         )
         for table in transformed_tables:
             test = table.sheetname
