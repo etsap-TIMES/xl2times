@@ -125,7 +125,7 @@ class TestTransforms:
         assert comm_groups2.drop(columns=["DefaultVedaPCG"]).equals(comm_groups)
 
     def test_harmonise_tradelinks(self):
-        """Tests that the harmonise_tradelinks transform runs without error."""
+        """Tests that harmonise_tradelinks runs successfully and produces tables with expected tags and trade processes."""
         cols = ["COFFEE", "ECU", "EUR", "BRA"]
         data = [
             ["ECU", pd.NA, 1, "1.0"],
