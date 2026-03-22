@@ -2721,10 +2721,9 @@ def _process_query(
     idx_and_row: tuple[Any, pd.Series], table: DataFrame, tag: Tag
 ) -> DataFrame | None:
     """Process a single TFM_MIG or TFM_UPD query."""
-    # Check whether the tag is as expected and return None if not
+    # Check whether the tag is as expected. Raise an error if not
     if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
-        logger.warning(f"Unexpected tag {tag.value} in _process_query.")
-        return None
+        raise ValueError(f"Unexpected tag {tag.value} in _process_query.")
 
     _, row = idx_and_row
     if row["module_type"] == "trans":
@@ -2785,13 +2784,14 @@ def _process_query_chunk(
     return [_process_query(q, table, tag) for q in queries.iterrows()]
 
 
-def _generate_new_tables(
+def _generate_new_records(
     table: DataFrame, updates: DataFrame, tag: Tag, data_module: str
 ) -> list[DataFrame]:
-    """Generate new tables based on the given updates in TFM_UPD and TFM_MIG."""
+    """Generate new records based on the given updates in TFM_UPD and TFM_MIG."""
+    # Check whether the tag is as expected. Raise an error if not
     if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
-        logger.warning(f"Unexpected tag {tag.value} in _generate_new_tables.")
-        return []
+        raise ValueError(f"Unexpected tag {tag.value} in _generate_new_records.")
+
     results = []
     # Heuristic for deciding when to process in parallel
     if len(updates) > 100 and cpu_count() > 3:
@@ -2965,7 +2965,7 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_upd][index]
             table = tables[Tag.fi_t]
 
-            new_tables = _generate_new_tables(table, updates, Tag.tfm_upd, data_module)
+            new_tables = _generate_new_records(table, updates, Tag.tfm_upd, data_module)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
@@ -2978,7 +2978,7 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
 
-            new_tables = _generate_new_tables(table, updates, Tag.tfm_mig, data_module)
+            new_tables = _generate_new_records(table, updates, Tag.tfm_mig, data_module)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
