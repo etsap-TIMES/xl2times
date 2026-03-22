@@ -2742,7 +2742,7 @@ def _process_query(
         source_module,
     )
     if rows_to_update.empty:
-        logger.warning(f"A {tag.value} row generated no records.")
+        logger.info(f"A {tag.value} row generated no records.")
         return None
 
     new_rows = table.loc[
