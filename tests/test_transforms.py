@@ -25,7 +25,7 @@ pd.set_option("display.max_colwidth", 75)
 pd.set_option("display.precision", 3)
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def create_config() -> Config:
     """A fixture to create Config."""
     return Config(
@@ -133,7 +133,7 @@ class TestTransforms:
         cols = ["COFFEE", "ECU", "EUR", "BRA"]
         data = [
             ["ECU", pd.NA, 1, "1.0"],
-            ["EUR", "2", pd.NA, "COFFEE-TRD"],
+            ["EUR", "2", "0.0", "COFFEE-TRD"],
             ["BRA", 0, pd.NA, 0],
         ]
         tables = [

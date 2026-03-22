@@ -1855,7 +1855,7 @@ def harmonise_tradelinks(
                 df, id_vars=["origin"], value_vars=destinations, var_name="destination"
             ).dropna(subset="value")
             # Remove rows for which the value is 0 (e.g. no trade)
-            df = df[df["value"] != 0]
+            df = df[pd.to_numeric(df["value"], errors="coerce") != 0]
             # Create a process column
             df["process"] = pd.NA
             # Process name may be specified in the value column
