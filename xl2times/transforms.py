@@ -1,7 +1,7 @@
 import re
 import time
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from functools import reduce
 from itertools import groupby
@@ -1293,7 +1293,7 @@ def prepare_for_querying(
                 df["year"] = pd.to_numeric(df["year"], errors="coerce")
             # Populate commodity and other_indexes based on defaults
             for col in ("commodity", "other_indexes", "cg"):
-                _populate_defaults(tag, df, col, config, "original_attr")
+                _populate_defaults(Tag(tag), df, col, config, "original_attr")
 
         tables[tag] = df
 
@@ -1854,20 +1854,28 @@ def harmonise_tradelinks(
             df = pd.melt(
                 df, id_vars=["origin"], value_vars=destinations, var_name="destination"
             ).dropna(subset="value")
+            # Ensure that values stored in the value column are numeric if they can be converted to numeric
+            numeric_values = pd.to_numeric(df["value"], errors="coerce")
             # Remove rows for which the value is 0 (e.g. no trade)
-            df = df[df["value"] != 0]
-            # Create a process column (process name may be specified in the value column)
-            df["process"] = df["value"].astype(str)
-            df = df.drop(columns=["value"])
-            # Replace numeric values in the process column with NA (i.e. not a valid process name)
-            i = df["process"].str.isnumeric()
+            df = df[numeric_values != 0]
+            # Create a process column
+            df["process"] = pd.NA
+            # Process name may be specified in the value column
+            # Any value that cannot be converted to numeric is assumed to be a process name
+            i = numeric_values.loc[df.index].isna()
             if any(i):
-                df.loc[i, ["process"]] = pd.NA
+                # Replace the values in the process column (i.e. NAs) with valid process names
+                df.loc[i, ["process"]] = df.loc[i, "value"]
+            df = df.drop(columns=["value"])
             # Uppercase values in process and destination columns
             df["process"] = df["process"].str.upper()
             df["destination"] = df["destination"].str.upper()
-            df = df.drop_duplicates(keep="first")
+            df = df.drop_duplicates(keep="first", ignore_index=True)
 
+            pairs = df[["origin", "destination"]]
+            sorted_pairs = pd.Series(
+                list(zip(pairs.min(axis=1), pairs.max(axis=1))), index=df.index
+            )
             if trd_direction == "uni":
                 df["tradelink"] = "u"
             elif trd_direction == "bi":
@@ -1875,24 +1883,24 @@ def harmonise_tradelinks(
             else:
                 df["tradelink"] = 1
                 # Determine whether a trade link is bi- or unidirectional
+                # Sorted region pairs (i.e. independent of direction)
+                df["regions"] = sorted_pairs
                 trd_type = (
-                    df.groupby(["regions", "process"])["tradelink"]
+                    df.groupby(by=["regions", "process"], dropna=False)["tradelink"]
                     .agg("count")
                     .reset_index()
                 )
                 trd_type = trd_type.replace({"tradelink": {1: "u", 2: "b"}})
                 df = df.drop(columns=["tradelink"])
-                df = df.merge(trd_type, how="inner", on=["regions", "process"])
+                df = df.merge(trd_type, how="left", on=["regions", "process"])
 
             # Add a column containing linked regions (directionless for bidirectional links)
-            df["regions"] = df.apply(
-                lambda row: (
-                    tuple(sorted([row["origin"], row["destination"]]))
-                    if row["tradelink"] == "b"
-                    else tuple([row["origin"], row["destination"]])
-                ),
-                axis=1,
-            )
+            # Unidirectional links follow origin-destination pattern
+            df["regions"] = list(zip(df["origin"], df["destination"]))
+            # Some of the links are bidirectional
+            i_b = df["tradelink"] == "b"
+            # They are sorted
+            df.loc[i_b, "regions"] = sorted_pairs[i_b]
 
             # Drop tradelink (bidirectional) duplicates
             df = df.drop_duplicates(
@@ -2130,14 +2138,22 @@ def process_transform_tables(
                     ignore_index=False,
                 )
                 df = df.sort_index().reset_index(drop=True)  # retain original row order
-
-            # This expands "allregions" into one row for each region:
-            df["region"] = df["region"].map(
-                lambda x: regions if x == "allregions" else x
-            )
+            # Remove any rows with missing values in the "value" column, if present
+            # TODO: Should the tables without a "value" column be dropped?
+            if "value" in df.columns:
+                df = df.dropna(subset=["value"], axis=0, ignore_index=True)
+            # Substitute allregions with the regions set, except if in TFM_UPD or TFM_MIG table
+            if tag not in {Tag.tfm_upd, Tag.tfm_mig}:
+                df["region"] = df["region"].map(
+                    lambda x: regions if x == "allregions" else x
+                )
+            else:
+                # This avoids generating a condition for region in query
+                df.loc[df["region"] == "allregions", "region"] = pd.NA
+            # This expands any set of regions in the region column into one row for each region:
             df = df.explode(["region"])
+            # Convert region names to uppercase
             df["region"] = df["region"].str.upper()
-
             # Remove unknown columns and add missing known columns:
             unknown_columns = [
                 col_name
@@ -2709,10 +2725,14 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
     return projected_demands.drop(columns="multiplier")
 
 
-def _process_mig_query(
-    idx_and_row: tuple[Any, pd.Series], table: DataFrame
+def _process_query(
+    idx_and_row: tuple[Any, pd.Series], table: DataFrame, tag: Tag
 ) -> DataFrame | None:
-    """Process a single TFM_MIG query."""
+    """Process a single TFM_MIG or TFM_UPD query."""
+    # Check whether the tag is as expected. Raise an error if not
+    if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
+        raise ValueError(f"Unexpected tag {tag.value} in _process_query.")
+
     _, row = idx_and_row
     if row["module_type"] == "trans":
         source_module = row["module_name"]
@@ -2729,22 +2749,36 @@ def _process_mig_query(
         row.get("val_cond"),
         source_module,
     )
-    if not any(rows_to_update):
-        logger.warning(f"A {Tag.tfm_mig.value} row generated no records.")
+    if rows_to_update.empty:
+        logger.info(f"A {tag.value} row generated no records.")
         return None
 
     new_rows = table.loc[
         rows_to_update
     ].copy()  # Create a copy to avoid SettingWithCopyWarning
 
-    # Modify values in all '*2' columns
-    for c, v in row.items():
-        if str(c).endswith("2") and v is not None:
-            new_rows.loc[:, str(c)[:-1]] = v
+    if tag == Tag.tfm_mig:
+        # Modify values in all '*2' columns
+        for c, v in row.items():
+            if str(c).endswith("2") and v is not None:
+                new_rows.loc[:, str(c)[:-1]] = v
 
     # Evaluate 'value' column based on existing values
-    eval_and_update(new_rows, rows_to_update, str(row["value"]))
-
+    eval_and_update(
+        new_rows,
+        rows_to_update,
+        str(row["value"]) if tag == Tag.tfm_mig else row["value"],
+    )
+    # In case more than one data module is present in the table, select the one with the highest index.
+    # TODO: The below code is commented out because it needs to be more sophisticated.
+    # if new_rows["module_name"].nunique() > 1:
+    #     indices = {
+    #         model.data_modules.index(x)
+    #         for x in new_rows["module_name"].unique()
+    #         }
+    #     new_rows = new_rows[
+    #         new_rows["module_name"] == model.data_modules[max(indices)]
+    #         ]
     new_rows["source_filename"] = row["source_filename"]
     new_rows["module_name"] = row["module_name"]
     new_rows["module_type"] = row["module_type"]
@@ -2752,10 +2786,67 @@ def _process_mig_query(
     return new_rows
 
 
-def _process_mig_query_chunk(
-    queries: DataFrame, table: DataFrame
+def _process_query_chunk(
+    queries: DataFrame, table: DataFrame, tag: Tag
 ) -> list[DataFrame | None]:
-    return [_process_mig_query(q, table) for q in queries.iterrows()]
+    return [_process_query(q, table, tag) for q in queries.iterrows()]
+
+
+def _generate_new_records(
+    table: DataFrame, updates: DataFrame, tag: Tag, data_module: str
+) -> list[DataFrame]:
+    """Generate new records based on the given updates in TFM_UPD and TFM_MIG."""
+    # Check whether the tag is as expected. Raise an error if not
+    if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
+        raise ValueError(f"Unexpected tag {tag.value} in _generate_new_records.")
+
+    results = []
+    # Heuristic for deciding when to process in parallel
+    if len(updates) > 100 and cpu_count() > 3:
+        # Process queries in parallel using ProcessPoolExecutor
+        n_workers = cpu_count() // 2
+
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+            actual_n_workers = executor._max_workers  # pyright: ignore
+            # Split queries into chunks based on worker count
+            chunk_size = max(1, len(updates) // actual_n_workers)
+            chunks = [
+                updates.iloc[i : i + chunk_size]
+                for i in range(0, len(updates), chunk_size)
+            ]
+
+            # Submit all tasks and tag each future with its chunk index
+            future_info = {
+                executor.submit(_process_query_chunk, chunk, table, tag): (
+                    i,
+                    len(chunk),
+                )
+                for i, chunk in enumerate(chunks)
+            }
+            results += [None] * len(future_info)
+            with tqdm(
+                total=len(updates),
+                desc=f"Applying transformations concurrently from {tag.value} in {data_module}",
+            ) as pbar:
+                for f in as_completed(future_info):
+                    idx, chunk_len = future_info[f]
+                    results[idx] = f.result()
+                    pbar.update(chunk_len)
+
+            new_tables = [
+                t for r in results if r is not None for t in r if t is not None
+            ]
+    else:
+        # Process sequentially
+        for q in tqdm(
+            updates.iterrows(),
+            total=len(updates),
+            desc=f"Applying transformations from {tag.value} in {data_module}",
+        ):
+            results.append(_process_query(q, table, tag))
+        new_tables = [t for t in results if t is not None]
+
+    return new_tables
 
 
 def apply_transform_tables(
@@ -2881,56 +2972,8 @@ def apply_transform_tables(
             index = tables[Tag.tfm_upd]["module_name"] == data_module
             updates = tables[Tag.tfm_upd][index]
             table = tables[Tag.fi_t]
-            new_tables = []
 
-            # TFM_UPD: expand wildcards in each row, query FI_T to find matching rows,
-            # evaluate the update formula, and add new rows to FI_T
-            # TODO perf: collect all updates and go through FI_T only once?
-            for _, row in tqdm(
-                updates.iterrows(),
-                total=len(updates),
-                desc=f"Applying transformations from {Tag.tfm_upd.value} in {data_module}",
-            ):
-                if row["module_type"] == "trans":
-                    source_module = row["module_name"]
-                else:
-                    source_module = row.get("sourcescen")
-
-                rows_to_update = query(
-                    table,
-                    row.get("process"),
-                    row.get("commodity"),
-                    row["attribute"],
-                    row.get("region"),
-                    row.get("year"),
-                    row.get("limtype"),
-                    row.get("val_cond"),
-                    source_module,
-                )
-
-                if not any(rows_to_update):
-                    logger.info(f"A {Tag.tfm_upd.value} row generated no records.")
-                    continue
-
-                new_rows = table.loc[rows_to_update]
-                eval_and_update(new_rows, rows_to_update, row["value"])
-                # In case more than one data module is present in the table, select the one with the highest index.
-                # TODO: The below code is commented out because it needs to be more sophisticated.
-                """
-                if new_rows["module_name"].nunique() > 1:
-                    indices = {
-                        model.data_modules.index(x)
-                        for x in new_rows["module_name"].unique()
-                    }
-                    new_rows = new_rows[
-                        new_rows["module_name"] == model.data_modules[max(indices)]
-                    ]
-                """
-                new_rows["source_filename"] = row["source_filename"]
-                new_rows["module_name"] = row["module_name"]
-                new_rows["module_type"] = row["module_type"]
-                new_rows["submodule"] = row["submodule"]
-                new_tables.append(new_rows)
+            new_tables = _generate_new_records(table, updates, Tag.tfm_upd, data_module)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
@@ -2943,32 +2986,7 @@ def apply_transform_tables(
             updates = tables[Tag.tfm_mig][index]
             table = tables[Tag.fi_t]
 
-            # Heuristic for deciding when to process in parallel
-            if len(updates) > 100:
-                # Process queries in parallel using ProcessPoolExecutor
-                n_workers = cpu_count() // 2
-
-                with ProcessPoolExecutor(max_workers=n_workers) as executor:
-                    actual_n_workers = executor._max_workers  # pyright: ignore
-                    # Split queries into chunks based on worker count
-                    chunk_size = max(1, len(updates) // actual_n_workers)
-                    chunks = [
-                        updates[i : i + chunk_size]
-                        for i in range(0, len(updates), chunk_size)
-                    ]
-
-                    # Submit all tasks and get futures
-                    futures = [
-                        executor.submit(_process_mig_query_chunk, chunk, table)
-                        for chunk in chunks
-                    ]
-
-                    results = [f.result() for f in futures]
-                    new_tables = [t for r in results for t in r if t is not None]
-            else:
-                # Process sequentially
-                results = [_process_mig_query(q, table) for q in updates.iterrows()]
-                new_tables = [t for t in results if t is not None]
+            new_tables = _generate_new_records(table, updates, Tag.tfm_mig, data_module)
 
             if new_tables:
                 generated_records.append(pd.concat(new_tables, ignore_index=True))
@@ -3017,20 +3035,15 @@ def explode_process_commodity_cols(
     We store wildcard matches for these columns as lists and explode them late here for performance
     reasons - to avoid row-wise processing that would otherwise need to iterate over very long tables.
     """
-    for tag in tables:
-        df = tables[tag]
-
+    for tag, dataframe in tables.items():
+        df = dataframe
         if "process" in df.columns:
             df = df.explode("process", ignore_index=True)
-
         if "commodity" in df.columns:
             df = df.explode("commodity", ignore_index=True)
-
         if "other_indexes" in df.columns:
             df = df.explode("other_indexes", ignore_index=True)
-
         tables[tag] = df
-
     return tables
 
 

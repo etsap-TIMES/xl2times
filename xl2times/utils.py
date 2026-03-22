@@ -255,8 +255,7 @@ def create_regexp(pattern: str) -> str:
     - Wildcards: '*' (multiple chars), '?' or '_' (single char)
     - Literal underscores using '[_]'
     - Comma-separated values that match any of the items
-    - Negative patterns (starting with '-') are ignored in this function,
-      but can be handled separately with create_negative_regexp().
+    - Negative patterns (starting with '-') are ignored here; use create_negative_regexp() to handle them.
 
     Parameters
     ----------
