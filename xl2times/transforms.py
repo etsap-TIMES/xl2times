@@ -1854,20 +1854,28 @@ def harmonise_tradelinks(
             df = pd.melt(
                 df, id_vars=["origin"], value_vars=destinations, var_name="destination"
             ).dropna(subset="value")
+            # Ensure that values stored in the value column are numeric if they can be converted to numeric
+            numeric_values = pd.to_numeric(df["value"], errors="coerce")
             # Remove rows for which the value is 0 (e.g. no trade)
-            df = df[df["value"] != 0]
-            # Create a process column (process name may be specified in the value column)
-            df["process"] = df["value"].astype(str)
-            df = df.drop(columns=["value"])
-            # Replace numeric values in the process column with NA (i.e. not a valid process name)
-            i = df["process"].str.isnumeric()
+            df = df[numeric_values != 0]
+            # Create a process column
+            df["process"] = pd.NA
+            # Process name may be specified in the value column
+            # Any value that cannot be converted to numeric is assumed to be a process name
+            i = numeric_values.loc[df.index].isna()
             if any(i):
-                df.loc[i, ["process"]] = pd.NA
+                # Replace the values in the process column (i.e. NAs) with valid process names
+                df.loc[i, ["process"]] = df.loc[i, "value"]
+            df = df.drop(columns=["value"])
             # Uppercase values in process and destination columns
             df["process"] = df["process"].str.upper()
             df["destination"] = df["destination"].str.upper()
-            df = df.drop_duplicates(keep="first")
+            df = df.drop_duplicates(keep="first", ignore_index=True)
 
+            pairs = df[["origin", "destination"]]
+            sorted_pairs = pd.Series(
+                list(zip(pairs.min(axis=1), pairs.max(axis=1))), index=df.index
+            )
             if trd_direction == "uni":
                 df["tradelink"] = "u"
             elif trd_direction == "bi":
@@ -1875,24 +1883,24 @@ def harmonise_tradelinks(
             else:
                 df["tradelink"] = 1
                 # Determine whether a trade link is bi- or unidirectional
+                # Sorted region pairs (i.e. independent of direction)
+                df["regions"] = sorted_pairs
                 trd_type = (
-                    df.groupby(["regions", "process"])["tradelink"]
+                    df.groupby(by=["regions", "process"], dropna=False)["tradelink"]
                     .agg("count")
                     .reset_index()
                 )
                 trd_type = trd_type.replace({"tradelink": {1: "u", 2: "b"}})
                 df = df.drop(columns=["tradelink"])
-                df = df.merge(trd_type, how="inner", on=["regions", "process"])
+                df = df.merge(trd_type, how="left", on=["regions", "process"])
 
             # Add a column containing linked regions (directionless for bidirectional links)
-            df["regions"] = df.apply(
-                lambda row: (
-                    tuple(sorted([row["origin"], row["destination"]]))
-                    if row["tradelink"] == "b"
-                    else tuple([row["origin"], row["destination"]])
-                ),
-                axis=1,
-            )
+            # Unidirectional links follow origin-destination pattern
+            df["regions"] = list(zip(df["origin"], df["destination"]))
+            # Some of the links are bidirectional
+            i_b = df["tradelink"] == "b"
+            # They are sorted
+            df.loc[i_b, "regions"] = sorted_pairs[i_b]
 
             # Drop tradelink (bidirectional) duplicates
             df = df.drop_duplicates(
