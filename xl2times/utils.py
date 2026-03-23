@@ -402,8 +402,8 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
     return list(filtered)
 
 
-def get_veda_cases(path: str) -> dict[str, str]:
-    """Get cases defined in Veda if the case definition file existst in the
+def get_veda_cases(path: str) -> dict[str, list[str]]:
+    """Get cases defined in Veda if the case definition file exists in the
     model folder.
     """
     cases = {}
@@ -553,8 +553,8 @@ def compare_df_dict(
     context_rows
         number of rows to show around the first difference (Default value = 2)
     """
-    for key in df_before:
-        before = df_before[key]
+    for key, df in df_before.items():
+        before = df
         after = df_after[key]
 
         if sort_cols:
