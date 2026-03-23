@@ -2786,22 +2786,22 @@ def _process_query(
     return new_rows
 
 
-# Module-level shared table used by worker processes to avoid pickling the
-# full FI_T DataFrame on every task submission.
-_shared_fi_t: DataFrame | None = None
+# Module-level shared DataFrame used by worker processes for quering to avoid
+# pickling the full DataFrame on every task submission.
+_shared_df: DataFrame | None = None
 
 
-def _init_shared_fi_t(table: DataFrame) -> None:
-    """Initialise the shared read-only FI_T table in each worker process."""
-    global _shared_fi_t  # noqa: PLW0603
-    _shared_fi_t = table
+def _init_shared_df(table: DataFrame) -> None:
+    """Initialise the shared read-only DataFrame in each worker process."""
+    global _shared_df  # noqa: PLW0603
+    _shared_df = table
 
 
 def _process_query_chunk(queries: DataFrame, tag: Tag) -> list[DataFrame | None]:
     assert (
-        _shared_fi_t is not None
-    ), "_shared_fi_t must be initialised before calling _process_query_chunk"
-    return [_process_query(q, _shared_fi_t, tag) for q in queries.iterrows()]
+        _shared_df is not None
+    ), "_shared_df must be initialised before calling _process_query_chunk"
+    return [_process_query(q, _shared_df, tag) for q in queries.iterrows()]
 
 
 def _generate_new_records(
@@ -2816,13 +2816,13 @@ def _generate_new_records(
     # Heuristic for deciding when to process in parallel
     if len(updates) > 100 and cpu_count() > 3:
         # Process queries in parallel using ProcessPoolExecutor.
-        # FI_T (table) is placed in each worker's memory once via the
+        # table is placed in each worker's memory once via the
         # initializer, avoiding repeated pickling on every task submission.
         n_workers = min(max_workers, cpu_count() // 2)
 
         with ProcessPoolExecutor(
             max_workers=n_workers,
-            initializer=_init_shared_fi_t,
+            initializer=_init_shared_df,
             initargs=(table,),
         ) as executor:
             actual_n_workers = executor._max_workers  # pyright: ignore
