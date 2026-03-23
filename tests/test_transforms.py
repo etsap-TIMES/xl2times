@@ -191,9 +191,7 @@ class TestTransforms:
             },
         }
 
-        transformed_tables = transforms.harmonise_tradelinks(
-            config, tables=tables, model=model
-        )
+        transformed_tables = transforms.harmonise_tradelinks(config, tables, model)
         for table in transformed_tables:
             test = table.sheetname
             assert (
