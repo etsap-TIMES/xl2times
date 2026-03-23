@@ -2818,7 +2818,7 @@ def _generate_new_records(
         # Process queries in parallel using ProcessPoolExecutor.
         # table is placed in each worker's memory once via the
         # initializer, avoiding repeated pickling on every task submission.
-        n_workers = min(max_workers, cpu_count() // 2)
+        n_workers = cpu_count() // 2
 
         with ProcessPoolExecutor(
             max_workers=n_workers,
