@@ -437,7 +437,6 @@ def get_veda_cases(path: str) -> dict[str, list[str]]:
         df["Checked"] = df["Checked"].replace({"false": False, "true": True})
         # Raise an error if there are still non-boolean values
         if set(df["Checked"]).difference({True, False}):
-            print(set(df["Checked"]))
             raise ValueError("Encountered non-boolean values in 'Checked' column.")
         # Modules that are part of the corresponding cases
         i = df["Checked"]  # contains only True / False values

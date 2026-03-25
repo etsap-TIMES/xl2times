@@ -379,6 +379,7 @@ def produce_times_tables(
             keep_modules = model.cases[case]
             for i, m in enumerate(keep_modules):
                 module_order[m] = i
+    keep_modules_set = set(keep_modules)
     # Keep only those mappings for which parameters that are defined in the input
     par_tables = {"Attributes", "UCAttributes"}.intersection(input.keys())
     defined_pars = set()
@@ -401,11 +402,11 @@ def produce_times_tables(
 
     # TODO: Merge / align with apply_file_order
     def limit_to_case_modules(df):
-        df = df.copy()  # avoid SettingWithCopyWarning since we modify df in place
         """Filter out the data not included in the specified case. Apply module_order."""
+        df = df.copy()  # avoid SettingWithCopyWarning since we modify df in place
         if "module_name" in df.columns:
             # Remove rows with module_name not in the case
-            i = df["module_name"].isin(set(keep_modules)) | df["module_name"].isna()
+            i = df["module_name"].isin(keep_modules_set) | df["module_name"].isna()
             df = df[i]
             df["module_order"] = df["module_name"].map(module_order)
             df = df.sort_values(by="module_order", kind="stable")
