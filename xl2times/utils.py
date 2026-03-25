@@ -403,9 +403,7 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
 
 
 def get_veda_cases(path: str) -> dict[str, list[str]]:
-    """Get cases defined in Veda if the case definition file exists in the
-    model folder.
-    """
+    """Get cases defined in Veda if the case definition file exists in the model folder."""
     cases = {}
     file_path = Path(path) / "AppData" / "Groups.json"
 
@@ -435,14 +433,14 @@ def get_veda_cases(path: str) -> dict[str, list[str]]:
         # Ensure "Checked" column is boolean
         # Handle missing values if any
         df["Checked"] = df["Checked"].fillna(False)
-        # Handle boolean values stored as strings (i.e. "true"/"false") 
+        # Handle boolean values stored as strings (i.e. "true"/"false")
         df["Checked"] = df["Checked"].replace({"false": False, "true": True})
         # Raise an error if there are still non-boolean values
         if set(df["Checked"]).difference({True, False}):
             print(set(df["Checked"]))
             raise ValueError("Encountered non-boolean values in 'Checked' column.")
         # Modules that are part of the corresponding cases
-        i = df["Checked"] # contains only True / False values
+        i = df["Checked"]  # contains only True / False values
         keep_cols = ["Name", "Case"]
         # Create a list of modules for each case
         df = df.loc[i, keep_cols].groupby("Case").agg(list)
