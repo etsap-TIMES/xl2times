@@ -401,6 +401,7 @@ def produce_times_tables(
 
     # TODO: Merge / align with apply_file_order
     def limit_to_case_modules(df):
+        df = df.copy() # avoid SettingWithCopyWarning since we modify df in place
         """Filter out the data not included in the specified case. Apply module_order."""
         if "module_name" in df.columns:
             # Remove rows with module_name not in the case
@@ -448,7 +449,7 @@ def produce_times_tables(
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 # Keep only the required columns
-                cols_to_keep = set(mapping.times_cols).union({"source_filename"})
+                cols_to_keep = set(mapping.times_cols).union({"source_filename", "module_name"})
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
                 df = df.drop(columns=cols_to_drop)
                 # Apply file order
@@ -456,6 +457,8 @@ def produce_times_tables(
                 # Use case information to remove unused data modules
                 if filter_by_case:
                     df = limit_to_case_modules(df)
+                if "module_name" in df.columns:
+                    df = df.drop(columns=["module_name"])
                 # TODO: Apply TS_Filter
                 # Drop duplicates, keeping last
                 df = df.drop_duplicates(keep="last", ignore_index=True)

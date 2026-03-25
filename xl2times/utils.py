@@ -432,11 +432,20 @@ def get_veda_cases(path: str) -> dict[str, list[str]]:
         # Column type "RowOrder" is integer
         df["RowOrder"] = df["RowOrder"].astype(int)
         df = df.sort_values("RowOrder")
+        # Ensure "Checked" column is boolean
+        # Handle missing values if any
+        df["Checked"] = df["Checked"].fillna(False)
+        # Handle boolean values stored as strings (i.e. "true"/"false") 
+        df["Checked"] = df["Checked"].replace({"false": False, "true": True})
+        # Raise an error if there are still non-boolean values
+        if set(df["Checked"]).difference({True, False}):
+            print(set(df["Checked"]))
+            raise ValueError("Encountered non-boolean values in 'Checked' column.")
         # Modules that are part of the corresponding cases
-        i = df["Checked"] != "false"
+        i = df["Checked"] # contains only True / False values
         keep_cols = ["Name", "Case"]
         # Create a list of modules for each case
-        df = df[i][keep_cols].groupby("Case").agg(list)
+        df = df.loc[i, keep_cols].groupby("Case").agg(list)
         # Convert to a dictionary
         cases = df.to_dict(orient="dict")["Name"]
 
