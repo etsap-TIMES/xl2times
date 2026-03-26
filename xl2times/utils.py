@@ -374,6 +374,22 @@ def is_veda_based(files: list[str]) -> bool:
         return False
 
 
+def veda_based_model_folder(files: list[str]) -> str:
+    """Resolve the root of a veda based model using SysSettings file as a marker.
+    This function does not verify file extensions.
+    """
+    marker = "SysSettings.*"
+
+    matches = [file for file in files if _case_insensitive_match(file, marker)]
+
+    if len(matches) == 1:
+        return str(Path(matches[0]).parent)
+    elif len(matches) > 1:
+        raise ValueError(f"Only one {marker} was expected, but multiple were found.")
+    else:
+        raise ValueError(f"No {marker} found in files.")
+
+
 def filter_veda_filename_patterns(files: list[str]) -> list[str]:
     """Filter files by patterns recognised by Veda.
     This function does not verify file extensions.

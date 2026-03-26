@@ -107,6 +107,10 @@ def read_xl(
         logger.info(f"Loading {len(input_files)} files from {inputs[0]}")
     else:
         input_files = inputs
+        if utils.is_veda_based(input_files):
+            model.cases = utils.get_veda_cases(
+                utils.veda_based_model_folder(input_files)
+            )
 
     model.files = [Path(path).stem for path in input_files]
 
