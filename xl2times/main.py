@@ -429,6 +429,13 @@ def produce_times_tables(
         else:
             used_tables.add(mapping.xl_name)
             df = input[mapping.xl_name]
+            # Use case information to remove unused data modules
+            if filter_by_case:
+                if mapping.times_name == "UC_R_EACH":
+                    df.to_csv("example.csv", index=False)
+                df = limit_to_case_modules(df)
+                if "module_name" in df.columns:
+                    df = df.drop(columns=["module_name"])
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:

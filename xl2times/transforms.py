@@ -733,7 +733,8 @@ def generate_uc_properties(
             df = pd.merge(df, uc_attr_rows, on=["uc_n", "region"], how="left")
             # Remove UC_ATTR records from the original dataframe
             uc_table.dataframe = uc_df[~index].reset_index(drop=True)
-
+        # Include module name
+        df["module_name"] = DataModule.module_name(uc_table.filename)
         df_list.append(df)
     # Do further processing if df_list is not empty
     if df_list:
