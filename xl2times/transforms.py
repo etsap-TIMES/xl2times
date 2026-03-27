@@ -3180,7 +3180,10 @@ def convert_to_string(tables: dict[str, DataFrame]) -> dict[str, DataFrame]:
         return str(x)
 
     for key, value in tables.items():
-        tables[key] = value.map(convert)
+        df = value.copy()
+        cols = [c for c in df.columns if c != "module_name"]
+        df[cols] = df[cols].map(convert)
+        tables[key] = df
     return tables
 
 
