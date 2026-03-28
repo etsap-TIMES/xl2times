@@ -432,8 +432,6 @@ def produce_times_tables(
             # Use case information to remove unused data modules
             if filter_by_case:
                 df = limit_to_case_modules(df)
-                if "module_name" in df.columns:
-                    df = df.drop(columns=["module_name"])
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
@@ -465,12 +463,8 @@ def produce_times_tables(
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
                 df = df.drop(columns=cols_to_drop)
                 # Apply file order
-                df = apply_file_order(df)
-                # Use case information to remove unused data modules
-                if filter_by_case:
-                    df = limit_to_case_modules(df)
-                if "module_name" in df.columns:
-                    df = df.drop(columns=["module_name"])
+                if not filter_by_case:
+                    df = apply_file_order(df)
                 # TODO: Apply TS_Filter
                 # Drop duplicates, keeping last
                 df = df.drop_duplicates(keep="last", ignore_index=True)
