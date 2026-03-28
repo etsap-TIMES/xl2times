@@ -30,11 +30,7 @@ benchmarks:
     include_dummy_imports: true
   - name: DemoS_004
     input_folder: DemoS_004
-    inputs:
-      - "BY_Trans.xlsx"
-      - "Sets-DemoModels.xlsx"
-      - "SysSettings.xlsx"
-      - "VT_REG_PRI_V04.xlsx"
+    case: DemoS_004
     dd_folder: DemoS_004
     dd_files:
       - "base"
@@ -42,12 +38,7 @@ benchmarks:
     include_dummy_imports: true
   - name: DemoS_004a
     input_folder: DemoS_004
-    inputs:
-      - "BY_Trans.xlsx"
-      - "Sets-DemoModels.xlsx"
-      - "SysSettings.xlsx"
-      - "SuppXLS/Scen_Peak_RSV.xlsx"
-      - "VT_REG_PRI_V04.xlsx"
+    case: DemoS_004a
     dd_folder: DemoS_004a
     dd_files:
       - "base"
@@ -70,12 +61,7 @@ benchmarks:
     include_dummy_imports: true
   - name: DemoS_004b
     input_folder: DemoS_004
-    inputs:
-      - "BY_Trans.xlsx"
-      - "Sets-DemoModels.xlsx"
-      - "SysSettings.xlsx"
-      - "SuppXLS/Scen_Peak_RSV-FLX.xlsx"
-      - "VT_REG_PRI_V04.xlsx"
+    case: DemoS_004b
     dd_folder: DemoS_004b
     dd_files:
       - "base"
