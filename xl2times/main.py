@@ -457,9 +457,9 @@ def produce_times_tables(
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 # Keep only the required columns
-                cols_to_keep = set(mapping.times_cols).union(
-                    {"source_filename", "module_name"}
-                )
+                cols_to_keep = set(mapping.times_cols)
+                if not filter_by_case:
+                    cols_to_keep = cols_to_keep.union({"source_filename"})
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
                 df = df.drop(columns=cols_to_drop)
                 # Apply file order
