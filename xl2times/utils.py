@@ -5,6 +5,7 @@ from __future__ import (
 # see https://loguru.readthedocs.io/en/stable/api/type_hints.html#module-autodoc_stub_file.loguru
 import functools
 import gzip
+import json
 import os
 import pickle
 import shutil
@@ -373,6 +374,22 @@ def is_veda_based(files: list[str]) -> bool:
         return False
 
 
+def veda_based_model_folder(files: list[str]) -> str:
+    """Resolve the root of a veda based model using SysSettings file as a marker.
+    This function does not verify file extensions.
+    """
+    marker = "SysSettings.*"
+
+    matches = [file for file in files if _case_insensitive_match(file, marker)]
+
+    if len(matches) == 1:
+        return str(Path(matches[0]).parent)
+    elif len(matches) > 1:
+        raise ValueError(f"Only one {marker} was expected, but multiple were found.")
+    else:
+        raise ValueError(f"No {marker} found in files.")
+
+
 def filter_veda_filename_patterns(files: list[str]) -> list[str]:
     """Filter files by patterns recognised by Veda.
     This function does not verify file extensions.
@@ -399,6 +416,53 @@ def filter_veda_filename_patterns(files: list[str]) -> list[str]:
     }
     # Return as a list
     return list(filtered)
+
+
+def get_veda_cases(path: str) -> dict[str, list[str]]:
+    """Get cases defined in Veda if the case definition file exists in the model folder."""
+    cases = {}
+    file_path = Path(path) / "AppData" / "Groups.json"
+
+    if not file_path.exists():
+        logger.info(f"{file_path} does not exist.")
+        return cases
+
+    # Read the json file
+    with open(file_path, encoding="utf-8") as file:
+        group_list = json.load(file)
+
+    def _make_df(group: dict) -> DataFrame:
+        """Create a DataFrame from a group dictionary."""
+        records = json.loads(group["Settings"])
+        df = pd.DataFrame.from_records(records)
+        df["Case"] = group["GroupName"].upper()
+        return df
+
+    scenario_groups = [_make_df(g) for g in group_list if g["GroupType"] == "Scenario"]
+    if scenario_groups:
+        df = pd.concat(scenario_groups, ignore_index=True)
+        # Uppercase the values in the "Name" column
+        df["Name"] = df["Name"].str.upper()
+        # Column type "RowOrder" is integer
+        df["RowOrder"] = df["RowOrder"].astype(int)
+        df = df.sort_values("RowOrder")
+        # Ensure "Checked" column is boolean
+        # Handle missing values if any
+        df["Checked"] = df["Checked"].fillna(False)
+        # Handle boolean values stored as strings (i.e. "true"/"false")
+        df["Checked"] = df["Checked"].replace({"false": False, "true": True})
+        # Raise an error if there are still non-boolean values
+        if set(df["Checked"]).difference({True, False}):
+            raise ValueError("Encountered non-boolean values in 'Checked' column.")
+        # Modules that are part of the corresponding cases
+        i = df["Checked"]  # contains only True / False values
+        keep_cols = ["Name", "Case"]
+        # Create a list of modules for each case
+        df = df.loc[i, keep_cols].groupby("Case").agg(list)
+        # Convert to a dictionary
+        cases = df.to_dict(orient="dict")["Name"]
+
+    return cases
 
 
 def set_log_level(level: int | None) -> str:
@@ -511,8 +575,8 @@ def compare_df_dict(
     context_rows
         number of rows to show around the first difference (Default value = 2)
     """
-    for key in df_before:
-        before = df_before[key]
+    for key, df in df_before.items():
+        before = df
         after = df_after[key]
 
         if sort_cols:

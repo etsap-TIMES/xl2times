@@ -103,9 +103,14 @@ def read_xl(
         ]
         if utils.is_veda_based(input_files):
             input_files = utils.filter_veda_filename_patterns(input_files)
+            model.cases = utils.get_veda_cases(inputs[0])
         logger.info(f"Loading {len(input_files)} files from {inputs[0]}")
     else:
         input_files = inputs
+        if utils.is_veda_based(input_files):
+            model.cases = utils.get_veda_cases(
+                utils.veda_based_model_folder(input_files)
+            )
 
     model.files = [Path(path).stem for path in input_files]
 
@@ -364,6 +369,21 @@ def produce_times_tables(
     file_order = defaultdict(lambda: -1)
     for i, f in enumerate(model.files):
         file_order[f] = i
+    filter_by_case = False
+    module_order = defaultdict(lambda: -1)
+    keep_modules = []
+    if config.produce_case:
+        case = config.produce_case.upper()
+        if case not in model.cases:
+            logger.info(
+                f"Case {case} not found in model cases. All data modules will be included."
+            )
+        else:
+            filter_by_case = True
+            keep_modules = model.cases[case]
+            for i, m in enumerate(keep_modules):
+                module_order[m] = i
+    keep_modules_set = set(keep_modules)
     # Keep only those mappings for which parameters that are defined in the input
     par_tables = {"Attributes", "UCAttributes"}.intersection(input.keys())
     defined_pars = set()
@@ -375,21 +395,27 @@ def produce_times_tables(
         if m.xl_name not in par_tables or m.filter_rows.get("attribute") in defined_pars
     ]
 
-    def keep_last_by_file_order(df):
-        """Drop duplicate rows, keeping the last dupicate row (including value) as per
-        input file order, and remove the `source_filename` column from the DataFrame.
-
-        Note: we do not remove duplicate values for the same query columns for parameters
-        here, because in the future we might want to re-use the processed tables and
-        select the rows coming from different scenarios/files after processing just once.
-        If so, at that point we can use the info in the `source_filename` column to do
-        this.
-        """
+    def apply_file_order(df):
+        """Apply input file order and remove the `source_filename` column from the DataFrame."""
         if "source_filename" in df.columns:
             df["file_order"] = df["source_filename"].map(file_order)
             df = df.sort_values(by="file_order", kind="stable")
             df = df.drop(columns=["source_filename", "file_order"])
-        df = df.drop_duplicates(keep="last")
+
+        return df.reset_index(drop=True)
+
+    # TODO: Merge / align with apply_file_order
+    def limit_to_case_modules(df):
+        """Filter out the data not included in the specified case. Apply module_order."""
+        df = df.copy()  # avoid SettingWithCopyWarning since we modify df in place
+        if "module_name" in df.columns:
+            # Remove rows with module_name not in the case
+            i = df["module_name"].isin(keep_modules_set) | df["module_name"].isna()
+            df = df[i]
+            df["module_order"] = df["module_name"].map(module_order)
+            df = df.sort_values(by="module_order", kind="stable")
+            df = df.drop(columns=["module_order"])
+
         return df.reset_index(drop=True)
 
     result = {}
@@ -403,6 +429,9 @@ def produce_times_tables(
         else:
             used_tables.add(mapping.xl_name)
             df = input[mapping.xl_name]
+            # Use case information to remove unused data modules
+            if filter_by_case:
+                df = limit_to_case_modules(df)
             # Filter rows according to filter_rows mapping:
             for filter_col, filter_val in mapping.filter_rows.items():
                 if filter_col not in df.columns:
@@ -428,11 +457,17 @@ def produce_times_tables(
                 for times_col, xl_col in mapping.col_map.items():
                     df[times_col] = df[xl_col]
                 # Keep only the required columns
-                cols_to_keep = set(mapping.times_cols).union({"source_filename"})
+                cols_to_keep = set(mapping.times_cols)
+                if not filter_by_case:
+                    cols_to_keep = cols_to_keep.union({"source_filename"})
                 cols_to_drop = [x for x in df.columns if x not in cols_to_keep]
                 df = df.drop(columns=cols_to_drop)
-                # Drop duplicates, keeping last seen rows as per file order
-                df = keep_last_by_file_order(df)
+                # Apply file order
+                if not filter_by_case:
+                    df = apply_file_order(df)
+                # TODO: Apply TS_Filter
+                # Drop duplicates, keeping last
+                df = df.drop_duplicates(keep="last", ignore_index=True)
                 # Drop rows with missing values
                 # TODO this is a hack. Use pd.StringDtype() so that notna() is sufficient
                 i = (
