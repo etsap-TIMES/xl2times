@@ -10,6 +10,21 @@ Multiple approaches to using spreadsheets for specifying TIMES models have been 
 At present, `xl2times` implements partial support of the Veda approach described in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf) and [Veda Documentation](https://veda-documentation.readthedocs.io/en/latest/pages/VedaTags.html).
 Support of other approaches may be added over time.
 
+## Synergies with `times-data`
+
+[`times-data`](https://github.com/MMobir/times-data) is a complementary open-source
+project that curates TIMES-related reference data. To reduce duplication between
+projects, we aim to align on shared data where possible:
+
+- Keep canonical TIMES reference tables (for example code lists, aliases, and
+  metadata dictionaries) in `times-data` when they are model-agnostic.
+- Continue keeping `xl2times`-specific parsing and transformation logic in this
+  repository.
+- Prefer reusable import/export mappings so updates to shared reference data can
+  be consumed by `xl2times` with minimal local maintenance.
+
+Contributions that improve this interoperability are welcome.
+
 ## Installation and Basic Usage
 
 You can install the latest published version of the tool from PyPI using pip (preferably in a virtual environment):
