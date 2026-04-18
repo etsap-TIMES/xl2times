@@ -10,55 +10,6 @@ Multiple approaches to using spreadsheets for specifying TIMES models have been 
 At present, `xl2times` implements partial support of the Veda approach described in the [TIMES Model Documentation PART IV](https://iea-etsap.org/docs/Documentation_for_the_TIMES_Model-Part-IV.pdf) and [Veda Documentation](https://veda-documentation.readthedocs.io/en/latest/pages/VedaTags.html).
 Support of other approaches may be added over time.
 
-## Synergies with `times-data`
-
-[`times-data`](https://github.com/MMobir/times-data) is an open-source Python
-library that provides a typed, validated, scriptable data layer for TIMES
-models. Where `xl2times` converts Veda-TIMES Excel workbooks **into** DD files,
-`times-data` can import those DD files into a queryable Python model, validate
-them against a full TIMES schema, and export them back to DD or to
-git-friendly YAML.
-
-The two projects sit at different stages of the same pipeline and share a
-significant amount of TIMES model-generator knowledge. This section maps
-concrete synergies and identifies data that could eventually live in a shared
-repository.
-
-### How `times-data` can be useful for `xl2times`
-
-| Area | Detail |
-|---|---|
-| **Output validation** | `times-data` can import DD files and validate every parameter against its typed schema (288 parameters with exact index signatures, valid ranges, and interpolation defaults). `xl2times` could use this as an independent check that its DD output is structurally correct. |
-| **Authoritative TIMES schema** | `times-data` maintains a code-generated registry of all TIMES parameters (`PARAMETER_REGISTRY`), sets (`SET_REGISTRY`, 178 entries), and indexes (`INDEX_REGISTRY`, 37 entries). `xl2times` encodes similar information in `config/times-info.json` (283 parameters) and `config/times-sets.json` (11 set enumerations). Consuming these definitions from a single upstream source would reduce the risk of the two projects diverging when the TIMES model generator is updated. |
-| **Round-trip testing** | Both projects benchmark against the official DemoS_001–DemoS_012 models. A cross-project integration test — `xl2times` produces DD, `times-data` imports it and verifies the objective value — would give end-to-end coverage that neither project achieves alone. |
-
-### How `xl2times` can be useful for `times-data`
-
-| Area | Detail |
-|---|---|
-| **Excel-to-programmatic bridge** | `times-data` does not read Veda-TIMES spreadsheets. Users who maintain models in Excel can run `xl2times` to produce DD files, then `times-data import-dd` to enter the programmatic workflow (scripting, version control, YAML export). `xl2times` is the entry point for that path. |
-| **Veda transformation coverage** | `xl2times` implements ~40 Veda input tags and 50+ transformation stages (TFM_INS, TFM_UPD, TFM_FILL, …). The resulting DD output is the most complete open-source representation of a Veda model and gives `times-data` a rich source of real-world test cases. |
-| **Attribute alias / default mapping** | `xl2times` maintains a detailed Veda-to-TIMES attribute mapping (`xl2times/config/veda-attr-defaults.json`, 136 attributes with alias names, default bound types, timeslice levels, and commodity-group handling). This mapping could inform `times-data`'s own validation rules for parameters that originate from Veda workflows. |
-
-### Data that could be maintained in a shared repository
-
-Both projects independently encode the same TIMES model-generator reference
-data. The table below lists the specific files in each project and what a
-shared source of truth could look like.
-
-| Reference data | `xl2times` file | `times-data` file | Notes |
-|---|---|---|---|
-| **Parameter definitions** (names, GAMS indexes, categories) | `config/times-info.json` (283 params) | `schema/parameters.py` (288 params) | Both describe every TIMES parameter and its index signature. Counts differ slightly; reconciling them would surface any gaps. |
-| **Set enumerations** (`COM_TYPE`, `PRC_GRP`, `TSLVL`, `LIM`, `UC_GRPTYPE`, …) | `config/times-sets.json` (11 sets) | `schema/sets.py` (178 sets) + `schema/indexes.py` (37 indexes) | `xl2times` stores only the set *values*; `times-data` also stores multi-dimensional set definitions and index metadata. A shared dataset could serve both. |
-| **Attribute defaults** (bound types, timeslice levels, interpolation) | `config/veda-attr-defaults.json` (136 attrs) | Partial — embedded in `ParameterDef.default_ie` | Veda alias names are `xl2times`-specific, but the underlying TIMES default values apply to any workflow. |
-| **DD output table schema** (table → GAMS indexes) | `config/times_mapping.txt` (41 tables) | Implicit in `compiler/dd_compiler.py` | Both need to agree on the DD file layout. |
-| **Benchmark models** (DemoS_001–DemoS_012) | `benchmarks.yml` + `setup-benchmarks.sh` | `tests/test_demos_solve.py` | Both clone and test against the same upstream DemoS repos. |
-
-A natural first step would be to extract the parameter definitions and set
-enumerations into a standalone, version-pinned data package (or a shared
-repository under the `etsap-TIMES` organisation) that both projects can
-consume as a dependency. Contributions that move in this direction are welcome.
-
 ## Installation and Basic Usage
 
 You can install the latest published version of the tool from PyPI using pip (preferably in a virtual environment):
