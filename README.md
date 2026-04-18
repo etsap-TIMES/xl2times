@@ -29,7 +29,7 @@ repository.
 | Area | Detail |
 |---|---|
 | **Output validation** | `times-data` can import DD files and validate every parameter against its typed schema (288 parameters with exact index signatures, valid ranges, and interpolation defaults). `xl2times` could use this as an independent check that its DD output is structurally correct. |
-| **Authoritative TIMES schema** | `times-data` maintains a comprehensive, code-generated registry of all TIMES parameters (`PARAMETER_REGISTRY`), sets (`SET_REGISTRY`, 178 entries), and indexes (`INDEX_REGISTRY`, 37 entries) — each with descriptions, aliases, and related items. `xl2times` currently encodes similar information in `xl2times/config/times-info.json` (283 parameters) and `xl2times/config/times-sets.json` (11 set enumerations). Consuming these definitions from a single upstream source would reduce the risk of the two projects diverging when the TIMES model generator is updated. |
+| **Authoritative TIMES schema** | `times-data` maintains a code-generated registry of all TIMES parameters (`PARAMETER_REGISTRY`), sets (`SET_REGISTRY`, 178 entries), and indexes (`INDEX_REGISTRY`, 37 entries). `xl2times` encodes similar information in `config/times-info.json` (283 parameters) and `config/times-sets.json` (11 set enumerations). Consuming these definitions from a single upstream source would reduce the risk of the two projects diverging when the TIMES model generator is updated. |
 | **Round-trip testing** | Both projects benchmark against the official DemoS_001–DemoS_012 models. A cross-project integration test — `xl2times` produces DD, `times-data` imports it and verifies the objective value — would give end-to-end coverage that neither project achieves alone. |
 
 ### How `xl2times` can be useful for `times-data`
@@ -37,7 +37,7 @@ repository.
 | Area | Detail |
 |---|---|
 | **Excel-to-programmatic bridge** | `times-data` does not read Veda-TIMES spreadsheets. Users who maintain models in Excel can run `xl2times` to produce DD files, then `times-data import-dd` to enter the programmatic workflow (scripting, version control, YAML export). `xl2times` is the entry point for that path. |
-| **Veda transformation coverage** | `xl2times` implements the full set of ~40 Veda input tags and 50+ transformation stages (TFM_INS, TFM_UPD, TFM_FILL, …). The resulting DD output is the most complete open-source representation of a Veda model, and it gives `times-data` a rich source of real-world test cases. |
+| **Veda transformation coverage** | `xl2times` implements ~40 Veda input tags and 50+ transformation stages (TFM_INS, TFM_UPD, TFM_FILL, …). The resulting DD output is the most complete open-source representation of a Veda model and gives `times-data` a rich source of real-world test cases. |
 | **Attribute alias / default mapping** | `xl2times` maintains a detailed Veda-to-TIMES attribute mapping (`xl2times/config/veda-attr-defaults.json`, 136 attributes with alias names, default bound types, timeslice levels, and commodity-group handling). This mapping could inform `times-data`'s own validation rules for parameters that originate from Veda workflows. |
 
 ### Data that could be maintained in a shared repository
