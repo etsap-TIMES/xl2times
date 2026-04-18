@@ -12,7 +12,8 @@ Support of other approaches may be added over time.
 
 ## Synergies with `times-data`
 
-[`times-data`](https://github.com/MMobir/times-data) is a complementary open-source
+The [`times-data` repository](https://github.com/MMobir/times-data) is a
+complementary open-source
 project that curates TIMES-related reference data. To reduce duplication between
 projects, we aim to align on shared data where possible:
 
