@@ -14,10 +14,12 @@ def to_times_data_payload(model: TimesModel) -> dict[str, Any]:
     periods: list[int] = []
     if not model.time_periods.empty and "m" in model.time_periods.columns:
         periods = [int(year) for year in model.time_periods["m"].dropna().tolist()]
+    internal_regions = sorted(model.internal_regions)
+    all_regions = sorted(model.all_regions)
 
     return {
-        "internal_regions": sorted(model.internal_regions),
-        "all_regions": sorted(model.all_regions),
+        "internal_regions": internal_regions,
+        "all_regions": all_regions,
         "processes": model.processes.copy(),
         "commodities": model.commodities.copy(),
         "commodity_groups": model.commodity_groups.copy(),
@@ -39,8 +41,8 @@ def to_times_data_payload(model: TimesModel) -> dict[str, Any]:
         "user_csets": model.user_csets.copy(),
         "cases": dict(model.cases),
         "model_config": {
-            "regions": sorted(model.all_regions),
-            "internal_regions": sorted(model.internal_regions),
+            "regions": all_regions,
+            "internal_regions": internal_regions,
             "external_regions": sorted(model.external_regions),
             "periods": periods,
             "start_year": model.start_year,

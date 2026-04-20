@@ -65,7 +65,7 @@ def test_to_times_data_model_filters_constructor_kwargs():
     assert converted.model_config["start_year"] == 2020
 
 
-def test_to_times_data_model_raises_helpful_import_error(monkeypatch):
+def test_to_times_data_model_propagates_import_error(monkeypatch):
     model = _sample_model()
 
     def _raise_import_error():
