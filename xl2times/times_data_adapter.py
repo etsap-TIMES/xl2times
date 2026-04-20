@@ -72,17 +72,13 @@ def to_times_data_model(model: TimesModel, model_cls: type[Any] | None = None) -
 
 def _resolve_times_data_model_class() -> type[Any]:
     """Resolve `times-data` Model class from common import paths."""
-    candidates = (
-        ("times_data", "Model"),
-        ("times_data.model", "Model"),
-        ("times_data.models", "Model"),
-    )
-    for module_name, attribute in candidates:
+    candidates = ("times_data", "times_data.model", "times_data.models")
+    for module_name in candidates:
         try:
             module = importlib.import_module(module_name)
         except ModuleNotFoundError:
             continue
-        model_cls = getattr(module, attribute, None)
+        model_cls = getattr(module, "Model", None)
         if isinstance(model_cls, type):
             return model_cls
     raise ImportError(
@@ -108,7 +104,9 @@ def _instantiate_model(model_cls: type[Any], payload: dict[str, Any]) -> Any:
         return model_cls(payload)
 
     params = [
-        parameter for name, parameter in signature.parameters.items() if name != "self"
+        parameter
+        for parameter in signature.parameters.values()
+        if parameter.name != "self"
     ]
     accepts_kwargs = any(
         parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in params
