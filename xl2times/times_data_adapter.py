@@ -86,8 +86,8 @@ def _resolve_times_data_model_class() -> type[Any]:
         if isinstance(model_cls, type):
             return model_cls
     raise ImportError(
-        "Could not import `times-data` Model class. Install `times-data` or provide "
-        "`model_cls` explicitly to `to_times_data_model`."
+        "Could not import 'times-data' Model class. Install 'times-data' or provide "
+        "'model_cls' explicitly to 'to_times_data_model'."
     )
 
 
