@@ -88,7 +88,14 @@ def _resolve_times_data_model_class() -> type[Any]:
 
 
 def _instantiate_model(model_cls: type[Any], payload: dict[str, Any]) -> Any:
-    """Instantiate model using supported constructor patterns."""
+    """Instantiate model using common constructor patterns.
+
+    Order of attempts:
+    1. Pydantic-style ``model_validate(payload)``
+    2. ``from_dict`` / ``from_mapping`` / ``from_tables`` factory methods
+    3. Constructor introspection with keyword filtering
+    4. Single positional payload fallback
+    """
     model_validate = getattr(model_cls, "model_validate", None)
     if callable(model_validate):
         return model_validate(payload)
@@ -96,14 +103,27 @@ def _instantiate_model(model_cls: type[Any], payload: dict[str, Any]) -> Any:
     for method_name in ("from_dict", "from_mapping", "from_tables"):
         method = getattr(model_cls, method_name, None)
         if callable(method):
-            try:
-                return method(payload)
-            except TypeError:
+            method_signature = inspect.signature(method)
+            required_params = [
+                parameter
+                for parameter in method_signature.parameters.values()
+                if parameter.default is inspect.Parameter.empty
+                and parameter.kind
+                in (
+                    inspect.Parameter.POSITIONAL_ONLY,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.KEYWORD_ONLY,
+                )
+            ]
+            if len(required_params) > 1:
                 continue
+            return method(payload)
 
     try:
         signature = inspect.signature(model_cls)
     except (TypeError, ValueError):
+        # Some C-extension or dynamically generated classes can be callable but
+        # do not expose an inspectable signature.
         return model_cls(payload)
 
     params = [
