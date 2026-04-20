@@ -21,7 +21,7 @@ def to_times_data_payload(model: TimesModel) -> dict[str, Any]:
     """
     periods: list[int] = []
     if not model.time_periods.empty and "m" in model.time_periods.columns:
-        periods = [int(year) for year in model.time_periods["m"].dropna().tolist()]
+        periods = model.time_periods["m"].dropna().astype(int).tolist()
     internal_regions = sorted(model.internal_regions)
     all_regions = sorted(model.all_regions)
 
@@ -96,7 +96,10 @@ def _instantiate_model(model_cls: type[Any], payload: dict[str, Any]) -> Any:
     for method_name in ("from_dict", "from_mapping", "from_tables"):
         method = getattr(model_cls, method_name, None)
         if callable(method):
-            return method(payload)
+            try:
+                return method(payload)
+            except TypeError:
+                continue
 
     try:
         signature = inspect.signature(model_cls)

@@ -34,6 +34,15 @@ def test_to_times_data_payload_contains_model_config_and_copies():
     assert payload["processes"] is not model.processes
 
 
+def test_to_times_data_payload_with_no_external_regions():
+    model = _sample_model()
+    model.all_regions = {"REG1"}
+
+    payload = adapter.to_times_data_payload(model)
+
+    assert payload["model_config"]["external_regions"] == []
+
+
 def test_to_times_data_model_prefers_model_validate():
     model = _sample_model()
 
