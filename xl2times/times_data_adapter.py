@@ -10,7 +10,15 @@ from .datatypes import TimesModel
 
 
 def to_times_data_payload(model: TimesModel) -> dict[str, Any]:
-    """Convert a :class:`TimesModel` to a plain mapping for `times-data` consumption."""
+    """Convert a :class:`TimesModel` to a plain mapping for `times-data` consumption.
+
+    Returns a mapping containing all ``TimesModel`` table fields and metadata,
+    plus a nested ``model_config`` dictionary with ``regions``,
+    ``internal_regions``, ``external_regions``, ``periods``, and ``start_year``.
+
+    DataFrames are copied so downstream conversion logic can mutate payload
+    tables without mutating the original ``TimesModel`` object.
+    """
     periods: list[int] = []
     if not model.time_periods.empty and "m" in model.time_periods.columns:
         periods = [int(year) for year in model.time_periods["m"].dropna().tolist()]
@@ -51,7 +59,12 @@ def to_times_data_payload(model: TimesModel) -> dict[str, Any]:
 
 
 def to_times_data_model(model: TimesModel, model_cls: type[Any] | None = None) -> Any:
-    """Convert a :class:`TimesModel` into a `times-data` ``Model`` object."""
+    """Convert a :class:`TimesModel` into a `times-data` ``Model`` object.
+
+    If ``model_cls`` is ``None``, this function attempts to import the
+    `times-data` ``Model`` class from common module paths. If no class is
+    found, ``ImportError`` is raised.
+    """
     resolved_model_cls = model_cls or _resolve_times_data_model_class()
     payload = to_times_data_payload(model)
     return _instantiate_model(resolved_model_cls, payload)
