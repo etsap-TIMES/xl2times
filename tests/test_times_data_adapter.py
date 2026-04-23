@@ -74,6 +74,20 @@ def test_to_times_data_model_filters_constructor_kwargs():
     assert converted.model_config["start_year"] == 2020
 
 
+def test_to_times_data_model_maps_model_config_to_config_constructor_arg():
+    model = _sample_model()
+
+    class ConfigModel:
+        def __init__(self, processes, config):
+            self.processes = processes
+            self.config = config
+
+    converted = adapter.to_times_data_model(model, model_cls=ConfigModel)
+
+    assert converted.processes.equals(model.processes)
+    assert converted.config["start_year"] == 2020
+
+
 def test_to_times_data_model_propagates_import_error(monkeypatch):
     model = _sample_model()
 

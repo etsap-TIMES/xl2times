@@ -147,6 +147,10 @@ def _instantiate_model(model_cls: type[Any], payload: dict[str, Any]) -> Any:
         )
     }
     kwargs = {key: value for key, value in payload.items() if key in supported_keys}
+    if "config" in supported_keys and "config" not in kwargs:
+        model_config = payload.get("model_config")
+        if model_config is not None:
+            kwargs["config"] = model_config
     if kwargs:
         return model_cls(**kwargs)
     if len(params) == 1:
