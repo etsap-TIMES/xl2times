@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pandas as pd
 import pytest
 
@@ -86,6 +88,27 @@ def test_to_times_data_model_maps_model_config_to_config_constructor_arg():
 
     assert converted.processes.equals(model.processes)
     assert converted.config["start_year"] == 2020
+
+
+def test_to_times_data_model_default_resolution_with_config(monkeypatch):
+    model = _sample_model()
+
+    class ConfigModel:
+        def __init__(self, processes, config):
+            self.processes = processes
+            self.config = config
+
+    def _fake_import_module(module_name):
+        if module_name == "times_data":
+            return SimpleNamespace(Model=ConfigModel)
+        raise ModuleNotFoundError(module_name)
+
+    monkeypatch.setattr(adapter.importlib, "import_module", _fake_import_module)
+
+    converted = adapter.to_times_data_model(model)
+
+    assert converted.processes.equals(model.processes)
+    assert converted.config["regions"] == ["REG1", "REG2"]
 
 
 def test_to_times_data_model_propagates_import_error(monkeypatch):
