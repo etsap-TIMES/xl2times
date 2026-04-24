@@ -6,6 +6,7 @@ from xl2times import transforms, utils
 from xl2times.datatypes import (
     Config,
     EmbeddedXlTable,
+    Tag,
     TimesModel,
 )
 from xl2times.transforms import (
@@ -41,6 +42,71 @@ def create_config() -> Config:
 
 
 class TestTransforms:
+    def test_process_time_periods_uses_active_milestone_year_definition(self):
+        model = TimesModel()
+        tables = [
+            EmbeddedXlTable(
+                tag=Tag.start_year,
+                uc_sets={},
+                sheetname="TimePeriods",
+                range="B4",
+                filename="SysSettings.xlsx",
+                dataframe=DataFrame({"value": [2022]}),
+            ),
+            EmbeddedXlTable(
+                tag=Tag.active_p_def,
+                uc_sets={},
+                sheetname="TimePeriods",
+                range="B8",
+                filename="SysSettings.xlsx",
+                dataframe=DataFrame({"value": ["msy10_2055"]}),
+            ),
+            EmbeddedXlTable(
+                tag=Tag.time_periods,
+                uc_sets={},
+                sheetname="TimePeriods",
+                range="B12:C23",
+                filename="SysSettings.xlsx",
+                dataframe=DataFrame({"10p2050": [1, 1, 1, 5]}),
+            ),
+            EmbeddedXlTable(
+                tag=Tag.milestoneyears,
+                uc_sets={},
+                sheetname="TimePeriods",
+                range="E12:O33",
+                filename="SysSettings.xlsx",
+                dataframe=DataFrame(
+                    {
+                        "type": ["milestoneyear"] * 4,
+                        "msy10_2055": [2022, 2023, 2024, 2025],
+                    }
+                ),
+            ),
+        ]
+
+        transforms.process_time_periods(None, tables, model)
+
+        assert model.time_periods[["year", "b", "e", "m"]].to_dict("records") == [
+            {"year": 2022, "b": 2022, "e": 2022, "m": 2022},
+            {"year": 2023, "b": 2023, "e": 2023, "m": 2023},
+            {"year": 2024, "b": 2024, "e": 2024, "m": 2024},
+            {"year": 2025, "b": 2025, "e": 2029, "m": 2025},
+        ]
+
+    def test_process_transform_availability_defaults_missing_value_to_one(self):
+        table = EmbeddedXlTable(
+            tag=Tag.tfm_ava,
+            uc_sets={},
+            sheetname="AVA",
+            range="C4:E224",
+            filename="SubRES_Wind-NREL-C_Trans.xlsx",
+            dataframe=DataFrame({"pset_pn": ["*[_]AFG"], "region": ["OAS"]}),
+        )
+
+        [processed] = transforms.process_transform_availability(None, [table], None)
+
+        assert processed.dataframe["value"].iloc[0] == 1
+
     def test_explode_process_commodity_cols(self):
         df = DataFrame(
             {
