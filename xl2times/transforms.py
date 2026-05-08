@@ -2786,10 +2786,22 @@ def _process_query(
     return new_rows
 
 
-def _process_query_chunk(
-    queries: DataFrame, table: DataFrame, tag: Tag
-) -> list[DataFrame | None]:
-    return [_process_query(q, table, tag) for q in queries.iterrows()]
+# Module-level shared DataFrame used by worker processes for quering to avoid
+# pickling the full DataFrame on every task submission.
+_shared_df: DataFrame | None = None
+
+
+def _init_shared_df(table: DataFrame) -> None:
+    """Initialise the shared read-only DataFrame in each worker process."""
+    global _shared_df  # noqa: PLW0603
+    _shared_df = table
+
+
+def _process_query_chunk(queries: DataFrame, tag: Tag) -> list[DataFrame | None]:
+    assert (
+        _shared_df is not None
+    ), "_shared_df must be initialised before calling _process_query_chunk"
+    return [_process_query(q, _shared_df, tag) for q in queries.iterrows()]
 
 
 def _generate_new_records(
@@ -2803,10 +2815,16 @@ def _generate_new_records(
     results = []
     # Heuristic for deciding when to process in parallel
     if len(updates) > 100 and cpu_count() > 3:
-        # Process queries in parallel using ProcessPoolExecutor
+        # Process queries in parallel using ProcessPoolExecutor.
+        # table is placed in each worker's memory once via the
+        # initializer, avoiding repeated pickling on every task submission.
         n_workers = cpu_count() // 2
 
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        with ProcessPoolExecutor(
+            max_workers=n_workers,
+            initializer=_init_shared_df,
+            initargs=(table,),
+        ) as executor:
             actual_n_workers = executor._max_workers  # pyright: ignore
             # Split queries into chunks based on worker count
             chunk_size = max(1, len(updates) // actual_n_workers)
@@ -2817,7 +2835,7 @@ def _generate_new_records(
 
             # Submit all tasks and tag each future with its chunk index
             future_info = {
-                executor.submit(_process_query_chunk, chunk, table, tag): (
+                executor.submit(_process_query_chunk, chunk, tag): (
                     i,
                     len(chunk),
                 )
