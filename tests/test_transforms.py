@@ -78,12 +78,12 @@ class TestTransforms:
 
         # unit tests
         assert df is not None and not df.empty
-        assert (
-            df.shape[0] >= df_in.shape[0]
-        ), "should have more rows after processing uc_wildcards"
-        assert (
-            df.shape[1] < df_in.shape[1]
-        ), "should have fewer columns after processing uc_wildcards"
+        assert df.shape[0] >= df_in.shape[0], (
+            "should have more rows after processing uc_wildcards"
+        )
+        assert df.shape[1] < df_in.shape[1], (
+            "should have fewer columns after processing uc_wildcards"
+        )
         assert "process" in df.columns, "should have added process column"
         assert "commodity" in df.columns, "should have added commodity column"
 
@@ -194,12 +194,12 @@ class TestTransforms:
         transformed_tables = transforms.harmonise_tradelinks(config, tables, model)
         for table in transformed_tables:
             test = table.sheetname
-            assert (
-                table.tag == expected[test]["tag"]
-            ), f"{test} should have expected tag"
-            assert (
-                set(table.dataframe["process"]) == expected[test]["processes"]
-            ), f"{test} should have expected trade processes"
+            assert table.tag == expected[test]["tag"], (
+                f"{test} should have expected tag"
+            )
+            assert set(table.dataframe["process"]) == expected[test]["processes"], (
+                f"{test} should have expected trade processes"
+            )
 
 
 if __name__ == "__main__":

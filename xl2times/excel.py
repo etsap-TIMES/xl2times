@@ -75,7 +75,7 @@ def extract_tables(filename: str) -> list[datatypes.EmbeddedXlTable]:
 
     end_time = time.time()
     if end_time - start_time > 2:
-        logger.info(f"Loaded {filename} in {end_time-start_time:.2f} seconds")
+        logger.info(f"Loaded {filename} in {end_time - start_time:.2f} seconds")
 
     return tables
 
