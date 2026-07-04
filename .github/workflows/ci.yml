@@ -4,7 +4,9 @@ on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [main]
-  pull_request:
+  # pull_request_target runs in the base-repo context and receives secrets even for
+  # fork PRs, fixing the GH_PAT_DEMOS_XLSX not being injected on fork pull requests.
+  pull_request_target:
     branches: [main]
   release:
     types: [published]
@@ -26,6 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # For pull_request_target the default checkout is the base branch, not the
+          # PR head, so we must specify the PR head SHA explicitly. Falls back to
+          # github.sha for push/release/workflow_dispatch events.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: xl2times
 
       - name: Set up Python
@@ -149,7 +155,7 @@ jobs:
       # ---------- Post the results of regression testing to the PR as a comment
 
       - name: If PR, post or update comment
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request_target'
         uses: actions/github-script@v7
         with:
           # Adapted from https://github.com/PyPSA/pypsa-validator/blob/main/action.yml
