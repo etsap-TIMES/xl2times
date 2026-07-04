@@ -14,10 +14,10 @@ REF_TIMES_NZ="64c48461690fd2458d112b97c68e788c63490461"
 REF_times_geo_xlsx="48e053ad4c287f21c03de56c759d83d408636ee2"
 REF_times_geo_gams="3bf609f24f27710372bc0631c75af83df05819d1"
 
-# A GitHub token is required to clone private repositories
+# If no GitHub token is provided, try to clone using SSH
 if [ -z "$GH_PAT_DEMOS_XLSX" ]; then
-    echo "ERROR: GH_PAT_DEMOS_XLSX is required to clone private benchmark repositories"
-    exit 1
+    echo "Warning: no GitHub token provided, will try to clone private repos using SSH"
+    use_SSH=1
 fi
 
 # Move to the directory containing this script
@@ -40,7 +40,11 @@ checkout_repo() {
     else
         echo "Directory $dest_dir does not exist. Cloning repository."
         if [ -n "$private" ]; then
-            repo_url="https://x-access-token:${GH_PAT_DEMOS_XLSX}@github.com/${repo}.git"
+            if [ -n "$use_SSH" ]; then
+                repo_url="git@github.com:${repo}.git"
+            else
+                repo_url="https://$GH_PAT_DEMOS_XLSX@github.com/${repo}/"
+            fi
         else
             repo_url="https://github.com/${repo}/"
         fi
