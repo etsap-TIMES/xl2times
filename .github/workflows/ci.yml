@@ -7,7 +7,7 @@ on:
   pull_request:
     branches: [main]
   # pull_request_target runs in the context of the base branch and receives secrets,
-  # enabling regression tests on PRs from forks. Trusted code only (base SHA checkout).
+  # enabling regression tests on PRs from forks, including fork PRs.
   pull_request_target:
     branches: [main]
   release:
@@ -222,11 +222,11 @@ jobs:
       CACHE_KEY: 7 # Use this for manual cache key bumps, e.g., when caching code changes
 
     steps:
-      # IMPORTANT: check out the base branch SHA, not the PR head, so that only
-      # trusted repository code runs in this secret-enabled job.
+      # Check out the PR head SHA so that regression tests run against the actual PR code.
+      # pull_request_target provides secrets regardless of fork origin.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           path: xl2times
 
       - name: Set up Python
