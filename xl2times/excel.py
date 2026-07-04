@@ -136,6 +136,8 @@ def extract_table(
         uc_sets = {}
     else:
         header_row = tag_row + 1
+        if header_row >= df.shape[0]:
+            return _empty_table(tag_row, tag_col, uc_sets, df, sheetname, filename)
 
         start_col = tag_col
         while start_col > 0 and not cell_is_empty(df.iloc[header_row, start_col - 1]):
@@ -144,6 +146,9 @@ def extract_table(
         end_col = tag_col
         while end_col < df.shape[1] and not cell_is_empty(df.iloc[header_row, end_col]):
             end_col += 1
+
+        if end_col <= start_col:
+            return _empty_table(tag_row, tag_col, uc_sets, df, sheetname, filename)
 
         end_row = header_row
         while end_row < df.shape[0] and not are_cells_all_empty(
@@ -187,6 +192,32 @@ def extract_table(
         tag=df.iloc[tag_row, tag_col],
         uc_sets=uc_sets,
         dataframe=table_df,
+    )
+
+
+def _empty_table(
+    tag_row: int,
+    tag_col: int,
+    uc_sets: dict[str, str],
+    df: DataFrame,
+    sheetname: str,
+    filename: str,
+) -> datatypes.EmbeddedXlTable:
+    table_range = str(
+        CellRange(
+            min_col=tag_col + 1,
+            min_row=tag_row + 1,
+            max_col=tag_col + 1,
+            max_row=tag_row + 1,
+        )
+    )
+    return datatypes.EmbeddedXlTable(
+        filename=filename,
+        sheetname=sheetname,
+        range=table_range,
+        tag=df.iloc[tag_row, tag_col],
+        uc_sets=uc_sets,
+        dataframe=DataFrame(columns=["VALUE"]),
     )
 
 

@@ -1028,16 +1028,79 @@ def create_model_units(
     return tables
 
 
+def _numeric_period_series(values: pd.Series) -> pd.Series:
+    return (
+        pd.to_numeric(values, errors="coerce")
+        .dropna()
+        .astype(int)
+        .reset_index(drop=True)
+    )
+
+
 def process_time_periods(
     config: Config,
     tables: list[EmbeddedXlTable],
     model: TimesModel,
 ) -> list[EmbeddedXlTable]:
     model.start_year = utils.get_scalar(Tag.start_year, tables)
-    active_pdef = utils.get_scalar(Tag.active_p_def, tables)
+    active_pdef = str(utils.get_scalar(Tag.active_p_def, tables)).lower()
     df = utils.single_table(tables, Tag.time_periods).dataframe
 
-    active_series = df[active_pdef.lower()]
+    if active_pdef in df.columns:
+        active_series = df[active_pdef]
+        # Remove empty rows
+        active_series = active_series.dropna()
+
+        df = pd.DataFrame({"d": active_series})
+        # Start years = start year, then cumulative sum of period durations
+        df["b"] = (active_series.cumsum() + model.start_year).shift(
+            1, fill_value=model.start_year
+        )
+        df["e"] = df.b + df.d - 1
+        df["m"] = df.b + ((df.d - 1) // 2)
+        df["year"] = df.m
+
+        model.time_periods = df.astype(int)
+
+        return tables
+
+    milestone_table = utils.single_table(tables, Tag.milestoneyears).dataframe
+    if active_pdef not in milestone_table.columns:
+        raise KeyError(active_pdef)
+
+    milestone_rows = milestone_table
+    if "type" in milestone_rows.columns:
+        milestone_rows = milestone_rows[
+            milestone_rows["type"].astype(str).str.lower() == "milestoneyear"
+        ]
+    milestones = _numeric_period_series(milestone_rows[active_pdef])
+    if milestones.empty:
+        raise KeyError(active_pdef)
+
+    duration_candidates = []
+    for column in df.columns:
+        values = _numeric_period_series(df[column])
+        if not values.empty:
+            duration_candidates.append((column, values))
+    if not duration_candidates:
+        raise KeyError(active_pdef)
+
+    matching = [
+        (column, values)
+        for column, values in duration_candidates
+        if len(values) == len(milestones)
+    ]
+    duration_col, durations = (matching or duration_candidates)[0]
+    n_periods = min(len(durations), len(milestones))
+    if len(durations) != len(milestones):
+        logger.warning(
+            f"ActivePDef {active_pdef} has {len(milestones)} milestone years, but "
+            f"~TimePeriods/{duration_col} has {len(durations)} duration rows; "
+            f"using first {n_periods}."
+        )
+
+    active_series = durations.iloc[:n_periods]
+    milestones = milestones.iloc[:n_periods]
     # Remove empty rows
     active_series = active_series.dropna()
 
@@ -1047,7 +1110,7 @@ def process_time_periods(
         1, fill_value=model.start_year
     )
     df["e"] = df.b + df.d - 1
-    df["m"] = df.b + ((df.d - 1) // 2)
+    df["m"] = milestones.values
     df["year"] = df.m
 
     model.time_periods = df.astype(int)
@@ -2194,9 +2257,11 @@ def process_transform_availability(
     result = []
     for table in tables:
         if table.tag == Tag.tfm_ava:
-            result.append(
-                replace(table, dataframe=table.dataframe.dropna(subset="value"))
-            )
+            df = table.dataframe
+            if "value" not in df.columns:
+                df = df.copy()
+                df["value"] = 1
+            result.append(replace(table, dataframe=df.dropna(subset="value")))
         else:
             result.append(table)
 

@@ -1,9 +1,26 @@
 import pandas as pd
 
 from xl2times import utils
+from xl2times.datatypes import EmbeddedXlTable
 
 
 class TestUtils:
+    def test_apply_composite_tag_accepts_semicolon_defaults(self):
+        table = EmbeddedXlTable(
+            tag="~TFM_INS",
+            defaults="Curr=USD20; Other_Indexes=ACT",
+            uc_sets={},
+            sheetname="New plants OM costs",
+            range="B23:V38",
+            filename="Scen_BaseEXTRA.xlsx",
+            dataframe=pd.DataFrame({"attribute": ["NCAP_FOM"]}),
+        )
+
+        normalized = utils.apply_composite_tag(table)
+
+        assert normalized.dataframe["curr"].iloc[0] == "USD20"
+        assert normalized.dataframe["other_indexes"].iloc[0] == "ACT"
+
     def test_explode(self):
         """Test that explode logics functions correctly."""
         input_df1 = pd.DataFrame(
