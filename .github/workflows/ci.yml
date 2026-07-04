@@ -49,7 +49,7 @@ jobs:
           # Build xl2times
           rm -rf dist || true
           python -m build
-          # Install the built wheel file to imitiate users installing from PyPI:
+          # Install the built wheel file to imitate users installing from PyPI:
           pip uninstall --yes xl2times
           pip install --no-index --find-links=dist xl2times
 
@@ -147,7 +147,7 @@ jobs:
 
       - uses: actions/cache/save@v4
         # Save the cache even if the regression tests fail
-        if: always() && !steps.cache-restore.outputs.cache-hit
+        if: always() && !steps.cache.outputs.cache-hit
         with:
           path: ~/.cache/xl2times
           key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
@@ -190,7 +190,7 @@ jobs:
           # Build xl2times
           rm -rf dist || true
           python -m build
-          # Install the built wheel file to imitiate users installing from PyPI:
+          # Install the built wheel file to imitate users installing from PyPI:
           pip uninstall --yes xl2times
           pip install --no-index --find-links=dist xl2times
 
@@ -244,7 +244,7 @@ jobs:
           # Build xl2times
           rm -rf dist || true
           python -m build
-          # Install the built wheel file to imitiate users installing from PyPI:
+          # Install the built wheel file to imitate users installing from PyPI:
           pip uninstall --yes xl2times
           pip install --no-index --find-links=dist xl2times
 
@@ -328,7 +328,7 @@ jobs:
 
       - uses: actions/cache/save@v4
         # Save the cache even if the regression tests fail
-        if: always() && !steps.cache-restore.outputs.cache-hit
+        if: always() && !steps.cache.outputs.cache-hit
         with:
           path: ~/.cache/xl2times
           key: ${{ runner.os }}-${{ env.CACHE_KEY }}-py-${{ env.PY_VERSION }}-${{ env.REF_demos-xlsx }}-${{ env.REF_tim }}
