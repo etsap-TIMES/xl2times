@@ -84,7 +84,7 @@ class TestTransforms:
             ),
         ]
 
-        transforms.process_time_periods(None, tables, model)
+        transforms.process_time_periods(config, tables, model)
 
         assert model.time_periods[["year", "b", "e", "m"]].to_dict("records") == [
             {"year": 2022, "b": 2022, "e": 2022, "m": 2022},
@@ -103,7 +103,7 @@ class TestTransforms:
             dataframe=DataFrame({"pset_pn": ["*[_]AFG"], "region": ["OAS"]}),
         )
 
-        [processed] = transforms.process_transform_availability(None, [table], None)
+        [processed] = transforms.process_transform_availability(config, [table], TimesModel())
 
         assert processed.dataframe["value"].iloc[0] == 1
 
@@ -115,9 +115,9 @@ class TestTransforms:
             }
         )
         df2 = transforms.explode_process_commodity_cols(
-            None,  # pyright: ignore
+            config,
             {"name": df.copy()},
-            None,  # pyright: ignore
+            TimesModel(),
         )
         correct = DataFrame(
             {
