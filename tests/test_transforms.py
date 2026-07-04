@@ -42,7 +42,7 @@ def config() -> Config:
 
 
 class TestTransforms:
-    def test_process_time_periods_uses_active_milestone_year_definition(self):
+    def test_process_time_periods_uses_active_milestone_year_definition(self, config):
         model = TimesModel()
         tables = [
             EmbeddedXlTable(
@@ -93,7 +93,7 @@ class TestTransforms:
             {"year": 2025, "b": 2025, "e": 2029, "m": 2025},
         ]
 
-    def test_process_transform_availability_defaults_missing_value_to_one(self):
+    def test_process_transform_availability_defaults_missing_value_to_one(self, config):
         table = EmbeddedXlTable(
             tag=Tag.tfm_ava,
             uc_sets={},
@@ -107,7 +107,7 @@ class TestTransforms:
 
         assert processed.dataframe["value"].iloc[0] == 1
 
-    def test_explode_process_commodity_cols(self):
+    def test_explode_process_commodity_cols(self, config):
         df = DataFrame(
             {
                 "process": ["a", "b", ["c", "d"]],
