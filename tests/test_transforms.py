@@ -103,7 +103,9 @@ class TestTransforms:
             dataframe=DataFrame({"pset_pn": ["*[_]AFG"], "region": ["OAS"]}),
         )
 
-        [processed] = transforms.process_transform_availability(config, [table], TimesModel())
+        [processed] = transforms.process_transform_availability(
+            config, [table], TimesModel()
+        )
 
         assert processed.dataframe["value"].iloc[0] == 1
 
