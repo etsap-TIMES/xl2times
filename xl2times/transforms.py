@@ -3239,7 +3239,13 @@ def convert_aliases(
     for table_type, df in tables.items():
         if "attribute" in df.columns:
             df["original_attr"] = df["attribute"]
-            tables[table_type] = df.replace({"attribute": replacement_dict})
+            # Equivalent to df.replace({"attribute": replacement_dict}), but
+            # avoids the elementwise scan replace() does over the whole
+            # frame: map() does an exact full-value lookup on this column
+            # only, and .where(...) keeps values with no match unchanged.
+            mapped = df["attribute"].map(replacement_dict)
+            df["attribute"] = mapped.where(mapped.notna(), df["attribute"])
+            tables[table_type] = df
 
     return tables
 

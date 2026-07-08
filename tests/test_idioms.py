@@ -9,9 +9,10 @@ implementation before the vectorized rewrite.
 from typing import Any, cast
 
 import pandas as pd
+import pytest
 
 from xl2times import transforms, utils
-from xl2times.datatypes import EmbeddedXlTable
+from xl2times.datatypes import Config, EmbeddedXlTable
 
 utils.setup_logger(None)
 
@@ -28,6 +29,20 @@ def _table(df: pd.DataFrame) -> EmbeddedXlTable:
         range="",
         filename="",
         dataframe=df,
+    )
+
+
+@pytest.fixture(scope="module")
+def config() -> Config:
+    return Config(
+        mapping_file="times_mapping.txt",
+        times_info_file="times-info.json",
+        times_sets_file="times-sets.json",
+        veda_tags_file="veda-tags.json",
+        veda_attr_defaults_file="veda-attr-defaults.json",
+        regions="",
+        include_dummy_imports=False,
+        case=None,
     )
 
 
@@ -174,3 +189,44 @@ class TestCapitaliseTableValues:
             0
         ].dataframe
         assert len(out) == 0
+
+
+class TestConvertAliases:
+    """D3: transforms.convert_aliases."""
+
+    def test_exact_case_sensitive_full_value_match(self, config: Config):
+        # VAROM -> ACT_COST and AF -> NCAP_AF are real entries in
+        # veda-attr-defaults.json's "aliases" table.
+        df = pd.DataFrame({"attribute": ["VAROM", "AF", "af", "UNKNOWN_ATTR"]})
+        tables = {"t": df}
+        out = transforms.convert_aliases(config, tables, _NONE)["t"]
+
+        assert out["original_attr"].tolist() == ["VAROM", "AF", "af", "UNKNOWN_ATTR"]
+        assert out["attribute"].tolist() == [
+            "ACT_COST",
+            "NCAP_AF",
+            "af",
+            "UNKNOWN_ATTR",
+        ]
+
+    def test_none_and_nan_attribute_values_untouched(self, config: Config):
+        df = pd.DataFrame({"attribute": ["VAROM", None, float("nan")]})
+        tables = {"t": df}
+        out = transforms.convert_aliases(config, tables, _NONE)["t"]
+
+        assert out["attribute"].iloc[0] == "ACT_COST"
+        assert out["attribute"].iloc[1] is None
+        assert pd.isna(out["attribute"].iloc[2])
+
+    def test_table_without_attribute_column_untouched(self, config: Config):
+        df = pd.DataFrame({"other": [1, 2]})
+        tables = {"t": df}
+        out = transforms.convert_aliases(config, tables, _NONE)["t"]
+        assert list(out.columns) == ["other"]
+
+    def test_empty_attribute_column(self, config: Config):
+        df = pd.DataFrame({"attribute": pd.Series([], dtype=object)})
+        tables = {"t": df}
+        out = transforms.convert_aliases(config, tables, _NONE)["t"]
+        assert len(out) == 0
+        assert "original_attr" in out.columns
