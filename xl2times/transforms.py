@@ -1216,6 +1216,60 @@ def _populate_calculated_defaults(df: DataFrame, model: TimesModel):
         )
 
 
+def _expand_year_ranges(df: DataFrame) -> None:
+    """Expand a "start-end" year-range string in the "year" column into the
+    "year" (start) and "year2" (end) columns, in place.
+
+    This is a vectorized replacement for two `df[i].apply(..., axis=1)` calls
+    that used to run a Python lambda per row. It reproduces their exact
+    value and dtype quirks (see PERFORMANCE.md section D / commit message):
+    - year2 is (re)computed for every row with a non-NA year, overwriting any
+      pre-existing year2 value with NA for non-range rows.
+    - year2/year use `int(part)` (built-in Python int, not numpy int64) so
+      that resulting object-dtype columns hold the same element types as the
+      original `.apply` implementation.
+    - When every non-NA row is a range, the whole-column assignment mirrors
+      `.apply`'s int64 inference (which pandas then upcasts to float64 if the
+      assignment only covers part of the index, e.g. other rows are NA).
+    - The "year" assignment is skipped entirely when it wouldn't change any
+      value (no ranges, no empty strings among the non-NA rows), preserving
+      the column's original dtype (e.g. float64) instead of forcing it to
+      object.
+    """
+    if "year" not in df.columns:
+        return
+    i = df["year"].notna()
+    if not i.any():
+        if "year2" not in df.columns:
+            df["year2"] = float("nan")
+        return
+
+    orig_year = df.loc[i, "year"]
+    s = orig_year.astype(str)
+    has_range = s.str.contains("-", regex=False)
+    parts = s.str.split("-")
+
+    if has_range.all():
+        # Matches `.apply` inferring an int64 Series when every value is an int.
+        year2_vals = pd.Series([int(x) for x in parts.str[1]], index=s.index)
+        year_vals = pd.Series([int(x) for x in parts.str[0]], index=s.index)
+        df.loc[i, "year2"] = year2_vals
+        df.loc[i, "year"] = year_vals
+    else:
+        year2 = pd.Series(pd.NA, index=s.index, dtype=object)
+        if has_range.any():
+            year2.loc[has_range] = [int(x) for x in parts.loc[has_range].str[1]]
+        df.loc[i, "year2"] = year2
+
+        is_empty = (~has_range) & (s == "")
+        if (has_range | is_empty).any():
+            year = orig_year.astype(object).copy()
+            if has_range.any():
+                year.loc[has_range] = [int(x) for x in parts.loc[has_range].str[0]]
+            year.loc[is_empty] = pd.NA
+            df.loc[i, "year"] = year
+
+
 def prepare_for_querying(
     config: Config,
     tables: dict[str, DataFrame],
@@ -1246,24 +1300,7 @@ def prepare_for_querying(
                 if set(df["attribute"]).intersection(config.attr_by_index[col]):
                     df[col] = pd.NA
         # Expand year column if it contains ranges
-        if "year" in df.columns:
-            i = df["year"].notna()
-
-            df.loc[i, "year2"] = df[i].apply(
-                lambda row: (
-                    int(row["year"].split("-")[1]) if "-" in str(row["year"]) else pd.NA
-                ),
-                axis=1,
-            )
-
-            df.loc[i, "year"] = df[i].apply(
-                lambda row: (
-                    int(row["year"].split("-")[0])
-                    if "-" in str(row["year"])
-                    else (row["year"] if row["year"] != "" else pd.NA)
-                ),
-                axis=1,
-            )
+        _expand_year_ranges(df)
         if tag not in exclude_tags:
             for colname in df.columns:
                 # TODO make this more declarative
