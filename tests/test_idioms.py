@@ -6,11 +6,29 @@ function it targets, verified against the original row/cell-wise
 implementation before the vectorized rewrite.
 """
 
+from typing import Any, cast
+
 import pandas as pd
 
 from xl2times import transforms, utils
+from xl2times.datatypes import EmbeddedXlTable
 
 utils.setup_logger(None)
+
+# capitalise_table_values takes config/model params it doesn't use; pass a
+# typed None so pyright doesn't flag the test call sites.
+_NONE = cast(Any, None)
+
+
+def _table(df: pd.DataFrame) -> EmbeddedXlTable:
+    return EmbeddedXlTable(
+        tag="~TEST",
+        uc_sets={},
+        sheetname="sheet",
+        range="",
+        filename="",
+        dataframe=df,
+    )
 
 
 class TestExpandYearRanges:
@@ -109,3 +127,50 @@ class TestExpandYearRanges:
         assert df["year"].tolist() == [2015, 2020, pd.NA]
         assert pd.isna(df["year2"].iloc[0])
         assert pd.isna(df["year2"].iloc[1])
+
+
+class TestCapitaliseTableValues:
+    """D2: transforms.capitalise_table_values."""
+
+    def test_mixed_str_int_none_nan_object_column(self):
+        df = pd.DataFrame({"c": ["abc ", 5, None, float("nan"), " def"]})
+        out = transforms.capitalise_table_values(_NONE, [_table(df)], _NONE)[
+            0
+        ].dataframe
+        assert out["c"].tolist()[0] == "ABC"
+        assert out["c"].tolist()[1] == 5
+        assert out["c"].tolist()[2] is None
+        assert pd.isna(out["c"].tolist()[3])
+        assert out["c"].tolist()[4] == "DEF"
+
+    def test_all_numeric_object_column_is_noop(self):
+        # .str accessor raises AttributeError on an object column with no
+        # actual string entries at all; must be handled as a no-op, not a
+        # crash.
+        df = pd.DataFrame({"c": pd.Series([1, 2, 3], dtype=object)})
+        out = transforms.capitalise_table_values(_NONE, [_table(df)], _NONE)[
+            0
+        ].dataframe
+        assert out["c"].tolist() == [1, 2, 3]
+
+    def test_non_object_column_untouched(self):
+        df = pd.DataFrame({"c": [1, 2, 3]})
+        out = transforms.capitalise_table_values(_NONE, [_table(df)], _NONE)[
+            0
+        ].dataframe
+        assert out["c"].dtype == "int64"
+        assert out["c"].tolist() == [1, 2, 3]
+
+    def test_whitespace_stripped_and_upper(self):
+        df = pd.DataFrame({"c": ["  mixed Case  "]})
+        out = transforms.capitalise_table_values(_NONE, [_table(df)], _NONE)[
+            0
+        ].dataframe
+        assert out["c"].iloc[0] == "MIXED CASE"
+
+    def test_empty_table_returned_as_is(self):
+        df = pd.DataFrame({"c": pd.Series([], dtype=object)})
+        out = transforms.capitalise_table_values(_NONE, [_table(df)], _NONE)[
+            0
+        ].dataframe
+        assert len(out) == 0

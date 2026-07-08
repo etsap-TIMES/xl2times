@@ -1156,10 +1156,14 @@ def capitalise_table_values(
         seen_cols = [colname for colname in colnames if colname in df.columns]
         if len(df) > 0:
             for seen_col in seen_cols:
-                # Index of rows with string entries
-                i = df[seen_col].apply(lambda x: isinstance(x, str))
-                if any(i):
-                    df.loc[i, seen_col] = df[seen_col][i].str.upper().str.strip()
+                try:
+                    # Vectorized upper/strip; non-string entries become NaN.
+                    upper = df[seen_col].str.upper().str.strip()
+                except AttributeError:
+                    # Column has no string-like entries at all (e.g. all
+                    # numeric/None in an object column) -- nothing to do.
+                    continue
+                df[seen_col] = upper.where(upper.notna(), df[seen_col])
             return replace(table, dataframe=df)
         else:
             return table
