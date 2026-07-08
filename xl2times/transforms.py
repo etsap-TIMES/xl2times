@@ -1,11 +1,10 @@
 import re
 import time
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from functools import reduce
 from itertools import groupby
-from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any
 
@@ -2542,23 +2541,6 @@ def query(
     return row_idx
 
 
-def eval_and_update(table: DataFrame, rows_to_update: pd.Index, new_value: str) -> None:
-    """Performs an inplace update of rows `rows_to_update` of `table` with `new_value`,
-    which can be a update formula like `*2.3`.
-    """
-    if isinstance(new_value, str) and new_value[0] in {"*", "+", "-", "/"}:
-        # Do not perform arithmetic operations on rows with i/e options
-        if "year" in table.columns:
-            rows_to_update = rows_to_update.intersection(
-                table.index[table["year"] != 0]
-            )
-        old_values = table.loc[rows_to_update, "value"]
-        updated = old_values.astype(float).map(lambda x: eval("x" + new_value))
-        table.loc[rows_to_update, "value"] = updated
-    else:
-        table.loc[rows_to_update, "value"] = new_value
-
-
 def _remove_invalid_rows(
     df: DataFrame,
     valid_combinations: DataFrame,
@@ -2725,128 +2707,169 @@ def _project_demands(tables: dict[str, DataFrame], base_year: int) -> DataFrame:
     return projected_demands.drop(columns="multiplier")
 
 
-def _process_query(
-    idx_and_row: tuple[Any, pd.Series], table: DataFrame, tag: Tag
-) -> DataFrame | None:
-    """Process a single TFM_MIG or TFM_UPD query."""
-    # Check whether the tag is as expected. Raise an error if not
-    if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
-        raise ValueError(f"Unexpected tag {tag.value} in _process_query.")
-
-    _, row = idx_and_row
-    if row["module_type"] == "trans":
-        source_module = row["module_name"]
-    else:
-        source_module = row.get("sourcescen")
-    rows_to_update = query(
-        table,
-        row.get("process"),
-        row.get("commodity"),
-        row["attribute"],
-        row.get("region"),
-        row.get("year"),
-        row.get("limtype"),
-        row.get("val_cond"),
-        source_module,
-    )
-    if rows_to_update.empty:
-        logger.info(f"A {tag.value} row generated no records.")
-        return None
-
-    new_rows = table.loc[
-        rows_to_update
-    ].copy()  # Create a copy to avoid SettingWithCopyWarning
-
-    if tag == Tag.tfm_mig:
-        # Modify values in all '*2' columns
-        for c, v in row.items():
-            if str(c).endswith("2") and v is not None:
-                new_rows.loc[:, str(c)[:-1]] = v
-
-    # Evaluate 'value' column based on existing values
-    eval_and_update(
-        new_rows,
-        rows_to_update,
-        str(row["value"]) if tag == Tag.tfm_mig else row["value"],
-    )
-    # In case more than one data module is present in the table, select the one with the highest index.
-    # TODO: The below code is commented out because it needs to be more sophisticated.
-    # if new_rows["module_name"].nunique() > 1:
-    #     indices = {
-    #         model.data_modules.index(x)
-    #         for x in new_rows["module_name"].unique()
-    #         }
-    #     new_rows = new_rows[
-    #         new_rows["module_name"] == model.data_modules[max(indices)]
-    #         ]
-    new_rows["source_filename"] = row["source_filename"]
-    new_rows["module_name"] = row["module_name"]
-    new_rows["module_type"] = row["module_type"]
-    new_rows["submodule"] = row["submodule"]
-    return new_rows
-
-
-def _process_query_chunk(
-    queries: DataFrame, table: DataFrame, tag: Tag
-) -> list[DataFrame | None]:
-    return [_process_query(q, table, tag) for q in queries.iterrows()]
-
-
 def _generate_new_records(
     table: DataFrame, updates: DataFrame, tag: Tag, data_module: str
 ) -> list[DataFrame]:
-    """Generate new records based on the given updates in TFM_UPD and TFM_MIG."""
+    """Generate new records based on the given updates in TFM_UPD and TFM_MIG.
+
+    Vectorized implementation: instead of querying the full table once per
+    update row, update rows are grouped by their "filter signature" (the set
+    of fields a row constrains) and all (update row, table row) match pairs
+    are computed with one inner merge (hash join) per signature. Merging on
+    the object-dtype columns uses the same Python equality semantics as the
+    previous per-row `DataFrame.query("col in [...]")` approach (e.g. int 2020
+    matches float 2020.0), and NA never appears among the merge keys, because
+    unconstrained fields are simply excluded from the merge.
+    """
     # Check whether the tag is as expected. Raise an error if not
     if tag not in {Tag.tfm_mig, Tag.tfm_upd}:
         raise ValueError(f"Unexpected tag {tag.value} in _generate_new_records.")
 
-    results = []
-    # Heuristic for deciding when to process in parallel
-    if len(updates) > 100 and cpu_count() > 3:
-        # Process queries in parallel using ProcessPoolExecutor
-        n_workers = cpu_count() // 2
+    # Filter fields of an update row and the table columns they constrain
+    field_to_col = {
+        "process": "process",
+        "commodity": "commodity",
+        "attribute": "attribute",
+        "region": "region",
+        "year": "year",
+        "limtype": "limtype",
+        "val_cond": "value",
+        "source_module": "module_name",
+    }
 
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
-            actual_n_workers = executor._max_workers  # pyright: ignore
-            # Split queries into chunks based on worker count
-            chunk_size = max(1, len(updates) // actual_n_workers)
-            chunks = [
-                updates.iloc[i : i + chunk_size]
-                for i in range(0, len(updates), chunk_size)
-            ]
+    # Work with positional row ids throughout
+    updates = updates.reset_index(drop=True)
 
-            # Submit all tasks and tag each future with its chunk index
-            future_info = {
-                executor.submit(_process_query_chunk, chunk, table, tag): (
-                    i,
-                    len(chunk),
-                )
-                for i, chunk in enumerate(chunks)
-            }
-            results += [None] * len(future_info)
-            with tqdm(
-                total=len(updates),
-                desc=f"Applying transformations concurrently from {tag.value} in {data_module}",
-            ) as pbar:
-                for f in as_completed(future_info):
-                    idx, chunk_len = future_info[f]
-                    results[idx] = f.result()
-                    pbar.update(chunk_len)
+    # Collect the filter fields of each update row. The module filter is the
+    # update's own module name for transformation modules, otherwise the
+    # source scenario (if any).
+    filters = pd.DataFrame(index=updates.index)
+    for field in field_to_col:
+        if field == "source_module":
+            sourcescen = (
+                updates["sourcescen"]
+                if "sourcescen" in updates.columns
+                else pd.Series(None, index=updates.index, dtype=object)
+            )
+            filters[field] = sourcescen.where(
+                updates["module_type"] != "trans", updates["module_name"]
+            )
+        elif field in updates.columns:
+            filters[field] = updates[field]
+        else:
+            filters[field] = None
 
-            new_tables = [
-                t for r in results if r is not None for t in r if t is not None
-            ]
-    else:
-        # Process sequentially
-        for q in tqdm(
-            updates.iterrows(),
-            total=len(updates),
-            desc=f"Applying transformations from {tag.value} in {data_module}",
-        ):
-            results.append(_process_query(q, table, tag))
-        new_tables = [t for t in results if t is not None]
+    # Fields constrained by each update row: scalars constrain unless NA,
+    # lists always constrain (an empty list matches nothing)
+    constrained = pd.DataFrame(
+        {
+            field: filters[field].map(lambda v: isinstance(v, list) or not pd.isna(v))
+            for field in field_to_col
+        }
+    )
 
-    return new_tables
+    # Compute all (update row, table row) match pairs, with one merge per
+    # group of update rows that constrain the same set of fields
+    pair_frames = []
+    for signature, update_ids in constrained.groupby(
+        list(field_to_col), sort=False
+    ).groups.items():
+        fields = [f for f, active in zip(field_to_col, signature) if active]
+        if not fields:
+            # Preserve the behaviour of the previous per-row implementation,
+            # which would run an empty query string (raises ValueError)
+            table.query("")
+        columns = [field_to_col[f] for f in fields]
+        filt = filters.loc[update_ids, fields].rename(columns=field_to_col)
+        filt["_update_id"] = update_ids
+        # Explode list-valued filter fields into one row per list element
+        for col in columns:
+            if filt[col].map(lambda v: isinstance(v, list)).any():
+                filt = filt.explode(col)
+        # Exploding an empty list produces an NA entry, which must match
+        # nothing; deduplicate to match `in` semantics for repeated elements
+        filt = filt.dropna(subset=columns).drop_duplicates()
+        keyed_table = table[columns].assign(_row_id=range(len(table)))
+        # Merge keys are expected to be object dtype on both sides; normalize
+        # if they are not, since merging on differing dtypes may fail
+        for col in columns:
+            if keyed_table[col].dtype != filt[col].dtype:
+                keyed_table[col] = keyed_table[col].astype(object)
+                filt[col] = filt[col].astype(object)
+        pairs = filt.merge(keyed_table, on=columns, how="inner")
+        pair_frames.append(pairs[["_update_id", "_row_id"]])
+
+    pairs = (
+        pd.concat(pair_frames, ignore_index=True)
+        if pair_frames
+        else DataFrame(columns=["_update_id", "_row_id"])
+    )
+
+    # Keep one log message per update row that generated no records
+    for _ in range(len(updates) - pairs["_update_id"].nunique()):
+        logger.info(f"A {tag.value} row generated no records.")
+
+    if pairs.empty:
+        return []
+
+    # Order the generated records exactly like the previous per-row
+    # implementation: by update row first, then by table row order
+    pairs = pairs.sort_values(["_update_id", "_row_id"], ignore_index=True)
+    update_ids = pairs["_update_id"].to_numpy()
+    new_records = table.take(pairs["_row_id"].to_numpy()).reset_index(drop=True)
+
+    def values_from_updates(series: pd.Series) -> pd.Series:
+        """Align a per-update-row series with the rows of new_records."""
+        return pd.Series(series.to_numpy()[update_ids], index=new_records.index)
+
+    if tag == Tag.tfm_mig:
+        # Modify values in all '*2' columns
+        for c in updates.columns:
+            if str(c).endswith("2"):
+                # NB: the original per-row check was `v is not None`, so
+                # non-None NA values (e.g. pd.NA) are applied as well
+                apply_rows = updates[c].map(lambda v: v is not None)
+                mask = apply_rows.to_numpy()[update_ids]
+                if mask.any():
+                    target = str(c)[:-1]
+                    if target not in new_records.columns:
+                        new_records[target] = pd.Series(
+                            float("nan"), index=new_records.index, dtype=object
+                        )
+                    new_records.loc[mask, target] = values_from_updates(updates[c])[
+                        mask
+                    ]
+
+    # Evaluate 'value' column based on existing values. NB: TFM_MIG casts the
+    # new value to str, so numeric MIG values are assigned as strings
+    new_values = updates["value"]
+    if tag == Tag.tfm_mig:
+        new_values = new_values.map(str)
+    is_formula = new_values.map(
+        lambda v: isinstance(v, str) and v[0] in {"*", "+", "-", "/"}
+    )
+    row_values = values_from_updates(new_values)
+    formula_rows = values_from_updates(is_formula).astype(bool)
+    # Assign non-formula values literally
+    if not formula_rows.all():
+        literal_rows = ~formula_rows
+        new_records.loc[literal_rows, "value"] = row_values[literal_rows]
+    if formula_rows.any():
+        # Do not perform arithmetic operations on rows with i/e options
+        eligible_rows = formula_rows
+        if "year" in new_records.columns:
+            eligible_rows = eligible_rows & (new_records["year"] != 0)
+        # Evaluate each distinct update formula on all its rows at once
+        formulas = row_values[eligible_rows]
+        for formula, group in formulas.groupby(formulas, sort=False):
+            x = new_records.loc[group.index, "value"].astype(float)  # noqa: F841
+            new_records.loc[group.index, "value"] = eval("x" + formula)
+
+    # Metadata of the new records is taken from the update rows
+    for col in ["source_filename", "module_name", "module_type", "submodule"]:
+        new_records[col] = values_from_updates(updates[col])
+
+    return [new_records]
 
 
 def apply_transform_tables(
