@@ -79,7 +79,14 @@ def read_xl(
     output_dir: str | None = None,
     no_cache: bool = False,
     stop_after_read: bool = False,
+    verbose: bool = False,
 ) -> tuple[TimesModel, Config]:
+    """Read xlsx/xlsm files and process them into a TimesModel.
+
+    If `verbose` is set (or `stop_after_read`, whose purpose is to produce
+    `raw_tables.txt`), debug table dumps (`raw_tables.txt`, `merged_tables.txt`)
+    are written to `output_dir`.
+    """
     start_time = datetime.now()
 
     model = TimesModel()
@@ -142,7 +149,9 @@ def read_xl(
         input_dir = os.path.commonpath([t.filename for t in raw_tables])
         raw_tables = [strip_filename_prefix(t, input_dir) for t in raw_tables]
 
-    if output_dir:
+    # The debug table dumps are expensive on large models, so only write them
+    # when requested (`--only_read` exists solely to produce raw_tables.txt)
+    if output_dir and (verbose or stop_after_read):
         dump_tables(raw_tables, os.path.join(output_dir, "raw_tables.txt"))
     if stop_after_read:
         return model, config
@@ -202,7 +211,7 @@ def read_xl(
         transforms.resolve_remaining_cgs,
         lambda config, tables, model: (
             dump_tables(tables, os.path.join(output_dir, "merged_tables.txt"))
-            if output_dir
+            if output_dir and verbose
             else tables
         ),
     ]
@@ -579,6 +588,7 @@ def run(args: argparse.Namespace) -> str | None:
             output_dir=args.output_dir,
             no_cache=args.no_cache,
             stop_after_read=True,
+            verbose=bool(args.verbose),
         )
         sys.exit(0)
 
@@ -589,6 +599,7 @@ def run(args: argparse.Namespace) -> str | None:
         case=args.case,
         output_dir=args.output_dir,
         no_cache=args.no_cache,
+        verbose=bool(args.verbose),
     )
     tables = to_tables(config, model)
 
