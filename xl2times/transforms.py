@@ -1328,17 +1328,8 @@ def include_cgs_in_topology(
     # Add columns for the number of IN/OUT commodities of each type
     _count_comm_group_vectorised(comm_groups)
 
-    def name_comm_group(df: pd.Series) -> str | None:
-        """Generate the name of a commodity group based on the member count."""
-        if df["commoditygroup"] > 1:
-            return df["process"] + "_" + df["csets"] + df["io"][:1]
-        elif df["commoditygroup"] == 1:
-            return df["commodity"]
-        else:
-            return None
-
     # Replace commodity group member count with the name
-    comm_groups["commoditygroup"] = comm_groups.apply(name_comm_group, axis=1)
+    _name_comm_groups_vectorised(comm_groups)
 
     # Determine default PCG according to Veda's logic
     comm_groups = _process_comm_groups_vectorised(comm_groups, csets_ordered_for_pcg)
@@ -1391,6 +1382,25 @@ def _count_comm_group_vectorised(comm_groups: DataFrame) -> None:
     comm_groups.loc[~comm_groups["io"].isin(["IN", "OUT"]), "commoditygroup"] = 0
 
 
+def _name_comm_groups_vectorised(comm_groups: DataFrame) -> DataFrame:
+    """Replace the commodity group member count in the "commoditygroup" column with
+    the commodity group name. `comm_groups` is modified in-place (and also returned).
+
+    Groups with more than one member are named `<process>_<csets><io[:1]>`, groups
+    with a single member are named after the commodity, and rows with no commodity
+    group (member count 0) get None.
+    """
+    multiple_members = comm_groups["commoditygroup"] > 1
+    single_member = comm_groups["commoditygroup"] == 1
+    group_names = (
+        comm_groups["process"] + "_" + comm_groups["csets"] + comm_groups["io"].str[:1]
+    )
+    comm_groups["commoditygroup"] = None
+    comm_groups.loc[multiple_members, "commoditygroup"] = group_names
+    comm_groups.loc[single_member, "commoditygroup"] = comm_groups["commodity"]
+    return comm_groups
+
+
 def _process_comm_groups_vectorised(
     comm_groups: DataFrame, csets_ordered_for_pcg: list[str]
 ) -> DataFrame:
@@ -1414,32 +1424,41 @@ def _process_comm_groups_vectorised(
         Processed DataFrame with a new column "DefaultVedaPCG" set to True for the default pcg in
         each region/process/io combination.
     """
+    group_keys = [comm_groups["region"], comm_groups["process"]]
 
-    def _set_default_veda_pcg(group):
-        """For a given [region, process] group, default group is set as the first cset
-        in the `csets_ordered_for_pcg` list, which is an output, if one exists,
-        otherwise the first input.
-        """
-        if not group["csets"].isin(csets_ordered_for_pcg).all():
-            return group
+    # A group is only considered for default PCG selection if all its csets are in
+    # csets_ordered_for_pcg
+    eligible = (
+        comm_groups["csets"]
+        .isin(csets_ordered_for_pcg)
+        .groupby(group_keys, sort=False, dropna=False)
+        .transform("all")
+    )
 
-        for io in ["OUT", "IN"]:
-            for cset in csets_ordered_for_pcg:
-                group.loc[
-                    (group["io"] == io) & (group["csets"] == cset), "DefaultVedaPCG"
-                ] = True
-                if group["DefaultVedaPCG"].any():
-                    break
-        return group
+    # Rank rows in the scan order of the original nested loops: all OUT rows (by
+    # cset order) before all IN rows; other io values (NaN rank) never win.
+    num_csets = len(csets_ordered_for_pcg)
+    cset_rank = comm_groups["csets"].map(
+        {cset: i for i, cset in enumerate(csets_ordered_for_pcg)}
+    )
+    io_rank = comm_groups["io"].map({"OUT": 0, "IN": 1})
+    rank = io_rank * num_csets + cset_rank
+    min_rank = rank.groupby(group_keys, sort=False, dropna=False).transform("min")
+
+    # The default PCG rows are those with the lowest rank in their group.
+    # NOTE: the second term below deliberately reproduces a quirk of the previous
+    # loop-based implementation (kept bit-for-bit; flagged for separate review as a
+    # possible latent bug): its `break` only exited the inner cset loop, so whenever
+    # an OUT commodity group won (min_rank < num_csets), the loop still ran
+    # io="IN" and flagged any (io="IN", csets="DEM") rows (rank == num_csets)
+    # before stopping.
+    default_pcg = eligible & (
+        (rank == min_rank) | ((min_rank < num_csets) & (rank == num_csets))
+    )
 
     comm_groups["DefaultVedaPCG"] = None
-    comm_groups_subset = comm_groups.groupby(
-        ["region", "process"], sort=False, as_index=False
-    ).apply(_set_default_veda_pcg)
-    comm_groups_subset = comm_groups_subset.reset_index(
-        level=0, drop=True
-    ).sort_index()  # back to the original index and row order
-    return comm_groups_subset
+    comm_groups.loc[default_pcg, "DefaultVedaPCG"] = True
+    return comm_groups
 
 
 def create_model_cgs(

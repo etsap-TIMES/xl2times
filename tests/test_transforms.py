@@ -11,12 +11,71 @@ from xl2times.datatypes import (
 from xl2times.transforms import (
     _count_comm_group_vectorised,
     _match_wildcards,
+    _name_comm_groups_vectorised,
     _process_comm_groups_vectorised,
     commodity_map,
     process_map,
 )
 
 utils.setup_logger(None)
+
+
+def _process_comm_groups_reference(
+    comm_groups: DataFrame, csets_ordered_for_pcg: list[str]
+) -> DataFrame:
+    """Reference implementation of default PCG selection, used to check that the
+    vectorised implementation produces identical output.
+
+    This is a verbatim copy of the previous (groupby.apply-based) implementation of
+    `transforms._process_comm_groups_vectorised`, including its quirk of flagging
+    (io="IN", csets="DEM") rows whenever an OUT commodity group is selected as
+    default (the `break` only exits the inner loop).
+    """
+
+    def _set_default_veda_pcg(group):
+        """For a given [region, process] group, default group is set as the first cset
+        in the `csets_ordered_for_pcg` list, which is an output, if one exists,
+        otherwise the first input.
+        """
+        if not group["csets"].isin(csets_ordered_for_pcg).all():
+            return group
+
+        for io in ["OUT", "IN"]:
+            for cset in csets_ordered_for_pcg:
+                group.loc[
+                    (group["io"] == io) & (group["csets"] == cset), "DefaultVedaPCG"
+                ] = True
+                if group["DefaultVedaPCG"].any():
+                    break
+        return group
+
+    comm_groups["DefaultVedaPCG"] = None
+    comm_groups_subset = comm_groups.groupby(
+        ["region", "process"], sort=False, as_index=False
+    ).apply(_set_default_veda_pcg)
+    comm_groups_subset = comm_groups_subset.reset_index(
+        level=0, drop=True
+    ).sort_index()  # back to the original index and row order
+    return comm_groups_subset
+
+
+def _name_comm_groups_reference(comm_groups: DataFrame) -> DataFrame:
+    """Reference implementation of commodity group naming (verbatim copy of the
+    previous row-wise apply in `transforms.include_cgs_in_topology`).
+    """
+
+    def name_comm_group(df: pd.Series) -> str | None:
+        """Generate the name of a commodity group based on the member count."""
+        if df["commoditygroup"] > 1:
+            return df["process"] + "_" + df["csets"] + df["io"][:1]
+        elif df["commoditygroup"] == 1:
+            return df["commodity"]
+        else:
+            return None
+
+    comm_groups["commoditygroup"] = comm_groups.apply(name_comm_group, axis=1)
+    return comm_groups
+
 
 pd.set_option("display.max_rows", 20)
 pd.set_option("display.max_columns", 20)
@@ -126,6 +185,119 @@ class TestTransforms:
         assert comm_groups2 is not None and not comm_groups2.empty
         assert comm_groups2.shape == (comm_groups.shape[0], comm_groups.shape[1] + 1)
         assert comm_groups2.drop(columns=["DefaultVedaPCG"]).equals(comm_groups)
+
+    def test_default_pcg_vectorised_matches_reference(self):
+        """The vectorised default PCG selection must produce output identical to the
+        previous groupby.apply implementation on real (austimes) data: same values,
+        dtypes, row order and index.
+        """
+        comm_groups = pd.read_parquet("tests/data/austimes_pcg_test_data.parquet")
+        # Subsample (region, process) groups so the (slow) reference implementation
+        # keeps the test runtime reasonable, while retaining group diversity
+        comm_groups = comm_groups[comm_groups["region"].isin(["ACT", "NT"])]
+        processes = sorted(comm_groups["process"].unique())[::5]
+        comm_groups = comm_groups[comm_groups["process"].isin(processes)]
+
+        expected = _process_comm_groups_reference(
+            comm_groups.copy(), transforms.csets_ordered_for_pcg
+        )
+        actual = _process_comm_groups_vectorised(
+            comm_groups.copy(), transforms.csets_ordered_for_pcg
+        )
+        pd.testing.assert_frame_equal(actual, expected)
+        assert actual.index.equals(expected.index)
+        # both True rows and untouched (None) rows should exist in the test data
+        assert (actual["DefaultVedaPCG"].values == True).any()  # noqa: E712
+        assert actual["DefaultVedaPCG"].isna().any()
+
+    def test_default_pcg_vectorised_edge_cases(self):
+        """Synthetic edge cases for default PCG selection, including the preserved
+        quirk of the original implementation: whenever an OUT commodity group wins,
+        any (io="IN", csets="DEM") rows in the group are also flagged True.
+        """
+        # fmt: off
+        rows = [
+            # g1: OUT present -> (OUT, NRG) wins and the (IN, DEM) quirk triggers
+            ("R1", "P1", "OUT", "C1", "NRG", True),
+            ("R1", "P1", "IN", "C2", "DEM", True),  # quirk row
+            ("R1", "P1", "IN", "C3", "NRG", None),
+            # g2: only IN rows -> first cset present in order (MAT) wins
+            ("R1", "P2", "IN", "C1", "MAT", True),
+            ("R1", "P2", "IN", "C2", "NRG", None),
+            ("R1", "P2", "IN", "C3", "FIN", None),
+            # g3: a cset outside csets_ordered_for_pcg -> whole group untouched
+            ("R1", "P3", "OUT", "C1", "NRG", None),
+            ("R1", "P3", "IN", "C2", "XXX", None),
+            # g4: io values outside IN/OUT are never flagged
+            ("R1", "P4", "IN-A", "C1", "NRG", None),
+            ("R1", "P4", "OUT-A", "C2", "DEM", None),
+            # g5: OUT winner is not DEM; no (IN, DEM) rows so no quirk row
+            ("R1", "P5", "OUT", "C1", "ENV", True),
+            ("R1", "P5", "OUT", "C2", "FIN", None),
+            ("R1", "P5", "IN", "C3", "MAT", None),
+            # g6: OUT winner not DEM, plus quirk row and mixed io values
+            ("R2", "P1", "OUT", "C1", "NRG", True),
+            ("R2", "P1", "OUT", "C2", "ENV", None),
+            ("R2", "P1", "IN", "C3", "DEM", True),  # quirk row
+            ("R2", "P1", "IN", "C4", "DEM", True),  # quirk row
+            ("R2", "P1", "IN-A", "C5", "DEM", None),
+            # single-row groups
+            ("R2", "P2", "OUT", "C1", "DEM", True),
+            ("R2", "P3", "IN", "C1", "FIN", True),
+            ("R2", "P4", "IN-A", "C1", "NRG", None),
+            ("R2", "P5", "OUT", "C1", "XXX", None),
+        ]
+        # fmt: on
+        comm_groups = DataFrame(
+            [r[:5] for r in rows],
+            columns=["region", "process", "io", "commodity", "csets"],
+        )
+        expected_flags = pd.Series([r[5] for r in rows], dtype=object)
+
+        actual = _process_comm_groups_vectorised(
+            comm_groups.copy(), transforms.csets_ordered_for_pcg
+        )
+        assert actual["DefaultVedaPCG"].equals(expected_flags)
+
+        # and the reference implementation must agree
+        expected = _process_comm_groups_reference(
+            comm_groups.copy(), transforms.csets_ordered_for_pcg
+        )
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_name_comm_groups_vectorised_matches_reference(self):
+        """The vectorised commodity group naming must produce output identical to the
+        previous row-wise apply implementation on real (austimes) data.
+        """
+        comm_groups = pd.read_parquet(
+            "tests/data/comm_groups_austimes_test_data.parquet"
+        ).drop(columns=["commoditygroup"])
+        comm_groups = comm_groups[comm_groups["region"].isin(["ACT", "NT"])]
+        _count_comm_group_vectorised(comm_groups)
+
+        expected = _name_comm_groups_reference(comm_groups.copy())
+        actual = _name_comm_groups_vectorised(comm_groups.copy())
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_name_comm_groups_vectorised_edge_cases(self):
+        """Synthetic edge cases for commodity group naming."""
+        comm_groups = DataFrame(
+            {
+                "region": ["R1"] * 4,
+                "process": ["P1", "P1", "P1", "P2"],
+                "io": ["OUT", "IN", "IN-A", "IN"],
+                "commodity": ["C1", "C2", "C3", "C4"],
+                "csets": ["NRG", "DEM", "NRG", "MAT"],
+                "commoditygroup": [2, 1, 0, 3],
+            }
+        )
+        expected_names = pd.Series(["P1_NRGO", "C2", None, "P2_MATI"], dtype=object)
+
+        actual = _name_comm_groups_vectorised(comm_groups.copy())
+        assert actual["commoditygroup"].equals(expected_names)
+
+        expected = _name_comm_groups_reference(comm_groups.copy())
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_harmonise_tradelinks(self, config):
         """Tests that harmonise_tradelinks runs successfully and produces tables with expected tags and trade processes."""
