@@ -191,6 +191,84 @@ class TestCapitaliseTableValues:
         assert len(out) == 0
 
 
+class TestExpandRows:
+    """D4: transforms.expand_rows."""
+
+    def test_basic_comma_split_and_explode(self):
+        df = pd.DataFrame(
+            {
+                "region": ["R1,R2", "R3"],
+                "other": ["x", "y"],
+            }
+        )
+        out = transforms.expand_rows(set(), {"region"}, _table(df)).dataframe
+        assert out["region"].tolist() == ["R1", "R2", "R3"]
+        assert out["other"].tolist() == ["x", "x", "y"]
+
+    def test_query_columns_kept_as_list_not_exploded(self):
+        df = pd.DataFrame({"region": ["R1,R2", "R3"], "other": ["x", "y"]})
+        out = transforms.expand_rows({"region"}, {"region"}, _table(df)).dataframe
+        assert len(out) == 2
+        # Only the comma-containing entry is turned into a list; the
+        # non-comma entry is left as a bare string (matches _split_by_commas).
+        assert out["region"].tolist() == [["R1", "R2"], "R3"]
+
+    def test_non_candidate_column_with_commas_untouched(self):
+        # "other" has commas but isn't in lists_columns -> left alone, not
+        # exploded, no crash.
+        df = pd.DataFrame({"region": ["R1", "R2"], "other": ["a,b", "c,d"]})
+        out = transforms.expand_rows(set(), {"region"}, _table(df)).dataframe
+        assert out["other"].tolist() == ["a,b", "c,d"]
+        assert out["region"].tolist() == ["R1", "R2"]
+
+    def test_non_string_cells_mixed_with_comma_strings(self):
+        df = pd.DataFrame({"region": ["R1,R2", 5, None, float("nan")]})
+        out = transforms.expand_rows(set(), {"region"}, _table(df)).dataframe
+        # Row 0 explodes into 2 rows (R1, R2); the other rows are untouched
+        # (no comma to split) and keep their original position/value.
+        assert out["region"].tolist()[:2] == ["R1", "R2"]
+        assert out["region"].tolist()[2] == 5
+        assert out["region"].tolist()[3] is None
+        assert pd.isna(out["region"].tolist()[4])
+
+    def test_empty_lists_columns_is_noop(self):
+        df = pd.DataFrame({"region": ["R1,R2", "R3"]})
+        out = transforms.expand_rows(set(), set(), _table(df)).dataframe
+        assert out["region"].tolist() == ["R1,R2", "R3"]
+
+    def test_empty_dataframe(self):
+        df = pd.DataFrame({"region": pd.Series([], dtype=object)})
+        out = transforms.expand_rows(set(), {"region"}, _table(df)).dataframe
+        assert len(out) == 0
+
+    def test_multi_column_explode(self):
+        df = pd.DataFrame({"region": ["R1,R2"], "year": ["2020,2021"]})
+        out = transforms.expand_rows(set(), {"region", "year"}, _table(df)).dataframe
+        # Both columns exploded independently -> cross-product-like blow-up
+        # via sequential .explode calls (region first, then year).
+        assert len(out) == 4
+        assert set(out["region"]) == {"R1", "R2"}
+        assert set(out["year"]) == {"2020", "2021"}
+
+    def test_all_numeric_object_column_in_lists_columns_no_crash(self):
+        df = pd.DataFrame({"region": pd.Series([1, 2, 3], dtype=object)})
+        out = transforms.expand_rows(set(), {"region"}, _table(df)).dataframe
+        assert out["region"].tolist() == [1, 2, 3]
+
+    def test_no_commas_anywhere(self):
+        df = pd.DataFrame({"region": ["R1", "R2", "R3"]})
+        out = transforms.expand_rows(set(), {"region"}, _table(df)).dataframe
+        assert out["region"].tolist() == ["R1", "R2", "R3"]
+
+    def test_lists_columns_entry_not_a_real_column_is_skipped(self):
+        df = pd.DataFrame({"region": ["R1", "R2"]})
+        out = transforms.expand_rows(
+            set(), {"region", "nonexistent_col"}, _table(df)
+        ).dataframe
+        assert out["region"].tolist() == ["R1", "R2"]
+        assert "nonexistent_col" not in out.columns
+
+
 class TestConvertAliases:
     """D3: transforms.convert_aliases."""
 

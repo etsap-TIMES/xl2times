@@ -927,12 +927,24 @@ def expand_rows(
     exclude_cols = set(process_map.keys()).union(set(commodity_map.keys()))
     lists_columns = lists_columns.difference(exclude_cols)
     df = table.dataframe
-    c = df.map(_has_comma)
-    cols_to_make_lists = [
-        colname
-        for colname in c.columns
-        if colname in lists_columns and c[colname].any()
-    ]
+    # Only columns in lists_columns can ever end up in cols_to_make_lists, so
+    # restrict the (expensive) comma-detection scan to just those columns
+    # instead of scanning every cell of every column with df.map(_has_comma).
+    candidate_cols = [c for c in df.columns if c in lists_columns]
+    cols_to_make_lists = []
+    for colname in candidate_cols:
+        try:
+            has_comma = df[colname].str.contains(",", regex=False)
+        except AttributeError:
+            # Column has no string-like entries at all (e.g. all-numeric
+            # object dtype) -> .str accessor is unavailable -> no commas.
+            continue
+        # Series.any() already skips NaN by default, so non-string cells
+        # (which .str.contains turns into NaN) are correctly ignored without
+        # needing an explicit fillna(False) (which would also emit a
+        # spurious FutureWarning about downcasting object dtype on fillna).
+        if has_comma.any():
+            cols_to_make_lists.append(colname)
     cols_to_explode = [
         colname for colname in cols_to_make_lists if colname not in query_columns
     ]
