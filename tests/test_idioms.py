@@ -297,7 +297,7 @@ class TestProcessUserDefinedSets:
         # itself is resolved in an earlier fixpoint iteration -> exercises
         # the chunked/fixpoint resolution order this fix must not disturb.
         model = _basic_model()
-        tables = {
+        tables: dict[str, pd.DataFrame] = {
             Tag.tfm_psets: pd.DataFrame(
                 {"set_name": ["SETA", "SETB"], "pset_set": ["ELE", "SETA"]}
             ),
@@ -310,7 +310,7 @@ class TestProcessUserDefinedSets:
 
     def test_csets_basic_resolution(self, config: Config):
         model = _basic_model()
-        tables = {
+        tables: dict[str, pd.DataFrame] = {
             Tag.tfm_csets: pd.DataFrame({"set_name": ["CSETA"], "cset_set": ["NRG"]}),
         }
         transforms.process_user_defined_sets(config, tables, model)
@@ -323,7 +323,7 @@ class TestProcessUserDefinedSets:
         # csets is processed before psets (to_process order); confirms both
         # branches run without interfering with each other's results.
         model = _basic_model()
-        tables = {
+        tables: dict[str, pd.DataFrame] = {
             Tag.tfm_csets: pd.DataFrame({"set_name": ["CSETA"], "cset_set": ["NRG"]}),
             Tag.tfm_psets: pd.DataFrame({"set_name": ["SETA"], "pset_set": ["ELE"]}),
         }
@@ -340,7 +340,7 @@ class TestProcessUserDefinedSets:
         # (a different process_map wildcard column) so _match_wildcards
         # still has a non-empty wild_cols to merge on.
         model = _basic_model()
-        tables = {
+        tables: dict[str, pd.DataFrame] = {
             Tag.tfm_psets: pd.DataFrame({"set_name": ["SETA"], "pset_pn": ["P1"]}),
         }
         transforms.process_user_defined_sets(config, tables, model)
