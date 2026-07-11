@@ -2300,6 +2300,43 @@ def df_indexed_by_col(df: DataFrame, col: str) -> DataFrame:
     return df
 
 
+def _processes_by_sets_entry(model: TimesModel) -> DataFrame:
+    """Build the "processes_by_sets" topology-dictionary entry.
+
+    Depends on model.processes (invariant here) plus model.custom_psets and
+    model.user_psets, which process_user_defined_sets mutates (only
+    model.user_psets, in the tfm_psets loop) as it resolves user-defined
+    process sets. Split out of generate_topology_dictionary so callers that
+    loop while mutating model.user_psets can rebuild just this entry instead
+    of the whole (much larger) dictionary each iteration.
+    """
+    pros = model.processes
+    pros_sets = pd.concat(
+        [
+            pros[["process", "sets"]].drop_duplicates(),
+            model.custom_psets,
+            model.user_psets,
+        ],
+        ignore_index=True,
+    )
+    return df_indexed_by_col(pros_sets, "sets")
+
+
+def _commodities_by_sets_entry(model: TimesModel) -> DataFrame:
+    """Build the "commodities_by_sets" topology-dictionary entry.
+
+    Depends on model.commodities (invariant here) plus model.user_csets,
+    which process_user_defined_sets mutates in its tfm_csets loop. See
+    _processes_by_sets_entry for why this is split out.
+    """
+    coms = model.commodities
+    coms_sets = pd.concat(
+        [coms[["commodity", "csets"]].drop_duplicates(), model.user_csets],
+        ignore_index=True,
+    )
+    return df_indexed_by_col(coms_sets, "csets")
+
+
 def generate_topology_dictionary(
     tables: dict[str, DataFrame], model: TimesModel
 ) -> dict[str, DataFrame]:
@@ -2309,18 +2346,6 @@ def generate_topology_dictionary(
     dictionary = dict()
     pros = model.processes
     coms = model.commodities
-    pros_sets = pd.concat(
-        [
-            pros[["process", "sets"]].drop_duplicates(),
-            model.custom_psets,
-            model.user_psets,
-        ],
-        ignore_index=True,
-    )
-    coms_sets = pd.concat(
-        [coms[["commodity", "csets"]].drop_duplicates(), model.user_csets],
-        ignore_index=True,
-    )
     pros_and_coms = model.topology[["process", "commodity", "io"]].drop_duplicates()
     i_comm_in = pros_and_coms["io"] == "IN"
     i_comm_out = pros_and_coms["io"] == "OUT"
@@ -2332,7 +2357,6 @@ def generate_topology_dictionary(
             "df": pros[["process", "description"]],
             "col": "description",
         },
-        {"key": "processes_by_sets", "df": pros_sets, "col": "sets"},
         {
             "key": "processes_by_comm_in",
             "df": pros_and_coms[["process", "commodity"]][i_comm_in],
@@ -2349,11 +2373,13 @@ def generate_topology_dictionary(
             "df": coms[["commodity", "description"]],
             "col": "description",
         },
-        {"key": "commodities_by_sets", "df": coms_sets, "col": "csets"},
     ]
 
     for entry in dict_info:
         dictionary[entry["key"]] = df_indexed_by_col(entry["df"], entry["col"])
+
+    dictionary["processes_by_sets"] = _processes_by_sets_entry(model)
+    dictionary["commodities_by_sets"] = _commodities_by_sets_entry(model)
 
     return dictionary
 
@@ -2415,8 +2441,18 @@ def process_user_defined_sets(
             # If no set_name column, then all rows are independent
             df_rows.append(df)
 
+        # Build the full topology dictionary once per tag (not once per
+        # df_row): within a single tag's df_rows loop below, only that tag's
+        # own model field mutates (tfm_csets mutates model.user_csets;
+        # tfm_psets mutates model.user_psets), so the other dictionary
+        # entries are invariant across the loop and only the one dependent
+        # entry needs to be refreshed each iteration.
+        dictionary = generate_topology_dictionary(tables, model)
         for df_row in df_rows:
-            dictionary = generate_topology_dictionary(tables, model)
+            if tag == Tag.tfm_csets:
+                dictionary["commodities_by_sets"] = _commodities_by_sets_entry(model)
+            elif tag == Tag.tfm_psets:
+                dictionary["processes_by_sets"] = _processes_by_sets_entry(model)
             row = _match_wildcards(
                 df_row,
                 item_map,

@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 from xl2times import transforms, utils
-from xl2times.datatypes import Config, EmbeddedXlTable
+from xl2times.datatypes import Config, EmbeddedXlTable, Tag, TimesModel
 
 utils.setup_logger(None)
 
@@ -267,6 +267,85 @@ class TestExpandRows:
         ).dataframe
         assert out["region"].tolist() == ["R1", "R2"]
         assert "nonexistent_col" not in out.columns
+
+
+def _basic_model() -> TimesModel:
+    model = TimesModel()
+    model.processes = pd.DataFrame(
+        {"process": ["P1", "P2"], "description": ["d1", "d2"], "sets": ["ELE", "DEM"]}
+    )
+    model.commodities = pd.DataFrame(
+        {"commodity": ["C1"], "description": ["c1"], "csets": ["NRG"]}
+    )
+    model.topology = pd.DataFrame(
+        {"process": ["P1"], "commodity": ["C1"], "io": ["IN"]}
+    )
+    return model
+
+
+class TestProcessUserDefinedSets:
+    """D5: transforms.process_user_defined_sets / generate_topology_dictionary.
+
+    "ELE" is a real entry in times-sets.json's PRC_GRP set (confirmed via
+    the config fixture's times_sets_file), so a pset_set value of "ELE"
+    resolves against config.times_sets["PRC_GRP"] on the first fixpoint
+    iteration.
+    """
+
+    def test_psets_fixpoint_chunking_dependent_set(self, config: Config):
+        # SETB's pset_set references SETA, which is only defined once SETA
+        # itself is resolved in an earlier fixpoint iteration -> exercises
+        # the chunked/fixpoint resolution order this fix must not disturb.
+        model = _basic_model()
+        tables = {
+            Tag.tfm_psets: pd.DataFrame(
+                {"set_name": ["SETA", "SETB"], "pset_set": ["ELE", "SETA"]}
+            ),
+        }
+        transforms.process_user_defined_sets(config, tables, model)
+
+        assert model.user_psets["sets"].tolist() == ["SETA", "SETB"]
+        assert model.user_psets["process"].tolist() == ["P1", "P1"]
+        assert model.user_csets.empty
+
+    def test_csets_basic_resolution(self, config: Config):
+        model = _basic_model()
+        tables = {
+            Tag.tfm_csets: pd.DataFrame({"set_name": ["CSETA"], "cset_set": ["NRG"]}),
+        }
+        transforms.process_user_defined_sets(config, tables, model)
+
+        assert model.user_csets["csets"].tolist() == ["CSETA"]
+        assert model.user_csets["commodity"].tolist() == ["C1"]
+        assert model.user_psets.empty
+
+    def test_both_tags_processed_independently(self, config: Config):
+        # csets is processed before psets (to_process order); confirms both
+        # branches run without interfering with each other's results.
+        model = _basic_model()
+        tables = {
+            Tag.tfm_csets: pd.DataFrame({"set_name": ["CSETA"], "cset_set": ["NRG"]}),
+            Tag.tfm_psets: pd.DataFrame({"set_name": ["SETA"], "pset_set": ["ELE"]}),
+        }
+        transforms.process_user_defined_sets(config, tables, model)
+
+        assert model.user_csets["csets"].tolist() == ["CSETA"]
+        assert model.user_psets["sets"].tolist() == ["SETA"]
+        assert model.user_psets["process"].tolist() == ["P1"]
+
+    def test_no_set_type_column_all_rows_independent(self, config: Config):
+        # No "pset_set" column -> df_rows is just [df] (no fixpoint
+        # chunking) -> exercises the "else" branch feeding into the
+        # generate_topology_dictionary/per-df_row loop. Uses "pset_pn"
+        # (a different process_map wildcard column) so _match_wildcards
+        # still has a non-empty wild_cols to merge on.
+        model = _basic_model()
+        tables = {
+            Tag.tfm_psets: pd.DataFrame({"set_name": ["SETA"], "pset_pn": ["P1"]}),
+        }
+        transforms.process_user_defined_sets(config, tables, model)
+        assert model.user_psets["sets"].tolist() == ["SETA"]
+        assert model.user_psets["process"].tolist() == ["P1"]
 
 
 class TestConvertAliases:
