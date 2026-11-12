@@ -56,8 +56,6 @@ class Tag(str, Enum):
     tfm_ins_tsl = "~TFM_INS-TSL"
     tfm_ins_txt = "~TFM_INS-TXT"
     tfm_mig = "~TFM_MIG"
-    tfm_mig_at = "~TFM_MIG-AT"
-    tfm_mig_ts = "~TFM_MIG-TS"
     tfm_psets = "~TFM_PSETS"
     tfm_topdins = "~TFM_TOPDINS"
     tfm_topins = "~TFM_TOPINS"

@@ -6,7 +6,6 @@ from xl2times import transforms, utils
 from xl2times.datatypes import (
     Config,
     EmbeddedXlTable,
-    Tag,
     TimesModel,
 )
 from xl2times.transforms import (
@@ -42,49 +41,6 @@ def config() -> Config:
 
 
 class TestTransforms:
-    def test_process_mig_table_variants(self, config):
-        tables = [
-            EmbeddedXlTable(
-                tag="~TFM_MIG-AT",
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=DataFrame(
-                    {"process": ["P1"], "year2": [2040], "ACT_BND": [1]}
-                ),
-            ),
-            EmbeddedXlTable(
-                tag="~TFM_MIG-TS",
-                uc_sets={},
-                sheetname="",
-                range="",
-                filename="",
-                dataframe=DataFrame(
-                    {"process": ["P1"], "attribute": ["ACT_BND"], "2030": [1]}
-                ),
-            ),
-        ]
-
-        transformed = transforms.process_transform_table_variants(
-            config, tables, TimesModel()
-        )
-
-        assert "attribute" not in config.known_columns[Tag.tfm_mig_at]
-        assert "year2" in config.known_columns[Tag.tfm_mig_at]
-        assert "year" not in config.known_columns[Tag.tfm_mig_ts]
-        assert "attribute" in config.known_columns[Tag.tfm_mig_ts]
-        assert [table.tag for table in transformed] == [
-            "~TFM_MIG",
-            "~TFM_MIG",
-        ]
-        assert transformed[0].dataframe[["attribute", "value"]].to_dict("records") == [
-            {"attribute": "ACT_BND", "value": 1}
-        ]
-        assert transformed[1].dataframe[["year", "value"]].to_dict("records") == [
-            {"year": 2030, "value": 1}
-        ]
-
     def test_explode_process_commodity_cols(self):
         df = DataFrame(
             {

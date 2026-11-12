@@ -2016,7 +2016,6 @@ def process_transform_table_variants(
             Tag.tfm_dins_ts,
             Tag.tfm_ins_ts,
             Tag.tfm_upd_ts,
-            Tag.tfm_mig_ts,
         ]:
             # ~TFM_INS-TS: Gather columns whose names are years into a single "Year" column:
             df = table.dataframe
@@ -2043,7 +2042,6 @@ def process_transform_table_variants(
             Tag.tfm_dins_at,
             Tag.tfm_ins_at,
             Tag.tfm_upd_at,
-            Tag.tfm_mig_at,
         ]:
             # ~TFM_INS-AT: Gather columns with attribute names into a single "Attribute" column
             df = table.dataframe
