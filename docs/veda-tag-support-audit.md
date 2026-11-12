@@ -1,61 +1,35 @@
 # Veda Tag Language support gap analysis
 
-**Audit date:** 12 November 2026  
-**Reference audited:** [Veda Tag Language reference](https://kanors-emr.github.io/Veda-documentation/tags/), Veda2.0 version 5.0 (November 2026)  
+**Audit date:** 12 November 2026
+**Reference audited:** [Veda Tag Language reference](https://kanors-emr.github.io/Veda-documentation/tags/), Veda2.0 version 5.0 (November 2026)
 **Code audited:** the `xl2times` checkout including the pending `~TFM_MIG-AT` and `~TFM_MIG-TS` change in open PR #363; this is not yet a statement about a merged or released version.
 
 ## Scope and interpretation
 
-This is a feature-gap inventory, not a claim that `xl2times` should implement
-all of Veda. The project README describes Veda support as partial and says
-support for other spreadsheet approaches may be added over time. The goal is to
-identify which documented Veda inputs can be converted, which are only partly
-represented, and which are not currently converted. LMA and report-definition
-tags are excluded.
+This is a feature-gap inventory, not a claim that `xl2times` should implement all of Veda. The project README describes Veda support as partial and says support for other spreadsheet approaches may be added over time. The goal is to identify which documented Veda inputs can be converted, which are only partly represented, and which are not currently converted. LMA and report-definition tags are excluded.
 
-Veda's reference covers much more than model-data conversion: it includes
-workbook synchronization, case/layer management, reports, parametric
-recalculation, and writing data back into workbooks. A converter that produces
-TIMES/GAMS data need not reproduce those Veda application features. The items
-below distinguish conversion-relevant gaps from Veda-only behavior and use
-“missing” to mean missing from xl2times's current conversion path, not
-necessarily a defect.
+Veda's reference covers much more than model-data conversion: it includes workbook synchronization, case/layer management, reports, parametric recalculation, and writing data back into workbooks. A converter that produces TIMES/GAMS data need not reproduce those Veda application features. The items below distinguish conversion-relevant gaps from Veda-only behavior and use
+“missing” to mean missing from xl2times's current conversion path, not necessarily a defect.
 
-The code observations refer to `xl2times/datatypes.py`, `xl2times/excel.py`,
-`xl2times/main.py`, `xl2times/transforms.py`, and
-`xl2times/config/veda-tags.json`. Tests and benchmark comparisons demonstrate
-specific model behavior but are not an exhaustive Veda compatibility suite.
+The code observations refer to `xl2times/datatypes.py`, `xl2times/excel.py`, `xl2times/main.py`, `xl2times/transforms.py`, and
+`xl2times/config/veda-tags.json`. Tests and benchmark comparisons demonstrate specific model behavior but are not an exhaustive Veda compatibility suite.
 
 ## Summary
 
-The core Veda-to-TIMES path is present: flexible imports and declarations,
-ordinary insert/update/migrate processing, user constraints, user sets,
-process availability, basic trade links, and demand driver tables. The largest
-conversion-impacting gaps are:
+The core Veda-to-TIMES path is present: flexible imports and declarations, ordinary insert/update/migrate processing, user constraints, user sets, process availability, basic trade links, and demand driver tables. The largest conversion-impacting gaps are:
 
-1. Topology additions are not applied, although topology filters depend on
-   them.
-2. Commodity repository availability and repository process replication are
-   not implemented.
-3. Several documented table layouts and trade-link forms are declared or
-   described by Veda but are not normalized into xl2times's supported forms.
-4. System settings and empty-index behavior are incomplete, particularly
-   `~DefaultYear`, `~MileStoneYears`, region groups, default units, and
-   region-specific timeslices.
-5. Shared table semantics (especially tag text and workbook/tag compatibility)
-   differ from the current Veda reference.
-6. Metadata, parametric workbook generation, and fill-back tables are outside
-   the converter's current capabilities.
+1. Topology additions are not applied, although topology filters depend on them.
+2. Commodity repository availability and repository process replication are not implemented.
+3. Several documented table layouts and trade-link forms are declared or described by Veda but are not normalized into xl2times's supported forms.
+4. System settings and empty-index behavior are incomplete, particularly `~DefaultYear`, `~MileStoneYears`, region groups, default units, and region-specific timeslices.
+5. Shared table semantics (especially tag text and workbook/tag compatibility) differ from the current Veda reference.
+6. Metadata, parametric workbook generation, and fill-back tables are outside the converter's current capabilities.
 
-These are candidates for staged work, not a recommendation to make
-Veda-specific semantics mandatory for all input formats.
+These are candidates for staged work, not a recommendation to make Veda-specific semantics mandatory for all input formats.
 
 ## Coverage by feature family
 
-Status definitions: **Implemented** means there is an identifiable conversion
-path; **Partial** means only a subset of the documented semantics is present;
-**Missing** means there is no corresponding processing path or the input is
-explicitly discarded.
+Status definitions: **Implemented** means there is an identifiable conversion path; **Partial** means only a subset of the documented semantics is present; **Missing** means there is no corresponding processing path or the input is explicitly discarded.
 
 | Family | Status | Current behavior and gap |
 | --- | --- | --- |
@@ -81,145 +55,56 @@ explicitly discarded.
 | Other system/catalog tags | Missing or intentionally irrelevant | `~NOpCol`, `~ParentRegions_Map`, `~VbeViews`, `~ScenMap`, and `~OsemosysCsv` have no corresponding conversion feature. `~UnitConversion` is explicitly discarded because it is for Veda result browsing. |
 | Legacy and retired tags | Mixed | `~COMEMI` and `~COMAGG` are converted into FI data. Other legacy tags may be unsupported, intentionally retired, or not relevant to TIMES/GAMS conversion. Avoid implementing retired tags just to mirror catalog membership. See `transforms.py:1627-1674` and the Veda [legacy-tag guidance](https://kanors-emr.github.io/Veda-documentation/tags/not-recommended/). |
 
-The current Veda catalog also contains model-input tags for which xl2times has
-no conversion path: `~RegionGroup_Map`, `~ReplicateInRegions`,
-`~TFM_TOPINS-A`, `~TradeLinks_c1c2`, `~TradeLinks_Desc`,
-`~FI_Process_Trades`, and `~UC_GENT`. `~TFM_TOPDINS` is recognized in the
-schema but is not applied as a topology edit. `~TFM_AVA-C` has an enum member
-but no schema/enforcement path. Of the still-effectful legacy tags,
-`~PRCCOMEMI` and `~COMAGG_R1C2` are not implemented. These are worth
-prioritizing according to whether real input models depend on them; this list
-does not imply that retired tags should be restored.
+The current Veda catalog also contains model-input tags for which xl2times has no conversion path: `~RegionGroup_Map`, `~ReplicateInRegions`, `~TFM_TOPINS-A`, `~TradeLinks_c1c2`, `~TradeLinks_Desc`, `~FI_Process_Trades`, and `~UC_GENT`. `~TFM_TOPDINS` is recognized in the schema but is not applied as a topology edit. `~TFM_AVA-C` has an enum member but no schema/enforcement path. Of the still-effectful legacy tags, `~PRCCOMEMI` and `~COMAGG_R1C2` are not implemented. These are worth prioritizing according to whether real input models depend on them; this list does not imply that retired tags should be restored.
 
 ### Rule selection and conditions
 
-The filter resolver intersects populated process/commodity filter columns,
-which provides the usual AND behavior. The Veda reference also allows
-per-row AND/OR controls; those control columns are present in some schemas but
-are not used by the resolver. The local wildcard implementation handles
-common `*`, `?`, `_`, comma-list, and exclusion forms, but does not implement
-all documented `%` and escaped-special-character rules. See
-`transforms.py:2220-2236`, `:2439-2508`, and `utils.py:250-339`.
+The filter resolver intersects populated process/commodity filter columns, which provides the usual AND behavior. The Veda reference also allows per-row AND/OR controls; those control columns are present in some schemas but are not used by the resolver. The local wildcard implementation handles common `*`, `?`, `_`, comma-list, and exclusion forms, but does not implement all documented `%` and escaped-special-character rules. See `transforms.py:2220-2236`, `:2439-2508`, and `utils.py:250-339`.
 
-UPD/MIG selection also needs a focused compatibility audit. The query path
-uses equality membership for its `val_cond` input and does not pass
-`attrib_cond` or the `avc_*` condition columns into the query. Arithmetic
-operators are applied to existing values, but the documented `~` prefix for
-an absolute value is not interpreted as an operator marker. These differences
-can change which values are modified and what values are written. See
-`transforms.py:2511-2561`, `:2730-2773`.
+UPD/MIG selection also needs a focused compatibility audit. The query path uses equality membership for its `val_cond` input and does not pass `attrib_cond` or the `avc_*` condition columns into the query. Arithmetic operators are applied to existing values, but the documented `~` prefix for an absolute value is not interpreted as an operator marker. These differences can change which values are modified and what values are written. See `transforms.py:2511-2561`, `:2730-2773`.
 
 ## Conversion-relevant gaps in more detail
 
 ### Topology edits
 
-The Veda topology reference describes `~TFM_TOPINS`, `~TFM_TOPINS-A`, and
-`~TFM_TOPDINS` as a way to add connections after declarations. These links
-affect both generated topology and rule selection through `pset_ci` /
-`pset_co`. xl2times currently constructs topology from FI data and drops
-TOPINS rather than applying its rows. This is the highest-priority behavioral
-gap because it can change which later transformation rows match.
+The Veda topology reference describes `~TFM_TOPINS`, `~TFM_TOPINS-A`, and `~TFM_TOPDINS` as a way to add connections after declarations. These links affect both generated topology and rule selection through `pset_ci` / `pset_co`. xl2times currently constructs topology from FI data and drops TOPINS rather than applying its rows. This is the highest-priority behavioral gap because it can change which later transformation rows match.
 
-Suggested investigation: implement enumerated TOPDINS first, then rule-based
-TOPINS and compact TOPINS-A through a common topology representation; verify
-that these links are visible before topology-based filters and that region,
-process, commodity, direction, and ordering semantics match the intended
-input.
+Suggested investigation: implement enumerated TOPDINS first, then rule-based TOPINS and compact TOPINS-A through a common topology representation; verify that these links are visible before topology-based filters and that region, process, commodity, direction, and ordering semantics match the intended input.
 
 ### Repository contents
 
-Veda's availability family includes process availability, commodity
-availability, and process replication. xl2times implements only the first.
-Availability-C should be added only with a clear model representation for
-region-specific commodity existence and consistent filtering of dependent
-data. Process replication is a larger transformation: it must create regional
-process declarations and consistently rename/process associated topology and
-attributes.
+Veda's availability family includes process availability, commodity availability, and process replication. xl2times implements only the first. Availability-C should be added only with a clear model representation for region-specific commodity existence and consistent filtering of dependent data. Process replication is a larger transformation: it must create regional process declarations and consistently rename/process associated topology and attributes.
 
 ### Wide transformation layouts
 
-The current branch handles attribute-wide and year-wide DINS/INS/UPD/MIG
-layouts. DINS/INS `-TSL` tags appear in the schema but the variant normalizer
-has no timeslice-wide case. These should be implemented as layout
-normalization, not as separate transformation semantics, and tested for
-headers that collide with ordinary index columns, empty cells, and tag
-defaults.
+The current branch handles attribute-wide and year-wide DINS/INS/UPD/MIG layouts. DINS/INS `-TSL` tags appear in the schema but the variant normalizer has no timeslice-wide case. These should be implemented as layout normalization, not as separate transformation semantics, and tested for headers that collide with ordinary index columns, empty cells, and tag defaults.
 
 ### System settings and defaults
 
-Veda settings have direct effects on the input-to-TIMES interpretation:
-period definitions, default year, region groups, default units, and
-region-specific time-slice maps. The current pipeline selects durations from
-`~TimePeriods` and `~ActivePDef`, defaults missing years to the start year,
-and expands one timeslice tree across internal regions. Missing settings can
-therefore alter output values or model structure, rather than merely omit
-Veda UI metadata.
+Veda settings have direct effects on the input-to-TIMES interpretation: period definitions, default year, region groups, default units, and region-specific time-slice maps. The current pipeline selects durations from `~TimePeriods` and `~ActivePDef`, defaults missing years to the start year, and expands one timeslice tree across internal regions. Missing settings can therefore alter output values or model structure, rather than merely omit Veda UI metadata.
 
-The next step should be a settings compatibility table with a test fixture
-for every setting, especially `~MileStoneYears`, `~DefaultYear`,
-`~RegionGroup_Map`, `~DefUnits`, and region-scoped `~TimeSlices`.
+The next step should be a settings compatibility table with a test fixture for every setting, especially `~MileStoneYears`, `~DefaultYear`, `~RegionGroup_Map`, `~DefUnits`, and region-scoped `~TimeSlices`.
 
 ### Tag text and table reading
 
-The reference defines general tag-cell behavior, tag-text key/value and token
-forms, precedence, table-kind-specific bounds, and the treatment of Excel
-errors and comment columns. These are shared across many tags, so a parsing
-difference can affect otherwise implemented features. In particular,
-`utils.apply_composite_tag` currently comma-splits key/value text even though
-Veda uses semicolons between settings and permits comma-separated values. It
-also treats a token such as a currency or limit type as an attribute. This
-should be fixed and tested centrally rather than worked around separately in
-each tag handler.
+The reference defines general tag-cell behavior, tag-text key/value and token forms, precedence, table-kind-specific bounds, and the treatment of Excel errors and comment columns. These are shared across many tags, so a parsing difference can affect otherwise implemented features. In particular, `utils.apply_composite_tag` currently comma-splits key/value text even though Veda uses semicolons between settings and permits comma-separated values. It also treats a token such as a currency or limit type as an attribute. This should be fixed and tested centrally rather than worked around separately in each tag handler.
 
-Likewise, tag admission should use Veda's file-type restrictions only in the
-Veda input adapter. This keeps validation useful for Veda models without
-rejecting files or tag vocabularies from other TIMES specification
-approaches.
+Likewise, tag admission should use Veda's file-type restrictions only in the Veda input adapter. This keeps validation useful for Veda models without rejecting files or tag vocabularies from other TIMES specification approaches.
 
 ### Other input models and generality
 
-The audit should not turn `xl2times` into a Veda-only implementation.
-Veda's filename/layer concepts and formula-driven controller behavior are
-not prerequisites for other TIMES input methods. Keep common model concepts
-(regions, period definitions, topology, attributes, and data layers) separate
-from Veda-specific workbook parsing and compatibility rules. Optional
-metadata or unsupported Veda features should be surfaced through diagnostics
-or preserved as metadata where useful, rather than forcing every input
-adapter to emulate them.
+The audit should not turn `xl2times` into a Veda-only implementation. Veda's filename/layer concepts and formula-driven controller behavior are not prerequisites for other TIMES input methods. Keep common model concepts (regions, period definitions, topology, attributes, and data layers) separate from Veda-specific workbook parsing and compatibility rules. Optional metadata or unsupported Veda features should be surfaced through diagnostics or preserved as metadata where useful, rather than forcing every input adapter to emulate them.
 
 ## Proposed plan
 
-This is a sequencing proposal, not a commitment to implement every Veda
-feature.
+This is a sequencing proposal, not a commitment to implement every Veda feature.
 
-1. **Make support observable.** Maintain a tag capability matrix from the
-   Veda catalog with statuses (converted, partially converted, ignored by
-   design, unsupported). Add a clear warning/diagnostic when a recognized
-   Veda tag has no conversion path; do not error on unknown tags from other
-   spreadsheet approaches.
-2. **Close structural and rule gaps.** Add TOPDINS then TOPINS/TOPINS-A;
-   add DINS/INS `-TSL`; implement the documented filter combinators and
-   UPD/MIG conditions; add regression tests proving topology edits influence
-   `pset_ci` / `pset_co`. Add AVA-C only after defining region-specific
-   commodity behavior.
-3. **Correct model-defining settings.** Add fixture-backed support or explicit
-   unsupported diagnostics for milestone-year definitions, default year,
-   default units, region groups, and region-specific timeslices. Compare
-   generated TIMES DD output with Veda-produced output.
-4. **Audit existing tag families.** Build small, isolated golden fixtures for
-   FI, trade, demand drivers, sets/groups, user constraints, MIG/UPD
-   conditions, and layer/seed ordering. Focus on semantics that affect resulting
-   TIMES tables; do not duplicate Veda's application/UI behavior.
-5. **Decide on preservation versus implementation.** For metadata and
-   workbook-oriented features such as FILL-R, parametric recalculation,
-   VbeViews, and result unit conversion, decide whether to preserve useful
-   information, report an unsupported feature, or document deliberate
-   non-support. Implement workbook mutation/recalculation only if it becomes
-   a clear product goal.
-6. **Keep the input boundary extensible.** Put Veda-specific parsing behind
-   the spreadsheet input layer and keep the internal model representation
-   independent of Veda tag names. Add tests for a non-Veda input path whenever
-   shared model structures are changed.
+1. **Make support observable.** Maintain a tag capability matrix from the Veda catalog with statuses (converted, partially converted, ignored by design, unsupported). Add a clear warning/diagnostic when a recognized Veda tag has no conversion path; do not error on unknown tags from other spreadsheet approaches.
+2. **Close structural and rule gaps.** Add TOPDINS then TOPINS/TOPINS-A; add DINS/INS `-TSL`; implement the documented filter combinators and UPD/MIG conditions; add regression tests proving topology edits influence `pset_ci` / `pset_co`. Add AVA-C only after defining region-specific commodity behavior.
+3. **Correct model-defining settings.** Add fixture-backed support or explicit unsupported diagnostics for milestone-year definitions, default year, default units, region groups, and region-specific timeslices. Compare generated TIMES DD output with Veda-produced output.
+4. **Audit existing tag families.** Build small, isolated golden fixtures for FI, trade, demand drivers, sets/groups, user constraints, MIG/UPD conditions, and layer/seed ordering. Focus on semantics that affect resulting TIMES tables; do not duplicate Veda's application/UI behavior.
+5. **Decide on preservation versus implementation.** For metadata and workbook-oriented features such as FILL-R, parametric recalculation, VbeViews, and result unit conversion, decide whether to preserve useful information, report an unsupported feature, or document deliberate non-support. Implement workbook mutation/recalculation only if it becomes a clear product goal.
+6. **Keep the input boundary extensible.** Put Veda-specific parsing behind the spreadsheet input layer and keep the internal model representation independent of Veda tag names. Add tests for a non-Veda input path whenever shared model structures are changed.
 
 ## References
 
