@@ -4,6 +4,7 @@
    :hidden:
 
    API Documentation <api/modules.rst>
+   Veda Tag Language support gap analysis <veda-tag-support-audit>
 
 ..
    Include the README as the index page of the docs to avoid duplication of essential information
