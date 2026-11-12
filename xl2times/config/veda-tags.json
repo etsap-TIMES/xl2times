@@ -2339,6 +2339,30 @@
     ]
   },
   {
+    "tag_name": "tfm_mig-at",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_mig",
+    "mod_type": "attribute"
+  },
+  {
+    "tag_name": "tfm_mig-ts",
+    "tag_allowed_in": [
+      "BY_Trans",
+      "SR_Trans",
+      "SysSettings",
+      "RegScen",
+      "TradeScen"
+    ],
+    "base_tag": "tfm_mig",
+    "mod_type": "year"
+  },
+  {
     "tag_name": "tfm_psets",
     "tag_allowed_in": [
       "setrules"

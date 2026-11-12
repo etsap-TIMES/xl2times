@@ -4,7 +4,6 @@
    :hidden:
 
    API Documentation <api/modules.rst>
-
 ..
    Include the README as the index page of the docs to avoid duplication of essential information
    https://stackoverflow.com/a/69134918/3189420
